@@ -187,10 +187,10 @@ async def file_export(gfarm_path: str):
     # size > 0
     first_byte = await p.stdout.read(1)
     if not first_byte:
-        err = await stderr_task
+        await stderr_task
         raise HTTPException(
             status_code=500,
-            detail=err.decode()
+            detail=f"Cannot read: path={gfarm_path}"
         )
 
     async def generate():
