@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 DIR=$(realpath $(dirname $0))
 source "${DIR}/common.sh"
@@ -8,4 +9,8 @@ BIND=${1:-${BIND_DEFAULT}}
 
 GUNICORN="${BIN_DIR}/gunicorn"
 
-PYTHONPATH="${SRC_DIR}/api" "$GUNICORN" --bind "$BIND" -w 4 -k uvicorn.workers.UvicornWorker gfarm_api:app
+CERTDIR="${HOME}/gfarm/docker/dist/minica/c2"
+#HTTPS="--certfile ${CERTDIR}/cert.pem --keyfile ${CERTDIR}/key.pem"
+HTTPS=""
+
+PYTHONPATH="${SRC_DIR}/api" "$GUNICORN" --bind "$BIND" -w $(nproc) -k uvicorn.workers.UvicornWorker gfarm_api:app $HTTPS
