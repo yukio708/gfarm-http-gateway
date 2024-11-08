@@ -1,25 +1,29 @@
 # gfarm-http-gateway
+
 HTTP gateway for Gfarm
 
+## Setup
 
-## for developer
+- ./setup.sh
 
-### FastAPI:
+## Start server
 
+### Start for clients on localhost (127.0.0.1)
+
+- ./bin/start.sh
+
+### Start for clients on any hosts
+
+- ./bin/start.sh 0.0.0.0:8000
+
+### for developer
+
+- ./bin/start-dev.sh
+
+### TODO
 
 ```
-cd api
-(use gunicorn (--reload cannot be used))
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker gfarm_api:app
-
-(use uvicorn)
-uvicorn gfarm_api:app --reload
-uvicorn gfarm_api:app --reload --host 0.0.0.0
-```
-
-### Web UI: (TODO)
-
-```
+Web UI
 (initialize)
 npx create-react-app ui
 cd ui
