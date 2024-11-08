@@ -1,0 +1,6 @@
+#!/bin/sh
+
+#TODO use /tmp/jwt_user_u1000/token.jwt , JWT_USER_PATH
+token="abcde"
+
+curl -H "Authorization: Bearer ${token}" "$@"

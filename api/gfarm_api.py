@@ -8,12 +8,14 @@ import re
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
+from fastapi.security import OAuth2PasswordBearer
 
 
 app = FastAPI()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 origins = [
     "http://localhost:3000",
@@ -151,8 +153,10 @@ async def hello():
 @app.get("/d/{gfarm_path:path}")
 @app.get("/dir/{gfarm_path:path}")
 @app.get("/directories/{gfarm_path:path}")
-async def dir_list(gfarm_path: str, a: int = 0):
+async def dir_list(gfarm_path: str, a: int = 0,
+                   token: str = Depends(oauth2_scheme)):
     gfarm_path = fullpath(gfarm_path)
+    print(f"token={token}")
     print(f"path={gfarm_path}")
     #p = gfls(gfarm_path)
     #s = p.stdout.read()
