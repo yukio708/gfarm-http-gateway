@@ -6,15 +6,20 @@ HTTP gateway for Gfarm
 
 ### FastAPI:
 
+
+```
 cd api
 (use gunicorn (--reload cannot be used))
 gunicorn -w 4 -k uvicorn.workers.UvicornWorker gfarm_api:app
 
 (use uvicorn)
 uvicorn gfarm_api:app --reload
+uvicorn gfarm_api:app --reload --host 0.0.0.0
+```
 
 ### Web UI: (TODO)
 
+```
 (initialize)
 npx create-react-app ui
 cd ui
@@ -24,3 +29,4 @@ npm:
 yarn:
   yarn start
   yarn add axios
+```
