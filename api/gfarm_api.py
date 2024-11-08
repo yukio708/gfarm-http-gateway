@@ -28,8 +28,8 @@ app.add_middleware(
 )
 
 def get_content_type(filename):
-  mime_type, _ = mimetypes.guess_type(filename)
-  return mime_type or 'application/octet-stream'
+    mime_type, _ = mimetypes.guess_type(filename)
+    return mime_type or 'application/octet-stream'
 
 
 def fullpath(path):
@@ -62,8 +62,11 @@ async def async_gfexport(path):
 #         stderr=subprocess.STDOUT)  #TODO stderr
 
 
-async def async_gfls(path):
-    args = ['-l', path]
+async def async_gfls(path, _all=0):
+    args = ['-l']
+    if _all == 1:
+        args.append('-a')
+    args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfls', *args,
         stdin=asyncio.subprocess.DEVNULL,
@@ -148,12 +151,12 @@ async def hello():
 @app.get("/d/{gfarm_path:path}")
 @app.get("/dir/{gfarm_path:path}")
 @app.get("/directories/{gfarm_path:path}")
-async def dir_list(gfarm_path: str):
+async def dir_list(gfarm_path: str, a: int = 0):
     gfarm_path = fullpath(gfarm_path)
     print(f"path={gfarm_path}")
     #p = gfls(gfarm_path)
     #s = p.stdout.read()
-    p = await async_gfls(gfarm_path)
+    p = await async_gfls(gfarm_path, _all=a)
     data = await p.stdout.read()
     s = data.decode()
     #print(s)
