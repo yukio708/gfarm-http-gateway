@@ -6,6 +6,9 @@ source /etc/os-release
 
 DIR=$(realpath $(dirname $0))
 VENV_DIR="${DIR}/venv"
+PIP="${VENV_DIR}/bin/pip3"
+
+PYTHON=python3
 
 SUDO() {
     sudo "$@"
@@ -35,8 +38,7 @@ install_packages_for_rhel() {
 
 install_python_package() {
     rm -rf "$VENV_DIR"
-    python3 -m venv "$VENV_DIR"
-    PIP="${VENV_DIR}/bin/pip3"
+    $PYTHON -m venv "$VENV_DIR"
 
     $PIP install fastapi
     $PIP install uvicorn
@@ -53,14 +55,16 @@ install_for_rhel() {
     install_python_package
 }
 
+# main
 for id in $ID_LIKE; do  # ID_LIKE from /etc/os-release
     case $id in
         debian)
-	    install_for_debian
+            install_for_debian
             break
             ;;
         rhel)
-	    install_for_rhel
+            PYTHON=python3.11
+            install_for_rhel
             break
             ;;
     esac
