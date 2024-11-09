@@ -1,6 +1,17 @@
 #!/bin/sh
+set -eu
+#set -x
 
-#TODO use /tmp/jwt_user_u1000/token.jwt , JWT_USER_PATH
-token="abcde"
+JWT_USER_PATH=${JWT_USER_PATH:-}
+if [ -z "$JWT_USER_PATH" ]; then
+    uid=`id -u`
+    JWT_USER_PATH="/tmp/jwt_user_u${uid}/token.jwt"
+fi
 
-curl -H "Authorization: Bearer ${token}" "$@"
+token=`cat "$JWT_USER_PATH"`
+#curl -H "Authorization: Bearer ${token}" "$@"
+
+#TODO
+#pass=`echo user1:pass1 | base64`
+#curl -H "Authorization: Basic ${pass}" "$@"
+curl -H "Authorization: Basic hoge" "$@"

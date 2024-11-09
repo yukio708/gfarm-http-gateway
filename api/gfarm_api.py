@@ -1,3 +1,4 @@
+import os
 import asyncio
 import threading
 import subprocess
@@ -5,17 +6,19 @@ import selectors
 import mimetypes
 from typing import Union
 import re
+import base64
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
 from fastapi.security import OAuth2PasswordBearer
 
 
 app = FastAPI()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+#TODO remove: oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 origins = [
     "http://localhost:3000",
@@ -46,6 +49,39 @@ def fullpath(path):
 #         stdout=subprocess.PIPE,
 #         stderr=subprocess.PIPE)
 
+def parse_authorization(authz_str):
+    authz_type = None
+    user = None
+    passwd = None
+    if authz_str:
+        authz = authz_str.split()
+        no_authz = HTTPException(
+            status_code=403,
+            detail=f"Invalid Authorization header"
+        )
+        if len(authz) >= 2:
+            authz_type = authz[0]
+            authz_token = authz[1]
+            if authz_type == 'Basic':
+                try:
+                    b = base64.b64decode(authz_token.encode())
+                    user_pass_str = b.decode()
+                except Exception:
+                    raise no_authz
+                user_pass = user_pass_str.split(":")
+                if len(user_pass) >= 2:
+                    user = user_pass[0]
+                    passwd = user_pass[1]
+                else:
+                    raise no_authz
+            elif authz_type == 'Bearer':
+                passwd = authz_token
+            else:
+                raise no_authz
+        else:
+            raise no_authz
+    return authz_type, user, passwd
+
 
 async def async_gfexport(path):
     args = [path]
@@ -64,13 +100,28 @@ async def async_gfexport(path):
 #         stderr=subprocess.STDOUT)  #TODO stderr
 
 
-async def async_gfls(path, _all=0):
+
+async def async_gfls(token, path, _all=0):
+    script_path = os.path.abspath(__file__)
+    print(script_path)
+    parent_dir = os.path.dirname(script_path)
+    base_dir = os.path.dirname(parent_dir)
+
+    #env = os.environ.copy()
+    env = {'PATH': os.environ['PATH']}
+    if token:
+        env.update({
+            'GFARM_SASL_PASSWORD': token,
+            'JWT_USER_PATH': f'!/{base_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh'
+        })
+
     args = ['-l']
     if _all == 1:
         args.append('-a')
     args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfls', *args,
+        env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT)  #TODO stderr
@@ -119,6 +170,7 @@ async def log_stderr(process: asyncio.subprocess.Process) -> None:
             break
 
 
+#TODO
 class Item(BaseModel):
     name: str
     description: Union[str, None] = None
@@ -138,6 +190,7 @@ class Item(BaseModel):
         }
 
 
+#TODO
 #async def hello() -> Item:
 @app.get("/", response_model=Item)
 async def hello():
@@ -153,16 +206,30 @@ async def hello():
 @app.get("/d/{gfarm_path:path}")
 @app.get("/dir/{gfarm_path:path}")
 @app.get("/directories/{gfarm_path:path}")
+# async def dir_list(gfarm_path: str, a: int = 0,
+#                    token: str = Depends(oauth2_scheme)):
 async def dir_list(gfarm_path: str, a: int = 0,
-                   token: str = Depends(oauth2_scheme)):
+                   authorization: Union[str, None] = Header(default=None)):
     gfarm_path = fullpath(gfarm_path)
+    #print(f"authorization={authorization}")
+    authz_type, user, passwd = parse_authorization(authorization)
+    #TODO anonymous, sasl_user
+    token = passwd
+
     print(f"token={token}")
     print(f"path={gfarm_path}")
     #p = gfls(gfarm_path)
     #s = p.stdout.read()
-    p = await async_gfls(gfarm_path, _all=a)
+    p = await async_gfls(token, gfarm_path, _all=a)
     data = await p.stdout.read()
     s = data.decode()
+    return_code = await p.wait()
+    if return_code != 0:
+        print(f"return_code={return_code}")  #TODO log
+        raise HTTPException(
+            status_code=500,
+            detail=s
+        )
     #print(s)
     headers = {"X-Custom-Header": "custom_value"}
     return PlainTextResponse(content=s, headers=headers)
