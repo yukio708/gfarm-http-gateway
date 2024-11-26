@@ -5,4 +5,5 @@ source "${DIR}/common.sh"
 
 UVICORN="${BIN_DIR}/uvicorn"
 
-PYTHONPATH="${SRC_DIR}/api" "$UVICORN" gfarm_api:app --reload --host 0.0.0.0
+RELOAD=--reload
+PYTHONPATH="${SRC_DIR}/api" "$UVICORN" gfarm_api:app --host 0.0.0.0 $RELOAD

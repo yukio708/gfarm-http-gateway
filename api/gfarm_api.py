@@ -10,11 +10,15 @@ import base64
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi import FastAPI, Header, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
 from fastapi.security import OAuth2PasswordBearer
 
+
+script_path = os.path.abspath(__file__)
+parent_dir = os.path.dirname(script_path)
+top_dir = os.path.dirname(parent_dir)
 
 app = FastAPI()
 
@@ -41,6 +45,10 @@ def fullpath(path):
     return "/" + path
 
 
+# TODO xoauth2_user_claim -> user_claim param
+user_claim = 'hpci.id'  #TODO
+
+
 # def gfexport(path):
 #     args = ['gfexport', path]
 #     return subprocess.Popen(
@@ -48,6 +56,9 @@ def fullpath(path):
 #         stdin=subprocess.DEVNULL,
 #         stdout=subprocess.PIPE,
 #         stderr=subprocess.PIPE)
+
+AUTHZ_TYPE_BASIC = 'Basic'
+AUTHZ_TYPE_BEARER = 'Bearer'
 
 def parse_authorization(authz_str):
     authz_type = None
@@ -62,7 +73,7 @@ def parse_authorization(authz_str):
         if len(authz) >= 2:
             authz_type = authz[0]
             authz_token = authz[1]
-            if authz_type == 'Basic':
+            if authz_type == AUTHZ_TYPE_BASIC:
                 try:
                     b = base64.b64decode(authz_token.encode())
                     user_pass_str = b.decode()
@@ -74,7 +85,7 @@ def parse_authorization(authz_str):
                     passwd = user_pass[1]
                 else:
                     raise no_authz
-            elif authz_type == 'Bearer':
+            elif authz_type == AUTHZ_TYPE_BEARER:
                 passwd = authz_token
             else:
                 raise no_authz
@@ -83,12 +94,39 @@ def parse_authorization(authz_str):
     return authz_type, user, passwd
 
 
-async def async_gfexport(path):
+def convert_authorization(authorization):
+    #print(f"authorization={authorization}")
+    authz_type, user, passwd = parse_authorization(authorization)
+    #TODO anonymous, sasl_user
+    token = passwd
+
+    #env = os.environ.copy()
+    env = {'PATH': os.environ['PATH']}
+    if token:
+        env.update({
+            'GFARM_SASL_PASSWORD': token,
+            'JWT_USER_PATH': f'!/{top_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh'
+        })
+    return env
+
+
+async def async_gfexport(env, path):
     args = [path]
     return await asyncio.create_subprocess_exec(
         'gfexport', *args,
+        env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
+async def async_gfreg(env, path):
+    args = ['-', path]
+    return await asyncio.create_subprocess_exec(
+        'gfreg', *args,
+        env=env,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.PIPE)
 
 
@@ -100,21 +138,7 @@ async def async_gfexport(path):
 #         stderr=subprocess.STDOUT)  #TODO stderr
 
 
-
-async def async_gfls(token, path, _all=0):
-    script_path = os.path.abspath(__file__)
-    print(script_path)
-    parent_dir = os.path.dirname(script_path)
-    base_dir = os.path.dirname(parent_dir)
-
-    #env = os.environ.copy()
-    env = {'PATH': os.environ['PATH']}
-    if token:
-        env.update({
-            'GFARM_SASL_PASSWORD': token,
-            'JWT_USER_PATH': f'!/{base_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh'
-        })
-
+async def async_gfls(env, path, _all=0):
     args = ['-l']
     if _all == 1:
         args.append('-a')
@@ -131,10 +155,11 @@ async def async_gfls(token, path, _all=0):
 PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
 
-async def async_size(path):
+async def async_size(env, path):
     args = ['-ilTd', path]
     p = await asyncio.create_subprocess_exec(
         'gfls', *args,
+        env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL)
@@ -161,11 +186,13 @@ async def async_size(path):
     return is_file, size
 
 
-async def log_stderr(process: asyncio.subprocess.Process) -> None:
+async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
     while True:
         line = await process.stderr.readline()
         if line:
-            print(f"STDERR: {line.decode().strip()}")  # TODO log
+            msg = line.decode().strip()
+            print(f"STDERR: {msg}")  # TODO log
+            elist.append(msg)
         else:
             break
 
@@ -190,7 +217,7 @@ class Item(BaseModel):
         }
 
 
-#TODO
+#TODO remove
 #async def hello() -> Item:
 @app.get("/", response_model=Item)
 async def hello():
@@ -211,16 +238,9 @@ async def hello():
 async def dir_list(gfarm_path: str, a: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
     gfarm_path = fullpath(gfarm_path)
-    #print(f"authorization={authorization}")
-    authz_type, user, passwd = parse_authorization(authorization)
-    #TODO anonymous, sasl_user
-    token = passwd
-
-    print(f"token={token}")
-    print(f"path={gfarm_path}")
-    #p = gfls(gfarm_path)
-    #s = p.stdout.read()
-    p = await async_gfls(token, gfarm_path, _all=a)
+    env = convert_authorization(authorization)
+    #print(f"path={gfarm_path}")
+    p = await async_gfls(env, gfarm_path, _all=a)
     data = await p.stdout.read()
     s = data.decode()
     return_code = await p.wait()
@@ -240,12 +260,15 @@ async def dir_list(gfarm_path: str, a: int = 0,
 BUFSIZE = 1024 * 1024
 
 @app.get("/f/{gfarm_path:path}")
+@app.get("/file/{gfarm_path:path}")
 @app.get("/files/{gfarm_path:path}")
-async def file_export(gfarm_path: str):
+async def file_export(gfarm_path: str,
+                      authorization: Union[str, None] = Header(default=None)):
+    env = convert_authorization(authorization)
     gfarm_path = fullpath(gfarm_path)
     #print(gfarm_path)
 
-    is_file, size = await async_size(gfarm_path)
+    is_file, size = await async_size(env, gfarm_path)
     if not is_file:
         raise HTTPException(
             status_code=415,
@@ -255,8 +278,9 @@ async def file_export(gfarm_path: str):
     if int(size) <= 0:
         return Response(status_code=204)
 
-    p = await async_gfexport(gfarm_path)
-    stderr_task = asyncio.create_task(log_stderr(p))
+    p = await async_gfexport(env, gfarm_path)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(p, elist))
 
     # size > 0
     first_byte = await p.stdout.read(1)
@@ -264,7 +288,7 @@ async def file_export(gfarm_path: str):
         await stderr_task
         raise HTTPException(
             status_code=500,
-            detail=f"Cannot read: path={gfarm_path}"
+            detail=f"Cannot read: path={gfarm_path}, {str(elist)}"
         )
 
     async def generate():
@@ -284,3 +308,38 @@ async def file_export(gfarm_path: str):
     cl = str(size)
     return StreamingResponse(content=generate(), media_type=ct,
                              headers={"content-length": cl})
+
+
+@app.put("/f/{gfarm_path:path}")
+@app.put("/file/{gfarm_path:path}")
+@app.put("/files/{gfarm_path:path}")
+async def file_import(gfarm_path: str,
+                      request: Request,
+                      authorization: Union[str, None] = Header(default=None)):
+    env = convert_authorization(authorization)
+    gfarm_path = fullpath(gfarm_path)
+
+    p = await async_gfreg(env, gfarm_path)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(p, elist))
+    try:
+        async for chunk in request.stream():
+            #print(f"chunk={str(chunk)}")
+            #print(f"chunk len={len(chunk)}")
+            p.stdin.write(chunk)
+    except Exception as e:
+        print(f"{str(e)}") #TODO log
+        raise HTTPException(
+            status_code=500,
+            detail=f"Cannot write: path={gfarm_path}, error={str(e)}, stderr={str(elist)}"
+        )
+    p.stdin.close()
+    await stderr_task
+    return_code = await p.wait()
+    if return_code != 0:
+        print(f"return_code={return_code}")  #TODO log
+        raise HTTPException(
+            status_code=500,
+            detail=f"Cannot write: path={gfarm_path}, {str(elist)}"
+        )
+    return Response(status_code=200)

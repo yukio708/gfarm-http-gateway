@@ -9,9 +9,9 @@ if [ -z "$JWT_USER_PATH" ]; then
 fi
 
 token=`cat "$JWT_USER_PATH"`
-#curl -H "Authorization: Bearer ${token}" "$@"
+curl -H "Authorization: Bearer ${token}" "$@"
 
 #TODO
 #pass=`echo user1:pass1 | base64`
 #curl -H "Authorization: Basic ${pass}" "$@"
-curl -H "Authorization: Basic hoge" "$@"
+#curl -H "Authorization: Basic hoge" "$@"
