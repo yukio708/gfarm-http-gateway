@@ -327,6 +327,7 @@ async def file_import(gfarm_path: str,
             #print(f"chunk={str(chunk)}")
             #print(f"chunk len={len(chunk)}")
             p.stdin.write(chunk)
+            await p.stdin.drain()  # speedup
     except Exception as e:
         print(f"{str(e)}") #TODO log
         raise HTTPException(
