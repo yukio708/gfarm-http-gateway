@@ -6,4 +6,7 @@ source "${DIR}/common.sh"
 UVICORN="${BIN_DIR}/uvicorn"
 
 RELOAD=--reload
-PYTHONPATH="${SRC_DIR}/api" "$UVICORN" gfarm_api:app --host 0.0.0.0 $RELOAD
+#LOGLEVEL=trace
+LOGLEVEL=debug
+
+PYTHONPATH="${SRC_DIR}/api" "$UVICORN" gfarm_api:app --log-level $LOGLEVEL --host 0.0.0.0 $RELOAD
