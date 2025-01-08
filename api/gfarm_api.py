@@ -22,8 +22,6 @@ top_dir = os.path.dirname(parent_dir)
 
 app = FastAPI()
 
-#TODO remove: oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 origins = [
     "http://localhost:3000",
 ]
@@ -138,10 +136,12 @@ async def async_gfreg(env, path):
 #         stderr=subprocess.STDOUT)  #TODO stderr
 
 
-async def async_gfls(env, path, _all=0):
+async def async_gfls(env, path, _all=0, recursive=0):
     args = ['-l']
     if _all == 1:
         args.append('-a')
+    if recursive == 1:
+        args.append('-R')
     args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfls', *args,
@@ -197,7 +197,7 @@ async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
             break
 
 
-#TODO
+#TODO remove
 class Item(BaseModel):
     name: str
     description: Union[str, None] = None
@@ -220,7 +220,9 @@ class Item(BaseModel):
 #TODO remove
 #async def hello() -> Item:
 @app.get("/", response_model=Item)
-async def hello():
+async def hello(request: Request):
+    print(request.headers)
+
     #return {"Hello":"World!", "abc": 123456}
     external_data = {"name": "gfarm",
                      "description": "Gfarm filesystem",
@@ -233,18 +235,19 @@ async def hello():
 @app.get("/d/{gfarm_path:path}")
 @app.get("/dir/{gfarm_path:path}")
 @app.get("/directories/{gfarm_path:path}")
-# async def dir_list(gfarm_path: str, a: int = 0,
-#                    token: str = Depends(oauth2_scheme)):
-async def dir_list(gfarm_path: str, a: int = 0,
+async def dir_list(gfarm_path: str,
+                   a: int = 0,
+                   R: int = 0,
+                   ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
     gfarm_path = fullpath(gfarm_path)
     env = convert_authorization(authorization)
     #print(f"path={gfarm_path}")
-    p = await async_gfls(env, gfarm_path, _all=a)
+    p = await async_gfls(env, gfarm_path, _all=a, recursive=R)
     data = await p.stdout.read()
     s = data.decode()
     return_code = await p.wait()
-    if return_code != 0:
+    if ign_err == 0 and return_code != 0:
         print(f"return_code={return_code}")  #TODO log
         raise HTTPException(
             status_code=500,
