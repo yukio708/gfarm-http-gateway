@@ -33,18 +33,17 @@ HTTP gateway for Gfarm
 
 ### example
 
-- (start start-dev.sh on c2)
-- (get passphrase from jwt-server)
-- (start jwt-agent)
-- (gfmkdir /tmp; gfchmod 1777 /tmp)
-- cd bin
-- ./jwt-curl http://c2:8000/m/whoami
-- ./jwt-curl http://c2:8000/m/gfmd
-- ./jwt-curl http://c2:8000/m/gfsd
-- ./jwt-curl "http://c2:8000/d/?a=1&R=1&ign_err=1"
-- dd if=/dev/urandom of=~/10GiB bs=1M count=10K
-- ./jwt-gfarm-upload ~/10GiB http://c2:8000/f/tmp/10GiB
-- ./jwt-curl -o 10GiB-2 http://c2:8000/f/tmp/10GiB
+- start `start-dev.sh` on c2
+- get passphrase from JWT Server
+  - JWT Server: https://github.com/oss-tsukuba/jwt-server
+- start `jwt-agent`
+- `gfmkdir /tmp; gfchmod 1777 /tmp`
+- `cd bin`
+- `./jwt-curl -s http://c2:8000/c/me`
+- `./jwt-curl -s "http://c2:8000/d/?a=1&R=1&ign_err=1"`
+- `dd if=/dev/urandom of=/tmp/10GiB bs=1M count=10K`
+- `./jwt-curl-upload /tmp/10GiB http://c2:8000/f/tmp/10GiB`
+- `./jwt-curl -o /tmp/10GiB-2 http://c2:8000/f/tmp/10GiB`
 
 ## API docs
 

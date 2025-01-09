@@ -62,12 +62,12 @@ def parse_authorization(authz_str):
     authz_type = None
     user = None
     passwd = None
+    no_authz = HTTPException(
+        status_code=401,
+        detail=f"Invalid Authorization header"
+    )
     if authz_str:
         authz = authz_str.split()
-        no_authz = HTTPException(
-            status_code=403,
-            detail=f"Invalid Authorization header"
-        )
         if len(authz) >= 2:
             authz_type = authz[0]
             authz_token = authz[1]
@@ -89,6 +89,8 @@ def parse_authorization(authz_str):
                 raise no_authz
         else:
             raise no_authz
+    else:
+        raise no_authz
     return authz_type, user, passwd
 
 
@@ -234,8 +236,8 @@ async def hello(request: Request):
     return i
 
 
-@app.get("/m/whoami")
-@app.get("/meta/whoami")
+@app.get("/c/me")
+@app.get("/config/me")
 async def whoami(authorization: Union[str, None] = Header(default=None)):
     env = convert_authorization(authorization)
     p = await async_gfwhoami(env)
