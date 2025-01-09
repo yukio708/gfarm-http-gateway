@@ -1,15 +1,13 @@
 #!/bin/sh
 set -eu
-set -x
+#set -x
 
 CMD="$0"
 INPUT="$1"
 URL="$2"
 shift
 shift
-
 parent=$(dirname "$CMD")
-
 bname=$(basename "$INPUT")
 dname=$(dirname "$INPUT")
 cd "$dname"
