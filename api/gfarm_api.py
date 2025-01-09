@@ -108,6 +108,16 @@ def convert_authorization(authorization):
     return env
 
 
+async def async_gfwhoami(env):
+    args = []
+    return await asyncio.create_subprocess_exec(
+        'gfwhoami', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT)
+
+
 async def async_gfexport(env, path):
     args = [path]
     return await asyncio.create_subprocess_exec(
@@ -128,14 +138,6 @@ async def async_gfreg(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
-# def gfls(path):
-#     args = ['gfls', '-l', path]
-#     return subprocess.Popen(
-#         args, shell=False, close_fds=True, universal_newlines=True,
-#         stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-#         stderr=subprocess.STDOUT)  #TODO stderr
-
-
 async def async_gfls(env, path, _all=0, recursive=0):
     args = ['-l']
     if _all == 1:
@@ -148,7 +150,7 @@ async def async_gfls(env, path, _all=0, recursive=0):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT)  #TODO stderr
+        stderr=asyncio.subprocess.STDOUT)  #TODO stderr?
 
 
 # SEE ALSO: gfptar
@@ -232,6 +234,28 @@ async def hello(request: Request):
     return i
 
 
+@app.get("/m/whoami")
+@app.get("/meta/whoami")
+async def whoami(authorization: Union[str, None] = Header(default=None)):
+    env = convert_authorization(authorization)
+    p = await async_gfwhoami(env)
+    data = await p.stdout.read()
+    s = data.decode()
+    return_code = await p.wait()
+    if return_code != 0:
+        print(f"return_code={return_code}")  #TODO log
+        if "authentication error" in s:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication error"
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=s
+        )
+    return PlainTextResponse(content=s)
+
+
 @app.get("/d/{gfarm_path:path}")
 @app.get("/dir/{gfarm_path:path}")
 @app.get("/directories/{gfarm_path:path}")
@@ -254,8 +278,9 @@ async def dir_list(gfarm_path: str,
             detail=s
         )
     #print(s)
-    headers = {"X-Custom-Header": "custom_value"}
-    return PlainTextResponse(content=s, headers=headers)
+    #headers = {"X-Custom-Header": "custom_value"}
+    #return PlainTextResponse(content=s, headers=headers)
+    return PlainTextResponse(content=s)
 
 
 #BUFSIZE = 1
