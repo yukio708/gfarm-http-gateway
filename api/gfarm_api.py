@@ -13,12 +13,18 @@ from pydantic import BaseModel
 from fastapi import FastAPI, Header, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.templating import Jinja2Templates
 
+from starlette.middleware.sessions import SessionMiddleware
+from authlib.integrations.starlette_client import OAuth
 
-script_path = os.path.abspath(__file__)
-parent_dir = os.path.dirname(script_path)
-top_dir = os.path.dirname(parent_dir)
+#from jose import jwt
+
+api_path = os.path.abspath(__file__)
+api_dir = os.path.dirname(api_path)
+top_dir = os.path.dirname(api_dir)
 
 app = FastAPI()
 
@@ -34,6 +40,87 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+SESSION_SECRET="__SECRET_KEY__"
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+
+#############################################################################
+
+templates = Jinja2Templates(directory="templates")
+
+# add this URL to "Valid redirect URIs" of KEYCLOAK_CLIENT_ID in Keyclaok
+
+# not work: gfmd[503448]: <err> [1005366] SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
+#KEYCLOAK_SERVER = os.environ.get("KEYCLOAK_SERVER", "http://keycloak:8080")
+KEYCLOAK_SERVER = os.environ.get("KEYCLOAK_SERVER", "https://keycloak:8443")
+KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "HPCI")
+KEYCLOAK_CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "hpci-jwt-server")
+KEYCLOAK_CLIENT_SECRET = os.environ.get("KEYCLOAK_CLIENT_SECRET", "eJxl5z1EHU0u6BVLpR5MG0v4NLgCZWWG")
+
+oauth = OAuth()
+oauth.register(
+    name="keycloak",
+    server_metadata_url=f"{KEYCLOAK_SERVER}/auth/realms/{KEYCLOAK_REALM}/.well-known/openid-configuration",
+    client_id=KEYCLOAK_CLIENT_ID,
+    client_secret=KEYCLOAK_CLIENT_SECRET,
+    client_kwargs={
+        #'scope': 'hpci',
+        'verify': False,  # not verify certificate  # TODO True
+    },
+)
+
+def get_token(request):
+    return request.session.get("token")
+
+
+def update_token(request, token):
+    request.session["token"] = token
+
+
+def delete_token(request):
+    request.session.pop("token", None)
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    token = get_token(request)
+    if token:
+        access_token = token.get("access_token")
+    else:
+        access_token = None
+    return templates.TemplateResponse("index.html", {"request": request, "access_token": access_token})
+
+
+@app.get("/login")
+async def login(request: Request):
+    #TODO keycloak = oauth.create_client(PROVIDR_NAME_KEYCLOAK)
+    #keycloak = oauth.create_client("keycloak")
+    keycloak = oauth.keycloak
+    redirect_uri = request.url_for("auth")
+    return await keycloak.authorize_redirect(request, redirect_uri)
+
+
+@app.get("/auth")
+async def auth(request: Request):
+    #keycloak = oauth.create_client("keycloak")
+    keycloak = oauth.keycloak
+    try:
+        token = await keycloak.authorize_access_token(request)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    print(str(token)) #TODO
+    update_token(request, token)
+    return RedirectResponse(url="/")
+
+
+@app.get("/logout")
+async def logout(request: Request):
+    delete_token(request)
+    return RedirectResponse(url="/")
+
+
+
+###########################################
+
 def get_content_type(filename):
     mime_type, _ = mimetypes.guess_type(filename)
     return mime_type or 'application/octet-stream'
@@ -44,7 +131,7 @@ def fullpath(path):
 
 
 # TODO xoauth2_user_claim -> user_claim param
-user_claim = 'hpci.id'  #TODO
+#user_claim = 'hpci.id'  #TODO
 
 
 # def gfexport(path):
@@ -94,17 +181,30 @@ def parse_authorization(authz_str):
     return authz_type, user, passwd
 
 
-def convert_authorization(authorization):
-    #print(f"authorization={authorization}")
-    authz_type, user, passwd = parse_authorization(authorization)
-    #TODO anonymous, sasl_user
-    token = passwd
-
-    #env = os.environ.copy()
+async def init_env(request, authorization):
     env = {'PATH': os.environ['PATH']}
+
+    # prefer session
+    token = get_token(request)
+    access_token = None
     if token:
+        print("token from session: " + str(token))
+        # TODO refresh access_token using refresh_token
+        #NG  new_token = await oauth.keycloak.authorize_access_token(request)
+        #new_token = oauth.keycloak.refresh_token(token["refresh_token"])
+        #update_token(request, new_token)
+        #print("new_token from session: " + str(new_token))
+        access_token = token.get("access_token")
+
+    if not access_token:
+        #print(f"authorization={authorization}")
+        authz_type, user, passwd = parse_authorization(authorization)
+        #TODO anonymous, sasl_user
+        access_token = passwd
+
+    if access_token:
         env.update({
-            'GFARM_SASL_PASSWORD': token,
+            'GFARM_SASL_PASSWORD': access_token,
             'JWT_USER_PATH': f'!/{top_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh'
         })
     return env
@@ -223,7 +323,7 @@ class Item(BaseModel):
 
 #TODO remove
 #async def hello() -> Item:
-@app.get("/", response_model=Item)
+@app.get("/hello", response_model=Item)
 async def hello(request: Request):
     print(request.headers)
 
@@ -238,8 +338,9 @@ async def hello(request: Request):
 
 @app.get("/c/me")
 @app.get("/config/me")
-async def whoami(authorization: Union[str, None] = Header(default=None)):
-    env = convert_authorization(authorization)
+async def me(request: Request,
+             authorization: Union[str, None] = Header(default=None)):
+    env = await init_env(request, authorization)
     p = await async_gfwhoami(env)
     data = await p.stdout.read()
     s = data.decode()
@@ -249,7 +350,7 @@ async def whoami(authorization: Union[str, None] = Header(default=None)):
         if "authentication error" in s:
             raise HTTPException(
                 status_code=401,
-                detail="Authentication error"
+                detail="Authentication error: " + s
             )
         raise HTTPException(
             status_code=500,
@@ -262,12 +363,13 @@ async def whoami(authorization: Union[str, None] = Header(default=None)):
 @app.get("/dir/{gfarm_path:path}")
 @app.get("/directories/{gfarm_path:path}")
 async def dir_list(gfarm_path: str,
+                   request: Request,
                    a: int = 0,
                    R: int = 0,
                    ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
     gfarm_path = fullpath(gfarm_path)
-    env = convert_authorization(authorization)
+    env = await init_env(request, authorization)
     #print(f"path={gfarm_path}")
     p = await async_gfls(env, gfarm_path, _all=a, recursive=R)
     data = await p.stdout.read()
@@ -293,8 +395,9 @@ BUFSIZE = 1024 * 1024
 @app.get("/file/{gfarm_path:path}")
 @app.get("/files/{gfarm_path:path}")
 async def file_export(gfarm_path: str,
+                      request: Request,
                       authorization: Union[str, None] = Header(default=None)):
-    env = convert_authorization(authorization)
+    env = await init_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
     #print(gfarm_path)
 
@@ -346,7 +449,7 @@ async def file_export(gfarm_path: str,
 async def file_import(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
-    env = convert_authorization(authorization)
+    env = await init_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
     p = await async_gfreg(env, gfarm_path)
