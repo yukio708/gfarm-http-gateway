@@ -1,0 +1,9 @@
+requests
+fastapi
+itsdangerous
+authlib
+httpx
+Jinja2
+python-jose
+uvicorn
+gunicorn

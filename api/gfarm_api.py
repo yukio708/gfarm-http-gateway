@@ -1,26 +1,26 @@
 import os
 import asyncio
-import threading
-import subprocess
-import selectors
 import mimetypes
 from typing import Union
 import re
 import base64
+from typing import Optional
+# from pprint import pformat as pf
+
+import requests
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Header, HTTPException, Depends, Request
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordBearer
 from fastapi.templating import Jinja2Templates
 
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
 
-#from jose import jwt
+# from jose import jwt
 
 api_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(api_path)
@@ -40,75 +40,115 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SESSION_SECRET="__SECRET_KEY__"
+SESSION_SECRET = "__SECRET_KEY__"
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
 #############################################################################
 
 templates = Jinja2Templates(directory="templates")
 
-# add this URL to "Valid redirect URIs" of KEYCLOAK_CLIENT_ID in Keyclaok
+# add this URL to "Valid redirect URIs" of OIDC_CLIENT_ID in Keyclaok
 
-# not work: gfmd[503448]: <err> [1005366] SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
-#KEYCLOAK_SERVER = os.environ.get("KEYCLOAK_SERVER", "http://keycloak:8080")
-KEYCLOAK_SERVER = os.environ.get("KEYCLOAK_SERVER", "https://keycloak:8443")
-KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "HPCI")
-KEYCLOAK_CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "hpci-jwt-server")
-KEYCLOAK_CLIENT_SECRET = os.environ.get("KEYCLOAK_CLIENT_SECRET", "eJxl5z1EHU0u6BVLpR5MG0v4NLgCZWWG")
+# not work: http://keycloak
+# gfmd[]: <err> [1005366]
+# SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
+# KC_SERVER = os.environ.get("OIDC_SERVER", "http://keycloak:8080")
+OIDC_SERVER = os.environ.get("OIDC_SERVER", "https://keycloak:8443")
+OIDC_REALM = os.environ.get("OIDC_REALM", "HPCI")
+OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "hpci-jwt-server")
+OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET",
+                                    "eJxl5z1EHU0u6BVLpR5MG0v4NLgCZWWG")
+
+OIDC_META_URL = f"{OIDC_SERVER}/auth/realms/{OIDC_REALM}" \
+    + "/.well-known/openid-configuration"
 
 oauth = OAuth()
 oauth.register(
     name="keycloak",
-    server_metadata_url=f"{KEYCLOAK_SERVER}/auth/realms/{KEYCLOAK_REALM}/.well-known/openid-configuration",
-    client_id=KEYCLOAK_CLIENT_ID,
-    client_secret=KEYCLOAK_CLIENT_SECRET,
+    server_metadata_url=OIDC_META_URL,
+    client_id=OIDC_CLIENT_ID,
+    client_secret=OIDC_CLIENT_SECRET,
     client_kwargs={
-        #'scope': 'hpci',
+        'scope': 'hpci',
         'verify': False,  # not verify certificate  # TODO True
     },
 )
+provider = oauth.keycloak
 
-def get_token(request):
+
+async def use_refresh_token(request: Request):
+    token = request.session.get("token")
+    if not token:
+        return
+    refresh_token = token.get("refresh_token")
+    if not refresh_token:
+        return
+
+    # TODO check exp
+
+    meta = await provider.load_server_metadata()
+    try:
+        data = {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": OIDC_CLIENT_ID,
+            "client_secret": OIDC_CLIENT_SECRET,
+        }
+        token_endpoint_url = meta.get('token_endpoint')
+        # TODO use httpx
+        # TODO verify=True
+        response = requests.post(token_endpoint_url,
+                                 data=data, verify=False)
+        response.raise_for_status()
+        token = response.json()
+        request.session["token"] = token
+    except requests.exceptions.RequestException:
+        raise
+
+
+async def get_token(request: Request) -> Optional[str]:
+    await use_refresh_token(request)
     return request.session.get("token")
 
 
-def update_token(request, token):
+def set_token(request: Request, token: str):
     request.session["token"] = token
 
 
-def delete_token(request):
+def delete_token(request: Request):
     request.session.pop("token", None)
+
+
+async def get_access_token(request: Request) -> Optional[str]:
+    token = await get_token(request)
+    if token:
+        print("token from session: " + str(token))  # TODO
+        return token.get("access_token")
+    return None
 
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    token = get_token(request)
-    if token:
-        access_token = token.get("access_token")
-    else:
-        access_token = None
-    return templates.TemplateResponse("index.html", {"request": request, "access_token": access_token})
+    access_token = await get_access_token(request)
+    return templates.TemplateResponse("index.html",
+                                      {"request": request,
+                                       "access_token": access_token})
 
 
 @app.get("/login")
 async def login(request: Request):
-    #TODO keycloak = oauth.create_client(PROVIDR_NAME_KEYCLOAK)
-    #keycloak = oauth.create_client("keycloak")
-    keycloak = oauth.keycloak
     redirect_uri = request.url_for("auth")
-    return await keycloak.authorize_redirect(request, redirect_uri)
+    return await provider.authorize_redirect(request, redirect_uri)
 
 
 @app.get("/auth")
 async def auth(request: Request):
-    #keycloak = oauth.create_client("keycloak")
-    keycloak = oauth.keycloak
     try:
-        token = await keycloak.authorize_access_token(request)
+        token = await provider.authorize_access_token(request)
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
-    print(str(token)) #TODO
-    update_token(request, token)
+    print(str(token))  # TODO
+    set_token(request, token)
     return RedirectResponse(url="/")
 
 
@@ -118,20 +158,14 @@ async def logout(request: Request):
     return RedirectResponse(url="/")
 
 
-
 ###########################################
-
-def get_content_type(filename):
+def get_content_type(filename: str):
     mime_type, _ = mimetypes.guess_type(filename)
     return mime_type or 'application/octet-stream'
 
 
-def fullpath(path):
+def fullpath(path: str):
     return "/" + path
-
-
-# TODO xoauth2_user_claim -> user_claim param
-#user_claim = 'hpci.id'  #TODO
 
 
 # def gfexport(path):
@@ -145,13 +179,14 @@ def fullpath(path):
 AUTHZ_TYPE_BASIC = 'Basic'
 AUTHZ_TYPE_BEARER = 'Bearer'
 
-def parse_authorization(authz_str):
+
+def parse_authorization(authz_str: str):
     authz_type = None
     user = None
     passwd = None
     no_authz = HTTPException(
         status_code=401,
-        detail=f"Invalid Authorization header"
+        detail="Invalid Authorization header"
     )
     if authz_str:
         authz = authz_str.split()
@@ -181,25 +216,18 @@ def parse_authorization(authz_str):
     return authz_type, user, passwd
 
 
-async def init_env(request, authorization):
+async def set_env(request, authorization):
     env = {'PATH': os.environ['PATH']}
 
-    # prefer session
-    token = get_token(request)
-    access_token = None
-    if token:
-        print("token from session: " + str(token))
-        # TODO refresh access_token using refresh_token
-        #NG  new_token = await oauth.keycloak.authorize_access_token(request)
-        #new_token = oauth.keycloak.refresh_token(token["refresh_token"])
-        #update_token(request, new_token)
-        #print("new_token from session: " + str(new_token))
-        access_token = token.get("access_token")
+    # get access token from session
+    access_token = await get_access_token(request)
 
+    # prefer session
     if not access_token:
-        #print(f"authorization={authorization}")
+        # get access token from Authorization header
+        # print(f"authorization={authorization}")
         authz_type, user, passwd = parse_authorization(authorization)
-        #TODO anonymous, sasl_user
+        # TODO anonymous, sasl_user
         access_token = passwd
 
     if access_token:
@@ -252,12 +280,13 @@ async def async_gfls(env, path, _all=0, recursive=0):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT)  #TODO stderr?
+        stderr=asyncio.subprocess.STDOUT)  # TODO stderr?
 
 
 # SEE ALSO: gfptar
 PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
+
 
 async def async_size(env, path):
     args = ['-ilTd', path]
@@ -301,7 +330,7 @@ async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
             break
 
 
-#TODO remove
+# TODO unused
 class Item(BaseModel):
     name: str
     description: Union[str, None] = None
@@ -321,13 +350,11 @@ class Item(BaseModel):
         }
 
 
-#TODO remove
-#async def hello() -> Item:
+# TODO unused
 @app.get("/hello", response_model=Item)
-async def hello(request: Request):
+async def hello(request: Request) -> Item:
     print(request.headers)
 
-    #return {"Hello":"World!", "abc": 123456}
     external_data = {"name": "gfarm",
                      "description": "Gfarm filesystem",
                      "price": 100,
@@ -340,13 +367,13 @@ async def hello(request: Request):
 @app.get("/config/me")
 async def me(request: Request,
              authorization: Union[str, None] = Header(default=None)):
-    env = await init_env(request, authorization)
+    env = await set_env(request, authorization)
     p = await async_gfwhoami(env)
     data = await p.stdout.read()
     s = data.decode()
     return_code = await p.wait()
     if return_code != 0:
-        print(f"return_code={return_code}")  #TODO log
+        print(f"return_code={return_code}")  # TODO log
         if "authentication error" in s:
             raise HTTPException(
                 status_code=401,
@@ -369,27 +396,28 @@ async def dir_list(gfarm_path: str,
                    ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
     gfarm_path = fullpath(gfarm_path)
-    env = await init_env(request, authorization)
-    #print(f"path={gfarm_path}")
+    env = await set_env(request, authorization)
+    # print(f"path={gfarm_path}")
     p = await async_gfls(env, gfarm_path, _all=a, recursive=R)
     data = await p.stdout.read()
     s = data.decode()
     return_code = await p.wait()
     if ign_err == 0 and return_code != 0:
-        print(f"return_code={return_code}")  #TODO log
+        print(f"return_code={return_code}")  # TODO log
         raise HTTPException(
             status_code=500,
             detail=s
         )
-    #print(s)
-    #headers = {"X-Custom-Header": "custom_value"}
-    #return PlainTextResponse(content=s, headers=headers)
+    # print(s)
+    # headers = {"X-Custom-Header": "custom_value"}
+    # return PlainTextResponse(content=s, headers=headers)
     return PlainTextResponse(content=s)
 
 
-#BUFSIZE = 1
-#BUFSIZE = 65536
+# BUFSIZE = 1
+# BUFSIZE = 65536
 BUFSIZE = 1024 * 1024
+
 
 @app.get("/f/{gfarm_path:path}")
 @app.get("/file/{gfarm_path:path}")
@@ -397,9 +425,9 @@ BUFSIZE = 1024 * 1024
 async def file_export(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
-    env = await init_env(request, authorization)
+    env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
-    #print(gfarm_path)
+    # print(gfarm_path)
 
     is_file, size = await async_size(env, gfarm_path)
     if not is_file:
@@ -435,7 +463,7 @@ async def file_export(gfarm_path: str,
         await stderr_task
         return_code = await p.wait()
         if return_code != 0:
-            print(f"return_code={return_code}")  #TODO log
+            print(f"return_code={return_code}")  # TODO log
 
     ct = get_content_type(gfarm_path)
     cl = str(size)
@@ -449,7 +477,7 @@ async def file_export(gfarm_path: str,
 async def file_import(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
-    env = await init_env(request, authorization)
+    env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
     p = await async_gfreg(env, gfarm_path)
@@ -457,21 +485,22 @@ async def file_import(gfarm_path: str,
     stderr_task = asyncio.create_task(log_stderr(p, elist))
     try:
         async for chunk in request.stream():
-            #print(f"chunk={str(chunk)}")
-            #print(f"chunk len={len(chunk)}")
+            # print(f"chunk={str(chunk)}")
+            # print(f"chunk len={len(chunk)}")
             p.stdin.write(chunk)
             await p.stdin.drain()  # speedup
     except Exception as e:
-        print(f"{str(e)}") #TODO log
+        print(f"{str(e)}")  # TODO log
         raise HTTPException(
             status_code=500,
-            detail=f"Cannot write: path={gfarm_path}, error={str(e)}, stderr={str(elist)}"
+            detail=f"Cannot write: path={gfarm_path},"
+            f" error={str(e)}, stderr={str(elist)}"
         )
     p.stdin.close()
     await stderr_task
     return_code = await p.wait()
     if return_code != 0:
-        print(f"return_code={return_code}")  #TODO log
+        print(f"return_code={return_code}")  # TODO log
         raise HTTPException(
             status_code=500,
             detail=f"Cannot write: path={gfarm_path}, {str(elist)}"

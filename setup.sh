@@ -40,16 +40,7 @@ install_python_package() {
     #rm -rf "$VENV_DIR"
     $PYTHON -m venv "$VENV_DIR"
 
-    # TODO $PIP install -r requirements.txt
-    $PIP install fastapi
-    #$PIP install starlette
-    $PIP install itsdangerous
-    $PIP install authlib
-    $PIP install httpx
-    $PIP install Jinja2
-    #$PIP install python-jose
-    $PIP install uvicorn
-    $PIP install gunicorn
+    $PIP install -r requirements.txt
 }
 
 install_for_debian() {
