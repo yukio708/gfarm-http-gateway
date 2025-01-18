@@ -60,12 +60,12 @@ td {
   const lsOut = document.getElementById('ls_out');
 
   lsButton.addEventListener('click', async () => {
-      const path = lsPath.value;
+      const path = lsPath.value.replace(/^\/+/g, "");
 
-      if (!path) {
-          outputDiv.textContent = "Input path";
-          return;
-      }
+      // if (!path) {
+      //     lsOut.textContent = "Input path";
+      //     return;
+      // }
 
       try {
           let api_dir = "/d";
