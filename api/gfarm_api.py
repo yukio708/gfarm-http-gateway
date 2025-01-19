@@ -30,6 +30,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:3000",
+    "http://c2:8000",
 ]
 
 app.add_middleware(
@@ -40,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SESSION_SECRET = "__SECRET_KEY__"
+SESSION_SECRET = "__SECRET_KEY__"   # TODO from configuration file
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
 #############################################################################
@@ -156,6 +157,13 @@ async def auth(request: Request):
 async def logout(request: Request):
     delete_token(request)
     return RedirectResponse(url="/")
+
+
+@app.get("/access_token")
+async def access_token(request: Request):
+    access_token = await get_access_token(request)
+    # return JSON
+    return {"access_token": access_token}
 
 
 ###########################################

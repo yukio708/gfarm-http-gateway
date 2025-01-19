@@ -24,6 +24,7 @@ YUM() {
 
 install_packages_for_debian() {
     # for Ubuntu 24.04
+    APTGET update
     APTGET install -y python3-minimal python3-pip python3-venv
     APTGET install -y nodejs
 }

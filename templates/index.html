@@ -19,11 +19,24 @@ td {
     <h1>Gfarm HTTP Gateway</h1>
     {% if access_token %}
         <h2> access_token </h2>
-        <table><tr><td>{{ access_token }}</td></tr></table>
+        <table><tr><td id="access_token">{{ access_token }}</td></tr></table>
 
         <p> <a href="/c/me">Who am I (/me)</a> </p>
+
+        <p>
         <button id="whoami_btn">Who am I</button>
         <div id="whoami_out"></div>
+        </p>
+
+        <p>
+        <button id="whoami_btn2">Who am I (from c3 usinig new token from /access_token) (CORS)</button>
+        <div id="whoami_out2"></div>
+        </p>
+
+        <p>
+        <button id="whoami_btn3">Who am I (from c3 usinig token from HTML (may use old token)) (CORS)</button>
+        <div id="whoami_out3"></div>
+        </p>
 
         <p>
         <input type="text" id="ls_path" value="/tmp">
@@ -40,7 +53,6 @@ td {
 <script>
   const whoamiButton = document.getElementById('whoami_btn');
   const whoamiOut = document.getElementById('whoami_out');
-
   whoamiButton.addEventListener('click', async () => {
      try {
         const response = await fetch('/c/me');
@@ -53,6 +65,55 @@ td {
          console.error('Error fetching data:', error);
          whoamiOut.textContent = error;
       }
+  });
+
+  const whoamiButton2 = document.getElementById('whoami_btn2');
+  const whoamiOut2 = document.getElementById('whoami_out2');
+  whoamiButton2.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/access_token');
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      const data = await response.json();
+      const response2 = await fetch('http://c3:8000/c/me',
+      {
+        headers: {
+          'Authorization': 'Bearer ' + data.access_token,
+        }
+      });
+      if (!response2.ok) {
+        throw new Error(`HTTP error (from c3): ${response.status}`);
+      }
+      const text = await response2.text();
+      whoamiOut2.textContent = text;
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      whoamiOut2.textContent = error;
+    }
+  });
+
+  const whoamiButton3 = document.getElementById('whoami_btn3');
+  const whoamiOut3 = document.getElementById('whoami_out3');
+  whoamiButton3.addEventListener('click', async () => {
+    try {
+      const atElement = document.getElementById('access_token');
+      const access_token = atElement.textContent;
+      const response = await fetch('http://c3:8000/c/me',
+      {
+        headers: {
+          'Authorization': 'Bearer ' + access_token,
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      const text = await response.text();
+      whoamiOut3.textContent = text;
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      whoamiOut3.textContent = error;
+    }
   });
 
   const lsPath = document.getElementById('ls_path');
