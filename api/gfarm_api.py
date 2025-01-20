@@ -5,6 +5,7 @@ from typing import Union
 import re
 import base64
 from typing import Optional
+import json
 # from pprint import pformat as pf
 
 import requests
@@ -19,6 +20,8 @@ from fastapi.templating import Jinja2Templates
 
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
+
+from cryptography.fernet import Fernet
 
 # from jose import jwt
 
@@ -43,6 +46,13 @@ app.add_middleware(
 
 SESSION_SECRET = "__SECRET_KEY__"   # TODO from configuration file
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+
+ENCRYPT_SESSION = False  # True: not work (too large cookie)
+
+if ENCRYPT_SESSION:
+    fer = Fernet(Fernet.generate_key())
+else:
+    fer = None
 
 #############################################################################
 
@@ -77,16 +87,19 @@ oauth.register(
 provider = oauth.keycloak
 
 
-async def use_refresh_token(request: Request):
+def set_token(request: Request, token):
+    if fer:
+        # dict -> JSON str -> str binary
+        s = json.dumps(token).encode()
+        # binary -> encrypt -> base64 bin -> base64 str
+        token = base64.b64encode(fer.encrypt(s)).decode()
+    print(f"set token: {token}")  # TODO
+    request.session["token"] = token
     token = request.session.get("token")
-    if not token:
-        return
+
+
+async def use_refresh_token(request: Request, token):
     refresh_token = token.get("refresh_token")
-    if not refresh_token:
-        return
-
-    # TODO check exp
-
     meta = await provider.load_server_metadata()
     try:
         data = {
@@ -101,19 +114,30 @@ async def use_refresh_token(request: Request):
         response = requests.post(token_endpoint_url,
                                  data=data, verify=False)
         response.raise_for_status()
-        token = response.json()
-        request.session["token"] = token
+        new_token = response.json()
+        set_token(request, new_token)
+        return new_token
     except requests.exceptions.RequestException:
         raise
 
 
-async def get_token(request: Request) -> Optional[str]:
-    await use_refresh_token(request)
-    return request.session.get("token")
-
-
-def set_token(request: Request, token: str):
-    request.session["token"] = token
+async def get_token(request: Request):
+    token = request.session.get("token")
+    if not token:
+        return None
+    if fer:
+        try:
+            # base64 str -> bin
+            b = base64.b64decode(token)
+            # binary -> decrypt -> str binary -> JSON str -> dict
+            token = json.loads(fer.decrypt(b).decode())
+        except Exception as e:
+            print("session decrypt error: " + str(e))
+            return None
+    # TODO if not is_expired(token):
+    #     return token
+    new_token = await use_refresh_token(request, token)
+    return new_token
 
 
 def delete_token(request: Request):
