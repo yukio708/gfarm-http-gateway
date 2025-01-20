@@ -18,8 +18,11 @@ td {
 <body>
     <h1>Gfarm HTTP Gateway</h1>
     {% if access_token %}
-        <h2> access_token </h2>
-        <table><tr><td id="access_token">{{ access_token }}</td></tr></table>
+        <h2>access_token</h2>
+        <table>
+          <tr><td id="access_token">{{ access_token }}</td></tr>
+          <tr><td><pre>{{ parsed_at }}</pre></td></tr>
+        </table>
 
         <p> <a href="/c/me">Who am I (/me)</a> </p>
 

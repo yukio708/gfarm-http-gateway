@@ -6,7 +6,7 @@ import re
 import base64
 from typing import Optional
 import json
-# from pprint import pformat as pf
+from pprint import pformat as pf
 
 import requests
 
@@ -23,7 +23,8 @@ from authlib.integrations.starlette_client import OAuth
 
 from cryptography.fernet import Fernet
 
-# from jose import jwt
+# https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py
+from jose import jwt
 
 api_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(api_path)
@@ -69,9 +70,12 @@ OIDC_REALM = os.environ.get("OIDC_REALM", "HPCI")
 OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "hpci-jwt-server")
 OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET",
                                     "eJxl5z1EHU0u6BVLpR5MG0v4NLgCZWWG")
+# Keycloak
+REALM_URL = f"{OIDC_SERVER}/auth/realms/{OIDC_REALM}"
+OIDC_META_URL = f"{REALM_URL}/.well-known/openid-configuration"
+OIDC_CERTS_URL = f"{REALM_URL}/protocol/openid-connect/certs"
 
-OIDC_META_URL = f"{OIDC_SERVER}/auth/realms/{OIDC_REALM}" \
-    + "/.well-known/openid-configuration"
+AUDIENCE = "hpci"
 
 oauth = OAuth()
 oauth.register(
@@ -97,10 +101,11 @@ def set_token(request: Request, token):
     request.session["token"] = token
     token = request.session.get("token")
 
-
 async def use_refresh_token(request: Request, token):
+    print("use_refresh_token !!!!!!!!!!!!!!!!!!!!") #TODO
     refresh_token = token.get("refresh_token")
     meta = await provider.load_server_metadata()
+    #print(pf(meta))  # TODO
     try:
         data = {
             "grant_type": "refresh_token",
@@ -121,6 +126,61 @@ async def use_refresh_token(request: Request, token):
         raise
 
 
+#VERIFY_TOKEN = True
+VERIFY_TOKEN = False
+
+
+def jwt_error(msg):
+    return HTTPException(status_code=500,
+                         detail=f"JWT error: {msg}")
+
+
+def verify_token(token):
+    try:
+        access_token = token.get("access_token")
+        # TODO cache jwks
+        # TODO verify=True
+        jwks = requests.get(OIDC_CERTS_URL, verify=False).json()
+        print(pf(jwks)) #TODO
+        header = jwt.get_unverified_header(access_token)
+        print(pf(header)) #TODO
+        if not header:
+            raise jwt_error("Invalid header")
+        alg = header.get("alg")
+        claims = jwt.decode(
+            access_token,
+            jwks,
+            algorithms=alg,
+            audience=AUDIENCE,
+        )
+        return claims
+    except Exception as e:
+        print(f"Verify error: {e}")
+        return None
+
+
+def is_expired_token(token):
+    if VERIFY_TOKEN:
+        claims = verify_token(token)
+        if not claims:
+            return True  # expired
+        print(pf(claims)) #TODO
+        return False
+    try:
+        access_token = token.get("access_token")
+        claims = jwt.get_unverified_claims(access_token)
+        # print(pf(claims))
+        # header = jwt.get_unverified_header(access_token)
+        # print(pf(header))
+        exp = payload.get("exp")
+        if exp is None:
+            raise jwt_err("no exp claim")
+        current_time = int(time.time())
+        return current_time > exp
+    except Exception as e:
+        print(f"is_expired_token: " + str(e))
+
+
 async def get_token(request: Request):
     token = request.session.get("token")
     if not token:
@@ -134,8 +194,8 @@ async def get_token(request: Request):
         except Exception as e:
             print("session decrypt error: " + str(e))
             return None
-    # TODO if not is_expired(token):
-    #     return token
+    if not is_expired_token(token):
+        return token
     new_token = await use_refresh_token(request, token)
     return new_token
 
@@ -152,12 +212,20 @@ async def get_access_token(request: Request) -> Optional[str]:
     return None
 
 
+def parse_access_token(access_token):
+    claims = jwt.get_unverified_claims(access_token)
+    header = jwt.get_unverified_header(access_token)
+    return pf(header) + "\n" + pf(claims)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     access_token = await get_access_token(request)
+    pat = parse_access_token(access_token)
     return templates.TemplateResponse("index.html",
                                       {"request": request,
-                                       "access_token": access_token})
+                                       "access_token": access_token,
+                                       "parsed_at": pat})
 
 
 @app.get("/login")
