@@ -8,6 +8,7 @@ from typing import Optional
 import json
 from pprint import pformat as pf
 import time
+import secrets
 
 import requests
 
@@ -18,7 +19,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
 
@@ -75,6 +75,7 @@ OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET",
 REALM_URL = f"{OIDC_SERVER}/auth/realms/{OIDC_REALM}"
 OIDC_META_URL = f"{REALM_URL}/.well-known/openid-configuration"
 OIDC_CERTS_URL = f"{REALM_URL}/protocol/openid-connect/certs"
+OIDC_LOGOUT_URL = f"{REALM_URL}/protocol/openid-connect/logout"
 
 AUDIENCE = "hpci"
 
@@ -100,7 +101,7 @@ def set_token(request: Request, token):
         token = base64.b64encode(fer.encrypt(s)).decode()
     print(f"set token: {token}")  # TODO
     request.session["token"] = token
-    token = request.session.get("token")
+
 
 async def use_refresh_token(request: Request, token):
     print("use_refresh_token !!!!!!!!!!!!!!!!!!!!") #TODO
@@ -180,6 +181,7 @@ def is_expired_token(token):
         return current_time > exp
     except Exception as e:
         print(f"is_expired_token: " + str(e))
+        return True  # expired
 
 
 async def get_token(request: Request):
@@ -219,14 +221,36 @@ def parse_access_token(access_token):
     return pf(header) + "\n" + pf(claims)
 
 
+def get_csrf(request: Request):
+    return request.session.get("csrf")
+
+
+def gen_csrf(request: Request):
+    csrf_token = secrets.token_urlsafe(32)
+    request.session["csrf"] = csrf_token
+    return csrf_token
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     access_token = await get_access_token(request)
-    pat = parse_access_token(access_token)
+    if access_token:
+        pat = parse_access_token(access_token)
+        csrf_token = gen_csrf(request)
+        print(str(type(csrf_token)) + str(csrf_token))  #TODO
+        redirect_uri = request.url_for("logout")
+        print(type(redirect_uri))  #TODO
+        logout_url = OIDC_LOGOUT_URL + "?client_id=" + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" + str(redirect_uri) + "&state=" + csrf_token
+        print(logout_url) #TODO
+    else:
+        pat = ""
+        logout_url = ""
     return templates.TemplateResponse("index.html",
                                       {"request": request,
                                        "access_token": access_token,
-                                       "parsed_at": pat})
+                                       "parsed_at": pat,
+                                       "logout_url": logout_url,
+                                       })
 
 
 @app.get("/login")
@@ -247,7 +271,13 @@ async def auth(request: Request):
 
 
 @app.get("/logout")
-async def logout(request: Request):
+async def logout(request: Request, state: Optional[str] = None):
+    if state is not None:
+        csrf_token = get_csrf(request)
+        if state != csrf_token:
+            msg = "CSRF token mismatch"
+            print(msg) # TODO
+            raise HTTPException(status_code=401, detail=msg)
     delete_token(request)
     return RedirectResponse(url="/")
 

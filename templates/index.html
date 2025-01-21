@@ -47,7 +47,8 @@ td {
         <table><tr><td><pre><div id="ls_out"></div></pre></td></tr></table>
         </p>
 
-        <p> <a href="/logout">Logout</a> </p>
+        <p> <a href="/logout">Logout (Not logging out of Keycloak)</a> </p>
+        <p> <a href={{ logout_url }}>Logout of Keycloak</a> </p>
     {% else %}
         <p> <a href="/login">Login with Keycloak</a> </p>
     {% endif %}
