@@ -7,6 +7,7 @@ import base64
 from typing import Optional
 import json
 from pprint import pformat as pf
+import time
 
 import requests
 
@@ -172,7 +173,7 @@ def is_expired_token(token):
         # print(pf(claims))
         # header = jwt.get_unverified_header(access_token)
         # print(pf(header))
-        exp = payload.get("exp")
+        exp = claims.get("exp")
         if exp is None:
             raise jwt_err("no exp claim")
         current_time = int(time.time())
