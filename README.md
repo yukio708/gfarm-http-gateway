@@ -2,9 +2,17 @@
 
 HTTP gateway for Gfarm
 
+## Requirements
+
+- Python 3.11 or later
+- python3-venv
+- (For the Python packages used, please refer to requirements.txt)
+
 ## Setup
 
-- ./setup.sh
+- Refer to setup.sh
+- (For Ubuntu 24.0 or RHEL8 family)
+  - ./setup.sh
 
 ## Start server
 
@@ -16,11 +24,30 @@ HTTP gateway for Gfarm
 
 - ./bin/start.sh 0.0.0.0:8000
 
-### for developer
+### Start for developer
 
 - ./bin/start-dev.sh
+  - for clients on any hosts (0.0.0.0:8000)
 
-## client
+## Development environment in docker/dist
+
+- setup Gfarm docker/dist (refer to (gfarm source)/docker/dist/README.md)
+  - setup `For OAuth authentication`
+  - setup `Use http proxy` (squid container)
+- clone(git clone) gfarm-http-gateway repository to (gfarm source)/gfarm-http-gateway
+- `make`
+  - login to c1 container
+- `ssh c2`
+- `cd ~/gfarm/gfarm-http-gateway`
+- `./setup.sh`
+- `bin/start-dev.sh`
+- use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
+- open `http://c2:8000/` in a web browser
+    - redirect to keycloak
+    - login user1/PASSWORD
+  - The page is an example of API Usage
+
+## curl client
 
 - bin/jwt-curl [curl options]
   - Automatically add the access token from jwt-agent to the Authorization header
@@ -31,9 +58,9 @@ HTTP gateway for Gfarm
   - Upload a file
   - Automatically use jwt-curl and --upload-file option
 
-### example
+### Example
 
-- start `start-dev.sh` on c2
+- start `bin/start-dev.sh`
 - get passphrase from JWT Server
   - JWT Server: https://github.com/oss-tsukuba/jwt-server
 - start `jwt-agent`
@@ -49,18 +76,3 @@ HTTP gateway for Gfarm
 
 - Swagger
   - http://...:8000/docs
-
-### TODO
-
-```
-Web UI
-(initialize)
-npx create-react-app ui
-cd ui
-npm:
-  npm start
-  npm install axios
-yarn:
-  yarn start
-  yarn add axios
-```
