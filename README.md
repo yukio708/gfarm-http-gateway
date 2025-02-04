@@ -58,7 +58,7 @@ HTTP gateway for Gfarm
   - Upload a file
   - Automatically use jwt-curl and --upload-file option
 
-### Example
+### Example of curl
 
 - start `bin/start-dev.sh`
 - get passphrase from JWT Server
@@ -71,6 +71,10 @@ HTTP gateway for Gfarm
 - `dd if=/dev/urandom of=/tmp/10GiB bs=1M count=10K`
 - `./jwt-curl-upload /tmp/10GiB http://c2:8000/f/tmp/10GiB`
 - `./jwt-curl -o /tmp/10GiB-2 http://c2:8000/f/tmp/10GiB`
+
+## Example of JavaScript
+
+- Refer to templates/index.html
 
 ## API docs
 
