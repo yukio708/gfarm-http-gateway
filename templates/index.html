@@ -77,12 +77,13 @@ progress {
 
     <h2>API: PUT /file/{path} (gfreg)</h2>
         <p>
+        <label for="reg_dir">Gfarm directory:</label>
         <input type="text" id="reg_dir" value="/tmp">
         <input type="file" id="file_input"> <br/>
         <button onclick="uploadFile()">Upload</button>
+        <progress id="upload_progress" value="0" max="100"></progress>
         <div id="upload_progress_text"></div>
         <div id="upload_status"></div> <br/>
-        <progress id="upload_progress" value="0" max="100"></progress>
         </p>
 
     <h2>Logout</h2>
@@ -98,6 +99,7 @@ progress {
 
 
 <script>
+  // TODO async function
   const tableContainer = document.getElementById('table-container');
   const toggleButton = document.getElementById('toggle-button');
   const table = tableContainer.querySelector('table');
@@ -128,6 +130,7 @@ progress {
       }
   });
 
+  // TODO async function
   const whoamiURL2 = document.getElementById('whoami_url2');
   const whoamiButton2 = document.getElementById('whoami_btn2');
   const whoamiOut2 = document.getElementById('whoami_out2');
@@ -156,6 +159,7 @@ progress {
     }
   });
 
+  // TODO async function
   const whoamiURL3 = document.getElementById('whoami_url3');
   const whoamiButton3 = document.getElementById('whoami_btn3');
   const whoamiOut3 = document.getElementById('whoami_out3');
@@ -181,6 +185,7 @@ progress {
     }
   });
 
+  // TODO async function
   const lsPath = document.getElementById('ls_path');
   const lsButton = document.getElementById('ls_btn');
   const lsOut = document.getElementById('ls_out');
@@ -233,31 +238,42 @@ progress {
         reader.addEventListener('progress', (event) => {
           if (event.lengthComputable) {
             const percent = (event.loaded / event.total) * 100;
-            progressBar.value = percent;
-            progressText.textContent = `${event.loaded} / ${event.total}`;
-            console.log('%d / %d', event.loaded, event.total);
+            // progressBar.value = percent;
+            // progressText.textContent = `${event.loaded} / ${event.total}`;
+            console.log('reading: %d / %d', event.loaded, event.total);
           }
         });
         reader.onloadend = (event) => resolve(event.srcElement.result);
         reader.readAsArrayBuffer(file);
       });
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = (event.loaded / event.total) * 100;
+          progressBar.value = percent;
+          progressText.textContent = `${event.loaded} / ${event.total} (${percent} %)`;
+          console.log('uploaded: %d / %d (%d %)', event.loaded, event.total, percent);
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          status.textContent = 'Success (' + dirPath + file.name + ')';
+          //alert('Upload: success (' + dirPath + file.name + ')');
+          console.log('Upload: success');
+        } else {
+          status.textContent = 'Upload error:' + xhr.status + xhr.statusText;
+          console.error('Upload error:', xhr.status, xhr.statusText);
+        }
+      };
+      xhr.onerror = () => {
+        status.textContent = 'Network error';
+        console.error('Network error');
+      };
       status.textContent = 'Uploading...';
-      // TODO use XMLHttpRequest
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-          'Content-Length': blob.size,
-        },
-        body: blob,
-      });
-      if (!response.ok) {
-         throw new Error(`HTTP error: ${response.status}`);
-      }
-      status.textContent = 'Success (' + dirPath + file.name + ')';
-      //alert('Upload: success (' + dirPath + file.name + ')');
-      console.log('Upload: success');
-      return;
+      xhr.send(blob);
     } catch (error) {
       alert('Cannot upload:' + error);
       console.error('Cannot upload:', error);

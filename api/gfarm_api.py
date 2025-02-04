@@ -144,8 +144,7 @@ def verify_token(token, use_raise=False):
     try:
         access_token = token.get("access_token")
         # TODO cache jwks
-        # TODO verify=True
-        jwks = requests.get(OIDC_CERTS_URL, verify=False).json()
+        jwks = requests.get(OIDC_CERTS_URL, verify=VERIFY_CERT).json()
         #print(pf(jwks)) #TODO
         header = jwt.get_unverified_header(access_token)
         #print(pf(header)) #TODO
@@ -600,7 +599,6 @@ async def file_export(gfarm_path: str,
 async def file_import(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
-    print(gfarm_path)#TODO
     env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
@@ -610,7 +608,7 @@ async def file_import(gfarm_path: str,
     try:
         async for chunk in request.stream():
             # print(f"chunk={str(chunk)}")
-            print(f"chunk len={len(chunk)}")
+            # print(f"chunk len={len(chunk)}")
             p.stdin.write(chunk)
             await p.stdin.drain()  # speedup
     except Exception as e:
