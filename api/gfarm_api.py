@@ -381,7 +381,10 @@ async def set_env(request, authorization):
 
     if access_token:
         env.update({
+            # In libgfarm, GFARM_SASL_PASSWORD is preferentially
+            # used over JWT_USER_PATH
             'GFARM_SASL_PASSWORD': access_token,
+            # for old libgfarm (2.8.5 or earlier)
             'JWT_USER_PATH': f'!/{top_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh'
         })
     return env
@@ -513,6 +516,7 @@ async def hello(request: Request) -> Item:
 
 
 @app.get("/c/me")
+@app.get("/conf/me")
 @app.get("/config/me")
 async def me(request: Request,
              authorization: Union[str, None] = Header(default=None)):
