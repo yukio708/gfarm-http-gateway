@@ -235,14 +235,14 @@ progress {
     try {
       const blob = await new Promise((resolve) => {
         const reader = new FileReader();
-        reader.addEventListener('progress', (event) => {
+        reader.onprogress = (event) => {
           if (event.lengthComputable) {
             const percent = (event.loaded / event.total) * 100;
             // progressBar.value = percent;
             // progressText.textContent = `${event.loaded} / ${event.total}`;
             console.log('reading: %d / %d', event.loaded, event.total);
           }
-        });
+        };
         reader.onloadend = (event) => resolve(event.srcElement.result);
         reader.readAsArrayBuffer(file);
       });
