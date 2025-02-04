@@ -237,7 +237,7 @@ progress {
         const reader = new FileReader();
         reader.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percent = (event.loaded / event.total) * 100;
+            // const percent = (event.loaded / event.total) * 100;
             // progressBar.value = percent;
             // progressText.textContent = `${event.loaded} / ${event.total}`;
             console.log('reading: %d / %d', event.loaded, event.total);
@@ -247,10 +247,12 @@ progress {
         reader.readAsArrayBuffer(file);
       });
 
+      const mtime = Math.floor(file.lastModified / 1000);  // msec. -> sec.
       const startTime = Date.now();
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', uploadUrl);
       xhr.setRequestHeader('Content-Type', file.type);
+      xhr.setRequestHeader('X-File-Timestamp', mtime);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           const percent = Math.floor((event.loaded / event.total) * 100);
@@ -258,7 +260,7 @@ progress {
           const speed = Math.round(event.loaded / elapsedTime * 1000);
           const sec = Math.floor(elapsedTime / 1000)
           progressBar.value = percent;
-          progressText.textContent = `${event.loaded} / ${event.total} | ${percent} % | ${sec} sec | ${speed} bytes/sec | (mtime=${file.lastModified} msec)`;
+          progressText.textContent = `${event.loaded} / ${event.total} | ${percent} % | ${sec} sec | ${speed} bytes/sec | (mtime=${mtime})`;
           console.log('uploaded: %d / %d (%d %)', event.loaded, event.total, percent);
         }
       };

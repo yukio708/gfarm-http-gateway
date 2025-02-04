@@ -412,8 +412,8 @@ async def async_gfexport(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfreg(env, path):
-    args = ['-', path]
+async def async_gfreg(env, path, mtime):
+    args = ['-M', str(mtime), '-', path]
     return await asyncio.create_subprocess_exec(
         'gfreg', *args,
         env=env,
@@ -598,11 +598,13 @@ async def file_export(gfarm_path: str,
 @app.put("/files/{gfarm_path:path}")
 async def file_import(gfarm_path: str,
                       request: Request,
-                      authorization: Union[str, None] = Header(default=None)):
+                      authorization: Union[str, None] = Header(default=None),
+                      x_file_timestamp: Union[str, None] = Header(default=None)):
+    print("x_file_timestamp=" + str(x_file_timestamp)) #TODO not used yet
     env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
-    p = await async_gfreg(env, gfarm_path)
+    p = await async_gfreg(env, gfarm_path, x_file_timestamp)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(p, elist))
     try:
