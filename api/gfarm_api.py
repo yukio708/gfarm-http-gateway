@@ -84,6 +84,8 @@ AUDIENCE = "hpci"
 # ISSUER = None
 ISSUER = "https://keycloak:8443/auth/realms/HPCI"
 
+VERIFY_CERT = False  # not verify certificate  # TODO True
+
 oauth = OAuth()
 oauth.register(
     name="keycloak",
@@ -91,8 +93,8 @@ oauth.register(
     client_id=OIDC_CLIENT_ID,
     client_secret=OIDC_CLIENT_SECRET,
     client_kwargs={
-        'scope': 'hpci',
-        'verify': False,  # not verify certificate  # TODO True
+        # 'scope': 'hpci',
+        'verify': VERIFY_CERT,
     },
 )
 provider = oauth.keycloak
@@ -325,6 +327,7 @@ def fullpath(path: str):
 #         stdout=subprocess.PIPE,
 #         stderr=subprocess.PIPE)
 
+
 AUTHZ_TYPE_BASIC = 'Basic'
 AUTHZ_TYPE_BEARER = 'Bearer'
 
@@ -480,39 +483,6 @@ async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
             elist.append(msg)
         else:
             break
-
-
-# TODO unused
-class Item(BaseModel):
-    name: str
-    description: Union[str, None] = None
-    price: float
-    tax: Union[float, None] = None
-
-    class Config:
-        json_schema_extra = {
-            "examples": [
-                {
-                    "name": "Foo",
-                    "description": "A very nice Item",
-                    "price": 35.4,
-                    "tax": 3.2,
-                }
-            ]
-        }
-
-
-# TODO unused
-@app.get("/hello", response_model=Item)
-async def hello(request: Request) -> Item:
-    print(request.headers)
-
-    external_data = {"name": "gfarm",
-                     "description": "Gfarm filesystem",
-                     "price": 100,
-                     "tax": 1.2}
-    i = Item(**external_data)
-    return i
 
 
 @app.get("/c/me")
