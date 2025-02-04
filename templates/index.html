@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login / Logout</title>
+    <title>gfarm-http-gateway API</title>
 
 <style>
 table {
@@ -16,14 +16,22 @@ td {
 
 </head>
 <body>
-    <h1>Gfarm HTTP Gateway</h1>
+    <h1>Gfarm HTTP Gateway (Example of API Usage)</h1>
     {% if access_token %}
-        <h2>access_token</h2>
-        <table>
+    <h2>Access Token</h2>
+        <div id="table-container">
+          <button id="toggle-button">OPEN</button>
+          <table>
           <tr><td id="access_token">{{ access_token }}</td></tr>
           <tr><td><pre>{{ parsed_at }}</pre></td></tr>
-        </table>
+          <tr><td><pre>exp={{ exp }}</pre></td></tr>
+          <tr><td><pre>current_time={{ current_time }}</pre></td></tr>
+          <tr><td><pre>remaining_time={{ exp - current_time }}</pre></td></tr>
+          </table>
+        </div>
 
+
+    <h2>API: /me (gfwhoami)</h2>
         <p> <a href="/c/me">Who am I (/me)</a> </p>
 
         <p>
@@ -41,12 +49,18 @@ td {
         <div id="whoami_out3"></div>
         </p>
 
+
+    <h2>API: /dir/{path}?a=1 (gfls -la)</h2>
         <p>
         <input type="text" id="ls_path" value="/tmp">
-        <button id="ls_btn">ls -la</button>
+        <button id="ls_btn">gfls -la</button>
+        <input type="checkbox" id="ls_recursive">
+        <label for="ls_recursive">Recursive(R=1)</label>
+
         <table><tr><td><pre><div id="ls_out"></div></pre></td></tr></table>
         </p>
 
+    <h2>Logout</h2>
         <p> <a href="/logout">Logout (Not logging out of Keycloak)</a> </p>
         <p> <a href={{ logout_url }}>Logout of Keycloak</a> </p>
     {% else %}
@@ -55,6 +69,20 @@ td {
 
 
 <script>
+  const tableContainer = document.getElementById('table-container');
+  const toggleButton = document.getElementById('toggle-button');
+  const table = tableContainer.querySelector('table');
+  toggleButton.addEventListener('click', () => {
+    if (table.style.display === 'none') {
+      table.style.display = 'table';
+      toggleButton.textContent = 'CLOSE';
+    } else {
+      table.style.display = 'none';
+      toggleButton.textContent = 'OPEN';
+    }
+  });
+  table.style.display = 'none';
+
   const whoamiButton = document.getElementById('whoami_btn');
   const whoamiOut = document.getElementById('whoami_out');
   whoamiButton.addEventListener('click', async () => {
@@ -81,11 +109,11 @@ td {
       }
       const data = await response.json();
       const response2 = await fetch('http://c3:8000/c/me',
-      {
-        headers: {
-          'Authorization': 'Bearer ' + data.access_token,
-        }
-      });
+        {
+          headers: {
+            'Authorization': 'Bearer ' + data.access_token,
+          }
+        });
       if (!response2.ok) {
         throw new Error(`HTTP error (from c3): ${response.status}`);
       }
@@ -104,11 +132,11 @@ td {
       const atElement = document.getElementById('access_token');
       const access_token = atElement.textContent;
       const response = await fetch('http://c3:8000/c/me',
-      {
-        headers: {
-          'Authorization': 'Bearer ' + access_token,
-        }
-      });
+        {
+          headers: {
+            'Authorization': 'Bearer ' + access_token,
+          }
+        });
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
       }
@@ -123,31 +151,29 @@ td {
   const lsPath = document.getElementById('ls_path');
   const lsButton = document.getElementById('ls_btn');
   const lsOut = document.getElementById('ls_out');
+  const lsRecursive = document.getElementById('ls_recursive');
 
   lsButton.addEventListener('click', async () => {
-      const path = lsPath.value.replace(/^\/+/g, "");
-
-      // if (!path) {
-      //     lsOut.textContent = "Input path";
-      //     return;
-      // }
-
-      try {
-          let api_dir = "/d";
-          let fullpath = api_dir + "/" + path + "?a=1";
-          const response = await fetch(fullpath);
-          if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`HTTP error: ${response.status} - ${errorText}`);
-          }
-          //const data = await response.json();
-          //lsOut.textContent = JSON.stringify(data, null, 2);
-          const text = await response.text();
-          lsOut.textContent = text;
-      } catch (error) {
-          console.error('Error fetching data:', error);
-          lsOut.textContent = error;
+    const path = lsPath.value.replace(/^\/+/g, "");
+    try {
+      let api_dir = "/d";
+      let fullpath = api_dir + "/" + path + "?a=1";
+      if (lsRecursive.checked) {
+        fullpath += "&R=1";
       }
+      const response = await fetch(fullpath);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error: ${response.status} - ${errorText}`);
+      }
+      //const data = await response.json();
+      //lsOut.textContent = JSON.stringify(data, null, 2);
+      const text = await response.text();
+      lsOut.textContent = text;
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      lsOut.textContent = error;
+    }
   });
 
 </script>

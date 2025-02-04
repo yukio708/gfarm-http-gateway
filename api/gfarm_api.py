@@ -104,8 +104,8 @@ def set_token(request: Request, token):
 
 
 async def use_refresh_token(request: Request, token):
-    print("use_refresh_token !!!!!!!!!!!!!!!!!!!!") #TODO
     refresh_token = token.get("refresh_token")
+    #print("use_refresh_token !!!!!!!!!!!!!!!!!!!!", refresh_token) #TODO
     meta = await provider.load_server_metadata()
     #print(pf(meta))  # TODO
     try:
@@ -210,7 +210,7 @@ def delete_token(request: Request):
 async def get_access_token(request: Request) -> Optional[str]:
     token = await get_token(request)
     if token:
-        print("token from session: " + str(token))  # TODO
+        #print("token from session: " + str(token))  # TODO
         return token.get("access_token")
     return None
 
@@ -242,14 +242,20 @@ async def index(request: Request):
         print(type(redirect_uri))  #TODO
         logout_url = OIDC_LOGOUT_URL + "?client_id=" + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" + str(redirect_uri) + "&state=" + csrf_token
         print(logout_url) #TODO
+        claims = jwt.get_unverified_claims(access_token)
+        exp = claims.get("exp")
     else:
         pat = ""
         logout_url = ""
+        exp = -1
+    current_time = int(time.time())
     return templates.TemplateResponse("index.html",
                                       {"request": request,
                                        "access_token": access_token,
                                        "parsed_at": pat,
                                        "logout_url": logout_url,
+                                       "current_time": current_time,
+                                       "exp": exp,
                                        })
 
 
