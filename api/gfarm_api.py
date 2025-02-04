@@ -413,7 +413,11 @@ async def async_gfexport(env, path):
 
 
 async def async_gfreg(env, path, mtime):
-    args = ['-M', str(mtime), '-', path]
+    if mtime:
+        args = ['-M', str(mtime)]
+    else:
+        args = []
+    args += ['-', path]
     return await asyncio.create_subprocess_exec(
         'gfreg', *args,
         env=env,
