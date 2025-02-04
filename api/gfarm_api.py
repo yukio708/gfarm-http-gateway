@@ -77,7 +77,12 @@ OIDC_META_URL = f"{REALM_URL}/.well-known/openid-configuration"
 OIDC_CERTS_URL = f"{REALM_URL}/protocol/openid-connect/certs"
 OIDC_LOGOUT_URL = f"{REALM_URL}/protocol/openid-connect/logout"
 
+VERIFY_TOKEN = True
+# VERIFY_TOKEN = False
+# AUDIENCE = None
 AUDIENCE = "hpci"
+# ISSUER = None
+ISSUER = "https://keycloak:8443/auth/realms/HPCI"
 
 oauth = OAuth()
 oauth.register(
@@ -99,7 +104,7 @@ def set_token(request: Request, token):
         s = json.dumps(token).encode()
         # binary -> encrypt -> base64 bin -> base64 str
         token = base64.b64encode(fer.encrypt(s)).decode()
-    print(f"set token: {token}")  # TODO
+    #print(f"set token: {token}")  # TODO
     request.session["token"] = token
 
 
@@ -128,24 +133,20 @@ async def use_refresh_token(request: Request, token):
         raise
 
 
-#VERIFY_TOKEN = True
-VERIFY_TOKEN = False
-
-
 def jwt_error(msg):
     return HTTPException(status_code=500,
                          detail=f"JWT error: {msg}")
 
 
-def verify_token(token):
+def verify_token(token, use_raise=False):
     try:
         access_token = token.get("access_token")
         # TODO cache jwks
         # TODO verify=True
         jwks = requests.get(OIDC_CERTS_URL, verify=False).json()
-        print(pf(jwks)) #TODO
+        #print(pf(jwks)) #TODO
         header = jwt.get_unverified_header(access_token)
-        print(pf(header)) #TODO
+        #print(pf(header)) #TODO
         if not header:
             raise jwt_error("Invalid header")
         alg = header.get("alg")
@@ -154,19 +155,22 @@ def verify_token(token):
             jwks,
             algorithms=alg,
             audience=AUDIENCE,
+            issuer=ISSUER,
         )
         return claims
     except Exception as e:
-        print(f"Verify error: {e}")
+        print(f"Access token verification error: {e}")  # TODO log
+        if use_raise:
+            raise
         return None
 
 
-def is_expired_token(token):
+def is_expired_token(token, use_raise=False):
     if VERIFY_TOKEN:
-        claims = verify_token(token)
+        claims = verify_token(token, use_raise)
         if not claims:
             return True  # expired
-        print(pf(claims)) #TODO
+        #print(pf(claims)) #TODO
         return False
     try:
         access_token = token.get("access_token")
@@ -200,7 +204,9 @@ async def get_token(request: Request):
     if not is_expired_token(token):
         return token
     new_token = await use_refresh_token(request, token)
-    return new_token
+    if not is_expired_token(new_token, use_raise=True):
+        return new_token
+    return None
 
 
 def delete_token(request: Request):
@@ -233,7 +239,12 @@ def gen_csrf(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    access_token = await get_access_token(request)
+    try:
+        access_token = await get_access_token(request)
+        error = ""
+    except Exception as e:
+        access_token = None
+        error = f"Access token verification error: {str(e)}"
     if access_token:
         pat = parse_access_token(access_token)
         csrf_token = gen_csrf(request)
@@ -251,6 +262,7 @@ async def index(request: Request):
     current_time = int(time.time())
     return templates.TemplateResponse("index.html",
                                       {"request": request,
+                                       "error": error,
                                        "access_token": access_token,
                                        "parsed_at": pat,
                                        "logout_url": logout_url,

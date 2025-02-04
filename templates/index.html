@@ -73,8 +73,12 @@ pre {
     <h2>Logout</h2>
         <p> <a href="/logout">Logout (Not logging out of Keycloak)</a> </p>
         <p> <a href={{ logout_url }}>Logout of Keycloak</a> </p>
+
     {% else %}
         <p> <a href="/login">Login with Keycloak</a> </p>
+        {% if error %}
+        <p>Error: {{ error }}</p>
+        {% endif %}
     {% endif %}
 
 
