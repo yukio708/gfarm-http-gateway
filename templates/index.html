@@ -35,17 +35,18 @@ td {
         <p> <a href="/c/me">Who am I (/me)</a> </p>
 
         <p>
-        <button id="whoami_btn">Who am I</button>
+        <button id="whoami_btn">Who am I (fetch from this host)</button>
         <div id="whoami_out"></div>
         </p>
 
         <p>
-        <button id="whoami_btn2">Who am I (from c3 usinig new token from /access_token) (CORS)</button>
+        <input type="text" id="whoami_url2" value="http://c3:8000">
+        <button id="whoami_btn2">Who am I (CORS) (fetch from a remote host usinig new token from /access_token API)</button>
         <div id="whoami_out2"></div>
         </p>
-
         <p>
-        <button id="whoami_btn3">Who am I (from c3 usinig token from HTML (may use old token)) (CORS)</button>
+        <input type="text" id="whoami_url3" value="http://c3:8000">
+        <button id="whoami_btn3">Who am I (CORS) (fetch from a remote host usinig token from HTML (may use old token))</button>
         <div id="whoami_out3"></div>
         </p>
 
@@ -99,6 +100,7 @@ td {
       }
   });
 
+  const whoamiURL2 = document.getElementById('whoami_url2');
   const whoamiButton2 = document.getElementById('whoami_btn2');
   const whoamiOut2 = document.getElementById('whoami_out2');
   whoamiButton2.addEventListener('click', async () => {
@@ -107,15 +109,16 @@ td {
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
       }
+      const url = whoamiURL2.value + "/c/me";
       const data = await response.json();
-      const response2 = await fetch('http://c3:8000/c/me',
+      const response2 = await fetch(url,
         {
           headers: {
             'Authorization': 'Bearer ' + data.access_token,
           }
         });
       if (!response2.ok) {
-        throw new Error(`HTTP error (from c3): ${response.status}`);
+        throw new Error(`HTTP error: ${response.status}`);
       }
       const text = await response2.text();
       whoamiOut2.textContent = text;
@@ -125,13 +128,15 @@ td {
     }
   });
 
+  const whoamiURL3 = document.getElementById('whoami_url3');
   const whoamiButton3 = document.getElementById('whoami_btn3');
   const whoamiOut3 = document.getElementById('whoami_out3');
   whoamiButton3.addEventListener('click', async () => {
     try {
+      const url = whoamiURL3.value + "/c/me";
       const atElement = document.getElementById('access_token');
       const access_token = atElement.textContent;
-      const response = await fetch('http://c3:8000/c/me',
+      const response = await fetch(url,
         {
           headers: {
             'Authorization': 'Bearer ' + access_token,
@@ -152,7 +157,6 @@ td {
   const lsButton = document.getElementById('ls_btn');
   const lsOut = document.getElementById('ls_out');
   const lsRecursive = document.getElementById('ls_recursive');
-
   lsButton.addEventListener('click', async () => {
     const path = lsPath.value.replace(/^\/+/g, "");
     try {

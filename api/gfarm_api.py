@@ -237,11 +237,11 @@ async def index(request: Request):
     if access_token:
         pat = parse_access_token(access_token)
         csrf_token = gen_csrf(request)
-        print(str(type(csrf_token)) + str(csrf_token))  #TODO
+        #print(str(type(csrf_token)) + str(csrf_token))  #TODO
         redirect_uri = request.url_for("logout")
-        print(type(redirect_uri))  #TODO
+        #print(type(redirect_uri))  #TODO
         logout_url = OIDC_LOGOUT_URL + "?client_id=" + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" + str(redirect_uri) + "&state=" + csrf_token
-        print(logout_url) #TODO
+        #print(logout_url) #TODO
         claims = jwt.get_unverified_claims(access_token)
         exp = claims.get("exp")
     else:
