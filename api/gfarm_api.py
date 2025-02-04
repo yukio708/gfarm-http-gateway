@@ -161,7 +161,7 @@ def verify_token(token, use_raise=False):
         )
         return claims
     except Exception as e:
-        print(f"Access token verification error: {e}")  # TODO log
+        print(f"Access token verification error: {e}")  # TODO log debug
         if use_raise:
             raise
         return None
@@ -208,7 +208,7 @@ async def get_token(request: Request):
     new_token = await use_refresh_token(request, token)
     if not is_expired_token(new_token, use_raise=True):
         return new_token
-    return None
+    return None  # not login
 
 
 def delete_token(request: Request):
@@ -600,6 +600,7 @@ async def file_export(gfarm_path: str,
 async def file_import(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
+    print(gfarm_path)#TODO
     env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
@@ -609,7 +610,7 @@ async def file_import(gfarm_path: str,
     try:
         async for chunk in request.stream():
             # print(f"chunk={str(chunk)}")
-            # print(f"chunk len={len(chunk)}")
+            print(f"chunk len={len(chunk)}")
             p.stdin.write(chunk)
             await p.stdin.drain()  # speedup
     except Exception as e:

@@ -20,6 +20,10 @@ td {
 pre {
     margin: 0;
 }
+progress {
+    width: 100%;
+    height: 20px;
+}
 </style>
 
 </head>
@@ -39,7 +43,7 @@ pre {
         </div>
 
 
-    <h2>API: /me (gfwhoami)</h2>
+    <h2>API: GET /me (gfwhoami)</h2>
         <p> <a href="/c/me">Who am I (/me)</a> </p>
 
         <p>
@@ -59,8 +63,9 @@ pre {
         </p>
 
 
-    <h2>API: /dir/{path}?a=1 (gfls -la)</h2>
+    <h2>API: GET /dir/{path}?a=1 (gfls -la)</h2>
         <p>
+        <label for="ls_path">Gfarm directory:</label>
         <input type="text" id="ls_path" value="/tmp">
         <button id="ls_btn">gfls -la</button><br/>
         <input type="checkbox" id="ls_recursive">
@@ -68,6 +73,15 @@ pre {
         <input type="checkbox" id="ls_ign_err">
         <label for="ls_ign_err">ign_err=1</label>
         <table><tr><td><pre><div id="ls_out"></div></pre></td></tr></table>
+        </p>
+
+    <h2>API: PUT /file/{path} (gfreg)</h2>
+        <p>
+        <input type="text" id="reg_dir" value="/tmp">
+        <input type="file" id="file_input"> <br/>
+        <button onclick="uploadFile()">Upload</button>
+        <div id="upload_progress_text"></div> <br/>
+        <progress id="upload_progress" value="0" max="100"></progress>
         </p>
 
     <h2>Logout</h2>
@@ -196,6 +210,56 @@ pre {
       lsOut.textContent = error;
     }
   });
+
+  async function uploadFile() {
+    const fileInput = document.getElementById('file_input');
+    const file = fileInput.files[0];
+    const regDir = document.getElementById('reg_dir');
+    const progressBar = document.getElementById('upload_progress');
+    const progressText = document.getElementById('upload_progress_text');
+    let dirPath = '/' + regDir.value.replace(/^\/+/, "") + '/';
+    dirPath = dirPath.replace(/\/+$/, "/");
+
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+    const uploadUrl = '/file' + dirPath + file.name;
+    try {
+      const blob = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percent = (event.loaded / event.total) * 100;
+            progressBar.value = percent;
+            progressText.textContent = `${event.loaded} / ${event.total}`;
+            console.log('%d / %d', event.loaded, event.total);
+          }
+        });
+        reader.onloadend = (event) => resolve(event.srcElement.result);
+        reader.readAsArrayBuffer(file);
+      });
+      // TODO use XMLHttpRequest
+      const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+          'Content-Length': blob.size,
+        },
+        body: blob,
+      });
+      if (!response.ok) {
+         throw new Error(`HTTP error: ${response.status}`);
+      }
+      alert('Upload: success (' + dirPath + file.name + ')');
+      console.log('Upload: success');
+      return;
+    } catch (error) {
+      alert('Cannot upload:' + error);
+      console.error('Cannot upload:', error);
+      throw error;
+    }
+  }
 
 </script>
 
