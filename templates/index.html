@@ -80,7 +80,8 @@ progress {
         <input type="text" id="reg_dir" value="/tmp">
         <input type="file" id="file_input"> <br/>
         <button onclick="uploadFile()">Upload</button>
-        <div id="upload_progress_text"></div> <br/>
+        <div id="upload_progress_text"></div>
+        <div id="upload_status"></div> <br/>
         <progress id="upload_progress" value="0" max="100"></progress>
         </p>
 
@@ -217,6 +218,7 @@ progress {
     const regDir = document.getElementById('reg_dir');
     const progressBar = document.getElementById('upload_progress');
     const progressText = document.getElementById('upload_progress_text');
+    const status = document.getElementById('upload_status');
     let dirPath = '/' + regDir.value.replace(/^\/+/, "") + '/';
     dirPath = dirPath.replace(/\/+$/, "/");
 
@@ -239,6 +241,7 @@ progress {
         reader.onloadend = (event) => resolve(event.srcElement.result);
         reader.readAsArrayBuffer(file);
       });
+      status.textContent = 'Uploading...';
       // TODO use XMLHttpRequest
       const response = await fetch(uploadUrl, {
         method: 'PUT',
@@ -251,7 +254,8 @@ progress {
       if (!response.ok) {
          throw new Error(`HTTP error: ${response.status}`);
       }
-      alert('Upload: success (' + dirPath + file.name + ')');
+      status.textContent = 'Success (' + dirPath + file.name + ')';
+      //alert('Upload: success (' + dirPath + file.name + ')');
       console.log('Upload: success');
       return;
     } catch (error) {
