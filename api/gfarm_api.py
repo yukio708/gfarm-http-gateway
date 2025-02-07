@@ -11,6 +11,7 @@ import time
 import secrets
 import gzip
 import bz2
+import urllib
 
 import requests
 
@@ -668,7 +669,10 @@ async def file_export(gfarm_path: str,
     headers = {"content-length": cl}
     if action == 'download':
         filename = os.path.basename(gfarm_path)
-        cd = f"attachment; filename=\"{filename}\""
+        encoded = urllib.parse.quote(filename, encoding='utf-8')
+        # RFC 5987,8187
+        cd = f"attachment; filename*=UTF-8' '\"{encoded}\""
+        #cd = f"attachment; filename=\"{encoded}\""
         headers.update({"content-disposition": cd})
     return StreamingResponse(content=generate(),
                              media_type=ct,
