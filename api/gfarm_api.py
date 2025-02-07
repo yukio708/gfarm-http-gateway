@@ -27,51 +27,32 @@ from cryptography.fernet import Fernet
 # https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py
 from jose import jwt
 
-api_path = os.path.abspath(__file__)
-api_dir = os.path.dirname(api_path)
-top_dir = os.path.dirname(api_dir)
 
-app = FastAPI()
+##### Parameters
+
+# TODO environment variables
 
 origins = [
     "http://localhost:3000",
     "http://c2:8000",
 ]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-SESSION_SECRET = "__SECRET_KEY__"   # TODO from configuration file
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
-
+# ex. openssl rand -base64 32
+SESSION_SECRET = "qU70WDyIpXdSOT9/7l0hICy0597EPRs/aPb5Mj5Xniw="
 ENCRYPT_SESSION = False  # True: not work (too large cookie)
-
-if ENCRYPT_SESSION:
-    fer = Fernet(Fernet.generate_key())
-else:
-    fer = None
-
-#############################################################################
-
-templates = Jinja2Templates(directory="templates")
 
 # add this URL to "Valid redirect URIs" of OIDC_CLIENT_ID in Keyclaok
 
 # not work: http://keycloak
 # gfmd[]: <err> [1005366]
 # SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
-# KC_SERVER = os.environ.get("OIDC_SERVER", "http://keycloak:8080")
+# OIDC_SERVER = os.environ.get("OIDC_SERVER", "http://keycloak:8080")
 OIDC_SERVER = os.environ.get("OIDC_SERVER", "https://keycloak:8443")
 OIDC_REALM = os.environ.get("OIDC_REALM", "HPCI")
 OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "hpci-jwt-server")
 OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET",
                                     "eJxl5z1EHU0u6BVLpR5MG0v4NLgCZWWG")
-# Keycloak
+# for Keycloak
 REALM_URL = f"{OIDC_SERVER}/auth/realms/{OIDC_REALM}"
 OIDC_META_URL = f"{REALM_URL}/.well-known/openid-configuration"
 OIDC_CERTS_URL = f"{REALM_URL}/protocol/openid-connect/certs"
@@ -86,9 +67,35 @@ ISSUER = "https://keycloak:8443/auth/realms/HPCI"
 
 VERIFY_CERT = False  # not verify certificate  # TODO True
 
+#############################################################################
+
+api_path = os.path.abspath(__file__)
+api_dir = os.path.dirname(api_path)
+top_dir = os.path.dirname(api_dir)
+
+app = FastAPI()
+
+if ENCRYPT_SESSION:
+    # fer = Fernet(Fernet.generate_key())
+    fer = Fernet(SESSION_SECRET)
+else:
+    fer = None
+
+templates = Jinja2Templates(directory="templates")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+
 oauth = OAuth()
 oauth.register(
-    name="keycloak",
+    name="my_oidc_provider",
     server_metadata_url=OIDC_META_URL,
     client_id=OIDC_CLIENT_ID,
     client_secret=OIDC_CLIENT_SECRET,
@@ -97,7 +104,7 @@ oauth.register(
         'verify': VERIFY_CERT,
     },
 )
-provider = oauth.keycloak
+provider = oauth.my_oidc_provider
 
 
 def set_token(request: Request, token):
@@ -217,7 +224,7 @@ def delete_token(request: Request):
 async def get_access_token(request: Request) -> Optional[str]:
     token = await get_token(request)
     if token:
-        print("token from session: " + str(token))  # TODO
+        # print("token from session: " + str(token))  # TODO
         return token.get("access_token")
     return None
 

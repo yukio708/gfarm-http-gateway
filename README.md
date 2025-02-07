@@ -27,8 +27,13 @@ HTTP gateway for Gfarm filesystem
 - install and setup Gfarm client environment
   - gf* commands and gfarm2.conf is required
 - Refer to `setup.sh`
-- (For Ubuntu 24.0 or RHEL8 family)
+- (For Ubuntu 24.04  or RHEL8 family)
   - Run `./setup.sh`
+
+## Configuration parameters
+
+- TODO (work in progress)
+  - (Please edit parameters in api/gfarm_api.py)
 
 ## Start server
 
