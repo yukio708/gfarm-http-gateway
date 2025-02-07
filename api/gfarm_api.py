@@ -9,6 +9,8 @@ import json
 from pprint import pformat as pf
 import time
 import secrets
+import gzip
+import bz2
 
 import requests
 
@@ -39,7 +41,10 @@ origins = [
 
 # ex. openssl rand -base64 32
 SESSION_SECRET = "qU70WDyIpXdSOT9/7l0hICy0597EPRs/aPb5Mj5Xniw="
-ENCRYPT_SESSION = False  # True: not work (too large cookie)
+# In default, session in cookie is not encrypted
+ENCRYPT_SESSION = True
+# For token, the compression ratio of gzip is higher than bz2)
+COMPRESS_TOKEN_TYPE = "gzip"  # gzip or bz2
 
 # add this URL to "Valid redirect URIs" of OIDC_CLIENT_ID in Keyclaok
 
@@ -107,19 +112,53 @@ oauth.register(
 provider = oauth.my_oidc_provider
 
 
+def compress_str_gzip(input_str):
+    return gzip.compress(input_str.encode())
+
+
+def decompress_str_gzip(input_bin):
+    return gzip.decompress(input_bin).decode()
+
+
+def compress_str_bz2(input_str):
+    return bz2.compress(input_str.encode())
+
+
+def decompress_str_bz2(input_bin):
+    return bz2.decompress(input_bin).decode()
+
+
+if COMPRESS_TOKEN_TYPE == 'bz2':
+    compress_str = compress_str_bz2
+    decompress_str = decompress_str_bz2
+else:
+    compress_str = compress_str_gzip
+    decompress_str = decompress_str_gzip
+
+
 def encrypt_token(token):
-    # dict -> JSON str -> str binary
-    s = json.dumps(token).encode()
-    # binary -> encrypt -> base64 bin -> base64 str
-    token = base64.b64encode(fer.encrypt(s)).decode()
+    # dict -> JSON str
+    s = json.dumps(token)
+    # JSON str -> JSON bin (compressed)
+    cb = compress_str(s)
+    # JSON bin (compressed) -> encrypted bin
+    eb = fer.encrypt(cb)
+    # encrypted bin -> base85 str
+    encrypted_token = base64.b85encode(eb).decode()
+    print(f"len: before={len(s)}, after={len(encrypted_token)}")
+    return encrypted_token
 
 
 def decrypt_token(encrypted_token):
     try:
-        # base64 str -> bin
-        b = base64.b64decode(encrypted_token)
-        # binary -> decrypt -> str binary -> JSON str -> dict
-        return json.loads(fer.decrypt(b).decode())
+        # base85 str -> encrypted bin
+        eb = base64.b85decode(encrypted_token)
+        # encrypted bin -> JSON bin (compressed)
+        cb = fer.decrypt(eb)
+        # JSON bin (compressed) -> JSON str
+        s = decompress_str(cb)
+        # JSON str -> dict
+        return json.loads(s)
     except Exception as e:
         print("decrypt_token error: " + str(e))  #TODO log
         return None
@@ -217,6 +256,8 @@ async def get_token(request: Request):
         return None
     if fer:
         token = decrypt_token(token)
+        if not token:
+            return None
     if not is_expired_token(token):
         return token
     new_token = await use_refresh_token(request, token)
