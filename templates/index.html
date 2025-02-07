@@ -75,6 +75,14 @@ progress {
         <table><tr><td><pre><div id="ls_out"></div></pre></td></tr></table>
         </p>
 
+    <h2>API: GET /file/{path} (gfexport)</h2>
+      <p>
+        <label for="export_path">Gfarm file:</label>
+        <input type="text" id="export_path" value="/tmp/testfile.txt">
+        <button onclick="downloadFile()">Download (action=download)</button>
+        <button onclick="displayFile()">Open in new tab</button>
+      </p>
+
     <h2>API: PUT /file/{path} (gfreg)</h2>
         <p>
         <label for="reg_dir">Gfarm directory:</label>
@@ -218,6 +226,64 @@ progress {
       lsOut.textContent = error;
     }
   });
+
+  function downloadFile() {
+    let gpath = document.getElementById("export_path").value;
+    if (gpath) {
+      gpath = '/' + gpath.replace(/^\/+/, "").replace(/\/+$/, "");
+      let filename = gpath.split("/").pop();
+      //let filename = "__gfarm-file"
+      // URL encode without slash
+      const egpath = gpath.replace(/[^/]/g, encodeURIComponent);
+      const requrl = `/file${egpath}?action=download`;
+      fetch(requrl)
+        .then(response => {
+          if (!response.ok) {
+            return response.text().then(etext => {
+               throw new Error(`HTTP ${response.status}: ${etext}`);
+            });
+          }
+          const contentDisposition = response.headers.get('Content-Disposition');
+          if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+              if (filenameMatch) {
+                filename = filenameMatch[1];
+              }
+            }
+          return response.blob();
+        })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.setAttribute('download', filename);
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        alert("Error: " + error.message);
+        console.error(error);
+      });
+      } else {
+          alert("Please input Gfarm path");
+      }
+  }
+
+  function displayFile() {
+    let gpath = document.getElementById("export_path").value;
+    if (gpath) {
+      gpath = '/' + gpath.replace(/^\/+/, "").replace(/\/+$/, "");
+      // URL encode without slash
+      const egpath = gpath.replace(/[^/]/g, encodeURIComponent);
+      const url = `/file${egpath}`;
+      window.open(url, '_blank');
+    } else {
+      alert("Please input Gfarm path");
+    }
+  }
 
   async function uploadFile() {
     const fileInput = document.getElementById('file_input');

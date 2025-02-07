@@ -514,8 +514,14 @@ async def async_size(env, path):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL)
     line = await p.stdout.readline()
+    return_code = await p.wait()
+    if return_code != 0:
+        existing = False
+        is_file = False
+        size = 0
+        return existing, is_file, size
     line = line.decode().rstrip()
-    print(line)
+    #print(line)  #TODO
     m = PAT_ENTRY.match(line)
     if m:
         # Ex.
@@ -532,8 +538,9 @@ async def async_size(env, path):
         mode_str = "?"
         size = -1
 
+    existing = True
     is_file = mode_str[0] == '-'
-    return is_file, size
+    return existing, is_file, size
 
 
 async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
@@ -609,12 +616,18 @@ BUFSIZE = 1024 * 1024
 @app.get("/files/{gfarm_path:path}")
 async def file_export(gfarm_path: str,
                       request: Request,
+                      action: str = 'view',
                       authorization: Union[str, None] = Header(default=None)):
     env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
     # print(gfarm_path)
 
-    is_file, size = await async_size(env, gfarm_path)
+    existing, is_file, size = await async_size(env, gfarm_path)
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="The requested URL does not exist."
+        )
     if not is_file:
         raise HTTPException(
             status_code=415,
@@ -652,8 +665,15 @@ async def file_export(gfarm_path: str,
 
     ct = get_content_type(gfarm_path)
     cl = str(size)
-    return StreamingResponse(content=generate(), media_type=ct,
-                             headers={"content-length": cl})
+    headers = {"content-length": cl}
+    if action == 'download':
+        filename = os.path.basename(gfarm_path)
+        cd = f"attachment; filename=\"{filename}\""
+        headers.update({"content-disposition": cd})
+    return StreamingResponse(content=generate(),
+                             media_type=ct,
+                             headers=headers,
+                             )
 
 
 @app.put("/f/{gfarm_path:path}")
