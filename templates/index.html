@@ -78,9 +78,10 @@ progress {
     <h2>API: GET /file/{path} (gfexport)</h2>
       <p>
         <label for="export_path">Gfarm file:</label>
-        <input type="text" id="export_path" value="/tmp/testfile.txt">
+        <input type="text" id="export_path" value="/tmp/testfile.txt" oninput="updateLink()">
         <button onclick="downloadFile()">Download (action=download)</button>
-        <button onclick="displayFile()">Open in new tab</button>
+        <button onclick="displayFile()">Open in new tab</button> <br/>
+        <div id="dl-link"></div>
       </p>
 
     <h2>API: PUT /file/{path} (gfreg)</h2>
@@ -290,6 +291,28 @@ progress {
       alert("Please input Gfarm path");
     }
   }
+
+  function updateLink() {
+    let gpath = document.getElementById("export_path").value;
+    const linkContainer = document.getElementById('dl-link');
+    if (gpath) {
+      gpath = '/' + gpath.replace(/^\/+/, "").replace(/\/+$/, "");
+      // URL encode without slash
+      const egpath = gpath.replace(/[^/]/g, encodeURIComponent);
+      const url = `/file${egpath}?action=download`;
+
+      let a = linkContainer.querySelector('a');
+      if (!a) {
+        a = document.createElement('a');
+        linkContainer.appendChild(a);
+      }
+      a.href = url;
+      a.textContent = `URL for download: ${url}`;
+    } else {
+      linkContainer.innerHTML = '';
+    }
+  }
+  updateLink();
 
   async function uploadFile() {
     const fileInput = document.getElementById('file_input');
