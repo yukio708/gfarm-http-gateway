@@ -462,6 +462,16 @@ async def async_gfwhoami(env):
         stderr=asyncio.subprocess.STDOUT)
 
 
+async def async_gfrm(env, path):
+    args = [path]
+    return await asyncio.create_subprocess_exec(
+        'gfrm', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT)
+
+
 async def async_gfexport(env, path):
     args = [path]
     return await asyncio.create_subprocess_exec(
@@ -687,7 +697,7 @@ async def file_import(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None),
                       x_file_timestamp: Union[str, None] = Header(default=None)):
-    print("x_file_timestamp=" + str(x_file_timestamp)) #TODO not used yet
+    # print("x_file_timestamp=" + str(x_file_timestamp)) #TODO debug
     env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
@@ -717,3 +727,35 @@ async def file_import(gfarm_path: str,
             detail=f"Cannot write: path={gfarm_path}, {str(elist)}"
         )
     return Response(status_code=200)
+
+
+async def gfarm_command_standard_response(p):
+    data = await p.stdout.read()
+    s = data.decode()
+    return_code = await p.wait()
+    if return_code != 0:
+        print(f"return_code={return_code}")  # TODO log
+        if "authentication error" in s:  #TODO ?
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication error: " + s
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=s
+        )
+    return PlainTextResponse(content=s)
+
+
+@app.delete("/f/{gfarm_path:path}")
+@app.delete("/file/{gfarm_path:path}")
+@app.delete("/files/{gfarm_path:path}")
+async def file_remove(gfarm_path: str,
+                      request: Request,
+                      authorization: Union[str, None] = Header(default=None)):
+    print("!!!!!!!!!!!!!! DELETE") #TODO
+    env = await set_env(request, authorization)
+    gfarm_path = fullpath(gfarm_path)
+
+    p = await async_gfrm(env, gfarm_path)
+    return await gfarm_command_standard_response(p)

@@ -95,6 +95,14 @@ progress {
         <div id="upload_status"></div> <br/>
         </p>
 
+    <h2>API: DELETE /file/{path} (gfrm)</h2>
+        <p>
+        <label for="rm_path">Gfarm file:</label>
+        <input type="text" id="rm_path" value="/tmp/testfile.txt">
+        <button onclick="removeFile()">Remove</button>
+        <div id="rm_output"></div>
+        </p>
+
     <h2>Logout</h2>
         <p> <a href="/logout">Logout (Not logging out of OpenID provider)</a> </p>
         <p> <a href={{ logout_url }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>
@@ -125,6 +133,7 @@ progress {
   });
   table.style.display = 'none';
 
+  // TODO async function
   const whoamiButton = document.getElementById('whoami_btn');
   const whoamiOut = document.getElementById('whoami_out');
   whoamiButton.addEventListener('click', async () => {
@@ -215,8 +224,8 @@ progress {
       }
       const response = await fetch(fullpath);
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error: ${response.status} - ${errorText}`);
+        const text = await response.text();
+        throw new Error(`HTTP ${response.status}: ${text}`);
       }
       //const data = await response.json();
       //lsOut.textContent = JSON.stringify(data, null, 2);
@@ -240,8 +249,8 @@ progress {
       fetch(requrl)
         .then(response => {
           if (!response.ok) {
-            return response.text().then(etext => {
-               throw new Error(`HTTP ${response.status}: ${etext}`);
+            return response.text().then(text => {
+              throw new Error(`HTTP ${response.status}: ${text}`);
             });
           }
           const contentDisposition = response.headers.get('Content-Disposition');
@@ -384,6 +393,36 @@ progress {
     }
   }
 
+  // TODO
+  function encodePath(path) {
+    let p = '/' + path.replace(/^\/+/, "").replace(/\/+$/, "");
+    // URL encode without slash
+    return p.replace(/[^/]/g, encodeURIComponent);
+  }
+
+  async function removeFile() {
+    let path = document.getElementById("rm_path").value;
+    const output = document.getElementById('rm_output');
+    if (path) {
+      const epath = encodePath(path)
+      try {
+        const url = `/file${epath}`
+        const response = await fetch(url, {
+          method: 'DELETE'
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`HTTP ${response.status}: ${text}`);
+        }
+        output.textContent = "Success (removed)";
+      } catch (error) {
+         console.error('Error:', error);
+         output.textContent = error;
+      }
+    } else {
+      alert("Please input Gfarm path");
+    }
+  }
 </script>
 
 </body>
