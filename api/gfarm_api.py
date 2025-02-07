@@ -107,12 +107,27 @@ oauth.register(
 provider = oauth.my_oidc_provider
 
 
+def encrypt_token(token):
+    # dict -> JSON str -> str binary
+    s = json.dumps(token).encode()
+    # binary -> encrypt -> base64 bin -> base64 str
+    token = base64.b64encode(fer.encrypt(s)).decode()
+
+
+def decrypt_token(encrypted_token):
+    try:
+        # base64 str -> bin
+        b = base64.b64decode(encrypted_token)
+        # binary -> decrypt -> str binary -> JSON str -> dict
+        return json.loads(fer.decrypt(b).decode())
+    except Exception as e:
+        print("decrypt_token error: " + str(e))  #TODO log
+        return None
+
+
 def set_token(request: Request, token):
     if fer:
-        # dict -> JSON str -> str binary
-        s = json.dumps(token).encode()
-        # binary -> encrypt -> base64 bin -> base64 str
-        token = base64.b64encode(fer.encrypt(s)).decode()
+        token = encrypt_token(token)
     #print(f"set token: {token}")  # TODO
     request.session["token"] = token
 
@@ -150,7 +165,7 @@ def jwt_error(msg):
 def verify_token(token, use_raise=False):
     try:
         access_token = token.get("access_token")
-        # TODO cache jwks
+        # TODO cache jwks, cache timeout
         jwks = requests.get(OIDC_CERTS_URL, verify=VERIFY_CERT).json()
         #print(pf(jwks)) #TODO
         header = jwt.get_unverified_header(access_token)
@@ -201,14 +216,7 @@ async def get_token(request: Request):
     if not token:
         return None
     if fer:
-        try:
-            # base64 str -> bin
-            b = base64.b64decode(token)
-            # binary -> decrypt -> str binary -> JSON str -> dict
-            token = json.loads(fer.decrypt(b).decode())
-        except Exception as e:
-            print("session decrypt error: " + str(e))
-            return None
+        token = decrypt_token(token)
     if not is_expired_token(token):
         return token
     new_token = await use_refresh_token(request, token)
@@ -259,6 +267,7 @@ async def index(request: Request):
         #print(str(type(csrf_token)) + str(csrf_token))  #TODO
         redirect_uri = request.url_for("logout")
         #print(type(redirect_uri))  #TODO
+        # for Keycloak 19 or later ?
         logout_url = OIDC_LOGOUT_URL + "?client_id=" + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" + str(redirect_uri) + "&state=" + csrf_token
         #print(logout_url) #TODO
         claims = jwt.get_unverified_claims(access_token)
@@ -267,6 +276,7 @@ async def index(request: Request):
         pat = ""
         logout_url = ""
         exp = -1
+    logout_url_simple = OIDC_LOGOUT_URL
     current_time = int(time.time())
     return templates.TemplateResponse("index.html",
                                       {"request": request,
@@ -274,6 +284,7 @@ async def index(request: Request):
                                        "access_token": access_token,
                                        "parsed_at": pat,
                                        "logout_url": logout_url,
+                                       "logout_url_simple": logout_url_simple,
                                        "current_time": current_time,
                                        "exp": exp,
                                        })

@@ -87,14 +87,16 @@ progress {
         </p>
 
     <h2>Logout</h2>
-        <p> <a href="/logout">Logout (Not logging out of Keycloak)</a> </p>
-        <p> <a href={{ logout_url }}>Logout of Keycloak</a> </p>
+        <p> <a href="/logout">Logout (Not logging out of OpenID provider)</a> </p>
+        <p> <a href={{ logout_url }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>
+        <p> <a href={{ logout_url_simple }}>Logout of OpenID provider only (no redirect)</a> </p>
 
     {% else %}
-        <p> <a href="/login">Login with Keycloak</a> </p>
+        <p> <a href="/login">Login with OpenID provider</a> </p>
         {% if error %}
         <p>Error: {{ error }}</p>
         {% endif %}
+        <p> <a href={{ logout_url_simple }}>Logout of OpenID provider only (no redirect)</a> </p>
     {% endif %}
 
 
