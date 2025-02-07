@@ -217,7 +217,7 @@ def delete_token(request: Request):
 async def get_access_token(request: Request) -> Optional[str]:
     token = await get_token(request)
     if token:
-        #print("token from session: " + str(token))  # TODO
+        print("token from session: " + str(token))  # TODO
         return token.get("access_token")
     return None
 
