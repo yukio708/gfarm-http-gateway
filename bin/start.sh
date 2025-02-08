@@ -14,5 +14,5 @@ CERTDIR="${HOME}/gfarm/docker/dist/minica/c2"
 HTTPS=""
 
 # top directory
-cd "${DIR}/.."
+cd "$SRC_DIR"
 PYTHONPATH="${SRC_DIR}/api" "$GUNICORN" --bind "$BIND" -w $(nproc) -k uvicorn.workers.UvicornWorker gfarm_api:app $HTTPS --access-logfile=-

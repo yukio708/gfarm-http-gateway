@@ -756,7 +756,6 @@ async def gfarm_command_standard_response(p):
 async def file_remove(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
-    print("!!!!!!!!!!!!!! DELETE") #TODO
     env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 

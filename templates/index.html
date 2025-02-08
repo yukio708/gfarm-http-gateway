@@ -351,19 +351,20 @@ progress {
     }
     const uploadUrl = '/file' + dirPath + file.name;
     try {
-      const blob = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onprogress = (event) => {
-          if (event.lengthComputable) {
-            // const percent = (event.loaded / event.total) * 100;
-            // progressBar.value = percent;
-            // progressText.textContent = `${event.loaded} / ${event.total}`;
-            console.log('reading: %d / %d', event.loaded, event.total);
-          }
-        };
-        reader.onloadend = (event) => resolve(event.srcElement.result);
-        reader.readAsArrayBuffer(file);
-      });
+      // (not work for large files)
+      // const blob = await new Promise((resolve) => {
+      //   const reader = new FileReader();
+      //   reader.onprogress = (event) => {
+      //     if (event.lengthComputable) {
+      //       // const percent = (event.loaded / event.total) * 100;
+      //       // progressBar.value = percent;
+      //       // progressText.textContent = `${event.loaded} / ${event.total}`;
+      //       console.log('reading: %d / %d', event.loaded, event.total);
+      //     }
+      //   };
+      //   reader.onloadend = (event) => resolve(event.srcElement.result);
+      //   reader.readAsArrayBuffer(file);
+      // });
 
       const mtime = Math.floor(file.lastModified / 1000);  // msec. -> sec.
       const startTime = Date.now();
@@ -401,7 +402,8 @@ progress {
         console.error('Network error');
       };
       status.textContent = 'Uploading...';
-      xhr.send(blob);
+      //xhr.send(blob);
+      xhr.send(file);
     } catch (error) {
       alert('Cannot upload:' + error);
       console.error('Cannot upload:', error);

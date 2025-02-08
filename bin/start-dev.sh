@@ -10,5 +10,5 @@ RELOAD=--reload
 LOGLEVEL=debug
 
 # top directory
-cd "${DIR}/.."
+cd "$SRC_DIR"
 PYTHONPATH="${SRC_DIR}/api" "$UVICORN" gfarm_api:app --log-level $LOGLEVEL --host 0.0.0.0 $RELOAD
