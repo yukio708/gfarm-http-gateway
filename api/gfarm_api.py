@@ -191,9 +191,8 @@ async def use_refresh_token(request: Request, token):
         }
         token_endpoint_url = meta.get('token_endpoint')
         # TODO use httpx
-        # TODO verify=True
         response = requests.post(token_endpoint_url,
-                                 data=data, verify=False)
+                                 data=data, verify=VERIFY_CERT)
         response.raise_for_status()
         new_token = response.json()
         set_token(request, new_token)
@@ -768,6 +767,7 @@ async def file_import(gfarm_path: str,
             return Response(status_code=200)
     else:  # error
         env = await set_env(request, authorization)
+        print(f"remove tmpfile: {tmppath}")  #TODO
         p3 = await async_gfrm(env, tmppath)
         stderr_task3 = asyncio.create_task(log_stderr(p3, elist))
         await stderr_task3
