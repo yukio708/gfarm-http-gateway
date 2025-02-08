@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 #set -x
 
@@ -7,8 +7,26 @@ INPUT="$1"
 URL="$2"
 shift
 shift
-parent=$(dirname "$CMD")
+parent=$(realpath $(dirname "$CMD"))
 bname=$(basename "$INPUT")
 dname=$(dirname "$INPUT")
 cd "$dname"
-"${parent}/jwt-curl" "$@" --upload-file "${bname}" "$URL"
+
+OS_TYPE=$(uname -s)
+case $OS_TYPE in
+    Darwin)
+        mtime=$(stat -f %m "$bname")
+        ;;
+    Linux)
+        mtime=$(stat -c %Y "$bname")
+        ;;
+    *)
+        mtime=""
+        ;;
+esac
+
+headers=()
+if [ -n "$mtime" ]; then
+    headers+=("-H" "X-File-Timestamp: $mtime")
+fi
+"${parent}/jwt-curl" "${headers[@]}" "$@" --upload-file "$bname" "$URL"
