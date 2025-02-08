@@ -26,6 +26,7 @@ progress {
 }
 </style>
 
+<script src="/static/js/gfarm.js"></script>
 </head>
 <body>
     <h1>Gfarm HTTP Gateway (Examples of API usage)</h1>
@@ -78,10 +79,14 @@ progress {
     <h2>API: GET /file/{path} (gfexport)</h2>
       <p>
         <label for="export_path">Gfarm file:</label>
-        <input type="text" id="export_path" value="/tmp/testfile.txt" oninput="updateLink()">
-        <button onclick="downloadFile()">Download (action=download)</button>
-        <button onclick="displayFile()">Open in new tab</button> <br/>
+        <input type="text" id="export_path" value="/tmp/testfile.txt" oninput="updateLink()"> <br/>
         <div id="dl-link"></div>
+        <div id="view-link"></div>
+        <button onclick="displayFile()">Open in new tab</button> <br/>
+        <button onclick="downloadFile()">Download (JavaScript)</button>
+        <button id="download-cancel">Cancel</button> <br/>
+        <progress id="download-progress" value="0" max="100"></progress>
+        <div id="download-progress-text"></div>
       </p>
 
     <h2>API: PUT /file/{path} (gfreg)</h2>
@@ -90,6 +95,7 @@ progress {
         <input type="text" id="reg_dir" value="/tmp">
         <input type="file" id="file_input"> <br/>
         <button onclick="uploadFile()">Upload</button>
+        <button id="upload-cancel">Cancel</button> <br/>
         <progress id="upload_progress" value="0" max="100"></progress>
         <div id="upload_progress_text"></div>
         <div id="upload_status"></div> <br/>
@@ -237,15 +243,12 @@ progress {
     }
   });
 
-  function downloadFile() {
-    let gpath = document.getElementById("export_path").value;
-    if (gpath) {
-      gpath = '/' + gpath.replace(/^\/+/, "").replace(/\/+$/, "");
-      let filename = gpath.split("/").pop();
-      //let filename = "__gfarm-file"
-      // URL encode without slash
-      const egpath = gpath.replace(/[^/]/g, encodeURIComponent);
-      const requrl = `/file${egpath}?action=download`;
+  // not used (fetch then style)
+  function downloadFile2() {
+    let path = document.getElementById("export_path").value;
+    if (path) {
+      const epath = encodePath(path)
+      const requrl = `/file${epath}?action=download`;
       fetch(requrl)
         .then(response => {
           if (!response.ok) {
@@ -302,29 +305,38 @@ progress {
   }
 
   function updateLink() {
-    let gpath = document.getElementById("export_path").value;
-    const linkContainer = document.getElementById('dl-link');
-    if (gpath) {
-      gpath = '/' + gpath.replace(/^\/+/, "").replace(/\/+$/, "");
-      // URL encode without slash
-      const egpath = gpath.replace(/[^/]/g, encodeURIComponent);
-      const url = `/file${egpath}?action=download`;
+    let path = document.getElementById("export_path").value;
+    const dlLink = document.getElementById('dl-link');
+    const viewLink = document.getElementById('view-link');
+    if (path) {
+      const epath = encodePath(path);
+      const url = `/file${epath}`;
 
-      let a = linkContainer.querySelector('a');
+      let a = dlLink.querySelector('a');
       if (!a) {
         a = document.createElement('a');
-        linkContainer.appendChild(a);
+        dlLink.appendChild(a);
       }
-      a.href = url;
-      a.textContent = `URL for download: ${url}`;
+      a.href = url + "?action=download";
+      a.textContent = `URL for download: ${a.href}`;
+
+     let a2 = viewLink.querySelector('a');
+     if (!a2) {
+        a2 = document.createElement('a');
+        viewLink.appendChild(a2);
+      }
+      a2.href = url + "?action=view";
+      a2.textContent = `URL for view: ${a2.href}`;
     } else {
-      linkContainer.innerHTML = '';
+      dlLink.innerHTML = '';
+      viewLink.innerHTML = '';
     }
   }
   updateLink();
 
   async function uploadFile() {
     const fileInput = document.getElementById('file_input');
+    const cancelButton = document.getElementById('upload-cancel');
     const file = fileInput.files[0];
     const regDir = document.getElementById('reg_dir');
     const progressBar = document.getElementById('upload_progress');
@@ -357,6 +369,10 @@ progress {
       const startTime = Date.now();
       const xhr = new XMLHttpRequest();
       xhr.open('PUT', uploadUrl);
+      cancelButton.addEventListener('click', function() {
+        status.textContent = 'Canceled';
+        xhr.abort();
+      });
       xhr.setRequestHeader('Content-Type', file.type);
       xhr.setRequestHeader('X-File-Timestamp', mtime);
       xhr.upload.onprogress = (event) => {
@@ -376,8 +392,8 @@ progress {
           //alert('Upload: success (' + dirPath + file.name + ')');
           console.log('Upload: success');
         } else {
-          status.textContent = 'Upload error:' + xhr.status + xhr.statusText;
-          console.error('Upload error:', xhr.status, xhr.statusText);
+          status.textContent = 'Error: ' + xhr.status + xhr.statusText;
+          console.error(status.textContent);
         }
       };
       xhr.onerror = () => {
@@ -391,13 +407,6 @@ progress {
       console.error('Cannot upload:', error);
       throw error;
     }
-  }
-
-  // TODO
-  function encodePath(path) {
-    let p = '/' + path.replace(/^\/+/, "").replace(/\/+$/, "");
-    // URL encode without slash
-    return p.replace(/[^/]/g, encodeURIComponent);
   }
 
   async function removeFile() {
