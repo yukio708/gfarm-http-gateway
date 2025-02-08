@@ -12,6 +12,8 @@ import secrets
 import gzip
 import bz2
 import urllib
+import random
+import string
 
 import requests
 
@@ -475,14 +477,14 @@ async def async_gfrm(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
-# async def async_gfmv(env, path):
-#     args = [path]
-#     return await asyncio.create_subprocess_exec(
-#         'gfmv', *args,
-#         env=env,
-#         stdin=asyncio.subprocess.DEVNULL,
-#         stdout=asyncio.subprocess.PIPE,
-#         stderr=asyncio.subprocess.PIPE)
+async def async_gfmv(env, src, dest):
+    args = [src, dest]
+    return await asyncio.create_subprocess_exec(
+        'gfmv', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
 
 
 async def async_gfexport(env, path):
@@ -732,12 +734,17 @@ async def file_import(gfarm_path: str,
                       authorization: Union[str, None] = Header(default=None),
                       x_file_timestamp: Union[str, None] = Header(default=None)):
     # print("x_file_timestamp=" + str(x_file_timestamp)) #TODO debug
-    env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
-    p = await async_gfreg(env, gfarm_path, x_file_timestamp)
+    randstr = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    tmpname = "gfarm-http-gateway.upload." + randstr
+    tmppath = os.path.join(os.path.dirname(gfarm_path), tmpname)
+
+    env = await set_env(request, authorization)
+    p = await async_gfreg(env, tmppath, x_file_timestamp)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(p, elist))
+    error = None
     try:
         async for chunk in request.stream():
             # print(f"chunk={str(chunk)}")
@@ -745,23 +752,35 @@ async def file_import(gfarm_path: str,
             p.stdin.write(chunk)
             await p.stdin.drain()  # speedup
     except Exception as e:
-        print(f"{str(e)}")  # TODO log
-        raise HTTPException(
-            status_code=500,
-            detail=f"Cannot write: path={gfarm_path},"
-            f" error={str(e)}, stderr={str(elist)}"
-        )
+        error = e
+
     p.stdin.close()
     await stderr_task
     return_code = await p.wait()
-    if return_code != 0:
-        print(f"return_code={return_code}")  # TODO log
-        # TODO
-        raise HTTPException(
-            status_code=500,
-            detail=f"Cannot write: path={gfarm_path}, {str(elist)}"
-        )
-    return Response(status_code=200)
+
+    if return_code == 0 and error is None:
+        env = await set_env(request, authorization)
+        p2 = await async_gfmv(env, tmppath, gfarm_path)
+        stderr_task2 = asyncio.create_task(log_stderr(p2, elist))
+        await stderr_task2
+        return_code = await p2.wait()
+        if return_code == 0:
+            return Response(status_code=200)
+    else:  # error
+        env = await set_env(request, authorization)
+        p3 = await async_gfrm(env, tmppath)
+        stderr_task3 = asyncio.create_task(log_stderr(p3, elist))
+        await stderr_task3
+        await p3.wait()
+
+        command = "gfreg"
+        code = 500
+        if error:
+            message = f"IO error({str(error)}): path={gfarm_path}"
+        else:
+            message = f"gfreg error: path={gfarm_path}"
+        stdout = ""
+        raise gfarm_http_error(command, code, message, stdout, elist)
 
 
 @app.delete("/f/{gfarm_path:path}")
