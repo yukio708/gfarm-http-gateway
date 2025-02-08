@@ -69,6 +69,9 @@ OIDC_LOGOUT_URL = f"{REALM_URL}/protocol/openid-connect/logout"
 
 VERIFY_TOKEN = True
 # VERIFY_TOKEN = False
+
+TOKEN_MIN_VALID_TIME_REMAINING = 60  # sec.
+
 # AUDIENCE = None
 AUDIENCE = "hpci"
 # ISSUER = None
@@ -180,6 +183,7 @@ def set_token(request: Request, token):
 async def use_refresh_token(request: Request, token):
     refresh_token = token.get("refresh_token")
     #print("use_refresh_token !!!!!!!!!!!!!!!!!!!!", refresh_token) #TODO
+    print("use_refresh_token !!!!!!!!!!!!!!!!!!!!") #TODO
     meta = await provider.load_server_metadata()
     #print(pf(meta))  # TODO
     try:
@@ -217,12 +221,14 @@ def verify_token(token, use_raise=False):
         if not header:
             raise jwt_error("Invalid header")
         alg = header.get("alg")
+        options = {'leeway': -TOKEN_MIN_VALID_TIME_REMAINING}
         claims = jwt.decode(
             access_token,
             jwks,
             algorithms=alg,
             audience=AUDIENCE,
             issuer=ISSUER,
+            options=options,
         )
         return claims
     except Exception as e:
@@ -249,7 +255,7 @@ def is_expired_token(token, use_raise=False):
         if exp is None:
             raise jwt_err("no exp claim")
         current_time = int(time.time())
-        return current_time > exp
+        return (current_time + TOKEN_MIN_VALID_TIME_REMAINING) > exp
     except Exception as e:
         print(f"is_expired_token: " + str(e))
         return True  # expired
