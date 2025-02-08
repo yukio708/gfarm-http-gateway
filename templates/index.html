@@ -62,6 +62,11 @@ progress {
         <button id="whoami_btn3">Who am I (CORS) (fetch from a remote host usinig token from HTML (may use old token))</button>
         <div id="whoami_out3"></div>
         </p>
+        <p>
+        <input type="text" id="whoami_url4" value="http://c3:8000">
+        <button onclick="whoamiWithoutAuth()">Who am I (invalid access token)</button>
+        <div id="whoami_out4"></div>
+        </p>
 
 
     <h2>API: GET /dir/{path}?a=1 (gfls -la)</h2>
@@ -427,7 +432,7 @@ progress {
         }
         output.textContent = "Success (removed)";
       } catch (error) {
-         console.error('Error:', error);
+         console.error(error);
          output.textContent = error;
       }
     } else {

@@ -462,7 +462,7 @@ async def async_gfwhoami(env):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT)
+        stderr=asyncio.subprocess.PIPE)
 
 
 async def async_gfrm(env, path):
@@ -472,7 +472,17 @@ async def async_gfrm(env, path):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT)
+        stderr=asyncio.subprocess.PIPE)
+
+
+# async def async_gfmv(env, path):
+#     args = [path]
+#     return await asyncio.create_subprocess_exec(
+#         'gfmv', *args,
+#         env=env,
+#         stdin=asyncio.subprocess.DEVNULL,
+#         stdout=asyncio.subprocess.PIPE,
+#         stderr=asyncio.subprocess.PIPE)
 
 
 async def async_gfexport(env, path):
@@ -568,6 +578,41 @@ async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
             break
 
 
+def gfarm_http_error(command, code, message, stdout, elist):
+    detail = {
+        "command": command,
+        "message": message,
+        "stdout": stdout,
+        "stderr": elist,
+    }
+    return HTTPException(
+        status_code=code,
+        detail=detail,
+    )
+
+
+async def gfarm_command_standard_response(proc, command):
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(proc, elist))
+    data = await proc.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await proc.wait()
+    if return_code != 0:
+        print(f"return_code={return_code}")  # TODO log
+        errstr = str(elist)
+        print(errstr) #TODO
+        if "authentication error" in errstr:
+            code = 401
+            message = "Authentication error"
+            raise gfarm_http_error(command, code, message, stdout, elist)
+        else:
+            code = 500
+            message = "Error"
+            raise gfarm_http_error(command, code, message, stdout, elist)
+    return PlainTextResponse(content=stdout)
+
+
 @app.get("/c/me")
 @app.get("/conf/me")
 @app.get("/config/me")
@@ -575,21 +620,7 @@ async def me(request: Request,
              authorization: Union[str, None] = Header(default=None)):
     env = await set_env(request, authorization)
     p = await async_gfwhoami(env)
-    data = await p.stdout.read()
-    s = data.decode()
-    return_code = await p.wait()
-    if return_code != 0:
-        print(f"return_code={return_code}")  # TODO log
-        if "authentication error" in s:
-            raise HTTPException(
-                status_code=401,
-                detail="Authentication error: " + s
-            )
-        raise HTTPException(
-            status_code=500,
-            detail=s
-        )
-    return PlainTextResponse(content=s)
+    return await gfarm_command_standard_response(p, "gfwhoami")
 
 
 @app.get("/d/{gfarm_path:path}")
@@ -661,7 +692,7 @@ async def file_export(gfarm_path: str,
         await stderr_task
         raise HTTPException(
             status_code=500,
-            detail=f"Cannot read: path={gfarm_path}, {str(elist)}"
+            detail=f"Cannot read: path={gfarm_path}, stderr={str(elist)}"
         )
 
     async def generate():
@@ -725,29 +756,12 @@ async def file_import(gfarm_path: str,
     return_code = await p.wait()
     if return_code != 0:
         print(f"return_code={return_code}")  # TODO log
+        # TODO
         raise HTTPException(
             status_code=500,
             detail=f"Cannot write: path={gfarm_path}, {str(elist)}"
         )
     return Response(status_code=200)
-
-
-async def gfarm_command_standard_response(p):
-    data = await p.stdout.read()
-    s = data.decode()
-    return_code = await p.wait()
-    if return_code != 0:
-        print(f"return_code={return_code}")  # TODO log
-        if "authentication error" in s:  #TODO ?
-            raise HTTPException(
-                status_code=401,
-                detail="Authentication error: " + s
-            )
-        raise HTTPException(
-            status_code=500,
-            detail=s
-        )
-    return PlainTextResponse(content=s)
 
 
 @app.delete("/f/{gfarm_path:path}")
@@ -760,4 +774,4 @@ async def file_remove(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
 
     p = await async_gfrm(env, gfarm_path)
-    return await gfarm_command_standard_response(p)
+    return await gfarm_command_standard_response(p, "gfrm")

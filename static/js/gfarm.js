@@ -8,6 +8,30 @@ function basename(path) {
     return path.split("/").pop();
 }
 
+// not ANONYMOUS
+async function whoamiWithoutAuth() {
+    const whoamiURL4 = document.getElementById('whoami_url4');
+    const whoamiOut4 = document.getElementById('whoami_out4');
+    try {
+        const url = whoamiURL4.value + "/c/me";
+        const response = await fetch(
+            url,
+            {
+                headers: {
+                    'Authorization': 'Bearer ' + "DUMMY",
+                }
+            });
+        const text = await response.text();
+        whoamiOut4.textContent = text;
+        //if (!response.ok) {
+        //    throw new Error(`HTTP error: ${response.status}`);
+        //}
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        whoamiOut4.textContent = error;
+    }
+}
+
 async function downloadFile() {
     const progressBar = document.getElementById('download-progress');
     const progressText = document.getElementById('download-progress-text');
