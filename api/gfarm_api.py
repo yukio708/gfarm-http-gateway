@@ -670,10 +670,10 @@ async def file_export(gfarm_path: str,
                       request: Request,
                       action: str = 'view',
                       authorization: Union[str, None] = Header(default=None)):
-    env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
     # print(gfarm_path)
 
+    env = await set_env(request, authorization)
     existing, is_file, size = await async_size(env, gfarm_path)
     if not existing:
         raise HTTPException(
@@ -689,6 +689,7 @@ async def file_export(gfarm_path: str,
     if int(size) <= 0:
         return Response(status_code=204)
 
+    env = await set_env(request, authorization)
     p = await async_gfexport(env, gfarm_path)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(p, elist))
@@ -771,22 +772,23 @@ async def file_import(gfarm_path: str,
         return_code = await p2.wait()
         if return_code == 0:
             return Response(status_code=200)
-    else:  # error
-        env = await set_env(request, authorization)
-        print(f"remove tmpfile: {tmppath}")  #TODO
-        p3 = await async_gfrm(env, tmppath)
-        stderr_task3 = asyncio.create_task(log_stderr(p3, elist))
-        await stderr_task3
-        await p3.wait()
 
-        command = "gfreg"
-        code = 500
-        if error:
-            message = f"IO error({str(error)}): path={gfarm_path}"
-        else:
-            message = f"gfreg error: path={gfarm_path}"
-        stdout = ""
-        raise gfarm_http_error(command, code, message, stdout, elist)
+    # error case
+    env = await set_env(request, authorization)
+    print(f"remove tmpfile: {tmppath}")  #TODO
+    p3 = await async_gfrm(env, tmppath)
+    stderr_task3 = asyncio.create_task(log_stderr(p3, elist))
+    await stderr_task3
+    await p3.wait()
+
+    command = "gfreg"
+    code = 500
+    if error:
+        message = f"IO error({str(error)}): path={gfarm_path}"
+    else:
+        message = f"gfreg error: path={gfarm_path}"
+    stdout = ""
+    raise gfarm_http_error(command, code, message, stdout, elist)
 
 
 @app.delete("/f/{gfarm_path:path}")

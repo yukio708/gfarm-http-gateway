@@ -102,35 +102,6 @@ async function downloadFile() {
             };
 
             xhr.send();
-
-            // response = await fetch(requrl);
-            // if (!response.ok) {
-            //     const text = await response.text();
-            //     throw new Error(`HTTP ${response.status}: ${text}`);
-            // }
-            // const contentDisposition = response.headers.get('Content-Disposition');
-            // if (contentDisposition) {
-            //     // RFC 5987,8187
-            //     let fnMatch = contentDisposition.match(/filename\*=UTF-8\'\'([^"]+)/);
-            //     if (fnMatch) {
-            //         downloadedFilename = decodeURIComponent(fnMatch[1]);
-            //     } else {
-            //         const fnMatch = contentDisposition.match(/filename="([^"]+)"/);
-            //         if (fnMatch) {
-            //             filename = decodeURIComponent(fnMatch[1]);
-            //         }
-            //     }
-            // }
-            // blob = await response.blob();
-            // const url = window.URL.createObjectURL(blob);
-            // const a = document.createElement('a');
-            // a.href = url;
-            // a.setAttribute('download', filename);
-            // a.style.display = 'none';
-            // document.body.appendChild(a);
-            // a.click();
-            // document.body.removeChild(a);
-            // window.URL.revokeObjectURL(url);
         } catch(error) {
             alert("Error: " + error.message);
             console.error(error);
