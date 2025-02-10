@@ -560,6 +560,16 @@ async def async_gfls(env, path, _all=0, recursive=0):
         stderr=asyncio.subprocess.STDOUT)  # TODO stderr?
 
 
+async def async_gfmkdir(env, path):
+    args = [path]
+    return await asyncio.create_subprocess_exec(
+        'gfmkdir', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
 # SEE ALSO: gfptar
 PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
@@ -681,10 +691,20 @@ async def dir_list(gfarm_path: str,
             status_code=500,
             detail=s
         )
-    # print(s)
-    # headers = {"X-Custom-Header": "custom_value"}
-    # return PlainTextResponse(content=s, headers=headers)
     return PlainTextResponse(content=s)
+
+
+@app.put("/d/{gfarm_path:path}")
+@app.put("/dir/{gfarm_path:path}")
+@app.put("/directories/{gfarm_path:path}")
+async def dir_create(gfarm_path: str,
+                     request: Request,
+                     authorization: Union[str, None] = Header(default=None)):
+    env = await set_env(request, authorization)
+    gfarm_path = fullpath(gfarm_path)
+
+    p = await async_gfmkdir(env, gfarm_path)
+    return await gfarm_command_standard_response(p, "gfmkdir")
 
 
 # BUFSIZE = 1

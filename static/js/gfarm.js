@@ -110,3 +110,27 @@ async function downloadFile() {
         alert("Please input Gfarm path");
     }
 }
+
+async function createDir() {
+    let path = document.getElementById("mkdir_path").value;
+    const output = document.getElementById('mkdir_output');
+    if (path) {
+        const epath = encodePath(path)
+        try {
+            const url = `/dir${epath}`
+            const response = await fetch(url, {
+                method: 'PUT'
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            }
+            output.textContent = "Success (created)";
+        } catch (error) {
+            console.error(error);
+            output.textContent = error;
+        }
+    } else {
+        alert("Please input Gfarm path");
+    }
+}

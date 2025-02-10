@@ -110,8 +110,16 @@ progress {
         <p>
         <label for="rm_path">Gfarm file:</label>
         <input type="text" id="rm_path" value="/tmp/testfile.txt">
-        <button onclick="removeFile()">Remove</button>
+        <button onclick="removeFile()">gfrm</button>
         <div id="rm_output"></div>
+        </p>
+
+    <h2>API: PUT /dir/{path} (gfmkdir)</h2>
+        <p>
+        <label for="mkdir_path">Gfarm directory:</label>
+        <input type="text" id="mkdir_path" value="/tmp/testdir">
+        <button onclick="createDir()">gfmkdir</button><br/>
+        <div id="mkdir_output"></div>
         </p>
 
     <h2>Logout</h2>
