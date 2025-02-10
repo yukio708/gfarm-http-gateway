@@ -67,7 +67,11 @@ progress {
         <button onclick="whoamiWithoutAuth()">Who am I (invalid access token)</button>
         <div id="whoami_out4"></div>
         </p>
-
+        <p>
+        <input type="text" id="whoami_url5" value="http://c3:8000">
+        <button onclick="whoamiAnonymous()">Who am I (ANONYMOUS) (ALLOW_GFARM_ANONYMOUS=1 is required)</button>
+        <div id="whoami_out5"></div>
+        </p>
 
     <h2>API: GET /dir/{path}?a=1 (gfls -la)</h2>
         <p>

@@ -27,8 +27,25 @@ async function whoamiWithoutAuth() {
         //    throw new Error(`HTTP error: ${response.status}`);
         //}
     } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error:', error);
         whoamiOut4.textContent = error;
+    }
+}
+
+// ANONYMOUS
+async function whoamiAnonymous() {
+    const whoamiURL5 = document.getElementById('whoami_url5');
+    const whoamiOut5 = document.getElementById('whoami_out5');
+    try {
+        const url = whoamiURL5.value + "/c/me";
+        const response = await fetch(
+            url,
+        );
+        const text = await response.text();
+        whoamiOut5.textContent = text;
+    } catch (error) {
+        console.error('Error:', error);
+        whoamiOut5.textContent = error;
     }
 }
 
