@@ -399,6 +399,11 @@ async def logout(request: Request, state: Optional[str] = None):
 @app.get("/access_token")
 async def access_token(request: Request):
     access_token = await get_access_token(request)
+    if not access_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Not logged in"
+        )
     # return JSON
     return {"access_token": access_token}
 
