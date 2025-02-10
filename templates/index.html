@@ -130,6 +130,17 @@ progress {
         <div id="rmdir_output"></div>
         </p>
 
+    <h2>API: POST /move (gfmv)</h2>
+        <p>
+        <label for="mv_src">Gfarm path (source):</label>
+        <input type="text" id="mv_src" value="/tmp/file1"> <br/>
+        <label for="mv_dest">Gfarm path (destination):</label>
+        <input type="text" id="mv_dest" value="/tmp/file2">
+        <button onclick="move()">gfmv</button><br/>
+        <table><tr><td>Input data (JSON)</td></tr><tr><td><pre><div id="mv_input"></div></pre></td></tr></table>
+        <div id="mv_output"></div>
+        </p>
+
     <h2>Logout</h2>
         <p> <a href="/logout">Logout (Not logging out of OpenID provider)</a> </p>
         <p> <a href={{ logout_url }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>

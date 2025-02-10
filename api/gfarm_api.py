@@ -190,7 +190,6 @@ def set_token(request: Request, token):
 async def use_refresh_token(request: Request, token):
     refresh_token = token.get("refresh_token")
     #print("use_refresh_token !!!!!!!!!!!!!!!!!!!!", refresh_token) #TODO
-    print("use_refresh_token !!!!!!!!!!!!!!!!!!!!") #TODO
     meta = await provider.load_server_metadata()
     #print(pf(meta))  # TODO
     try:
@@ -468,7 +467,9 @@ async def set_env(request, authorization):
             # used over JWT_USER_PATH
             'GFARM_SASL_PASSWORD': access_token,
             # for old libgfarm (Gfarm 2.8.5 or earlier)
-            'JWT_USER_PATH': f'!/{top_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh'
+            'JWT_USER_PATH': f'!/{top_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh',
+            # for Gfarm 2.8.6 or later
+            'GFARM_SASL_MECHANISMS': 'XOAUTH2',
         })
     elif authz_type == AUTHZ_TYPE_BASIC:
         env.update({
@@ -710,9 +711,9 @@ async def dir_list(gfarm_path: str,
 async def dir_create(gfarm_path: str,
                      request: Request,
                      authorization: Union[str, None] = Header(default=None)):
-    env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
+    env = await set_env(request, authorization)
     p = await async_gfmkdir(env, gfarm_path)
     return await gfarm_command_standard_response(p, "gfmkdir")
 
@@ -723,9 +724,9 @@ async def dir_create(gfarm_path: str,
 async def dir_remove(gfarm_path: str,
                      request: Request,
                      authorization: Union[str, None] = Header(default=None)):
-    env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
+    env = await set_env(request, authorization)
     p = await async_gfrmdir(env, gfarm_path)
     return await gfarm_command_standard_response(p, "gfrmdir")
 
@@ -846,8 +847,8 @@ async def file_import(gfarm_path: str,
             return Response(status_code=200)
 
     # error case
-    env = await set_env(request, authorization)
     print(f"remove tmpfile: {tmppath}")  #TODO
+    env = await set_env(request, authorization)
     p3 = await async_gfrm(env, tmppath)
     stderr_task3 = asyncio.create_task(log_stderr(p3, elist))
     await stderr_task3
@@ -869,8 +870,34 @@ async def file_import(gfarm_path: str,
 async def file_remove(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
-    env = await set_env(request, authorization)
     gfarm_path = fullpath(gfarm_path)
 
+    env = await set_env(request, authorization)
     p = await async_gfrm(env, gfarm_path)
     return await gfarm_command_standard_response(p, "gfrm")
+
+
+class Move(BaseModel):
+    source: str
+    destination: str
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "source": "/tmp/testfile1",
+                    "destination": "/tmp/testfile2",
+                }
+            ]
+        }
+
+
+@app.post("/move")
+async def move(request: Request,
+               move_data: Move,
+               authorization: Union[str, None] = Header(default=None)):
+    src = move_data.source
+    dest = move_data.destination
+
+    env = await set_env(request, authorization)
+    p = await async_gfmv(env, src, dest)
+    return await gfarm_command_standard_response(p, "gfmv")

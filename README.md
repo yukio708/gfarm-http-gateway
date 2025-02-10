@@ -18,6 +18,7 @@ HTTP gateway for Gfarm filesystem
 
 ## Requirements
 
+- Gfarm 2.8.6 or later (use Gfarm clients)
 - Python 3.11 or later
 - python3-venv
 - Python packages (refer to `requirements.txt`)

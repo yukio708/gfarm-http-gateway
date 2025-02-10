@@ -112,7 +112,7 @@ async function downloadFile() {
 }
 
 async function dirCommon(pathId, outputId, method, message) {
-    let path = document.getElementById(pathId).value;
+    const path = document.getElementById(pathId).value;
     const output = document.getElementById(outputId);
     if (path) {
         const epath = encodePath(path)
@@ -141,4 +141,39 @@ async function createDir() {
 
 async function removeDir() {
     await dirCommon("rmdir_path", "rmdir_output", "DELETE", "removed");
+}
+
+async function move() {
+    const src = document.getElementById("mv_src").value;
+    const dest = document.getElementById("mv_dest").value;
+    const input = document.getElementById("mv_input");
+    const output = document.getElementById("mv_output");
+    if (src && dest) {
+        const data = JSON.stringify({
+            "source": src,
+            "destination": dest,
+        }, null, 2);
+        input.textContent = data;
+
+        try {
+            const url = `/move`
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: data
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            }
+            output.textContent = `Success (moved)`;
+        } catch (error) {
+            console.error(error);
+            output.textContent = error;
+        }
+    } else {
+        alert("Please input Gfarm path");
+    }
 }
