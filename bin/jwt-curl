@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 #set -x
 
@@ -8,10 +8,19 @@ if [ -z "$JWT_USER_PATH" ]; then
     JWT_USER_PATH="/tmp/jwt_user_u${uid}/token.jwt"
 fi
 
-token=`cat "$JWT_USER_PATH"`
-curl -H "Authorization: Bearer ${token}" "$@"
-
-#TODO
-#pass=`echo user1:pass1 | base64`
-#curl -H "Authorization: Basic ${pass}" "$@"
-#curl -H "Authorization: Basic hoge" "$@"
+if [ "${GFARM_SASL_USER:-}" = "anonymous" ]; then
+    # SASL ANONYMOUS
+    curl "$@"
+elif [ -n "${GFARM_SASL_USER:-}" -a -n "${GFARM_SASL_PASSWORD:-}" ]; then
+    #pass=`echo -n "${GFARM_SASL_USER}:${GFARM_SASL_PASSWORD}" | base64`
+    #curl -H "Authorization: Basic ${pass}" "$@"
+    curl -u "${GFARM_SASL_USER}:${GFARM_SASL_PASSWORD}" "$@"
+elif [ -f "$JWT_USER_PATH" ]; then
+    token=`cat "$JWT_USER_PATH"`
+    headers=()
+    headers+=("-H" "Authorization: Bearer ${token}")
+    curl "${headers[@]}" "$@"
+else
+    echo >&2 "Error: Environment variable JWT_USER_PATH (or, GFARM_SASL_USER and GFARM_SASL_PASSWORD) is required"
+    exit 1
+fi

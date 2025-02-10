@@ -34,6 +34,9 @@ from cryptography.fernet import Fernet
 from jose import jwt
 
 
+def str2bool(s):
+    return s.lower() in ("1", "true", "on", "enable")
+
 ##### Parameters
 
 # TODO environment variables
@@ -78,6 +81,10 @@ AUDIENCE = "hpci"
 ISSUER = "https://keycloak:8443/auth/realms/HPCI"
 
 VERIFY_CERT = False  # not verify certificate  # TODO True
+
+GFARM_SASL_MECHANISMS = os.environ.get("GFARM_SASL_MECHANISMS")
+ALLOW_GFARM_ANONYMOUS = str2bool(os.environ.get("ALLOW_GFARM_ANONYMOUS", "disable"))
+
 
 #############################################################################
 
@@ -433,32 +440,54 @@ def parse_authorization(authz_str: str):
         else:
             raise no_authz
     else:
-        raise no_authz
+        if not ALLOW_GFARM_ANONYMOUS:
+            raise no_authz
     return authz_type, user, passwd
 
 
 async def set_env(request, authorization):
     env = {'PATH': os.environ['PATH']}
 
-    # get access token from session
+    # get access token from session in cookie
     access_token = await get_access_token(request)
 
     # prefer session
-    if not access_token:
+    if access_token:
+        authz_type = AUTHZ_TYPE_BEARER
+    else:
+        # TODO get_user_password(request) password from session in cookie
+
         # get access token from Authorization header
         # print(f"authorization={authorization}")
         authz_type, user, passwd = parse_authorization(authorization)
-        # TODO anonymous, sasl_user
         access_token = passwd
 
-    if access_token:
+    if authz_type == AUTHZ_TYPE_BEARER:
         env.update({
             # In libgfarm, GFARM_SASL_PASSWORD is preferentially
             # used over JWT_USER_PATH
             'GFARM_SASL_PASSWORD': access_token,
-            # for old libgfarm (2.8.5 or earlier)
+            # for old libgfarm (Gfarm 2.8.5 or earlier)
             'JWT_USER_PATH': f'!/{top_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh'
         })
+    elif authz_type == AUTHZ_TYPE_BASIC:
+        env.update({
+            # for Gfarm 2.8.6 or later
+            'GFARM_SASL_USER': user,
+            'GFARM_SASL_PASSWORD': passwd,
+        })
+        if GFARM_SASL_MECHANISMS:
+            env.update({
+                # for Gfarm 2.8.6 or later
+                'GFARM_SASL_MECHANISMS': GFARM_SASL_MECHANISMS,
+                })
+    else:  # anonymous
+        env.update({
+            # for Gfarm 2.8.6 or later
+            'GFARM_SASL_MECHANISMS': 'ANONYMOUS',
+            'GFARM_SASL_USER': 'anonymous',
+        })
+
     return env
 
 

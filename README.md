@@ -29,11 +29,26 @@ HTTP gateway for Gfarm filesystem
 - Refer to `setup.sh`
 - (For Ubuntu 24.04  or RHEL8 family)
   - Run `./setup.sh`
+- Keycloak configurations
+  - Open in web browser: `https://keycloak:8443/auth/admin/master/console/#/HPCI/`
+    - login: `admin/admin`
+  - hpci-jwt-sever ->  Valid redirect URIs
+    - -> Add valid redirect URIs
+      - ex. `http://c2:8000/*`
+    - Valid post logout redirect URIs
+      - ex. `http://c2:8000/*`
 
 ## Configuration parameters
 
 - TODO (work in progress)
   - (Please edit parameters in api/gfarm_api.py)
+- Environment variables
+  - TODO ...
+  - GFARM_SASL_MECHANISIMS
+    - Specifies the mechanisms to be used for SASL authentication, separated by spaces.
+    - (SEE ALSO: man gfarm2.conf)
+  - ALLOW_GFARM_ANONYMOUS
+    - allow anonymous access (default: false)
 
 ## Start server
 
@@ -61,9 +76,11 @@ HTTP gateway for Gfarm filesystem
 - `make`
   - login to c1 container
 - `ssh c2`
+- (in c2 container)
 - `cd ~/gfarm/gfarm-http-gateway`
 - `./setup.sh`
 - `bin/start-dev.sh`
+- run `bin/start-dev.sh` in c3 container using the same procedure described above
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <http://c2:8000/> in a web browser
   - auto-redirect to <http://keycloak>
@@ -78,10 +95,16 @@ HTTP gateway for Gfarm filesystem
   - Automatically add the access token from jwt-agent to the Authorization header
   - Available curl options
     - See the curl manual
-  - Use environment variable JWT_USER_PATH if it is set.
+  - Environment variables
+    - JWT_USER_PATH: JWT file of access token (for SASL mechanism: XOAUTH2)
+    - GFARM_SASL_USER: SASL user name
+      - To use SASL ANONYMOUS: GFARM_SASL_USER=anonymous
+        - In that case, the Authorization header will not be included in the request.
+    - GFARM_SASL_PASSWORD: SASL password (for SASL mechanisms: PLAIN or LOGIN)
 - bin/jwt-curl-upload local_file URL [curl options]
   - Upload a file
   - Automatically use jwt-curl and --upload-file option
+  - Available jwt-curl environment variables
 
 #### Example of jwt-curl command
 
@@ -96,6 +119,7 @@ HTTP gateway for Gfarm filesystem
 - `dd if=/dev/urandom of=/tmp/10GiB bs=1M count=10K`
 - `./jwt-curl-upload /tmp/10GiB http://c2:8000/f/tmp/10GiB`
 - `./jwt-curl -o /tmp/10GiB-2 http://c2:8000/f/tmp/10GiB`
+- `GFARM_SASL_USER=anonymous ./jwt-curl "http://c2:8000/c/me"`
 
 ### Examples of JavaScript
 
