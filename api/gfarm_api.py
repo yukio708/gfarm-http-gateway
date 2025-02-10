@@ -19,7 +19,7 @@ import requests
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -79,6 +79,8 @@ TOKEN_MIN_VALID_TIME_REMAINING = 60  # sec.
 AUDIENCE = "hpci"
 # ISSUER = None
 ISSUER = "https://keycloak:8443/auth/realms/HPCI"
+
+USER_CLAIM = "hpci.id" # TODO log username
 
 VERIFY_CERT = False  # not verify certificate  # TODO True
 
@@ -161,7 +163,7 @@ def encrypt_token(token):
     eb = fer.encrypt(cb)
     # encrypted bin -> base85 str
     encrypted_token = base64.b85encode(eb).decode()
-    print(f"len: before={len(s)}, after={len(encrypted_token)}")
+    #print(f"len: before={len(s)}, after={len(encrypted_token)}")
     return encrypted_token
 
 
@@ -313,23 +315,36 @@ def gen_csrf(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
+    login_ok = False
+    error = ""
+    sasl_username = ""
     try:
         access_token = await get_access_token(request)
-        error = ""
+        if access_token:
+            login_ok = True
     except Exception as e:
         access_token = None
         error = f"Access token verification error: {str(e)}"
-    if access_token:
-        pat = parse_access_token(access_token)
-        csrf_token = gen_csrf(request)
-        #print(str(type(csrf_token)) + str(csrf_token))  #TODO
-        redirect_uri = request.url_for("logout")
-        #print(type(redirect_uri))  #TODO
-        # for Keycloak 19 or later ?
-        logout_url = OIDC_LOGOUT_URL + "?client_id=" + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" + str(redirect_uri) + "&state=" + csrf_token
-        #print(logout_url) #TODO
-        claims = jwt.get_unverified_claims(access_token)
-        exp = claims.get("exp")
+
+    if access_token is None and error == "":
+        user, passwd = get_user_passwd(request)
+        if user and passwd:
+            login_ok = True
+            sasl_username = user
+
+    if login_ok:
+        if access_token:
+            pat = parse_access_token(access_token)
+            csrf_token = gen_csrf(request)
+            redirect_uri = request.url_for("logout")
+            # for Keycloak 19 or later ?
+            logout_url = OIDC_LOGOUT_URL + "?client_id=" + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" + str(redirect_uri) + "&state=" + csrf_token
+            claims = jwt.get_unverified_claims(access_token)
+            exp = claims.get("exp")
+        else:
+            pat = ""
+            logout_url = ""
+            exp = -1
     else:
         pat = ""
         logout_url = ""
@@ -339,8 +354,10 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html",
                                       {"request": request,
                                        "error": error,
+                                       "login_ok": login_ok,
                                        "access_token": access_token,
                                        "parsed_at": pat,
+                                       "sasl_username": sasl_username,
                                        "logout_url": logout_url,
                                        "logout_url_simple": logout_url_simple,
                                        "current_time": current_time,
@@ -360,7 +377,8 @@ async def auth(request: Request):
         token = await provider.authorize_access_token(request)
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
-    print(str(token))  # TODO
+    print(str(token))  # TODO log 
+    delete_user_passwd(request)
     set_token(request, token)
     return RedirectResponse(url="/")
 
@@ -374,6 +392,7 @@ async def logout(request: Request, state: Optional[str] = None):
             print(msg) # TODO
             raise HTTPException(status_code=401, detail=msg)
     delete_token(request)
+    delete_user_passwd(request)
     return RedirectResponse(url="/")
 
 
@@ -382,6 +401,49 @@ async def access_token(request: Request):
     access_token = await get_access_token(request)
     # return JSON
     return {"access_token": access_token}
+
+
+def get_user_passwd(request):
+    username = request.session.get("username")
+    password = request.session.get("password")
+    if username is None or password is None:
+        return None, None
+    if fer:
+        #print("encrypted password:", password) #TODO
+        b = base64.b85decode(password)
+        password = fer.decrypt(b).decode()
+    return username, password
+
+
+def set_user_passwd(request, username, password):
+    request.session["username"] = username
+    if fer:
+        b = fer.encrypt(password.encode())
+        password = base64.b85encode(b).decode()
+    request.session["password"] = password
+
+
+def delete_user_passwd(request: Request):
+    request.session.pop("username", None)
+    request.session.pop("password", None)
+
+
+@app.post("/login_passwd")
+async def login_passwd(request: Request,
+                       username: str = Form(),
+                       password: str = Form()):
+    delete_token(request)
+    set_user_passwd(request, username, password)
+    #TODO log username
+    print(f"SASL login: {username}")
+    env = await set_env(request, None)
+    p = await async_gfwhoami(env)
+    try:
+        await gfarm_command_standard_response(p, "gfwhoami")
+    except Exception:
+        delete_user_passwd(request)
+        raise
+    return RedirectResponse(url="/", status_code=303)
 
 
 ###########################################
@@ -447,19 +509,23 @@ def parse_authorization(authz_str: str):
 async def set_env(request, authorization):
     env = {'PATH': os.environ['PATH']}
 
+    # prefer session
     # get access token from session in cookie
     access_token = await get_access_token(request)
-
-    # prefer session
     if access_token:
         authz_type = AUTHZ_TYPE_BEARER
     else:
-        # TODO get_user_password(request) password from session in cookie
-
-        # get access token from Authorization header
-        # print(f"authorization={authorization}")
-        authz_type, user, passwd = parse_authorization(authorization)
-        access_token = passwd
+        # get password from session in cookie
+        user, passwd = get_user_passwd(request)
+        if user and passwd:
+            authz_type = AUTHZ_TYPE_BASIC
+        elif authorization:
+            # get access token or password from Authorization header
+            # print(f"authorization={authorization}")
+            authz_type, user, passwd = parse_authorization(authorization)
+            access_token = passwd
+        else:
+            authz_type = None
 
     if authz_type == AUTHZ_TYPE_BEARER:
         env.update({

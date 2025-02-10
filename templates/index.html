@@ -30,6 +30,8 @@ progress {
 </head>
 <body>
     <h1>Gfarm HTTP Gateway (Examples of API usage)</h1>
+    {% if login_ok %}
+
     {% if access_token %}
     <h2>Access Token</h2>
         <div id="table-container">
@@ -42,7 +44,11 @@ progress {
           <tr><td><pre>remaining_time={{ exp - current_time }}</pre></td></tr>
           </table>
         </div>
+    {% endif %}
 
+    {% if sasl_username %}
+    <h2>SASL username: {{ sasl_username }}
+    {% endif %}
 
     <h2>API: GET /me (gfwhoami)</h2>
         <p> <a href="/c/me">Who am I (/me)</a> </p>
@@ -146,15 +152,36 @@ progress {
         </p>
 
     <h2>Logout</h2>
+        {% if access_token %}
         <p> <a href="/logout">Logout (Not logging out of OpenID provider)</a> </p>
+        {% else %}
+        <p> <a href="/logout">Logout</a> </p>
+        {% endif %}
+        {% if logout_url %}
         <p> <a href={{ logout_url }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>
+        {% endif %}
+        {% if access_token %}
         <p> <a href={{ logout_url_simple }}>Logout of OpenID provider only (no redirect)</a> </p>
+        {% endif %}
 
     {% else %}
-        <p> <a href="/login">Login with OpenID provider</a> </p>
+        <hr>
         {% if error %}
         <p>Error: {{ error }}</p>
         {% endif %}
+        <p> <a href="/login">Login with OpenID provider</a> </p>
+        <hr>
+        <p>
+          Login with SASL (PLAIN or LOGIN)
+          <form action="/login_passwd" method="POST">
+            <label for="user">Username:</label>
+            <input type="text" id="user" name="username"><br/>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password"><br/>
+            <button type="submit">Login</button>
+          </form>
+        </p>
+        <hr>
         <p> <a href={{ logout_url_simple }}>Logout of OpenID provider only (no redirect)</a> </p>
     {% endif %}
 
@@ -163,17 +190,19 @@ progress {
   // TODO async function
   const tableContainer = document.getElementById('table-container');
   const toggleButton = document.getElementById('toggle-button');
-  const table = tableContainer.querySelector('table');
-  toggleButton.addEventListener('click', () => {
-    if (table.style.display === 'none') {
-      table.style.display = 'table';
-      toggleButton.textContent = 'CLOSE';
-    } else {
+  if (tableContainer) {
+      const table = tableContainer.querySelector('table');
+      toggleButton.addEventListener('click', () => {
+          if (table.style.display === 'none') {
+              table.style.display = 'table';
+              toggleButton.textContent = 'CLOSE';
+          } else {
+              table.style.display = 'none';
+              toggleButton.textContent = 'OPEN';
+          }
+      });
       table.style.display = 'none';
-      toggleButton.textContent = 'OPEN';
-    }
-  });
-  table.style.display = 'none';
+  }
 
   // TODO async function
   const whoamiButton = document.getElementById('whoami_btn');
