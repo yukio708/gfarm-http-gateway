@@ -122,6 +122,14 @@ progress {
         <div id="mkdir_output"></div>
         </p>
 
+    <h2>API: DELETE /dir/{path} (gfrmdir)</h2>
+        <p>
+        <label for="rmdir_path">Gfarm directory:</label>
+        <input type="text" id="rmdir_path" value="/tmp/testdir">
+        <button onclick="removeDir()">gfrmdir</button><br/>
+        <div id="rmdir_output"></div>
+        </p>
+
     <h2>Logout</h2>
         <p> <a href="/logout">Logout (Not logging out of OpenID provider)</a> </p>
         <p> <a href={{ logout_url }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>

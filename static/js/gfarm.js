@@ -111,21 +111,21 @@ async function downloadFile() {
     }
 }
 
-async function createDir() {
-    let path = document.getElementById("mkdir_path").value;
-    const output = document.getElementById('mkdir_output');
+async function dirCommon(pathId, outputId, method, message) {
+    let path = document.getElementById(pathId).value;
+    const output = document.getElementById(outputId);
     if (path) {
         const epath = encodePath(path)
         try {
             const url = `/dir${epath}`
             const response = await fetch(url, {
-                method: 'PUT'
+                method: method
             });
             if (!response.ok) {
                 const text = await response.text();
                 throw new Error(`HTTP ${response.status}: ${text}`);
             }
-            output.textContent = "Success (created)";
+            output.textContent = `Success (${message})`;
         } catch (error) {
             console.error(error);
             output.textContent = error;
@@ -133,4 +133,12 @@ async function createDir() {
     } else {
         alert("Please input Gfarm path");
     }
+}
+
+async function createDir() {
+    await dirCommon("mkdir_path", "mkdir_output", "PUT", "created");
+}
+
+async function removeDir() {
+    await dirCommon("rmdir_path", "rmdir_output", "DELETE", "removed");
 }

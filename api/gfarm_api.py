@@ -570,6 +570,16 @@ async def async_gfmkdir(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
+async def async_gfrmdir(env, path):
+    args = [path]
+    return await asyncio.create_subprocess_exec(
+        'gfrmdir', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
 # SEE ALSO: gfptar
 PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
@@ -705,6 +715,19 @@ async def dir_create(gfarm_path: str,
 
     p = await async_gfmkdir(env, gfarm_path)
     return await gfarm_command_standard_response(p, "gfmkdir")
+
+
+@app.delete("/d/{gfarm_path:path}")
+@app.delete("/dir/{gfarm_path:path}")
+@app.delete("/directories/{gfarm_path:path}")
+async def dir_remove(gfarm_path: str,
+                     request: Request,
+                     authorization: Union[str, None] = Header(default=None)):
+    env = await set_env(request, authorization)
+    gfarm_path = fullpath(gfarm_path)
+
+    p = await async_gfrmdir(env, gfarm_path)
+    return await gfarm_command_standard_response(p, "gfrmdir")
 
 
 # BUFSIZE = 1
