@@ -7,4 +7,3 @@ httpx
 Jinja2
 python-jose
 uvicorn
-gunicorn

@@ -18,23 +18,19 @@ APTGET() {
     SUDO apt-get "$@"
 }
 
-YUM() {
-    SUDO yum "$@"
+DNF() {
+    SUDO dnf "$@"
 }
 
 install_packages_for_debian() {
     # for Ubuntu 24.04
     APTGET update
     APTGET install -y python3-minimal python3-pip python3-venv
-    APTGET install -y nodejs
 }
 
 install_packages_for_rhel() {
-    # for RHEL8 family
-    YUM install -y python3.11 python3.11-pip
-    # YUM module info nodejs
-    YUM module reset -y nodejs
-    YUM module install -y nodejs:18
+    # for RHEL8 or RHEL9 family
+    DNF install -y python3.11 python3.11-pip
 }
 
 install_python_package() {
