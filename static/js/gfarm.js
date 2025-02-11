@@ -194,3 +194,26 @@ async function move() {
         alert("Please input Gfarm path");
     }
 }
+
+async function stat() {
+    const path = document.getElementById("stat_path").value;
+    const output = document.getElementById("stat_output");
+    if (path) {
+        let filename = basename(path);
+        const epath = encodePath(path)
+        const url = `/attr${epath}`
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            }
+            output.textContent = JSON.stringify(await response.json(), null, 2);
+        } catch (error) {
+            console.error(error);
+            output.textContent = error;
+        }
+    } else {
+        alert("Please input Gfarm path");
+    }
+}

@@ -14,6 +14,7 @@ import bz2
 import urllib
 import random
 import string
+from datetime import datetime
 
 import requests
 
@@ -87,9 +88,7 @@ VERIFY_CERT = False  # not verify certificate  # TODO True
 GFARM_SASL_MECHANISMS = os.environ.get("GFARM_SASL_MECHANISMS")
 ALLOW_GFARM_ANONYMOUS = str2bool(os.environ.get("ALLOW_GFARM_ANONYMOUS", "disable"))
 
-
 #############################################################################
-
 api_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(api_path)
 top_dir = os.path.dirname(api_dir)
@@ -451,7 +450,7 @@ async def login_passwd(request: Request,
     return RedirectResponse(url="/", status_code=303)
 
 
-###########################################
+#############################################################################
 def get_content_type(filename: str):
     mime_type, _ = mimetypes.guess_type(filename)
     return mime_type or 'application/octet-stream'
@@ -563,6 +562,7 @@ async def set_env(request, authorization):
     return env
 
 
+#############################################################################
 async def async_gfwhoami(env):
     args = []
     return await asyncio.create_subprocess_exec(
@@ -695,12 +695,23 @@ async def async_size(env, path):
     return existing, is_file, size
 
 
+async def async_gfstat(env, path):
+    args = ['-M', path]
+    return await asyncio.create_subprocess_exec(
+        'gfstat', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
+#############################################################################
 async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
     while True:
         line = await process.stderr.readline()
         if line:
             msg = line.decode().strip()
-            print(f"STDERR: {msg}")  # TODO log
+            print(f"STDERR: {msg}")  # TODO debug log
             elist.append(msg)
         else:
             break
@@ -741,11 +752,12 @@ async def gfarm_command_standard_response(proc, command):
     return PlainTextResponse(content=stdout)
 
 
+#############################################################################
 @app.get("/c/me")
 @app.get("/conf/me")
 @app.get("/config/me")
-async def me(request: Request,
-             authorization: Union[str, None] = Header(default=None)):
+async def whoami(request: Request,
+                 authorization: Union[str, None] = Header(default=None)):
     env = await set_env(request, authorization)
     p = await async_gfwhoami(env)
     return await gfarm_command_standard_response(p, "gfwhoami")
@@ -963,12 +975,196 @@ class Move(BaseModel):
 
 
 @app.post("/move")
-async def move(request: Request,
-               move_data: Move,
-               authorization: Union[str, None] = Header(default=None)):
+async def move_rename(request: Request,
+                      move_data: Move,
+                      authorization: Union[str, None] = Header(default=None)):
     src = move_data.source
     dest = move_data.destination
 
     env = await set_env(request, authorization)
     p = await async_gfmv(env, src, dest)
     return await gfarm_command_standard_response(p, "gfmv")
+
+
+
+import json
+
+def keyval(s):
+  # s: "  Key1: Val1..."
+  # return: "key1", "Val1..."
+  kv = s.split(":", 1)
+  if len(kv) == 2:
+    key, val = kv
+    key = key.strip()
+    val = val.strip()
+  else:
+    key = None
+    val = None
+  return key, val
+
+def timestamp_to_unix(timestamp_str):
+  try:
+    dt_object = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f %z")
+    unix_timestamp = dt_object.timestamp()
+    return unix_timestamp
+  except ValueError as e:
+    print(f"Invalid timestamp format. {str(e)}") #TODO log
+    return None
+
+def parse_gfstat(file_info_str):
+  file_info = {}
+  lines = file_info_str.splitlines()
+  for line in lines:
+    line = line.strip()
+    if line:
+      key, value = keyval(line)
+      if key == "File":
+        value = value.strip('"')
+      elif key == "Size":
+        # Size: 0             Filetype: directory
+        value, ftype = value.split(" ", 1)
+        value = int(value)
+        # Filetype: directory
+        ftype_key, ftype_val = keyval(ftype)
+        file_info[ftype_key] = ftype_val
+      elif key == "Mode":
+        # Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+        value = value.replace("(", "").replace(")", "")
+        # Mode: 1777        Uid:  user1  Gid: gfarmadm
+        value, ug = value.split(None, 1)
+        # Uid: user1  Gid: gfarmadm
+        uid_key, ug_val = keyval(ug)
+        # user1  Gid: gfarmadm
+        uid_val, g = ug_val.split(None, 1)
+        file_info[uid_key] = uid_val
+        gid_key, gid_val = keyval(g)
+        file_info[gid_key] = gid_val
+      elif key == "Inode":
+        # Inode: 3            Gen: 0
+        value, gen = value.split(" ", 1)
+        value = int(value)
+        # Gen: 0
+        gen_key, gen_val = keyval(gen)
+        file_info[gen_key] = int(gen_val)
+      elif key == "Links":
+        # Links: 2            Ncopy: 1
+        value, ncopy = value.split(" ", 1)
+        value = int(value)
+        # Ncopy: 1
+        ncopy_key, ncopy_val = keyval(ncopy)
+        file_info[ncopy_key] = int(ncopy_val)
+      elif key in ("Access", "Modify", "Change"):
+        # 2025-02-10 18:27:33.191688265 +0000
+        t = value.split()
+        if len(t) == 3:
+          day = t[0]
+          sec, nsec = t[1].split(".")
+          usec = nsec[:6]  # 191688265 -> 191688
+          zone = t[2]
+          value = f"{day} {sec}.{usec} {zone}"
+        value_sec = timestamp_to_unix(value)
+        file_info[key+"Secound"] = value_sec
+      elif key is None:
+        continue
+      file_info[key] = value
+
+  return file_info
+
+
+# Example
+# file_info_str = """
+#  File: "/tmp"
+#  Size: 0             Filetype: directory
+#  Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+#  Inode: 3            Gen: 0
+#                      (00000000000000030000000000000000)
+#  Links: 2            Ncopy: 1
+#  Access: 2025-02-10 18:27:33.191688265 +0000
+#  Modify: 2025-02-10 18:27:31.071120060 +0000
+#  Change: 2025-02-10 18:15:09.400000000 +0900
+#  MetadataHost: gfmd1
+#  MetadataPort: 601
+#  MetadataUser: user1
+# """
+# print(json.dumps(parse_gfstat(file_info_str), indent=2))
+
+
+class Stat(BaseModel):
+    File: str
+    Filetype: str
+    Size: int
+    Uid: str
+    Gid: str
+    Mode: str
+    Gen: int
+    Inode: int
+    Ncopy: int
+    Links: int
+    AccessSecound: float
+    Access: str
+    ModifySecound: float
+    Modify: str
+    ChangeSecound: float
+    Change: str
+    MetadataHost: str
+    MetadataPort: str
+    MetadataUser: str
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "File": "/tmp",
+                    "Filetype": "directory",
+                    "Size": 0,
+                    "Uid": "user1",
+                    "Gid": "gfarmadm",
+                    "Mode": "1777",
+                    "Gen": 0,
+                    "Inode": 3,
+                    "Ncopy": 1,
+                    "Links": 2,
+                    "AccessSecound": 1739212053.191688,
+                    "Access": "2025-02-10 18:27:33.191688 +0000",
+                    "ModifySecound": 1739212051.07112,
+                    "Modify": "2025-02-10 18:27:31.071120 +0000",
+                    "ChangeSecound": 1739178909.4,
+                    "Change": "2025-02-10 18:15:09.400000 +0900",
+                    "MetadataHost": "gfmd1",
+                    "MetadataPort": "601",
+                    "MetadataUser": "user1"
+                }
+            ]
+        }
+
+
+@app.get("/a/{gfarm_path:path}")
+@app.get("/attr/{gfarm_path:path}")
+@app.get("/attributes/{gfarm_path:path}")
+async def stat(gfarm_path: str,
+               request: Request,
+               authorization: Union[str, None] = Header(default=None)) -> Stat:
+    gfarm_path = fullpath(gfarm_path)
+    env = await set_env(request, authorization)
+    proc = await async_gfstat(env, gfarm_path)
+
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(proc, elist))
+    data = await proc.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await proc.wait()
+    if return_code != 0:
+        errstr = str(elist)
+        command = "gfstat"
+        if "authentication error" in errstr:
+            code = 401
+            message = "Authentication error"
+            raise gfarm_http_error(command, code, message, stdout, elist)
+        else:
+            code = 500
+            message = "Error"
+            raise gfarm_http_error(command, code, message, stdout, elist)
+    stat_data = parse_gfstat(stdout)
+    stat_response = Stat.parse_obj(stat_data)
+    return stat_response

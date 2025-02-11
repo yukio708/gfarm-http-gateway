@@ -30,6 +30,9 @@ progress {
 </head>
 <body>
     <h1>Gfarm HTTP Gateway (Examples of API usage)</h1>
+
+    <p><a href="/docs">API docs</a></p>
+
     {% if login_ok %}
 
     {% if access_token %}
@@ -50,7 +53,7 @@ progress {
     <h2>SASL username: {{ sasl_username }}
     {% endif %}
 
-    <h2>API: GET /me (gfwhoami)</h2>
+    <h2>(gfwhoami) API: GET /me</h2>
         <p> <a href="/c/me">Who am I (/me)</a> </p>
 
         <p>
@@ -79,7 +82,7 @@ progress {
         <div id="whoami_out5"></div>
         </p>
 
-    <h2>API: GET /dir/{path}?a=1 (gfls -la)</h2>
+    <h2>(gfls -la) API: GET /dir/{path}?a=1</h2>
         <p>
         <label for="ls_path">Gfarm directory:</label>
         <input type="text" id="ls_path" value="/tmp">
@@ -91,7 +94,7 @@ progress {
         <table><tr><td><pre><div id="ls_out"></div></pre></td></tr></table>
         </p>
 
-    <h2>API: GET /file/{path} (gfexport)</h2>
+    <h2>(gfexport) API: GET /file/{path}</h2>
       <p>
         <label for="export_path">Gfarm file:</label>
         <input type="text" id="export_path" value="/tmp/testfile.txt" oninput="updateLink()"> <br/>
@@ -104,7 +107,7 @@ progress {
         <div id="download-progress-text"></div>
       </p>
 
-    <h2>API: PUT /file/{path} (gfreg)</h2>
+    <h2>(gfreg) API: PUT /file/{path}</h2>
         <p>
         <label for="reg_dir">Gfarm directory:</label>
         <input type="text" id="reg_dir" value="/tmp">
@@ -116,7 +119,7 @@ progress {
         <div id="upload_status"></div> <br/>
         </p>
 
-    <h2>API: DELETE /file/{path} (gfrm)</h2>
+    <h2>(gfrm) API: DELETE /file/{path}</h2>
         <p>
         <label for="rm_path">Gfarm file:</label>
         <input type="text" id="rm_path" value="/tmp/testfile.txt">
@@ -124,7 +127,7 @@ progress {
         <div id="rm_output"></div>
         </p>
 
-    <h2>API: PUT /dir/{path} (gfmkdir)</h2>
+    <h2>(gfmkdir) API: PUT /dir/{path}</h2>
         <p>
         <label for="mkdir_path">Gfarm directory:</label>
         <input type="text" id="mkdir_path" value="/tmp/testdir">
@@ -132,7 +135,7 @@ progress {
         <div id="mkdir_output"></div>
         </p>
 
-    <h2>API: DELETE /dir/{path} (gfrmdir)</h2>
+    <h2>(gfrmdir) API: DELETE /dir/{path}</h2>
         <p>
         <label for="rmdir_path">Gfarm directory:</label>
         <input type="text" id="rmdir_path" value="/tmp/testdir">
@@ -140,7 +143,7 @@ progress {
         <div id="rmdir_output"></div>
         </p>
 
-    <h2>API: POST /move (gfmv)</h2>
+    <h2>(gfmv) API: POST /move</h2>
         <p>
         <label for="mv_src">Gfarm path (source):</label>
         <input type="text" id="mv_src" value="/tmp/file1"> <br/>
@@ -149,6 +152,14 @@ progress {
         <button onclick="move()">gfmv</button><br/>
         <table><tr><td>Input data (JSON)</td></tr><tr><td><pre><div id="mv_input"></div></pre></td></tr></table>
         <div id="mv_output"></div>
+        </p>
+
+   <h2>(gfstat) API: GET /attr/{path}</h2>
+        <p>
+        <label for="stat_path">Gfarm path:</label>
+        <input type="text" id="stat_path" value="/tmp/testdir">
+        <button onclick="stat()">gfstat</button><br/>
+        <table><tr><td><pre><div id="stat_output"></div></pre></td></tr></table>
         </p>
 
     <h2>Logout</h2>
