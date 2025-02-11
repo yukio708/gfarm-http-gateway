@@ -563,6 +563,162 @@ async def set_env(request, authorization):
 
 
 #############################################################################
+def keyval(s):
+  # s: "  Key1: Val1..."
+  # return: "key1", "Val1..."
+  kv = s.split(":", 1)
+  if len(kv) == 2:
+    key, val = kv
+    key = key.strip()
+    val = val.strip()
+  else:
+    key = None
+    val = None
+  return key, val
+
+
+def timestamp_to_unix(timestamp_str):
+  try:
+    dt_object = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f %z")
+    unix_timestamp = dt_object.timestamp()
+    return unix_timestamp
+  except ValueError as e:
+    print(f"Invalid timestamp format. {str(e)}") #TODO log
+    return None
+
+
+class Stat(BaseModel):
+    File: str
+    Filetype: str
+    Size: int
+    Uid: str
+    Gid: str
+    Mode: str
+    Gen: int
+    Inode: int
+    Ncopy: int
+    Links: int
+    AccessSecound: float
+    Access: str
+    ModifySecound: float
+    Modify: str
+    ChangeSecound: float
+    Change: str
+    MetadataHost: str
+    MetadataPort: str
+    MetadataUser: str
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "File": "/tmp",
+                    "Filetype": "directory",
+                    "Size": 0,
+                    "Uid": "user1",
+                    "Gid": "gfarmadm",
+                    "Mode": "1777",
+                    "Gen": 0,
+                    "Inode": 3,
+                    "Ncopy": 1,
+                    "Links": 2,
+                    "AccessSecound": 1739212053.191688,
+                    "Access": "2025-02-10 18:27:33.191688 +0000",
+                    "ModifySecound": 1739212051.07112,
+                    "Modify": "2025-02-10 18:27:31.071120 +0000",
+                    "ChangeSecound": 1739178909.4,
+                    "Change": "2025-02-10 18:15:09.400000 +0900",
+                    "MetadataHost": "gfmd1",
+                    "MetadataPort": "601",
+                    "MetadataUser": "user1"
+                }
+            ]
+        }
+
+
+def parse_gfstat(file_info_str):
+  file_info = {
+      "MetadataHost": "",
+      "MetadataPort": "",
+      "MetadataUser": "",
+  }
+  lines = file_info_str.splitlines()
+  for line in lines:
+    line = line.strip()
+    if line:
+      key, value = keyval(line)
+      if key == "File":
+        value = value.strip('"')
+      elif key == "Size":
+        # Size: 0             Filetype: directory
+        value, ftype = value.split(" ", 1)
+        value = int(value)
+        # Filetype: directory
+        ftype_key, ftype_val = keyval(ftype)
+        file_info[ftype_key] = ftype_val
+      elif key == "Mode":
+        # Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+        value = value.replace("(", "").replace(")", "")
+        # Mode: 1777        Uid:  user1  Gid: gfarmadm
+        value, ug = value.split(None, 1)
+        # Uid: user1  Gid: gfarmadm
+        uid_key, ug_val = keyval(ug)
+        # user1  Gid: gfarmadm
+        uid_val, g = ug_val.split(None, 1)
+        file_info[uid_key] = uid_val
+        gid_key, gid_val = keyval(g)
+        file_info[gid_key] = gid_val
+      elif key == "Inode":
+        # Inode: 3            Gen: 0
+        value, gen = value.split(" ", 1)
+        value = int(value)
+        # Gen: 0
+        gen_key, gen_val = keyval(gen)
+        file_info[gen_key] = int(gen_val)
+      elif key == "Links":
+        # Links: 2            Ncopy: 1
+        value, ncopy = value.split(" ", 1)
+        value = int(value)
+        # Ncopy: 1
+        ncopy_key, ncopy_val = keyval(ncopy)
+        file_info[ncopy_key] = int(ncopy_val)
+      elif key in ("Access", "Modify", "Change"):
+        # 2025-02-10 18:27:33.191688265 +0000
+        t = value.split()
+        if len(t) == 3:
+          day = t[0]
+          sec, nsec = t[1].split(".")
+          usec = nsec[:6]  # 191688265 -> 191688
+          zone = t[2]
+          value = f"{day} {sec}.{usec} {zone}"
+        value_sec = timestamp_to_unix(value)
+        file_info[key+"Secound"] = value_sec
+      elif key is None:
+        continue
+      file_info[key] = value
+
+  return Stat.parse_obj(file_info)
+
+
+# Example
+# file_info_str = """
+#  File: "/tmp"
+#  Size: 0             Filetype: directory
+#  Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+#  Inode: 3            Gen: 0
+#                      (00000000000000030000000000000000)
+#  Links: 2            Ncopy: 1
+#  Access: 2025-02-10 18:27:33.191688265 +0000
+#  Modify: 2025-02-10 18:27:31.071120060 +0000
+#  Change: 2025-02-10 18:15:09.400000000 +0900
+#  MetadataHost: gfmd1
+#  MetadataPort: 601
+#  MetadataUser: user1
+# """
+# print(str(parse_gfstat(file_info_str)))
+
+
+#############################################################################
 async def async_gfwhoami(env):
     args = []
     return await asyncio.create_subprocess_exec(
@@ -652,57 +808,79 @@ async def async_gfrmdir(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
-# SEE ALSO: gfptar
-PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
-                       r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
-
-
-async def async_size(env, path):
-    args = ['-ilTd', path]
-    p = await asyncio.create_subprocess_exec(
-        'gfls', *args,
-        env=env,
-        stdin=asyncio.subprocess.DEVNULL,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.DEVNULL)
-    line = await p.stdout.readline()
-    return_code = await p.wait()
-    if return_code != 0:
-        existing = False
-        is_file = False
-        size = 0
-        return existing, is_file, size
-    line = line.decode().rstrip()
-    #print(line)  #TODO
-    m = PAT_ENTRY.match(line)
-    if m:
-        # Ex.
-        # 12345 -rw-rw-r-- 1 user1 group1 29 Jan 1 00:00:00 2022 fname
-        # inum = int(m.group(1))
-        mode_str = m.group(2)
-        # nlink = int(m.group(3))
-        # uname = m.group(4)
-        # gname = m.group(5)
-        size = int(m.group(6))
-        # mtime_str = m.group(7)
-        # name = m.group(8)
+async def async_gfstat(env, path, metadata):
+    if metadata:
+        args = ['-M', path]
     else:
-        mode_str = "?"
-        size = -1
-
-    existing = True
-    is_file = mode_str[0] == '-'
-    return existing, is_file, size
-
-
-async def async_gfstat(env, path):
-    args = ['-M', path]
+        args = [path]
     return await asyncio.create_subprocess_exec(
         'gfstat', *args,
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
+
+
+# # SEE ALSO: gfptar
+# PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
+#                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
+# async def async_size(env, path):
+#     args = ['-ilTd', path]
+#     p = await asyncio.create_subprocess_exec(
+#         'gfls', *args,
+#         env=env,
+#         stdin=asyncio.subprocess.DEVNULL,
+#         stdout=asyncio.subprocess.PIPE,
+#         stderr=asyncio.subprocess.DEVNULL)
+#     line = await p.stdout.readline()
+#     return_code = await p.wait()
+#     if return_code != 0:
+#         existing = False
+#         is_file = False
+#         size = 0
+#         return existing, is_file, size
+#     line = line.decode().rstrip()
+#     #print(line)  #TODO
+#     m = PAT_ENTRY.match(line)
+#     if m:
+#         # Ex.
+#         # 12345 -rw-rw-r-- 1 user1 group1 29 Jan 1 00:00:00 2022 fname
+#         # inum = int(m.group(1))
+#         mode_str = m.group(2)
+#         # nlink = int(m.group(3))
+#         # uname = m.group(4)
+#         # gname = m.group(5)
+#         size = int(m.group(6))
+#         # mtime_str = m.group(7)
+#         # name = m.group(8)
+#     else:
+#         mode_str = "?"
+#         size = -1
+
+#     existing = True
+#     is_file = mode_str[0] == '-'
+#     return existing, is_file, size
+
+async def async_size(env, path):
+    metadata = False
+    proc = await async_gfstat(env, path, metadata)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(proc, elist))
+    data = await proc.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await proc.wait()
+    if return_code != 0:
+        existing = False
+        is_file = False
+        size = 0
+    else:
+        st = parse_gfstat(stdout)
+        print(st)
+        existing = True
+        is_file = (st.Filetype == "regular file")
+        size = st.Size
+    return existing, is_file, size
 
 
 #############################################################################
@@ -986,158 +1164,6 @@ async def move_rename(request: Request,
     return await gfarm_command_standard_response(p, "gfmv")
 
 
-
-import json
-
-def keyval(s):
-  # s: "  Key1: Val1..."
-  # return: "key1", "Val1..."
-  kv = s.split(":", 1)
-  if len(kv) == 2:
-    key, val = kv
-    key = key.strip()
-    val = val.strip()
-  else:
-    key = None
-    val = None
-  return key, val
-
-def timestamp_to_unix(timestamp_str):
-  try:
-    dt_object = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f %z")
-    unix_timestamp = dt_object.timestamp()
-    return unix_timestamp
-  except ValueError as e:
-    print(f"Invalid timestamp format. {str(e)}") #TODO log
-    return None
-
-def parse_gfstat(file_info_str):
-  file_info = {}
-  lines = file_info_str.splitlines()
-  for line in lines:
-    line = line.strip()
-    if line:
-      key, value = keyval(line)
-      if key == "File":
-        value = value.strip('"')
-      elif key == "Size":
-        # Size: 0             Filetype: directory
-        value, ftype = value.split(" ", 1)
-        value = int(value)
-        # Filetype: directory
-        ftype_key, ftype_val = keyval(ftype)
-        file_info[ftype_key] = ftype_val
-      elif key == "Mode":
-        # Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
-        value = value.replace("(", "").replace(")", "")
-        # Mode: 1777        Uid:  user1  Gid: gfarmadm
-        value, ug = value.split(None, 1)
-        # Uid: user1  Gid: gfarmadm
-        uid_key, ug_val = keyval(ug)
-        # user1  Gid: gfarmadm
-        uid_val, g = ug_val.split(None, 1)
-        file_info[uid_key] = uid_val
-        gid_key, gid_val = keyval(g)
-        file_info[gid_key] = gid_val
-      elif key == "Inode":
-        # Inode: 3            Gen: 0
-        value, gen = value.split(" ", 1)
-        value = int(value)
-        # Gen: 0
-        gen_key, gen_val = keyval(gen)
-        file_info[gen_key] = int(gen_val)
-      elif key == "Links":
-        # Links: 2            Ncopy: 1
-        value, ncopy = value.split(" ", 1)
-        value = int(value)
-        # Ncopy: 1
-        ncopy_key, ncopy_val = keyval(ncopy)
-        file_info[ncopy_key] = int(ncopy_val)
-      elif key in ("Access", "Modify", "Change"):
-        # 2025-02-10 18:27:33.191688265 +0000
-        t = value.split()
-        if len(t) == 3:
-          day = t[0]
-          sec, nsec = t[1].split(".")
-          usec = nsec[:6]  # 191688265 -> 191688
-          zone = t[2]
-          value = f"{day} {sec}.{usec} {zone}"
-        value_sec = timestamp_to_unix(value)
-        file_info[key+"Secound"] = value_sec
-      elif key is None:
-        continue
-      file_info[key] = value
-
-  return file_info
-
-
-# Example
-# file_info_str = """
-#  File: "/tmp"
-#  Size: 0             Filetype: directory
-#  Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
-#  Inode: 3            Gen: 0
-#                      (00000000000000030000000000000000)
-#  Links: 2            Ncopy: 1
-#  Access: 2025-02-10 18:27:33.191688265 +0000
-#  Modify: 2025-02-10 18:27:31.071120060 +0000
-#  Change: 2025-02-10 18:15:09.400000000 +0900
-#  MetadataHost: gfmd1
-#  MetadataPort: 601
-#  MetadataUser: user1
-# """
-# print(json.dumps(parse_gfstat(file_info_str), indent=2))
-
-
-class Stat(BaseModel):
-    File: str
-    Filetype: str
-    Size: int
-    Uid: str
-    Gid: str
-    Mode: str
-    Gen: int
-    Inode: int
-    Ncopy: int
-    Links: int
-    AccessSecound: float
-    Access: str
-    ModifySecound: float
-    Modify: str
-    ChangeSecound: float
-    Change: str
-    MetadataHost: str
-    MetadataPort: str
-    MetadataUser: str
-
-    class Config:
-        json_schema_extra = {
-            "examples": [
-                {
-                    "File": "/tmp",
-                    "Filetype": "directory",
-                    "Size": 0,
-                    "Uid": "user1",
-                    "Gid": "gfarmadm",
-                    "Mode": "1777",
-                    "Gen": 0,
-                    "Inode": 3,
-                    "Ncopy": 1,
-                    "Links": 2,
-                    "AccessSecound": 1739212053.191688,
-                    "Access": "2025-02-10 18:27:33.191688 +0000",
-                    "ModifySecound": 1739212051.07112,
-                    "Modify": "2025-02-10 18:27:31.071120 +0000",
-                    "ChangeSecound": 1739178909.4,
-                    "Change": "2025-02-10 18:15:09.400000 +0900",
-                    "MetadataHost": "gfmd1",
-                    "MetadataPort": "601",
-                    "MetadataUser": "user1"
-                }
-            ]
-        }
-
-
 @app.get("/a/{gfarm_path:path}")
 @app.get("/attr/{gfarm_path:path}")
 @app.get("/attributes/{gfarm_path:path}")
@@ -1146,7 +1172,8 @@ async def stat(gfarm_path: str,
                authorization: Union[str, None] = Header(default=None)) -> Stat:
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
-    proc = await async_gfstat(env, gfarm_path)
+    metadata = True
+    proc = await async_gfstat(env, gfarm_path, metadata)
 
     elist = []
     stderr_task = asyncio.create_task(log_stderr(proc, elist))
@@ -1165,6 +1192,4 @@ async def stat(gfarm_path: str,
             code = 500
             message = "Error"
             raise gfarm_http_error(command, code, message, stdout, elist)
-    stat_data = parse_gfstat(stdout)
-    stat_response = Stat.parse_obj(stat_data)
-    return stat_response
+    return parse_gfstat(stdout)
