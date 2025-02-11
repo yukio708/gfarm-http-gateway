@@ -33,11 +33,12 @@ HTTP gateway for Gfarm filesystem
 - Keycloak configurations
   - Open in web browser: `https://keycloak:8443/auth/admin/master/console/#/HPCI/`
     - login: `admin/admin`
-  - hpci-jwt-sever ->  Valid redirect URIs
-    - -> Add valid redirect URIs
+  - hpci-jwt-sever ->
+    - Valid redirect URIs -> Add valid redirect URIs
       - ex. `http://c2:8000/*`
-    - Valid post logout redirect URIs
+    - Valid post logout redirect URIs -> Add valid post logout redirect URIs
       - ex. `http://c2:8000/*`
+    - Save
 
 ## Configuration parameters
 
