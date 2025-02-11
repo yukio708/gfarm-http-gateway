@@ -36,8 +36,10 @@ HTTP gateway for Gfarm filesystem
   - hpci-jwt-sever ->
     - Valid redirect URIs -> Add valid redirect URIs
       - ex. `http://c2:8000/*`
+      - ex. `http://c2/*`
     - Valid post logout redirect URIs -> Add valid post logout redirect URIs
       - ex. `http://c2:8000/*`
+      - ex. `http://c2/*`
     - Save
 
 ## Configuration parameters
@@ -88,6 +90,39 @@ HTTP gateway for Gfarm filesystem
   - auto-redirect to <http://keycloak>
   - login: `user1/PASSWORD`
   - This page contains examples of API usage
+
+### Using NGINX reverse proxy (exmample)
+
+- (in a c2 container) (RHEL family)
+- `sudo dnf install nginx`
+- create `/etc/nginx/conf.d/gfarm.conf`
+
+```
+server {
+  listen       80;
+  listen       [::]:80;
+  server_name  _;
+
+  location / {
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_connect_timeout 60s;
+    proxy_read_timeout 60s;
+    proxy_send_timeout 60s;
+
+    proxy_buffering off;
+    client_max_body_size 0;
+
+    proxy_pass http://127.0.0.1:8000;
+  }}
+```
+
+- `sudo systemctl restart nginx`
+- (Configure the Redirect URI parameters in Keycloak)
+- Open in web browser: <http://c2/>
 
 ## Client usage
 
