@@ -162,6 +162,17 @@ progress {
         <table><tr><td><pre><div id="stat_output"></div></pre></td></tr></table>
         </p>
 
+   <h2>(gfchmod) API: POST /attr/{path}</h2>
+        <p>
+        <label for="chmod_path">Gfarm path:</label>
+        <input type="text" id="chmod_path" value="/tmp/testdir"> <br/>
+        <label for="chmod_mode">Mode:</label>
+        <input type="text" id="chmod_mode" value="700">
+        <button onclick="chmod()">gfchmod</button><br/>
+        <table><tr><td>Input data (JSON)</td></tr><tr><td><pre><div id="chmod_input"></div></pre></td></tr></table>
+        <div id="chmod_output"></div>
+        </p>
+
     <h2>Logout</h2>
         {% if access_token %}
         <p> <a href="/logout">Logout (Not logging out of OpenID provider)</a> </p>

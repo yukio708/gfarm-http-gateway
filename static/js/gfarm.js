@@ -217,3 +217,40 @@ async function stat() {
         alert("Please input Gfarm path");
     }
 }
+
+async function chmod() {
+    const path = document.getElementById("chmod_path").value;
+    const mode = document.getElementById("chmod_mode").value;
+    const input = document.getElementById("chmod_input");
+    const output = document.getElementById("chmod_output");
+    if (path) {
+        let filename = basename(path);
+        const epath = encodePath(path)
+        const url = `/attr${epath}`
+
+        const data = JSON.stringify({
+            "Mode": mode,
+        }, null, 2);
+        input.textContent = data;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: data
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            }
+            output.textContent = `Success (mode updated)`;
+        } catch (error) {
+            console.error(error);
+            output.textContent = error;
+        }
+    } else {
+        alert("Please input Gfarm path");
+    }
+}

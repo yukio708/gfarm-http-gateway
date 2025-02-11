@@ -1,7 +1,7 @@
 import os
 import asyncio
 import mimetypes
-from typing import Union
+from typing import Union, Optional
 import re
 import base64
 from typing import Optional
@@ -20,7 +20,8 @@ import requests
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Header, HTTPException, Request, Form
+from fastapi import FastAPI, Header, HTTPException, Request, Form, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -38,6 +39,7 @@ from jose import jwt
 def str2bool(s):
     return s.lower() in ("1", "true", "on", "enable")
 
+#############################################################################
 ##### Parameters
 
 # TODO environment variables
@@ -523,13 +525,11 @@ async def set_env(request, authorization):
         user, passwd = get_user_passwd(request)
         if user and passwd:
             authz_type = AUTHZ_TYPE_BASIC
-        elif authorization:
+        else:
             # get access token or password from Authorization header
             # print(f"authorization={authorization}")
             authz_type, user, passwd = parse_authorization(authorization)
             access_token = passwd
-        else:
-            authz_type = None
 
     if authz_type == AUTHZ_TYPE_BEARER:
         env.update({
@@ -588,25 +588,25 @@ def timestamp_to_unix(timestamp_str):
 
 
 class Stat(BaseModel):
-    File: str
-    Filetype: str
-    Size: int
-    Uid: str
-    Gid: str
-    Mode: str
-    Gen: int
-    Inode: int
-    Ncopy: int
-    Links: int
-    AccessSecound: float
-    Access: str
-    ModifySecound: float
-    Modify: str
-    ChangeSecound: float
-    Change: str
-    MetadataHost: str
-    MetadataPort: str
-    MetadataUser: str
+    File: Optional[str] = None
+    Filetype: Optional[str] = None
+    Size: Optional[int] = None
+    Uid: Optional[str] = None
+    Gid: Optional[str] = None
+    Mode: Optional[str] = None
+    Gen: Optional[int] = None
+    Inode: Optional[int] = None
+    Ncopy: Optional[int] = None
+    Links: Optional[int] = None
+    AccessSecound: Optional[float] = None
+    Access: Optional[str] = None
+    ModifySecound: Optional[float] = None
+    Modify: Optional[str] = None
+    ChangeSecound: Optional[float] = None
+    Change: Optional[str] = None
+    MetadataHost: Optional[str] = None
+    MetadataPort: Optional[str] = None
+    MetadataUser: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -637,86 +637,85 @@ class Stat(BaseModel):
 
 
 def parse_gfstat(file_info_str):
-  file_info = {
-      "MetadataHost": "",
-      "MetadataPort": "",
-      "MetadataUser": "",
-  }
-  lines = file_info_str.splitlines()
-  for line in lines:
-    line = line.strip()
-    if line:
-      key, value = keyval(line)
-      if key == "File":
-        value = value.strip('"')
-      elif key == "Size":
-        # Size: 0             Filetype: directory
-        value, ftype = value.split(" ", 1)
-        value = int(value)
-        # Filetype: directory
-        ftype_key, ftype_val = keyval(ftype)
-        file_info[ftype_key] = ftype_val
-      elif key == "Mode":
-        # Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
-        value = value.replace("(", "").replace(")", "")
-        # Mode: 1777        Uid:  user1  Gid: gfarmadm
-        value, ug = value.split(None, 1)
-        # Uid: user1  Gid: gfarmadm
-        uid_key, ug_val = keyval(ug)
-        # user1  Gid: gfarmadm
-        uid_val, g = ug_val.split(None, 1)
-        file_info[uid_key] = uid_val
-        gid_key, gid_val = keyval(g)
-        file_info[gid_key] = gid_val
-      elif key == "Inode":
-        # Inode: 3            Gen: 0
-        value, gen = value.split(" ", 1)
-        value = int(value)
-        # Gen: 0
-        gen_key, gen_val = keyval(gen)
-        file_info[gen_key] = int(gen_val)
-      elif key == "Links":
-        # Links: 2            Ncopy: 1
-        value, ncopy = value.split(" ", 1)
-        value = int(value)
-        # Ncopy: 1
-        ncopy_key, ncopy_val = keyval(ncopy)
-        file_info[ncopy_key] = int(ncopy_val)
-      elif key in ("Access", "Modify", "Change"):
-        # 2025-02-10 18:27:33.191688265 +0000
-        t = value.split()
-        if len(t) == 3:
-          day = t[0]
-          sec, nsec = t[1].split(".")
-          usec = nsec[:6]  # 191688265 -> 191688
-          zone = t[2]
-          value = f"{day} {sec}.{usec} {zone}"
-        value_sec = timestamp_to_unix(value)
-        file_info[key+"Secound"] = value_sec
-      elif key is None:
-        continue
-      file_info[key] = value
-
-  return Stat.parse_obj(file_info)
+    file_info = {}
+    lines = file_info_str.splitlines()
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        key, value = keyval(line)
+        if key == "File":
+            value = value.strip('"')
+        elif key == "Size":
+            # Size: 0             Filetype: directory
+            value, ftype = value.split(" ", 1)
+            value = int(value)
+            # Filetype: directory
+            ftype_key, ftype_val = keyval(ftype)
+            file_info[ftype_key] = ftype_val
+        elif key == "Mode":
+            # Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+            value = value.replace("(", "").replace(")", "")
+            # Mode: 1777        Uid:  user1  Gid: gfarmadm
+            value, ug = value.split(None, 1)
+            # Uid: user1  Gid: gfarmadm
+            uid_key, ug_val = keyval(ug)
+            # user1  Gid: gfarmadm
+            uid_val, g = ug_val.split(None, 1)
+            file_info[uid_key] = uid_val
+            gid_key, gid_val = keyval(g)
+            file_info[gid_key] = gid_val
+        elif key == "Inode":
+            # Inode: 3            Gen: 0
+            value, gen = value.split(" ", 1)
+            value = int(value)
+            # Gen: 0
+            gen_key, gen_val = keyval(gen)
+            file_info[gen_key] = int(gen_val)
+        elif key == "Links":
+            # Links: 2            Ncopy: 1
+            value, ncopy = value.split(" ", 1)
+            value = int(value)
+            # Ncopy: 1
+            ncopy_key, ncopy_val = keyval(ncopy)
+            file_info[ncopy_key] = int(ncopy_val)
+        elif key in ("Access", "Modify", "Change"):
+            # 2025-02-10 18:27:33.191688265 +0000
+            t = value.split()
+            if len(t) == 3:
+                day = t[0]
+                sec, nsec = t[1].split(".")
+                usec = nsec[:6]  # 191688265 -> 191688
+                zone = t[2]
+                value = f"{day} {sec}.{usec} {zone}"
+                value_sec = timestamp_to_unix(value)
+                file_info[key+"Secound"] = value_sec
+        elif key is None:
+            continue
+        file_info[key] = value
+    return Stat.parse_obj(file_info)
 
 
-# Example
-# file_info_str = """
-#  File: "/tmp"
-#  Size: 0             Filetype: directory
-#  Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
-#  Inode: 3            Gen: 0
-#                      (00000000000000030000000000000000)
-#  Links: 2            Ncopy: 1
-#  Access: 2025-02-10 18:27:33.191688265 +0000
-#  Modify: 2025-02-10 18:27:31.071120060 +0000
-#  Change: 2025-02-10 18:15:09.400000000 +0900
-#  MetadataHost: gfmd1
-#  MetadataPort: 601
-#  MetadataUser: user1
-# """
-# print(str(parse_gfstat(file_info_str)))
+def test_parse_gfstat():
+    test_gfstat_str = """
+File: "/tmp"
+Size: 0             Filetype: directory
+Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+Inode: 3            Gen: 0
+                    (00000000000000030000000000000000)
+Links: 2            Ncopy: 1
+Access: 2025-02-10 18:27:33.191688265 +0000
+Modify: 2025-02-10 18:27:31.071120060 +0000
+Change: 2025-02-10 18:15:09.400000000 +0900
+MetadataHost: gfmd1
+MetadataPort: 601
+_MetadataUser: user1
+"""
+    print("TEST data:", str(parse_gfstat(test_gfstat_str)))
 
+
+# Test  # TODO
+test_parse_gfstat()
 
 #############################################################################
 async def async_gfwhoami(env):
@@ -820,6 +819,15 @@ async def async_gfstat(env, path, metadata):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
+
+async def async_gfchmod(env, path, mode):
+    args = [mode, path]
+    return await asyncio.create_subprocess_exec(
+        'gfchmod', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
 
 # # SEE ALSO: gfptar
 # PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
@@ -1167,9 +1175,9 @@ async def move_rename(request: Request,
 @app.get("/a/{gfarm_path:path}")
 @app.get("/attr/{gfarm_path:path}")
 @app.get("/attributes/{gfarm_path:path}")
-async def stat(gfarm_path: str,
-               request: Request,
-               authorization: Union[str, None] = Header(default=None)) -> Stat:
+async def get_attr(gfarm_path: str,
+                   request: Request,
+                   authorization: Union[str, None] = Header(default=None)) -> Stat:
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     metadata = True
@@ -1193,3 +1201,28 @@ async def stat(gfarm_path: str,
             message = "Error"
             raise gfarm_http_error(command, code, message, stdout, elist)
     return parse_gfstat(stdout)
+
+
+@app.post("/a/{gfarm_path:path}")
+@app.post("/attr/{gfarm_path:path}")
+@app.post("/attributes/{gfarm_path:path}")
+async def change_attr(gfarm_path: str,
+                      stat: Stat,
+                      request: Request,
+                      authorization: Union[str, None] = Header(default=None)):
+    gfarm_path = fullpath(gfarm_path)
+    env = await set_env(request, authorization)
+    response = None
+    command = None
+    if stat.Mode:
+        command = "gfchmod"
+        proc = await async_gfchmod(env, gfarm_path, stat.Mode)
+        response = await gfarm_command_standard_response(proc, command)
+    if response:
+        return response
+    else:
+        code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        message = "No input data (unsupported fields)"
+        stdout = None
+        elist = None
+        raise gfarm_http_error(command, code, message, stdout, elist)
