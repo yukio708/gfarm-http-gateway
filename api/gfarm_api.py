@@ -462,15 +462,6 @@ def fullpath(path: str):
     return "/" + path
 
 
-# def gfexport(path):
-#     args = ['gfexport', path]
-#     return subprocess.Popen(
-#         args, shell=False, close_fds=True,
-#         stdin=subprocess.DEVNULL,
-#         stdout=subprocess.PIPE,
-#         stderr=subprocess.PIPE)
-
-
 AUTHZ_TYPE_BASIC = 'Basic'
 AUTHZ_TYPE_BEARER = 'Bearer'
 
@@ -748,6 +739,19 @@ async def async_gfmv(env, src, dest):
         stderr=asyncio.subprocess.PIPE)
 
 
+import subprocess
+
+
+def gfexport(env, path):
+    args = ['gfexport', path]
+    return subprocess.Popen(
+        args, shell=False, close_fds=True,
+        env=env,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL)
+
+
 async def async_gfexport(env, path):
     args = [path]
     return await asyncio.create_subprocess_exec(
@@ -869,6 +873,7 @@ async def async_gfchmod(env, path, mode):
 #     is_file = mode_str[0] == '-'
 #     return existing, is_file, size
 
+
 async def async_size(env, path):
     metadata = False
     proc = await async_gfstat(env, path, metadata)
@@ -876,6 +881,7 @@ async def async_size(env, path):
     stderr_task = asyncio.create_task(log_stderr(proc, elist))
     data = await proc.stdout.read()
     stdout = data.decode()
+    #print(stdout) #TODO
     await stderr_task
     return_code = await proc.wait()
     if return_code != 0:
@@ -884,7 +890,7 @@ async def async_size(env, path):
         size = 0
     else:
         st = parse_gfstat(stdout)
-        print(st)
+        #print(st)  #TODO
         existing = True
         is_file = (st.Filetype == "regular file")
         size = st.Size
@@ -893,6 +899,8 @@ async def async_size(env, path):
 
 #############################################################################
 async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
+    if process.stderr is None:
+        return
     while True:
         line = await process.stderr.readline()
         if line:
@@ -1004,6 +1012,7 @@ async def dir_remove(gfarm_path: str,
 # BUFSIZE = 65536
 BUFSIZE = 1024 * 1024
 
+ASYNC_GFEXPORT = True
 
 @app.get("/f/{gfarm_path:path}")
 @app.get("/file/{gfarm_path:path}")
@@ -1032,14 +1041,22 @@ async def file_export(gfarm_path: str,
         return Response(status_code=204)
 
     env = await set_env(request, authorization)
-    p = await async_gfexport(env, gfarm_path)
-    elist = []
-    stderr_task = asyncio.create_task(log_stderr(p, elist))
+    if ASYNC_GFEXPORT:
+        p = await async_gfexport(env, gfarm_path)
+        elist = []
+        stderr_task = asyncio.create_task(log_stderr(p, elist))
+    else:
+        # stderr is not supported
+        p = gfexport(env, gfarm_path)
 
     # size > 0
-    first_byte = await p.stdout.read(1)
+    if ASYNC_GFEXPORT:
+        first_byte = await p.stdout.read(1)
+    else:
+        first_byte = p.stdout.read(1)
     if not first_byte:
-        await stderr_task
+        if ASYNC_GFEXPORT:
+            await stderr_task
         raise HTTPException(
             status_code=500,
             detail=f"Cannot read: path={gfarm_path}, stderr={str(elist)}"
@@ -1049,14 +1066,20 @@ async def file_export(gfarm_path: str,
         yield first_byte
 
         while True:
-            d = await p.stdout.read(BUFSIZE)
+            if ASYNC_GFEXPORT:
+                d = await p.stdout.read(BUFSIZE)
+            else:
+                d = p.stdout.read(BUFSIZE)
             if not d:
                 break
             yield d
-        await stderr_task
-        return_code = await p.wait()
+        if ASYNC_GFEXPORT:
+            await stderr_task
+            return_code = await p.wait()
+        else:
+            return_code = p.wait()
         if return_code != 0:
-            print(f"return_code={return_code}")  # TODO log
+            print(f"gfexport return_code={return_code}")  # TODO log
 
     ct = get_content_type(gfarm_path)
     cl = str(size)
