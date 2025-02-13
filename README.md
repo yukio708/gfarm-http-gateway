@@ -18,7 +18,7 @@ HTTP gateway for Gfarm filesystem
 
 ## Requirements
 
-- Gfarm 2.8.6 or later (use Gfarm clients)
+- Gfarm 2.8.7 or later (use Gfarm clients)
 - Python 3.11 or later
 - python3-venv
 - Python packages (refer to `requirements.txt`)
@@ -28,7 +28,7 @@ HTTP gateway for Gfarm filesystem
 - install and setup Gfarm client environment
   - gf* commands and gfarm2.conf is required
 - Refer to `setup.sh`
-- (For Ubuntu 24.04  or RHEL8 family)
+- (For Ubuntu 24.04  or RHEL9 family)
   - Run `./setup.sh`
 - Keycloak configurations
   - Open in web browser: `https://keycloak:8443/auth/admin/master/console/#/HPCI/`
