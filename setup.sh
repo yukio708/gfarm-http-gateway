@@ -29,13 +29,13 @@ install_packages_for_debian() {
 }
 
 install_packages_for_rhel() {
-    # for RHEL8 or RHEL9 family
-    DNF install -y python3.11 python3.11-pip
+    # for RHEL9 family
+    DNF install -y python3.12 python3.12-pip
 }
 
 install_python_package() {
     #rm -rf "$VENV_DIR"
-    $PYTHON -m venv "$VENV_DIR"
+    $PYTHON -m venv --upgrade "$VENV_DIR"
 
     $PIP install -r requirements.txt
 }
@@ -58,7 +58,7 @@ for id in $ID_LIKE; do  # ID_LIKE from /etc/os-release
             break
             ;;
         rhel)
-            PYTHON=python3.11
+            PYTHON=python3.12
             install_for_rhel
             break
             ;;
