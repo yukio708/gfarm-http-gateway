@@ -505,7 +505,7 @@ async def auth(request: Request):
     set_token(request, token)
     access_token = await get_access_token(request)
     user = get_user_from_access_token(access_token)
-    log_login(user, "access_token")
+    log_login(request, user, "access_token")
     return RedirectResponse(url="/")
 
 
@@ -574,7 +574,7 @@ async def login_passwd(request: Request,
     except Exception:
         delete_user_passwd(request)
         raise
-    log_login(username, "password")
+    log_login(request, username, "password")
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -630,7 +630,7 @@ def parse_authorization(authz_str: str):
 
 
 LOG_USERNAME_KEY = "_GFARM_HTTP_USERNAME"
-
+LOG_CLIENT_IP_KEY = "_GFARM_HTTP_CLIENT_IP"
 
 async def set_env(request, authorization):
     env = {'PATH': os.environ['PATH']}
@@ -681,8 +681,11 @@ async def set_env(request, authorization):
             'GFARM_SASL_USER': user,
         })
 
+
     env.update({
         LOG_USERNAME_KEY: user,
+        # https://www.starlette.io/requests/#client-address
+        LOG_CLIENT_IP_KEY: request.client.host,
     })
     return env
 
@@ -691,13 +694,20 @@ def get_user_from_env(env):
     return env.get(LOG_USERNAME_KEY, "UNKNOWN_USER")
 
 
+def get_client_ip_from_env(env):
+    return env.get(LOG_CLIENT_IP_KEY, "NO_CLIENT_IP")
+
+
 def log_operation(env, opname, args):
     user = get_user_from_env(env)
-    print(f"INFO: user={user}: command={opname}, args={str(args)}")  #TODO log info
+    ipaddr = get_client_ip_from_env(env)
+    print(f"INFO: ipaddr={ipaddr} user={user}, command={opname},"
+          f" args={str(args)}")  #TODO log info
 
 
-def log_login(user, login_type):
-    print(f"INFO: user={user}: login ({login_type})") #TODO log info
+def log_login(request, user, login_type):
+    ipaddr = request.client.host
+    print(f"INFO: ipaddr={ipaddr}, user={user}, login={login_type}") #TODO log info
 
 
 #############################################################################
