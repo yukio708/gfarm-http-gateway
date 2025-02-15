@@ -138,6 +138,7 @@ conf_required_keys = [
     "GFARM_HTTP_VERIFY_CERT",
     "GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD",
     "GFARM_HTTP_ALLOW_ANONYMOUS",
+    "GFARM_HTTP_ASYNC_GFEXPORT",
 ]
 
 # default parameters
@@ -1188,7 +1189,7 @@ async def dir_remove(gfarm_path: str,
 # BUFSIZE = 65536
 BUFSIZE = 1024 * 1024
 
-ASYNC_GFEXPORT = True
+ASYNC_GFEXPORT = str2bool(conf.GFARM_HTTP_ASYNC_GFEXPORT)
 
 @app.get("/f/{gfarm_path:path}")
 @app.get("/file/{gfarm_path:path}")
