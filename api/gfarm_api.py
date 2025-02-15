@@ -135,6 +135,7 @@ conf_required_keys = [
     "GFARM_HTTP_TOKEN_USER_CLAIM",
     "GFARM_HTTP_VERIFY_CERT",
     "GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD",
+    "GFARM_HTTP_ALLOW_ANONYMOUS",
 ]
 
 # default parameters
@@ -155,7 +156,7 @@ validate_conf(merged_dict, conf_required_keys)
 format_conf(merged_dict, conf_required_keys)
 conf = types.SimpleNamespace(**merged_dict)
 
-print(pf(merged_dict)) #TODO
+print("config: " + pf(merged_dict)) #TODO
 
 ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
 
@@ -195,12 +196,9 @@ if TOKEN_ISSUERS:
     TOKEN_ISSUERS = str2list(TOKEN_ISSUERS)
 
 TOKEN_USER_CLAIM = conf.GFARM_HTTP_TOKEN_USER_CLAIM
-
 VERIFY_CERT = str2bool(conf.GFARM_HTTP_VERIFY_CERT)
-
 SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
-
-ALLOW_GFARM_ANONYMOUS = str2bool(os.environ.get("ALLOW_GFARM_ANONYMOUS", "disable"))
+ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
 
 #############################################################################
 api_path = os.path.abspath(__file__)
@@ -624,7 +622,7 @@ def parse_authorization(authz_str: str):
         else:
             raise no_authz
     else:
-        if not ALLOW_GFARM_ANONYMOUS:
+        if not ALLOW_ANONYMOUS:
             raise no_authz
     return authz_type, user, passwd
 
@@ -849,7 +847,7 @@ MetadataHost: gfmd1
 MetadataPort: 601
 _MetadataUser: user1
 """
-    print("TEST data:", str(parse_gfstat(test_gfstat_str)))
+    print("test_parse_gfstat:", str(parse_gfstat(test_gfstat_str)))
 
 
 # Test  # TODO
