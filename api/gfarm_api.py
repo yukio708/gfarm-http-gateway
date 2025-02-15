@@ -1,36 +1,37 @@
-import os
 import asyncio
-import mimetypes
-from typing import Union, Optional
-import re
 import base64
-from typing import Optional
-import json
-from pprint import pformat as pf
-import time
-import secrets
-import gzip
 import bz2
-import urllib
+from datetime import datetime
+import gzip
+import json
+import mimetypes
+import os
+from pprint import pformat as pf
 import random
 import string
-from datetime import datetime
+import time
 import types
+import secrets
 import shlex
+import subprocess
+from typing import Union, Optional
+import urllib
 
 import requests
 
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Header, HTTPException, Request, Form, status
-from fastapi.encoders import jsonable_encoder
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, StreamingResponse, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
+from fastapi import FastAPI, Header, HTTPException, Request, Form, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import (PlainTextResponse,
+                               StreamingResponse,
+                               Response,
+                               HTMLResponse,
+                               RedirectResponse)
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from cryptography.fernet import Fernet
 
@@ -39,7 +40,7 @@ from jose import jwt
 
 
 #############################################################################
-##### Configuration variables
+# Configuration variables
 
 CONFIG_KEY_PREFIX = "GFARM_HTTP_"
 
@@ -79,7 +80,7 @@ def load_config_from_file(fpath):
                     #    "VALUE" # comment
                     # -> VALUE
                     value = shlex.split(f'{value}')[0]
-                except:
+                except Exception:
                     pass
                 data[key] = value
     return data
@@ -95,23 +96,21 @@ def load_config_from_env():
 
 
 def validate_conf(data, required_keys):
-    err = False
     last_err = None
     for key in required_keys:
         if key not in data:
             last_err = f"'{key}' is required"
-            print(last_err)  #TODO log error
+            print(last_err)  # TODO log error
     if last_err:
         raise ValueError(last_err)
 
 
 def format_conf(data, required_keys):
-    err = False
     last_err = None
     for key in required_keys:
         val = data[key]
         newval = val.format(**data)
-        #print("old", val, "new", newval)#TODO
+        # print("old", val, "new", newval)#TODO
         data[key] = newval
     if last_err:
         raise ValueError(last_err)
@@ -159,7 +158,7 @@ validate_conf(merged_dict, conf_required_keys)
 format_conf(merged_dict, conf_required_keys)
 conf = types.SimpleNamespace(**merged_dict)
 
-print("config: " + pf(merged_dict)) #TODO log debug
+print("config: " + pf(merged_dict))  # TODO log debug
 
 ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
 
@@ -182,8 +181,8 @@ OIDC_CLIENT_ID = conf.GFARM_HTTP_OIDC_CLIENT_ID
 OIDC_CLIENT_SECRET = conf.GFARM_HTTP_OIDC_CLIENT_SECRET
 
 # for Keycloak
-#OIDC_REALM = conf.GFARM_HTTP_OIDC_REALM
-#OIDC_REALM_URL = conf.GFARM_HTTP_OIDC_REALM_URL
+# OIDC_REALM = conf.GFARM_HTTP_OIDC_REALM
+# OIDC_REALM_URL = conf.GFARM_HTTP_OIDC_REALM_URL
 OIDC_META_URL = conf.GFARM_HTTP_OIDC_META_URL
 OIDC_CERTS_URL = conf.GFARM_HTTP_OIDC_CERTS_URL
 OIDC_LOGOUT_URL = conf.GFARM_HTTP_OIDC_LOGOUT_URL
@@ -278,7 +277,7 @@ def encrypt_token(token):
     eb = fer.encrypt(cb)
     # encrypted bin -> base85 str
     encrypted_token = base64.b85encode(eb).decode()
-    #print(f"len: before={len(s)}, after={len(encrypted_token)}")
+    # print(f"len: before={len(s)}, after={len(encrypted_token)}") #TODO debug
     return encrypted_token
 
 
@@ -293,22 +292,22 @@ def decrypt_token(encrypted_token):
         # JSON str -> dict
         return json.loads(s)
     except Exception as e:
-        print("decrypt_token error: " + str(e))  #TODO log
+        print("decrypt_token error: " + str(e))  # TODO log
         return None
 
 
 def set_token(request: Request, token):
     if fer:
         token = encrypt_token(token)
-    #print(f"set token: {token}")  # TODO
+    # print(f"set token: {token}")  # TODO
     request.session["token"] = token
 
 
 async def use_refresh_token(request: Request, token):
     refresh_token = token.get("refresh_token")
-    #print("use_refresh_token !!!!!!!!!!!!!!!!!!!!", refresh_token) #TODO
+    # print("use_refresh_token !!!!!!!!!!!!!!!!!!!!", refresh_token) #TODO
     meta = await provider.load_server_metadata()
-    #print(pf(meta))  # TODO
+    # print(pf(meta))  # TODO
     try:
         data = {
             "grant_type": "refresh_token",
@@ -338,9 +337,9 @@ def verify_token(token, use_raise=False):
         access_token = token.get("access_token")
         # TODO cache jwks, cache timeout
         jwks = requests.get(OIDC_CERTS_URL, verify=VERIFY_CERT).json()
-        #print(pf(jwks)) #TODO
+        # print(pf(jwks)) #TODO
         header = jwt.get_unverified_header(access_token)
-        #print(pf(header)) #TODO
+        # print(pf(header)) #TODO
         if not header:
             raise jwt_error("Invalid header")
         alg = header.get("alg")
@@ -366,7 +365,7 @@ def is_expired_token(token, use_raise=False):
         claims = verify_token(token, use_raise)
         if not claims:
             return True  # expired
-        #print(pf(claims)) #TODO
+        # print(pf(claims)) #TODO
         return False
     try:
         access_token = token.get("access_token")
@@ -380,7 +379,7 @@ def is_expired_token(token, use_raise=False):
         current_time = int(time.time())
         return (current_time + TOKEN_MIN_VALID_TIME_REMAINING) > exp
     except Exception as e:
-        print(f"is_expired_token: " + str(e))
+        print("is_expired_token: " + str(e))  # log info
         return True  # expired
 
 
@@ -460,7 +459,9 @@ async def index(request: Request):
             csrf_token = gen_csrf(request)
             redirect_uri = request.url_for("logout")
             # for Keycloak 19 or later ?
-            logout_url = OIDC_LOGOUT_URL + "?client_id=" + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" + str(redirect_uri) + "&state=" + csrf_token
+            logout_url = OIDC_LOGOUT_URL + "?client_id=" \
+                + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" \
+                + str(redirect_uri) + "&state=" + csrf_token
             claims = jwt.get_unverified_claims(access_token)
             exp = claims.get("exp")
         else:
@@ -516,7 +517,6 @@ async def logout(request: Request, state: Optional[str] = None):
         csrf_token = get_csrf(request)
         if state != csrf_token:
             msg = "CSRF token mismatch"
-            print(msg) # TODO
             raise HTTPException(status_code=401, detail=msg)
     delete_token(request)
     delete_user_passwd(request)
@@ -553,7 +553,7 @@ def get_user_passwd(request):
     if username is None or password is None:
         return None, None
     if fer:
-        #print("encrypted password:", password) #TODO
+        # print("encrypted password:", password) #TODO
         b = base64.b85decode(password)
         password = fer.decrypt(b).decode()
     return username, password
@@ -578,8 +578,6 @@ async def login_passwd(request: Request,
                        password: str = Form()):
     delete_token(request)
     set_user_passwd(request, username, password)
-    #TODO log username
-    print(f"SASL login: {username}")
     env = await set_env(request, None)
     p = await async_gfwhoami(env)
     try:
@@ -645,6 +643,7 @@ def parse_authorization(authz_str: str):
 LOG_USERNAME_KEY = "_GFARM_HTTP_USERNAME"
 LOG_CLIENT_IP_KEY = "_GFARM_HTTP_CLIENT_IP"
 
+
 async def set_env(request, authorization):
     env = {'PATH': os.environ['PATH']}
 
@@ -694,7 +693,6 @@ async def set_env(request, authorization):
             'GFARM_SASL_USER': user,
         })
 
-
     env.update({
         LOG_USERNAME_KEY: user,
         # https://www.starlette.io/requests/#client-address
@@ -715,37 +713,38 @@ def log_operation(env, opname, args):
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     print(f"INFO: ipaddr={ipaddr}, user={user}, command={opname},"
-          f" args={str(args)}")  #TODO log info
+          f" args={str(args)}")  # TODO log info
 
 
 def log_login(request, user, login_type):
     ipaddr = request.client.host
-    print(f"INFO: ipaddr={ipaddr}, user={user}, login={login_type}") #TODO log info
+    print(f"INFO: ipaddr={ipaddr},"
+          f" user={user}, login={login_type}")  # TODO log info
 
 
 #############################################################################
 def keyval(s):
-  # s: "  Key1: Val1..."
-  # return: "key1", "Val1..."
-  kv = s.split(":", 1)
-  if len(kv) == 2:
-    key, val = kv
-    key = key.strip()
-    val = val.strip()
-  else:
-    key = None
-    val = None
-  return key, val
+    # s: "  Key1: Val1..."
+    # return: "key1", "Val1..."
+    kv = s.split(":", 1)
+    if len(kv) == 2:
+        key, val = kv
+        key = key.strip()
+        val = val.strip()
+    else:
+        key = None
+        val = None
+    return key, val
 
 
 def timestamp_to_unix(timestamp_str):
-  try:
-    dt_object = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f %z")
-    unix_timestamp = dt_object.timestamp()
-    return unix_timestamp
-  except ValueError as e:
-    print(f"Invalid timestamp format. {str(e)}") #TODO log
-    return None
+    try:
+        dt_object = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f %z")
+        unix_timestamp = dt_object.timestamp()
+        return unix_timestamp
+    except ValueError as e:
+        print(f"Invalid timestamp format. {str(e)}")  # TODO log
+        return None
 
 
 class UpdateStat(BaseModel):
@@ -891,6 +890,7 @@ _MetadataUser: user1
 # Test  # TODO
 test_parse_gfstat()
 
+
 #############################################################################
 async def async_gfwhoami(env):
     args = []
@@ -920,9 +920,6 @@ async def async_gfmv(env, src, dest):
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
-
-
-import subprocess
 
 
 def gfexport(env, path):
@@ -1064,7 +1061,6 @@ async def async_size(env, path):
     stderr_task = asyncio.create_task(log_stderr(proc, elist))
     data = await proc.stdout.read()
     stdout = data.decode()
-    #print(stdout) #TODO
     await stderr_task
     return_code = await proc.wait()
     if return_code != 0:
@@ -1073,7 +1069,6 @@ async def async_size(env, path):
         size = 0
     else:
         st = parse_gfstat(stdout)
-        #print(st)  #TODO
         existing = True
         is_file = (st.Filetype == "regular file")
         size = st.Size
@@ -1117,7 +1112,6 @@ async def gfarm_command_standard_response(proc, command):
     if return_code != 0:
         print(f"return_code={return_code}")  # TODO log
         errstr = str(elist)
-        print(errstr) #TODO
         if "authentication error" in errstr:
             code = 401
             message = "Authentication error"
@@ -1203,6 +1197,7 @@ BUFSIZE = 1024 * 1024
 
 ASYNC_GFEXPORT = str2bool(conf.GFARM_HTTP_ASYNC_GFEXPORT)
 
+
 @app.get("/f/{gfarm_path:path}")
 @app.get("/file/{gfarm_path:path}")
 @app.get("/files/{gfarm_path:path}")
@@ -1278,7 +1273,7 @@ async def file_export(gfarm_path: str,
         encoded = urllib.parse.quote(filename, encoding='utf-8')
         # RFC 5987,8187
         cd = f"attachment; filename*=UTF-8' '\"{encoded}\""
-        #cd = f"attachment; filename=\"{encoded}\""
+        # cd = f"attachment; filename=\"{encoded}\""
         headers.update({"content-disposition": cd})
     return StreamingResponse(content=generate(),
                              media_type=ct,
@@ -1292,7 +1287,8 @@ async def file_export(gfarm_path: str,
 async def file_import(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None),
-                      x_file_timestamp: Union[str, None] = Header(default=None)):
+                      x_file_timestamp:
+                      Union[str, None] = Header(default=None)):
     opname = "gfreg"
     gfarm_path = fullpath(gfarm_path)
 
@@ -1330,7 +1326,7 @@ async def file_import(gfarm_path: str,
             return Response(status_code=200)
 
     # error case
-    print(f"remove tmpfile: {tmppath}")  #TODO
+    print(f"remove tmpfile: {tmppath}")  # TODO log error
     env = await set_env(request, authorization)
     p3 = await async_gfrm(env, tmppath)
     stderr_task3 = asyncio.create_task(log_stderr(p3, elist))
@@ -1364,6 +1360,7 @@ async def file_remove(gfarm_path: str,
 class Move(BaseModel):
     source: str
     destination: str
+
     class Config:
         json_schema_extra = {
             "examples": [
@@ -1393,7 +1390,8 @@ async def move_rename(request: Request,
 @app.get("/attributes/{gfarm_path:path}")
 async def get_attr(gfarm_path: str,
                    request: Request,
-                   authorization: Union[str, None] = Header(default=None)) -> Stat:
+                   authorization:
+                   Union[str, None] = Header(default=None)) -> Stat:
     opname = "gfstat"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
