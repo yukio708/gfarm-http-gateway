@@ -15,6 +15,8 @@ import urllib
 import random
 import string
 from datetime import datetime
+import types
+import shlex
 
 import requests
 
@@ -36,52 +38,159 @@ from cryptography.fernet import Fernet
 from jose import jwt
 
 
+#############################################################################
+##### Configuration variables
+
+CONFIG_KEY_PREFIX = "GFARM_HTTP_"
+
+
 def str2bool(s):
+    if isinstance(s, bool):
+        return s
     return s.lower() in ("1", "true", "on", "enable")
 
-#############################################################################
-##### Parameters
 
-# TODO environment variables
+def str2list(s):
+    return s.split(",")
 
-origins = [
-    "http://localhost:3000",
-    "http://c2:8000",
+
+def str2none(s):
+    if not s:
+        return None
+    if not isinstance(s, str):
+        return None
+    if s.lower() == "none":
+        return None
+    return s
+
+
+def load_config_from_key_value(fpath):
+    data = {}
+    prefix = CONFIG_KEY_PREFIX
+    with open(fpath, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and "=" in line:
+                key, value = line.split("=", 1)
+                if not key.startswith(prefix):
+                    continue
+                try:
+                    value = shlex.split(f'"{value}"')[0]
+                except:
+                    pass
+                data[key] = value
+    return data
+
+
+def load_config_from_env():
+    config = {}
+    prefix = CONFIG_KEY_PREFIX
+    prefix_len = len(prefix)
+    for key, value in os.environ.items():
+        if key.startswith(prefix):
+            config[key] = value
+    return config
+
+
+def validate_conf(data, required_keys):
+    err = False
+    last_err = None
+    for key in required_keys:
+        if key not in data:
+            last_err = f"'{key}' is required"
+            print(last_err)  #TODO log error
+    if last_err:
+        raise ValueError(last_err)
+
+
+def format_conf(data, required_keys):
+    err = False
+    last_err = None
+    for key in required_keys:
+        val = data[key]
+        newval = val.format(**data)
+        #print("old", val, "new", newval)#TODO
+        data[key] = newval
+    if last_err:
+        raise ValueError(last_err)
+
+
+conf_required_keys = [
+    "GFARM_HTTP_ORIGINS",
+    "GFARM_HTTP_SECRET",
+    "GFARM_HTTP_SESSION_ENCRYPT",
+    "GFARM_HTTP_SESSION_COMPRESS_TYPE",
+    "GFARM_HTTP_OIDC_SERVER",
+    "GFARM_HTTP_OIDC_REALM",
+    "GFARM_HTTP_OIDC_CLIENT_ID",
+    "GFARM_HTTP_OIDC_CLIENT_SECRET",
+    "GFARM_HTTP_OIDC_REALM_URL",
+    "GFARM_HTTP_OIDC_META_URL",
+    "GFARM_HTTP_OIDC_CERTS_URL",
+    "GFARM_HTTP_OIDC_LOGOUT_URL",
+    "GFARM_HTTP_TOKEN_VERIFY",
+    "GFARM_HTTP_TOKEN_MIN_VALID_TIME_REMAINING",
+    "GFARM_HTTP_TOKEN_AUDIENCE",
+    "GFARM_HTTP_TOKEN_ISSUERS",
 ]
 
+# default parameters
+default_dict = load_config_from_key_value("api/default.conf")
+
+conf_file = os.environ.get("GFARM_HTTP_CONFIG_FILE", "gfarm-http.conf")
+if os.path.exists(conf_file):
+    conf_dict = load_config_from_key_value(conf_file)
+else:
+    conf_dict = {}
+
+env_dict = load_config_from_env()
+
+merged_dict = default_dict
+merged_dict.update(conf_dict)
+merged_dict.update(env_dict)
+validate_conf(merged_dict, conf_required_keys)
+format_conf(merged_dict, conf_required_keys)
+conf = types.SimpleNamespace(**merged_dict)
+
+print(pf(merged_dict)) #TODO
+
+ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
+
 # ex. openssl rand -base64 32
-SESSION_SECRET = "qU70WDyIpXdSOT9/7l0hICy0597EPRs/aPb5Mj5Xniw="
+SESSION_SECRET = conf.GFARM_HTTP_SECRET
+
 # In default, session in cookie is not encrypted
-ENCRYPT_SESSION = True
-# For token, the compression ratio of gzip is higher than bz2)
-COMPRESS_TOKEN_TYPE = "gzip"  # gzip or bz2
+SESSION_ENCRYPT = str2bool(conf.GFARM_HTTP_SESSION_ENCRYPT)
 
+# gzip or bz2
+# NOTE: For token, the compression ratio of gzip is higher than bz2
+SESSION_COMPRESS_TYPE = conf.GFARM_HTTP_SESSION_COMPRESS_TYPE
+
+# NOTE: not work: "GFARM_HTTP_OIDC_SERVER=http://..."
+#   gfmd[]: <err> [1005366]
+#   SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
 # add this URL to "Valid redirect URIs" of OIDC_CLIENT_ID in Keyclaok
+OIDC_SERVER = conf.GFARM_HTTP_OIDC_SERVER
+OIDC_CLIENT_ID = conf.GFARM_HTTP_OIDC_CLIENT_ID
+OIDC_CLIENT_SECRET = conf.GFARM_HTTP_OIDC_CLIENT_SECRET
 
-# not work: http://keycloak
-# gfmd[]: <err> [1005366]
-# SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
-# OIDC_SERVER = os.environ.get("OIDC_SERVER", "http://keycloak:8080")
-OIDC_SERVER = os.environ.get("OIDC_SERVER", "https://keycloak:8443")
-OIDC_REALM = os.environ.get("OIDC_REALM", "HPCI")
-OIDC_CLIENT_ID = os.environ.get("OIDC_CLIENT_ID", "hpci-jwt-server")
-OIDC_CLIENT_SECRET = os.environ.get("OIDC_CLIENT_SECRET",
-                                    "eJxl5z1EHU0u6BVLpR5MG0v4NLgCZWWG")
 # for Keycloak
-REALM_URL = f"{OIDC_SERVER}/auth/realms/{OIDC_REALM}"
-OIDC_META_URL = f"{REALM_URL}/.well-known/openid-configuration"
-OIDC_CERTS_URL = f"{REALM_URL}/protocol/openid-connect/certs"
-OIDC_LOGOUT_URL = f"{REALM_URL}/protocol/openid-connect/logout"
+#OIDC_REALM = conf.GFARM_HTTP_OIDC_REALM
+#OIDC_REALM_URL = conf.GFARM_HTTP_OIDC_REALM_URL
+OIDC_META_URL = conf.GFARM_HTTP_OIDC_META_URL
+OIDC_CERTS_URL = conf.GFARM_HTTP_OIDC_CERTS_URL
+OIDC_LOGOUT_URL = conf.GFARM_HTTP_OIDC_LOGOUT_URL
 
-VERIFY_TOKEN = True
-# VERIFY_TOKEN = False
+TOKEN_VERIFY = conf.GFARM_HTTP_TOKEN_VERIFY
+# sec.
+TOKEN_MIN_VALID_TIME_REMAINING = conf.GFARM_HTTP_TOKEN_MIN_VALID_TIME_REMAINING
+TOKEN_MIN_VALID_TIME_REMAINING = int(TOKEN_MIN_VALID_TIME_REMAINING)
 
-TOKEN_MIN_VALID_TIME_REMAINING = 60  # sec.
-
-# AUDIENCE = None
-AUDIENCE = "hpci"
-# ISSUER = None
-ISSUER = "https://keycloak:8443/auth/realms/HPCI"
+TOKEN_AUDIENCE = str2none(conf.GFARM_HTTP_TOKEN_AUDIENCE)
+TOKEN_ISSUERS = str2none(conf.GFARM_HTTP_TOKEN_ISSUERS)
+if TOKEN_ISSUERS:
+    TOKEN_ISSUERS = str2list(TOKEN_ISSUERS)
+    print(str(TOKEN_ISSUERS))#TODO
 
 USER_CLAIM = "hpci.id" # TODO log username
 
@@ -97,7 +206,7 @@ top_dir = os.path.dirname(api_dir)
 
 app = FastAPI()
 
-if ENCRYPT_SESSION:
+if SESSION_ENCRYPT:
     # fer = Fernet(Fernet.generate_key())
     fer = Fernet(SESSION_SECRET)
 else:
@@ -109,7 +218,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -147,7 +256,7 @@ def decompress_str_bz2(input_bin):
     return bz2.decompress(input_bin).decode()
 
 
-if COMPRESS_TOKEN_TYPE == 'bz2':
+if SESSION_COMPRESS_TYPE == 'bz2':
     compress_str = compress_str_bz2
     decompress_str = decompress_str_bz2
 else:
@@ -235,8 +344,8 @@ def verify_token(token, use_raise=False):
             access_token,
             jwks,
             algorithms=alg,
-            audience=AUDIENCE,
-            issuer=ISSUER,
+            audience=TOKEN_AUDIENCE,
+            issuer=TOKEN_ISSUERS,
             options=options,
         )
         return claims
@@ -248,7 +357,7 @@ def verify_token(token, use_raise=False):
 
 
 def is_expired_token(token, use_raise=False):
-    if VERIFY_TOKEN:
+    if TOKEN_VERIFY:
         claims = verify_token(token, use_raise)
         if not claims:
             return True  # expired

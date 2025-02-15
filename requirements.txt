@@ -1,9 +1,9 @@
-requests
-python-multipart
-fastapi
-itsdangerous
 authlib
+fastapi
 httpx
+itsdangerous
 Jinja2
 python-jose
+python-multipart
+requests
 uvicorn

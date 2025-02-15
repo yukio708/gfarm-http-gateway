@@ -8,4 +8,4 @@ RELOAD=--reload
 LOGLEVEL=debug
 
 cd "$SRC_DIR"
-PYTHONPATH="${SRC_DIR}/api" "$UVICORN" --proxy-headers --log-level $LOGLEVEL --host 0.0.0.0 $RELOAD gfarm_api:app
+PYTHONPATH="${SRC_DIR}/api" "$UVICORN" --proxy-headers --log-level $LOGLEVEL --host 0.0.0.0 $RELOAD gfarm_api:app "$@"

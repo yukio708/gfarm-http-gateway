@@ -42,16 +42,27 @@ HTTP gateway for Gfarm filesystem
       - ex. `http://c2/*`
     - Save
 
-## Configuration parameters
+## Configuration variables
 
+- Configuration file
+  - Default: `<gfarm-http-gateway source>/gfarm-http.conf` is loaded if it exists
+  - To specifiy a file, use `GFARM_HTTP_CONFIG_FILE` environment variable
+- Variables in `gfarm-http.conf`
+  - GFARM_HTTP_* can be loaded
+- Default variables and details
+  - Refer to `api/default.conf`
+- Default variables are overridden by `gfarm-http.conf`
+- These variables are overridden by environment variables
+
+!!!!!!!!!!!
 - TODO (work in progress)
   - (Please edit parameters in api/gfarm_api.py)
 - Environment variables
   - TODO ...
-  - GFARM_SASL_MECHANISIMS
+  - GFARM_HTTP_SASL_MECHANISIMS
     - Specifies the mechanisms to be used for SASL authentication, separated by spaces.
     - (SEE ALSO: man gfarm2.conf)
-  - ALLOW_GFARM_ANONYMOUS
+  - GFARM_HTTP_ALLOW_ANONYMOUS
     - allow anonymous access (default: false)
 
 ## Start server
@@ -71,9 +82,9 @@ HTTP gateway for Gfarm filesystem
 - `./bin/start-dev.sh`
   - for clients of any hosts (0.0.0.0:8000)
 
-## Development environment in Gfarm docker/dist
+## Development environment in gfarm/docker/dist
 
-- setup Gfarm docker/dist (refer to (gfarm source)/docker/dist/README.md)
+- setup gfarm/docker/dist (refer to (gfarm source)/docker/dist/README.md)
   - setup `For OAuth authentication`
   - setup `Use http proxy` (squid container)
 - clone(git clone) gfarm-http-gateway repository to (gfarm source)/gfarm-http-gateway
@@ -83,8 +94,8 @@ HTTP gateway for Gfarm filesystem
 - (in c2 container)
 - `cd ~/gfarm/gfarm-http-gateway`
 - `./setup.sh`
-- `bin/start-dev.sh`
-- run `bin/start-dev.sh` in c3 container using the same procedure described above
+- `bin/start-dev-for-docker-dist.sh`
+- run `bin/start-dev-for-docker-dist.sh` in c3 container using the same procedure described above
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <http://c2:8000/> in a web browser
   - auto-redirect to <http://keycloak>
