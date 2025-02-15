@@ -54,15 +54,6 @@ HTTP gateway for Gfarm filesystem
 - Default variables are overridden by `gfarm-http.conf`
 - These variables are overridden by environment variables
 
-!!!!!!!!!!!
-- Environment variables
-  - TODO ...
-  - GFARM_HTTP_SASL_MECHANISIMS
-    - Specifies the mechanisms to be used for SASL authentication, separated by spaces.
-    - (SEE ALSO: man gfarm2.conf)
-  - GFARM_HTTP_ALLOW_ANONYMOUS
-    - allow anonymous access (default: false)
-
 ## Start server
 
 ### Start for clients on localhost (127.0.0.1)
@@ -100,13 +91,18 @@ HTTP gateway for Gfarm filesystem
   - login: `user1/PASSWORD`
   - This page contains examples of API usage
 
-### Using NGINX reverse proxy (exmample)
+### Using NGINX reverse proxy (example)
 
-- (in a c2 container) (RHEL family)
-- `sudo dnf install nginx`
+- (in c2 container)
+- (for RHEL family)
+  - `sudo dnf install nginx`
+- (for Ubuntu)
+  - `sudo apt-get install nginx`
+  - `sudo ls -l /etc/nginx/sites-enabled/default`
+  - `sudo rm /etc/nginx/sites-enabled/default`
 - create `/etc/nginx/conf.d/gfarm.conf`
 
-```
+```text
 server {
   listen       80;
   listen       [::]:80;

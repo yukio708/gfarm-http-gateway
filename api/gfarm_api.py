@@ -64,7 +64,7 @@ def str2none(s):
     return s
 
 
-def load_config_from_key_value(fpath):
+def load_config_from_file(fpath):
     data = {}
     prefix = CONFIG_KEY_PREFIX
     with open(fpath, 'r') as f:
@@ -75,7 +75,10 @@ def load_config_from_key_value(fpath):
                 if not key.startswith(prefix):
                     continue
                 try:
-                    value = shlex.split(f'"{value}"')[0]
+                    # Convert:
+                    #    "VALUE" # comment
+                    # -> VALUE
+                    value = shlex.split(f'{value}')[0]
                 except:
                     pass
                 data[key] = value
@@ -85,7 +88,6 @@ def load_config_from_key_value(fpath):
 def load_config_from_env():
     config = {}
     prefix = CONFIG_KEY_PREFIX
-    prefix_len = len(prefix)
     for key, value in os.environ.items():
         if key.startswith(prefix):
             config[key] = value
@@ -139,11 +141,11 @@ conf_required_keys = [
 ]
 
 # default parameters
-default_dict = load_config_from_key_value("api/default.conf")
+default_dict = load_config_from_file("api/default.conf")
 
 conf_file = os.environ.get("GFARM_HTTP_CONFIG_FILE", "gfarm-http.conf")
 if os.path.exists(conf_file):
-    conf_dict = load_config_from_key_value(conf_file)
+    conf_dict = load_config_from_file(conf_file)
 else:
     conf_dict = {}
 
@@ -156,14 +158,14 @@ validate_conf(merged_dict, conf_required_keys)
 format_conf(merged_dict, conf_required_keys)
 conf = types.SimpleNamespace(**merged_dict)
 
-print("config: " + pf(merged_dict)) #TODO
+print("config: " + pf(merged_dict)) #TODO log debug
 
 ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
 
 # ex. openssl rand -base64 32
 SESSION_SECRET = conf.GFARM_HTTP_SECRET
 
-# In default, session in cookie is not encrypted
+# NOTE: In default, session in cookie is not encrypted
 SESSION_ENCRYPT = str2bool(conf.GFARM_HTTP_SESSION_ENCRYPT)
 
 # gzip or bz2
