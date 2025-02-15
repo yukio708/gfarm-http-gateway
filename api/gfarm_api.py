@@ -523,16 +523,28 @@ async def logout(request: Request, state: Optional[str] = None):
     return RedirectResponse(url="/")
 
 
+class AccessToken(BaseModel):
+    access_token: str
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "access_token": "abcdefg",
+                }
+            ]
+        }
+
+
 @app.get("/access_token")
-async def access_token(request: Request):
+async def access_token(request: Request) -> AccessToken:
     access_token = await get_access_token(request)
     if not access_token:
         raise HTTPException(
             status_code=401,
             detail="Not logged in"
         )
-    # return JSON
-    return {"access_token": access_token}
+    return AccessToken.parse_obj({"access_token": access_token})
 
 
 def get_user_passwd(request):
