@@ -701,7 +701,7 @@ def get_client_ip_from_env(env):
 def log_operation(env, opname, args):
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    print(f"INFO: ipaddr={ipaddr} user={user}, command={opname},"
+    print(f"INFO: ipaddr={ipaddr}, user={user}, command={opname},"
           f" args={str(args)}")  #TODO log info
 
 
@@ -733,6 +733,19 @@ def timestamp_to_unix(timestamp_str):
   except ValueError as e:
     print(f"Invalid timestamp format. {str(e)}") #TODO log
     return None
+
+
+class UpdateStat(BaseModel):
+    Mode: Optional[str] = None
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "Mode": "1777",
+                }
+            ]
+        }
 
 
 class Stat(BaseModel):
@@ -1398,7 +1411,7 @@ async def get_attr(gfarm_path: str,
 @app.post("/attr/{gfarm_path:path}")
 @app.post("/attributes/{gfarm_path:path}")
 async def change_attr(gfarm_path: str,
-                      stat: Stat,
+                      stat: UpdateStat,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
     gfarm_path = fullpath(gfarm_path)
