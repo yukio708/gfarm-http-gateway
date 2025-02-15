@@ -134,6 +134,7 @@ conf_required_keys = [
     "GFARM_HTTP_TOKEN_ISSUERS",
     "GFARM_HTTP_TOKEN_USER_CLAIM",
     "GFARM_HTTP_VERIFY_CERT",
+    "GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD",
 ]
 
 # default parameters
@@ -197,7 +198,8 @@ TOKEN_USER_CLAIM = conf.GFARM_HTTP_TOKEN_USER_CLAIM
 
 VERIFY_CERT = str2bool(conf.GFARM_HTTP_VERIFY_CERT)
 
-GFARM_SASL_MECHANISMS = os.environ.get("GFARM_SASL_MECHANISMS")
+SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
+
 ALLOW_GFARM_ANONYMOUS = str2bool(os.environ.get("ALLOW_GFARM_ANONYMOUS", "disable"))
 
 #############################################################################
@@ -666,10 +668,10 @@ async def set_env(request, authorization):
             'GFARM_SASL_USER': user,
             'GFARM_SASL_PASSWORD': passwd,
         })
-        if GFARM_SASL_MECHANISMS:
+        if SASL_MECHANISM_FOR_PASSWORD:
             env.update({
                 # for Gfarm 2.8.6 or later
-                'GFARM_SASL_MECHANISMS': GFARM_SASL_MECHANISMS,
+                'GFARM_SASL_MECHANISMS': SASL_MECHANISM_FOR_PASSWORD,
                 })
     else:  # anonymous
         user = "anonymous"
