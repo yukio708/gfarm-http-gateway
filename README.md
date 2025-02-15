@@ -55,8 +55,6 @@ HTTP gateway for Gfarm filesystem
 - These variables are overridden by environment variables
 
 !!!!!!!!!!!
-- TODO (work in progress)
-  - (Please edit parameters in api/gfarm_api.py)
 - Environment variables
   - TODO ...
   - GFARM_HTTP_SASL_MECHANISIMS

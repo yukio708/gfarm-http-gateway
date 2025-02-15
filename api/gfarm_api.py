@@ -132,6 +132,7 @@ conf_required_keys = [
     "GFARM_HTTP_TOKEN_MIN_VALID_TIME_REMAINING",
     "GFARM_HTTP_TOKEN_AUDIENCE",
     "GFARM_HTTP_TOKEN_ISSUERS",
+    "GFARM_HTTP_TOKEN_USER_CLAIM",
 ]
 
 # default parameters
@@ -192,7 +193,7 @@ if TOKEN_ISSUERS:
     TOKEN_ISSUERS = str2list(TOKEN_ISSUERS)
     print(str(TOKEN_ISSUERS))#TODO
 
-USER_CLAIM = "hpci.id" # TODO log username
+TOKEN_USER_CLAIM = conf.GFARM_HTTP_TOKEN_USER_CLAIM
 
 VERIFY_CERT = False  # not verify certificate  # TODO True
 
@@ -203,6 +204,7 @@ ALLOW_GFARM_ANONYMOUS = str2bool(os.environ.get("ALLOW_GFARM_ANONYMOUS", "disabl
 api_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(api_path)
 top_dir = os.path.dirname(api_dir)
+bin_dir = f"{top_dir}/bin"
 
 app = FastAPI()
 
@@ -371,7 +373,7 @@ def is_expired_token(token, use_raise=False):
         # print(pf(header))
         exp = claims.get("exp")
         if exp is None:
-            raise jwt_err("no exp claim")
+            raise jwt_error("no exp claim")
         current_time = int(time.time())
         return (current_time + TOKEN_MIN_VALID_TIME_REMAINING) > exp
     except Exception as e:
@@ -411,6 +413,11 @@ def parse_access_token(access_token):
     claims = jwt.get_unverified_claims(access_token)
     header = jwt.get_unverified_header(access_token)
     return pf(header) + "\n" + pf(claims)
+
+
+def get_user_from_access_token(access_token):
+    claims = jwt.get_unverified_claims(access_token)
+    return claims.get(TOKEN_USER_CLAIM, None)
 
 
 def get_csrf(request: Request):
@@ -487,9 +494,11 @@ async def auth(request: Request):
         token = await provider.authorize_access_token(request)
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
-    print(str(token))  # TODO log 
     delete_user_passwd(request)
     set_token(request, token)
+    access_token = await get_access_token(request)
+    user = get_user_from_access_token(access_token)
+    log_login(user, "access_token")
     return RedirectResponse(url="/")
 
 
@@ -558,6 +567,7 @@ async def login_passwd(request: Request,
     except Exception:
         delete_user_passwd(request)
         raise
+    log_login(username, "password")
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -612,13 +622,16 @@ def parse_authorization(authz_str: str):
     return authz_type, user, passwd
 
 
+LOG_USERNAME_KEY = "_GFARM_HTTP_USERNAME"
+
+
 async def set_env(request, authorization):
     env = {'PATH': os.environ['PATH']}
 
     # prefer session
     # get access token from session in cookie
     access_token = await get_access_token(request)
-    if access_token:
+    if access_token is not None:
         authz_type = AUTHZ_TYPE_BEARER
     else:
         # get password from session in cookie
@@ -631,13 +644,14 @@ async def set_env(request, authorization):
             authz_type, user, passwd = parse_authorization(authorization)
             access_token = passwd
 
-    if authz_type == AUTHZ_TYPE_BEARER:
+    if authz_type == AUTHZ_TYPE_BEARER and access_token is not None:
+        user = get_user_from_access_token(access_token)
         env.update({
             # In libgfarm, GFARM_SASL_PASSWORD is preferentially
             # used over JWT_USER_PATH
             'GFARM_SASL_PASSWORD': access_token,
             # for old libgfarm (Gfarm 2.8.5 or earlier)
-            'JWT_USER_PATH': f'!/{top_dir}/bin/GFARM_SASL_PASSWORD_STDOUT.sh',
+            'JWT_USER_PATH': f'!/{bin_dir}/GFARM_SASL_PASSWORD_STDOUT.sh',
             # for Gfarm 2.8.6 or later
             'GFARM_SASL_MECHANISMS': 'XOAUTH2',
         })
@@ -653,13 +667,30 @@ async def set_env(request, authorization):
                 'GFARM_SASL_MECHANISMS': GFARM_SASL_MECHANISMS,
                 })
     else:  # anonymous
+        user = "anonymous"
         env.update({
             # for Gfarm 2.8.6 or later
             'GFARM_SASL_MECHANISMS': 'ANONYMOUS',
-            'GFARM_SASL_USER': 'anonymous',
+            'GFARM_SASL_USER': user,
         })
 
+    env.update({
+        LOG_USERNAME_KEY: user,
+    })
     return env
+
+
+def get_user_from_env(env):
+    return env.get(LOG_USERNAME_KEY, "UNKNOWN_USER")
+
+
+def log_operation(env, opname, args):
+    user = get_user_from_env(env)
+    print(f"INFO: user={user}: command={opname}, args={str(args)}")  #TODO log info
+
+
+def log_login(user, login_type):
+    print(f"INFO: user={user}: login ({login_type})") #TODO log info
 
 
 #############################################################################
@@ -1061,9 +1092,11 @@ async def gfarm_command_standard_response(proc, command):
 @app.get("/config/me")
 async def whoami(request: Request,
                  authorization: Union[str, None] = Header(default=None)):
+    opname = "gfwhoami"
     env = await set_env(request, authorization)
+    log_operation(env, opname, None)
     p = await async_gfwhoami(env)
-    return await gfarm_command_standard_response(p, "gfwhoami")
+    return await gfarm_command_standard_response(p, opname)
 
 
 @app.get("/d/{gfarm_path:path}")
@@ -1075,8 +1108,10 @@ async def dir_list(gfarm_path: str,
                    R: int = 0,
                    ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
+    opname = "gfls"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
+    log_operation(env, opname, gfarm_path)
     # print(f"path={gfarm_path}")
     p = await async_gfls(env, gfarm_path, _all=a, recursive=R)
     data = await p.stdout.read()
@@ -1097,11 +1132,12 @@ async def dir_list(gfarm_path: str,
 async def dir_create(gfarm_path: str,
                      request: Request,
                      authorization: Union[str, None] = Header(default=None)):
+    opname = "gfmkdir"
     gfarm_path = fullpath(gfarm_path)
-
     env = await set_env(request, authorization)
+    log_operation(env, opname, gfarm_path)
     p = await async_gfmkdir(env, gfarm_path)
-    return await gfarm_command_standard_response(p, "gfmkdir")
+    return await gfarm_command_standard_response(p, opname)
 
 
 @app.delete("/d/{gfarm_path:path}")
@@ -1110,11 +1146,12 @@ async def dir_create(gfarm_path: str,
 async def dir_remove(gfarm_path: str,
                      request: Request,
                      authorization: Union[str, None] = Header(default=None)):
+    opname = "gfrmdir"
     gfarm_path = fullpath(gfarm_path)
-
     env = await set_env(request, authorization)
+    log_operation(env, opname, gfarm_path)
     p = await async_gfrmdir(env, gfarm_path)
-    return await gfarm_command_standard_response(p, "gfrmdir")
+    return await gfarm_command_standard_response(p, opname)
 
 
 # BUFSIZE = 1
@@ -1130,10 +1167,10 @@ async def file_export(gfarm_path: str,
                       request: Request,
                       action: str = 'view',
                       authorization: Union[str, None] = Header(default=None)):
+    opname = "gfexport"
     gfarm_path = fullpath(gfarm_path)
-    # print(gfarm_path)
-
     env = await set_env(request, authorization)
+    log_operation(env, opname, gfarm_path)
     existing, is_file, size = await async_size(env, gfarm_path)
     if not existing:
         raise HTTPException(
@@ -1213,14 +1250,16 @@ async def file_import(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None),
                       x_file_timestamp: Union[str, None] = Header(default=None)):
-    # print("x_file_timestamp=" + str(x_file_timestamp)) #TODO debug
+    opname = "gfreg"
     gfarm_path = fullpath(gfarm_path)
 
-    randstr = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    choices = string.ascii_letters + string.digits
+    randstr = ''.join(random.choices(choices, k=8))
     tmpname = "gfarm-http-gateway.upload." + randstr
     tmppath = os.path.join(os.path.dirname(gfarm_path), tmpname)
 
     env = await set_env(request, authorization)
+    log_operation(env, opname, gfarm_path)
     p = await async_gfreg(env, tmppath, x_file_timestamp)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(p, elist))
@@ -1271,11 +1310,12 @@ async def file_import(gfarm_path: str,
 async def file_remove(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
+    opname = "gfrm"
     gfarm_path = fullpath(gfarm_path)
-
     env = await set_env(request, authorization)
+    log_operation(env, opname, gfarm_path)
     p = await async_gfrm(env, gfarm_path)
-    return await gfarm_command_standard_response(p, "gfrm")
+    return await gfarm_command_standard_response(p, opname)
 
 
 class Move(BaseModel):
@@ -1296,12 +1336,13 @@ class Move(BaseModel):
 async def move_rename(request: Request,
                       move_data: Move,
                       authorization: Union[str, None] = Header(default=None)):
+    opname = "gfmv"
     src = move_data.source
     dest = move_data.destination
-
     env = await set_env(request, authorization)
+    log_operation(env, opname, {"src": src, "dest": dest})
     p = await async_gfmv(env, src, dest)
-    return await gfarm_command_standard_response(p, "gfmv")
+    return await gfarm_command_standard_response(p, opname)
 
 
 @app.get("/a/{gfarm_path:path}")
@@ -1310,8 +1351,10 @@ async def move_rename(request: Request,
 async def get_attr(gfarm_path: str,
                    request: Request,
                    authorization: Union[str, None] = Header(default=None)) -> Stat:
+    opname = "gfstat"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
+    log_operation(env, opname, gfarm_path)
     metadata = True
     proc = await async_gfstat(env, gfarm_path, metadata)
 
@@ -1323,15 +1366,14 @@ async def get_attr(gfarm_path: str,
     return_code = await proc.wait()
     if return_code != 0:
         errstr = str(elist)
-        command = "gfstat"
         if "authentication error" in errstr:
             code = 401
             message = "Authentication error"
-            raise gfarm_http_error(command, code, message, stdout, elist)
+            raise gfarm_http_error(opname, code, message, stdout, elist)
         else:
             code = 500
             message = "Error"
-            raise gfarm_http_error(command, code, message, stdout, elist)
+            raise gfarm_http_error(opname, code, message, stdout, elist)
     return parse_gfstat(stdout)
 
 
@@ -1345,11 +1387,12 @@ async def change_attr(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     response = None
-    command = None
+    opname = None
     if stat.Mode:
-        command = "gfchmod"
+        opname = "gfchmod"
+        log_operation(env, opname, gfarm_path)
         proc = await async_gfchmod(env, gfarm_path, stat.Mode)
-        response = await gfarm_command_standard_response(proc, command)
+        response = await gfarm_command_standard_response(proc, opname)
     if response:
         return response
     else:
@@ -1357,4 +1400,4 @@ async def change_attr(gfarm_path: str,
         message = "No input data (unsupported fields)"
         stdout = None
         elist = None
-        raise gfarm_http_error(command, code, message, stdout, elist)
+        raise gfarm_http_error(opname, code, message, stdout, elist)
