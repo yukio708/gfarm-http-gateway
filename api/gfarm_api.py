@@ -47,7 +47,7 @@ CONFIG_KEY_PREFIX = "GFARM_HTTP_"
 def str2bool(s):
     if isinstance(s, bool):
         return s
-    return s.lower() in ("1", "true", "on", "enable")
+    return s.lower() in ("1", "yes", "true", "on", "enable")
 
 
 def str2list(s):
@@ -133,6 +133,7 @@ conf_required_keys = [
     "GFARM_HTTP_TOKEN_AUDIENCE",
     "GFARM_HTTP_TOKEN_ISSUERS",
     "GFARM_HTTP_TOKEN_USER_CLAIM",
+    "GFARM_HTTP_VERIFY_CERT",
 ]
 
 # default parameters
@@ -191,11 +192,10 @@ TOKEN_AUDIENCE = str2none(conf.GFARM_HTTP_TOKEN_AUDIENCE)
 TOKEN_ISSUERS = str2none(conf.GFARM_HTTP_TOKEN_ISSUERS)
 if TOKEN_ISSUERS:
     TOKEN_ISSUERS = str2list(TOKEN_ISSUERS)
-    print(str(TOKEN_ISSUERS))#TODO
 
 TOKEN_USER_CLAIM = conf.GFARM_HTTP_TOKEN_USER_CLAIM
 
-VERIFY_CERT = False  # not verify certificate  # TODO True
+VERIFY_CERT = str2bool(conf.GFARM_HTTP_VERIFY_CERT)
 
 GFARM_SASL_MECHANISMS = os.environ.get("GFARM_SASL_MECHANISMS")
 ALLOW_GFARM_ANONYMOUS = str2bool(os.environ.get("ALLOW_GFARM_ANONYMOUS", "disable"))
@@ -388,12 +388,14 @@ async def get_token(request: Request):
     if fer:
         token = decrypt_token(token)
         if not token:
+            delete_token(request)
             return None
     if not is_expired_token(token):
         return token
     new_token = await use_refresh_token(request, token)
     if not is_expired_token(new_token, use_raise=True):
         return new_token
+    delete_token(request)
     return None  # not login
 
 
@@ -485,7 +487,10 @@ async def index(request: Request):
 @app.get("/login")
 async def login(request: Request):
     redirect_uri = request.url_for("auth")
-    return await provider.authorize_redirect(request, redirect_uri)
+    try:
+        return await provider.authorize_redirect(request, redirect_uri)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/auth")
