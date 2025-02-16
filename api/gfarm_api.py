@@ -191,6 +191,8 @@ TOKEN_MIN_VALID_TIME_REMAINING = int(min_valid_time)
 del min_valid_time
 
 TOKEN_AUDIENCE = str2none(conf.GFARM_HTTP_TOKEN_AUDIENCE)
+
+# TODO use issuer from OIDC_META_URL
 TOKEN_ISSUERS = str2none(conf.GFARM_HTTP_TOKEN_ISSUERS)
 if TOKEN_ISSUERS:
     TOKEN_ISSUERS = str2list(TOKEN_ISSUERS)
@@ -203,9 +205,9 @@ ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
 
 def check_not_recommended():
     if not SESSION_ENCRYPT:
-        logger.warning("NOT RECOMENDED: GFARM_HTTP_SESSION_ENCRYPT=no")
+        logger.warning("NOT RECOMMENDED: GFARM_HTTP_SESSION_ENCRYPT=no")
     if not VERIFY_CERT:
-        logger.warning("NOT RECOMENDED: GFARM_HTTP_VERIFY_CERT=no")
+        logger.warning("NOT RECOMMENDED: GFARM_HTTP_VERIFY_CERT=no")
 
 
 #############################################################################
@@ -369,11 +371,12 @@ def encrypt_token(token):
     eb = fer.encrypt(cb)
     # encrypted bin -> base85 str
     encrypted_token = base64.b85encode(eb).decode()
-    # print(f"len: before={len(s)}, after={len(encrypted_token)}") #TODO debug
+    logger.debug(f"encrypt_token: str_len={len(s)},"
+                 f" encrypted_len={len(encrypted_token)}")
     return encrypted_token
 
 
-def decrypt_token(encrypted_token):
+def decrypt_token(request, encrypted_token):
     try:
         # base85 str -> encrypted bin
         eb = base64.b85decode(encrypted_token)
@@ -384,22 +387,22 @@ def decrypt_token(encrypted_token):
         # JSON str -> dict
         return json.loads(s)
     except Exception as e:
-        print("decrypt_token error: " + str(e))  # TODO log
+        ipaddr = get_client_ip_from_request(request)
+        logger.warning(f"{ipaddr}:0 decrypt_token error=" + str(e))
         return None
 
 
 def set_token(request: Request, token):
     if fer:
         token = encrypt_token(token)
-    # print(f"set token: {token}")  # TODO
     request.session["token"] = token
 
 
 async def use_refresh_token(request: Request, token):
     refresh_token = token.get("refresh_token")
-    # print("use_refresh_token !!!!!!!!!!!!!!!!!!!!", refresh_token) #TODO
+    # TODO cache metadata
     meta = await provider.load_server_metadata()
-    # print(pf(meta))  # TODO
+    logger.debug("use_refresh_token: metadata:\n" + pf(meta))
     try:
         data = {
             "grant_type": "refresh_token",
@@ -427,11 +430,10 @@ def jwt_error(msg):
 def verify_token(token, use_raise=False):
     try:
         access_token = token.get("access_token")
+        # TODO get_oidc_cert_url() (use cached metadata or OIDC_CERTS_URL)
         # TODO cache jwks, cache timeout
         jwks = requests.get(OIDC_CERTS_URL, verify=VERIFY_CERT).json()
-        # print(pf(jwks)) #TODO
         header = jwt.get_unverified_header(access_token)
-        # print(pf(header)) #TODO
         if not header:
             raise jwt_error("Invalid header")
         alg = header.get("alg")
@@ -446,7 +448,7 @@ def verify_token(token, use_raise=False):
         )
         return claims
     except Exception as e:
-        print(f"Access token verification error: {e}")  # TODO log debug
+        logger.debug(f"Access token verification error: {e}")
         if use_raise:
             raise
         return None
@@ -457,7 +459,6 @@ def is_expired_token(token, use_raise=False):
         claims = verify_token(token, use_raise)
         if not claims:
             return True  # expired
-        # print(pf(claims)) #TODO
         return False
     try:
         access_token = token.get("access_token")
@@ -471,7 +472,7 @@ def is_expired_token(token, use_raise=False):
         current_time = int(time.time())
         return (current_time + TOKEN_MIN_VALID_TIME_REMAINING) > exp
     except Exception as e:
-        print("is_expired_token: " + str(e))  # log info
+        logger.debug("is_expired_token: " + str(e))
         return True  # expired
 
 
@@ -480,7 +481,7 @@ async def get_token(request: Request):
     if not token:
         return None
     if fer:
-        token = decrypt_token(token)
+        token = decrypt_token(request, token)
         if not token:
             delete_token(request)
             return None
@@ -498,9 +499,13 @@ def delete_token(request: Request):
 
 
 async def get_access_token(request: Request) -> Optional[str]:
+    # TODO cache metadata
+    # meta = await provider.load_server_metadata()
+    # logger.debug(f"metadata:\n" + pf(meta))
+
     token = await get_token(request)
     if token:
-        # print("token from session: " + str(token))  # TODO
+        # print("token from session: " + str(token))  # for debug
         return token.get("access_token")
     return None
 
@@ -545,6 +550,7 @@ async def index(request: Request):
             login_ok = True
             sasl_username = user
 
+    # TODO use get_oidc_logout_url() instead of OIDC_LOGOUT_URL
     if login_ok:
         if access_token:
             pat = parse_access_token(access_token)
@@ -643,9 +649,8 @@ def get_user_passwd(request):
     username = request.session.get("username")
     password = request.session.get("password")
     if username is None or password is None:
-        return None, None  # not password authentication
+        return None, None  # not use password authentication
     if fer:
-        # print("encrypted password:", password) #TODO
         b = base64.b85decode(password)
         password = fer.decrypt(b).decode()
     return username, password
@@ -767,7 +772,7 @@ async def set_env(request, authorization):
             # used over JWT_USER_PATH
             'GFARM_SASL_PASSWORD': access_token,
             # for old libgfarm (Gfarm 2.8.5 or earlier)
-            'JWT_USER_PATH': f'!/{bin_dir}/GFARM_SASL_PASSWORD_STDOUT.sh',
+            'JWT_USER_PATH': f'!{bin_dir}/GFARM_SASL_PASSWORD_STDOUT.sh',
         })
     elif authz_type == AUTHZ_TYPE_BASIC:
         env.update({
@@ -787,13 +792,13 @@ async def set_env(request, authorization):
     env.update({
         LOG_USERNAME_KEY: user,
         # https://www.starlette.io/requests/#client-address
-        LOG_CLIENT_IP_KEY: request.client.host,
+        LOG_CLIENT_IP_KEY: get_client_ip_from_request(request),
     })
     if DEBUG_MODE:
         copy_env = env.copy()
         if "GFARM_SASL_PASSWORD" in copy_env:
             copy_env["GFARM_SASL_PASSWORD"] = '*****(MASKED)'
-        logger.debug("set_env:\n" + pf(copy_env))
+        logger.debug("env:\n" + pf(copy_env))
     return env
 
 
@@ -803,6 +808,10 @@ def get_user_from_env(env):
 
 def get_client_ip_from_env(env):
     return env.get(LOG_CLIENT_IP_KEY, "NO_CLIENT_IP")
+
+
+def get_client_ip_from_request(request):
+    return request.client.host
 
 
 #############################################################################
@@ -826,7 +835,7 @@ def timestamp_to_unix(timestamp_str):
         unix_timestamp = dt_object.timestamp()
         return unix_timestamp
     except ValueError as e:
-        print(f"Invalid timestamp format. {str(e)}")  # TODO log
+        logger.error("Invalid timestamp format: " + str(e))
         return None
 
 
@@ -986,8 +995,11 @@ async def async_gfwhoami(env):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfrm(env, path):
-    args = [path]
+async def async_gfrm(env, path, force=False):
+    if force:
+        args = ["-f", path]
+    else:
+        args = [path]
     return await asyncio.create_subprocess_exec(
         'gfrm', *args,
         env=env,
@@ -1052,7 +1064,7 @@ async def async_gfls(env, path, _all=0, recursive=0):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT)  # TODO stderr?
+        stderr=asyncio.subprocess.STDOUT)
 
 
 async def async_gfmkdir(env, path):
@@ -1116,7 +1128,6 @@ async def async_gfchmod(env, path, mode):
 #         size = 0
 #         return existing, is_file, size
 #     line = line.decode().rstrip()
-#     #print(line)  #TODO
 #     m = PAT_ENTRY.match(line)
 #     if m:
 #         # Ex.
@@ -1142,7 +1153,7 @@ async def async_size(env, path):
     metadata = False
     proc = await async_gfstat(env, path, metadata)
     elist = []
-    stderr_task = asyncio.create_task(log_stderr(proc, elist))
+    stderr_task = asyncio.create_task(log_stderr("gfstat", proc, elist))
     data = await proc.stdout.read()
     stdout = data.decode()
     await stderr_task
@@ -1156,18 +1167,21 @@ async def async_size(env, path):
         existing = True
         is_file = (st.Filetype == "regular file")
         size = st.Size
+    # TODO logger.debug
     return existing, is_file, size
 
 
 #############################################################################
-async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
+async def log_stderr(command: str,
+                     process: asyncio.subprocess.Process,
+                     elist: list) -> None:
     if process.stderr is None:
         return
     while True:
         line = await process.stderr.readline()
         if line:
             msg = line.decode().strip()
-            logger.debug(f"STDERR: {msg}")  # TODO debug log
+            logger.debug(f"STDERR: {command}: {msg}")
             elist.append(msg)
         else:
             break
@@ -1204,25 +1218,24 @@ async def gfarm_command_standard_response(env, proc, command):
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     elist = []
-    stderr_task = asyncio.create_task(log_stderr(proc, elist))
+    stderr_task = asyncio.create_task(log_stderr(command, proc, elist))
     data = await proc.stdout.read()
     stdout = data.decode()
     await stderr_task
     return_code = await proc.wait()
     if return_code != 0:
         errstr = str(elist)
-        last = last_emsg(elist)
-        logger.opt(depth=1).info(
-            f"{ipaddr}:0 user={user}, cmd={command}, return={return_code},"
-            f" last_emsg={last}")
+        last_e = last_emsg(elist)
         if "authentication error" in errstr:
             code = 401
             message = "Authentication error"
-            raise gfarm_http_error(command, code, message, stdout, elist)
         else:
             code = 500
             message = "Error"
-            raise gfarm_http_error(command, code, message, stdout, elist)
+        logger.opt(depth=1).debug(
+            f"{ipaddr}:0 user={user}, cmd={command}, return={return_code},"
+            f" last_emsg={last_e}")
+        raise gfarm_http_error(command, code, message, stdout, elist)
     if DEBUG_MODE:
         if is_utf8(stdout):
             out = stdout.strip()
@@ -1258,19 +1271,24 @@ async def dir_list(gfarm_path: str,
     opname = "gfls"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    # print(f"path={gfarm_path}")
     p = await async_gfls(env, gfarm_path, _all=a, recursive=R)
     data = await p.stdout.read()
-    s = data.decode()
+    stdout = data.decode()
     return_code = await p.wait()
     if ign_err == 0 and return_code != 0:
-        print(f"return_code={return_code}")  # TODO log
+        logger.debug(
+            f"{ipaddr}:0 user={user}, cmd={opname}, return={return_code},"
+            f" message={stdout}")
+        # TODO gfarm_http_error
         raise HTTPException(
             status_code=500,
-            detail=s
+            detail=stdout
         )
-    return PlainTextResponse(content=s)
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={stdout}")
+    return PlainTextResponse(content=stdout)
 
 
 @app.put("/d/{gfarm_path:path}")
@@ -1318,14 +1336,18 @@ async def file_export(gfarm_path: str,
     opname = "gfexport"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
     existing, is_file, size = await async_size(env, gfarm_path)
     if not existing:
+        # TODO gfarm_http_error
         raise HTTPException(
             status_code=404,
             detail="The requested URL does not exist."
         )
     if not is_file:
+        # TODO gfarm_http_error
         raise HTTPException(
             status_code=415,
             detail="The requested URL does not represent a file."
@@ -1334,11 +1356,11 @@ async def file_export(gfarm_path: str,
     if int(size) <= 0:
         return Response(status_code=204)
 
-    env = await set_env(request, authorization)
+    env = await set_env(request, authorization)  # may refresh
     if ASYNC_GFEXPORT:
         p = await async_gfexport(env, gfarm_path)
         elist = []
-        stderr_task = asyncio.create_task(log_stderr(p, elist))
+        stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
     else:
         # stderr is not supported
         p = gfexport(env, gfarm_path)
@@ -1351,8 +1373,9 @@ async def file_export(gfarm_path: str,
     if not first_byte:
         if ASYNC_GFEXPORT:
             await stderr_task
+        # TODO gfarm_http_error
         raise HTTPException(
-            status_code=500,
+            status_code=403,
             detail=f"Cannot read: path={gfarm_path}, stderr={str(elist)}"
         )
 
@@ -1373,7 +1396,10 @@ async def file_export(gfarm_path: str,
         else:
             return_code = p.wait()
         if return_code != 0:
-            print(f"gfexport return_code={return_code}")  # TODO log
+            # network error? disk error?
+            logger.warning(
+                f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path},"
+                f" return={return_code}, stderr={str(elist)}")
 
     ct = get_content_type(gfarm_path)
     cl = str(size)
@@ -1399,6 +1425,7 @@ async def file_import(gfarm_path: str,
                       authorization: Union[str, None] = Header(default=None),
                       x_file_timestamp:
                       Union[str, None] = Header(default=None)):
+    # TODO overwrite=1, defaut 0
     opname = "gfreg"
     gfarm_path = fullpath(gfarm_path)
 
@@ -1408,49 +1435,58 @@ async def file_import(gfarm_path: str,
     tmppath = os.path.join(os.path.dirname(gfarm_path), tmpname)
 
     env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
     p = await async_gfreg(env, tmppath, x_file_timestamp)
     elist = []
-    stderr_task = asyncio.create_task(log_stderr(p, elist))
+    stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
     error = None
     try:
         async for chunk in request.stream():
-            # print(f"chunk={str(chunk)}")
-            # print(f"chunk len={len(chunk)}")
             p.stdin.write(chunk)
             await p.stdin.drain()  # speedup
     except Exception as e:
+        logger.exception(f"{ipaddr}:0 user={user}, cmd={opname},"
+                         f" path={tmppath}")
         error = e
 
     p.stdin.close()
     await stderr_task
     return_code = await p.wait()
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={tmppath},"
+                 f" return={return_code}")
 
     if return_code == 0 and error is None:
-        env = await set_env(request, authorization)
+        env = await set_env(request, authorization)  # may refresh
+        gfmv = "gfmv"
         p2 = await async_gfmv(env, tmppath, gfarm_path)
-        stderr_task2 = asyncio.create_task(log_stderr(p2, elist))
+        stderr_task2 = asyncio.create_task(log_stderr(gfmv, p2, elist))
         await stderr_task2
         return_code = await p2.wait()
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={gfmv}, src={tmppath},"
+                     f" dest={gfarm_path}, return={return_code}")
         if return_code == 0:
             return Response(status_code=200)
 
     # error case
-    print(f"remove tmpfile: {tmppath}")  # TODO log error
-    env = await set_env(request, authorization)
-    p3 = await async_gfrm(env, tmppath)
-    stderr_task3 = asyncio.create_task(log_stderr(p3, elist))
+    env = await set_env(request, authorization)  # may refresh
+    p3 = await async_gfrm(env, tmppath, force=True)
+    gfrm = "gfrm"
+    stderr_task3 = asyncio.create_task(log_stderr(gfrm, p3, elist))
     await stderr_task3
-    await p3.wait()
+    # ignore error
+    return_code = await p3.wait()
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={gfrm}, path={tmppath},"
+                 f" return={return_code}")
 
-    command = "gfreg"
     code = 500
     if error:
-        message = f"IO error({str(error)}): path={gfarm_path}"
+        message = f"I/O error({str(error)}): path={gfarm_path}"
     else:
         message = f"gfreg error: path={gfarm_path}"
     stdout = ""
-    raise gfarm_http_error(command, code, message, stdout, elist)
+    raise gfarm_http_error(opname, code, message, stdout, elist)
 
 
 @app.delete("/f/{gfarm_path:path}")
@@ -1510,7 +1546,7 @@ async def get_attr(gfarm_path: str,
     proc = await async_gfstat(env, gfarm_path, metadata)
 
     elist = []
-    stderr_task = asyncio.create_task(log_stderr(proc, elist))
+    stderr_task = asyncio.create_task(log_stderr(opname, proc, elist))
     data = await proc.stdout.read()
     stdout = data.decode()
     await stderr_task
