@@ -282,13 +282,13 @@ def log_operation(env, opname, args):
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     logger.opt(depth=1).info(
-        f"{ipaddr} user={user}, cmd={opname}, args={str(args)}")
+        f"{ipaddr}:0 user={user}, cmd={opname}, args={str(args)}")
 
 
 def log_login(request, user, login_type):
     ipaddr = request.client.host
     logger.opt(depth=1).info(
-        f"{ipaddr} user={user}, login={login_type}")
+        f"{ipaddr}:0 user={user}, login_auth_type={login_type}")
 
 
 logger.debug("config:\n" + pf(conf.__dict__))
@@ -642,7 +642,7 @@ def get_user_passwd(request):
     username = request.session.get("username")
     password = request.session.get("password")
     if username is None or password is None:
-        return None, None
+        return None, None  # not password authentication
     if fer:
         # print("encrypted password:", password) #TODO
         b = base64.b85decode(password)
@@ -746,7 +746,8 @@ async def set_env(request, authorization):
     else:
         # get password from session in cookie
         user, passwd = get_user_passwd(request)
-        if user and passwd:
+        if user is not None or passwd is not None:
+            # pass through even if empty password is specified
             authz_type = AUTHZ_TYPE_BASIC
         else:
             # get access token or password from Authorization header
@@ -756,14 +757,16 @@ async def set_env(request, authorization):
 
     if authz_type == AUTHZ_TYPE_BEARER and access_token is not None:
         user = get_user_from_access_token(access_token)
+        if user is not None:
+            env.update({'GFARM_SASL_USER': user})
         env.update({
+            # for Gfarm 2.8.6 or later
+            'GFARM_SASL_MECHANISMS': 'XOAUTH2',
             # In libgfarm, GFARM_SASL_PASSWORD is preferentially
             # used over JWT_USER_PATH
             'GFARM_SASL_PASSWORD': access_token,
             # for old libgfarm (Gfarm 2.8.5 or earlier)
             'JWT_USER_PATH': f'!/{bin_dir}/GFARM_SASL_PASSWORD_STDOUT.sh',
-            # for Gfarm 2.8.6 or later
-            'GFARM_SASL_MECHANISMS': 'XOAUTH2',
         })
     elif authz_type == AUTHZ_TYPE_BASIC:
         env.update({
@@ -785,7 +788,11 @@ async def set_env(request, authorization):
         # https://www.starlette.io/requests/#client-address
         LOG_CLIENT_IP_KEY: request.client.host,
     })
-    logger.debug("set_env:\n" + pf(env))
+    if DEBUG_MODE:
+        copy_env = env.copy()
+        if "GFARM_SASL_PASSWORD" in copy_env:
+            copy_env["GFARM_SASL_PASSWORD"] = '*****(MASKED)'
+        logger.debug("set_env:\n" + pf(copy_env))
     return env
 
 
@@ -800,7 +807,7 @@ def get_client_ip_from_env(env):
 #############################################################################
 def keyval(s):
     # s: "  Key1: Val1..."
-    # return: "key1", "Val1..."
+    # return: "Key1", "Val1..."
     kv = s.split(":", 1)
     if len(kv) == 2:
         key, val = kv
@@ -1205,7 +1212,7 @@ async def gfarm_command_standard_response(env, proc, command):
         errstr = str(elist)
         last = last_emsg(elist)
         logger.opt(depth=1).info(
-            f"{ipaddr} user={user}. cmd={command}, return={return_code},"
+            f"{ipaddr}:0 user={user}, cmd={command}, return={return_code},"
             f" last_emsg={last}")
         if "authentication error" in errstr:
             code = 401
@@ -1221,7 +1228,7 @@ async def gfarm_command_standard_response(env, proc, command):
         else:
             out = "(binary data)"
         logger.opt(depth=1).debug(
-            f"{ipaddr} user={user}, cmd={command}, stdout={out}")
+            f"{ipaddr}:0 user={user}, cmd={command}, stdout={out}")
     return PlainTextResponse(content=stdout)
 
 

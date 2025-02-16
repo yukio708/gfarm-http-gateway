@@ -34,6 +34,8 @@ HTTP gateway for Gfarm filesystem
   - in `~/.gfarm2rc` (or `<prefix>/etc/gfarm2.conf`) of clients
     - `auth enable sasl` (or `sasl_auth`)
     - `auth disable <all other methods>`
+    - DO NOT set `sasl_mechanisms <...>`
+    - DO NOT set `sasl_user <...>`
 - Refer to `setup.sh` to install requirements for gfarm-http-gateway
 - (For Ubuntu 24.04  or RHEL9 family)
   - Run `./setup.sh`
