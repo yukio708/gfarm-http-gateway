@@ -106,7 +106,19 @@ HTTP gateway for Gfarm filesystem
   - login: `user1/PASSWORD`
   - This page contains examples of API usage
 
-### Using NGINX reverse proxy (example)
+## Logging
+
+- To change log level: --log-level
+  - SEE `venv/bin/uvicorn --help`
+  - SEE <https://www.uvicorn.org/settings/#logging>
+- To change the log format
+  - use LOGURU_FORMAT enviroment variable
+    - cannot be specified in a configuration file
+  - ex. `LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>"
+  - default: LOGURU_FORMAT from loguru._defaults
+    - <https://github.com/Delgan/loguru/blob/master/loguru/_defaults.py>
+
+## Using NGINX reverse proxy (example)
 
 - (in c2 container)
 - (for RHEL family)
