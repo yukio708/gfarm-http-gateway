@@ -1,0 +1,22 @@
+[Unit]
+Description=Gfarm HTTP gateway
+
+[Service]
+#User=...
+
+Environment="LOGURU_FORMAT={time:YYYY-MM-DD HH:mm:ss.SSS} {level: <8} {message}"
+Environment=GFARM_HTTP_CONFIG_FILE=/opt/gfarm-http-gateway/gfarm-http-for-docker-dist.conf
+
+ExecStart=/opt/gfarm-http-gateway/bin/start.sh --port 8001 --log-level info
+#ExecStart=/opt/gfarm-http-gateway/bin/start-dev.sh --port 8001 --log-level debug
+#ExecStart=/opt/gfarm-http-gateway/bin/start-dev-for-docker-dist.sh --port 8001 --log-level debug
+
+Restart=always
+
+#StandardOutput=journal
+#StandardError=journal
+#StandardOutput=syslog
+#StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
