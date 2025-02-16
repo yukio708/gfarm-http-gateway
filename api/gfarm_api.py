@@ -208,6 +208,12 @@ def check_not_recommended():
         logger.warning("NOT RECOMMENDED: GFARM_HTTP_SESSION_ENCRYPT=no")
     if not VERIFY_CERT:
         logger.warning("NOT RECOMMENDED: GFARM_HTTP_VERIFY_CERT=no")
+        # shut up warning:
+        #   InsecureRequestWarning: Unverified HTTPS request is being made
+        #   to host 'HOSTNAME'. Adding certificate verification is strongly
+        #   advised.
+        #   See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings  # noqa: E501
+        requests.packages.urllib3.disable_warnings()
 
 
 #############################################################################
@@ -258,14 +264,22 @@ class InterceptHandler(logging.Handler):
 # set format for uvicorn
 # SEE: https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
 #   (uvicorn loggers: .error .access .asgi)
-uvicorn_logger = logging.getLogger("uvicorn.access")
-loglevel = uvicorn_logger.getEffectiveLevel()
-uvicorn_logger.handlers = [InterceptHandler()]
+logger_uvicorn_access = logging.getLogger("uvicorn.access")
+logger_uvicorn_access.handlers = [InterceptHandler()]
 
+logger_uvicorn = logging.getLogger("uvicorn")
+logger_uvicorn.handlers = [InterceptHandler()]
+
+# not change
+# logger_uvicorn_error = logging.getLogger("uvicorn.error")
+# logger_uvicorn_error.handlers = [InterceptHandler()]
+
+loglevel = logger_uvicorn_access.getEffectiveLevel()
 DEBUG_MODE = loglevel == logging.DEBUG
 
 # set format for root logger
-logging.getLogger().handlers = [InterceptHandler()]
+root_logger = logging.getLogger()
+root_logger.handlers = [InterceptHandler()]
 
 # set format for loguru
 # SEE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure  # noqa: E501

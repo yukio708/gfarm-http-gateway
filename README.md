@@ -114,13 +114,28 @@ HTTP gateway for Gfarm filesystem
 - To change the log format
   - use LOGURU_FORMAT enviroment variable
     - cannot be specified in a configuration file
-  - ex. `LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>`
+  - ex. `LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>"`
   - default: LOGURU_FORMAT from loguru._defaults
     - <https://github.com/Delgan/loguru/blob/master/loguru/_defaults.py>
 
+## Systemd
+
+- Copy this gfarm-http-gateway (source tree) to any directory
+  - ex. /opt/gfarm-http-gateway
+- `sudo cp gfarm-http.service /etc/systemd/system/`
+  - `gfarm-http.service` is an example file
+- Edit `/etc/systemd/system/gfarm-http.service` for your environment
+- `sudo systemctl daemon-reload`
+- `sudo systemctl enable gfarm-http`
+- `sudo systemctl start gfarm-http`
+- `sudo systemctl status gfarm-http`
+
 ## Using NGINX reverse proxy (example)
 
-- (in c2 container)
+- This example uses HTTP (port 80), which is a simple protocol for transferring data between web browsers and servers without encryption.
+  - For production environments, it is strongly recommended to implement SSL/TLS and use HTTPS (port 443).
+  - Setting up SSL/TLS involves obtaining and configuring server certificates, as well as configuring hostname and DNS, and modifying web server settings.
+  - For detailed instructions, please refer to the documentation for your web server or platform.
 - (for RHEL family)
   - `sudo dnf install nginx`
 - (for Ubuntu)
@@ -128,6 +143,7 @@ HTTP gateway for Gfarm filesystem
   - `sudo ls -l /etc/nginx/sites-enabled/default`
   - `sudo rm /etc/nginx/sites-enabled/default`
 - create `/etc/nginx/conf.d/gfarm.conf`
+- Example (http):
 
 ```text
 server {
@@ -154,9 +170,10 @@ server {
 
 - `sudo systemctl restart nginx`
 - (Configure the Redirect URI parameters in Keycloak)
-- Open in web browser: <http://c2/>
+- Open URL of the server in web browser
+  - example of docker/dist: (nginx on c2 container) <http://c2/>
 
-## Client usage
+## How to use clients
 
 ### curl client for jwt-agent
 
