@@ -39,11 +39,11 @@ HTTP gateway for Gfarm filesystem
 - Refer to `setup.sh` to install requirements for gfarm-http-gateway
 - (For Ubuntu 24.04  or RHEL9 family)
   - Run `./setup.sh`
-- Requreid OpenID Connect configurations
+- Required OpenID Connect configurations
   - client ID and client secret
   - redirect URI
   - logout redirect URI (optional)
-  - Example of Keycloak on Gfarm docker/dist (developer enviroment)
+  - Example of Keycloak on Gfarm docker/dist (developer environment)
     - Open Keycloak admin console in web browser
       - `https://keycloak:8443/auth/admin/master/console/#/HPCI/`
       - login: `admin/admin`
@@ -55,13 +55,13 @@ HTTP gateway for Gfarm filesystem
       - Valid post logout redirect URIs -> Add valid post logout redirect URIs
         - ex. `http://c2:8000/*`
         - ex. `http://c2/*`
-      - `Save` bottun
+      - `Save` button
 
 ## Configuration variables
 
 - Configuration file
   - Default: `<gfarm-http-gateway source>/gfarm-http.conf` is loaded if it exists
-  - To specifiy a different file, use `GFARM_HTTP_CONFIG_FILE` environment variable
+  - To specify a different file, use `GFARM_HTTP_CONFIG_FILE` environment variable
 - Variables in `gfarm-http.conf`
   - GFARM_HTTP_* can be loaded
 - Required variables and default variables
@@ -112,7 +112,7 @@ HTTP gateway for Gfarm filesystem
   - SEE `venv/bin/uvicorn --help`
   - SEE <https://www.uvicorn.org/settings/#logging>
 - To change the log format
-  - use LOGURU_FORMAT enviroment variable
+  - use LOGURU_FORMAT environment variable
     - cannot be specified in a configuration file
   - ex. `LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>"`
   - default: LOGURU_FORMAT from loguru._defaults
