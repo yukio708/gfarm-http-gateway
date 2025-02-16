@@ -11,10 +11,8 @@ HTTP gateway for Gfarm filesystem
   - OpenID provider: Keycloak or etc.
 - Get an Access Token from the OpenID provider
 - Use the Access Token to access Gfarm filesystem
-  - SEE ALSO: <http://oss-tsukuba.org/gfarm/share/doc/gfarm/html/en/user/auth-sasl.html>
-  - `$(pkg-config --variable=libdir libsasl2)/sasl2/gfarm.conf`: `mech_list: XOAUTH2`
-  - `gfarm2.conf`: `auth enable sasl` (or `sasl_auth`)
 - Refresh refresh_token automatically
+- (Support SASL:PLAIN and SASL:ANONYMOUS)
 
 ## Requirements
 
@@ -22,37 +20,52 @@ HTTP gateway for Gfarm filesystem
 - Python 3.11 or later
 - python3-venv
 - Python packages (refer to `requirements.txt`)
+- OpenID provider (Keycloak, etc.)
+- JWT server and jwt-agent if you use jwt-curl clients
 
 ## Setup
 
+- (install and setup Gfarm server environment)
+  - in `$(pkg-config --variable=libdir libsasl2)/sasl2/gfarm.conf` of servers
+    - `mech_list: XOAUTH2`
+  - SEE ALSO: <http://oss-tsukuba.org/gfarm/share/doc/gfarm/html/en/user/auth-sasl.html>
 - install and setup Gfarm client environment
   - gf* commands and gfarm2.conf is required
-- Refer to `setup.sh`
+  - in `~/.gfarm2rc` (or `<prefix>/etc/gfarm2.conf`) of clients
+    - `auth enable sasl` (or `sasl_auth`)
+    - `auth disable <all other methods>`
+- Refer to `setup.sh` to install requirements for gfarm-http-gateway
 - (For Ubuntu 24.04  or RHEL9 family)
   - Run `./setup.sh`
-- Keycloak configurations
-  - Open in web browser: `https://keycloak:8443/auth/admin/master/console/#/HPCI/`
-    - login: `admin/admin`
-  - hpci-jwt-sever ->
-    - Valid redirect URIs -> Add valid redirect URIs
-      - ex. `http://c2:8000/*`
-      - ex. `http://c2/*`
-    - Valid post logout redirect URIs -> Add valid post logout redirect URIs
-      - ex. `http://c2:8000/*`
-      - ex. `http://c2/*`
-    - Save
+- Requreid OpenID Connect configurations
+  - client ID and client secret
+  - redirect URI
+  - logout redirect URI (optional)
+  - Example of Keycloak on Gfarm docker/dist (developer enviroment)
+    - Open Keycloak admin console in web browser
+      - `https://keycloak:8443/auth/admin/master/console/#/HPCI/`
+      - login: `admin/admin`
+    - HPCI (realm) and hpci-jwt-server (client ID) has already been created
+    - hpci-jwt-sever ->
+      - Valid redirect URIs -> Add valid redirect URIs
+        - ex. `http://c2:8000/*`
+        - ex. `http://c2/*`
+      - Valid post logout redirect URIs -> Add valid post logout redirect URIs
+        - ex. `http://c2:8000/*`
+        - ex. `http://c2/*`
+      - `Save` bottun
 
 ## Configuration variables
 
 - Configuration file
   - Default: `<gfarm-http-gateway source>/gfarm-http.conf` is loaded if it exists
-  - To specifiy a file, use `GFARM_HTTP_CONFIG_FILE` environment variable
+  - To specifiy a different file, use `GFARM_HTTP_CONFIG_FILE` environment variable
 - Variables in `gfarm-http.conf`
   - GFARM_HTTP_* can be loaded
 - Default variables and details
   - Refer to `api/default.conf`
 - Default variables are overridden by `gfarm-http.conf`
-- These variables are overridden by environment variables
+- Variables from files are overridden by environment variables
 
 ## Start server
 
@@ -68,7 +81,7 @@ HTTP gateway for Gfarm filesystem
 
 ### Start for developer
 
-- `./bin/start-dev.sh`
+- `./bin/start-dev.sh --log-level debug`
   - for clients of any hosts (0.0.0.0:8000)
 
 ## Development environment in gfarm/docker/dist
@@ -83,8 +96,8 @@ HTTP gateway for Gfarm filesystem
 - (in c2 container)
 - `cd ~/gfarm/gfarm-http-gateway`
 - `./setup.sh`
-- `bin/start-dev-for-docker-dist.sh`
-- run `bin/start-dev-for-docker-dist.sh` in c3 container using the same procedure described above
+- `bin/start-dev-for-docker-dist.sh --log-level debug`
+- and, run `bin/start-dev-for-docker-dist.sh --log-level debug` in c3 container using the same procedure described above
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <http://c2:8000/> in a web browser
   - auto-redirect to <http://keycloak>
@@ -151,9 +164,9 @@ server {
 #### Example of jwt-curl command
 
 - get passphrase from JWT Server
-  - JWT Server code: <https://github.com/oss-tsukuba/jwt-server>
+  - JWT Server: <https://github.com/oss-tsukuba/jwt-server>
 - start `jwt-agent`
-  - jwt-agent code: <https://github.com/oss-tsukuba/jwt-agent>
+  - jwt-agent: <https://github.com/oss-tsukuba/jwt-agent>
 - `gfmkdir /tmp; gfchmod 1777 /tmp`
 - `cd bin`
 - `./jwt-curl -s http://c2:8000/c/me`
