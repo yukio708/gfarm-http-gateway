@@ -20,4 +20,4 @@ else
     export GFARM_HTTP_CONFIG_FILE
 fi
 
-exec ${DIR}/start-dev.sh
+exec ${DIR}/start-dev.sh "$@"

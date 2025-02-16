@@ -4,6 +4,7 @@ import bz2
 from datetime import datetime
 import gzip
 import json
+import logging
 import mimetypes
 import os
 from pprint import pformat as pf
@@ -14,8 +15,11 @@ import types
 import secrets
 import shlex
 import subprocess
+import sys
 from typing import Union, Optional
 import urllib
+
+from loguru import logger
 
 import requests
 
@@ -158,7 +162,9 @@ validate_conf(merged_dict, conf_required_keys)
 format_conf(merged_dict, conf_required_keys)
 conf = types.SimpleNamespace(**merged_dict)
 
-print("config: " + pf(merged_dict))  # TODO log debug
+del env_dict
+del conf_dict
+del merged_dict
 
 ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
 
@@ -203,12 +209,97 @@ SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
 ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
 
 #############################################################################
+# logging
+# using loguru: https://github.com/Delgan/loguru
+# SEE: https://github.com/fastapi/fastapi/discussions/7533
+
+
+class InterceptHandler(logging.Handler):
+    # SEE: https://loguru.readthedocs.io/en/stable/overview.html#entirely-compatible-with-standard-logging  # noqa: E501
+
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
+
+
+# SEE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.add  # noqa: E501
+# default format: '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'  # noqa: E501
+# LOGURU_FORMAT environment variable to change the format:
+#   ex. LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>"
+
+# NOTE: log payload
+# from loguru._defaults import LOGURU_FORMAT
+#
+# def format_record(record: dict) -> str:
+#     format_string = LOGURU_FORMAT
+#     if record["extra"].get("payload") is not None:
+#         record["extra"]["payload"] = pf(
+#             record["extra"]["payload"], indent=4, compact=True, width=88
+#         )
+#         format_string += "\n<level>{extra[payload]}</level>"
+#     format_string += "{exception}\n"
+#     return format_string
+
+# set format for uvicorn
+# SEE: https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
+#   (uvicorn loggers: .error .access .asgi)
+uvicorn_logger = logging.getLogger("uvicorn.access")
+loglevel = uvicorn_logger.getEffectiveLevel()
+uvicorn_logger.handlers = [InterceptHandler()]
+
+DEBUG_MODE = loglevel == logging.DEBUG
+
+# set format for root logger
+logging.getLogger().handlers = [InterceptHandler()]
+
+# set format for loguru
+# SEE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure  # noqa: E501
+loguru_handler = {"sink": sys.stdout, "level": loglevel}
+# loguru_handler.update({"format": format_record})
+loguru_handlers = [loguru_handler]
+logger.configure(handlers=loguru_handlers)
+
+# Examples
+#   logger.info("loguru log")
+#   logging.info("logging log")
+#   logger.bind(payload=dict(request.query_params)).debug("params")  # noqa: E501
+
+
+def log_operation(env, opname, args):
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
+    logger.opt(depth=1).info(
+        f"{ipaddr} user={user}, cmd={opname}, args={str(args)}")
+
+
+def log_login(request, user, login_type):
+    ipaddr = request.client.host
+    logger.opt(depth=1).info(
+        f"{ipaddr} user={user}, login={login_type}")
+
+
+logger.debug("config:\n" + pf(conf.__dict__))
+
+#############################################################################
+app = FastAPI()
+
 api_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(api_path)
 top_dir = os.path.dirname(api_dir)
 bin_dir = f"{top_dir}/bin"
-
-app = FastAPI()
 
 if SESSION_ENCRYPT:
     # fer = Fernet(Fernet.generate_key())
@@ -581,7 +672,7 @@ async def login_passwd(request: Request,
     env = await set_env(request, None)
     p = await async_gfwhoami(env)
     try:
-        await gfarm_command_standard_response(p, "gfwhoami")
+        await gfarm_command_standard_response(env, p, "gfwhoami")
     except Exception:
         delete_user_passwd(request)
         raise
@@ -677,14 +768,10 @@ async def set_env(request, authorization):
     elif authz_type == AUTHZ_TYPE_BASIC:
         env.update({
             # for Gfarm 2.8.6 or later
+            'GFARM_SASL_MECHANISMS': SASL_MECHANISM_FOR_PASSWORD,
             'GFARM_SASL_USER': user,
             'GFARM_SASL_PASSWORD': passwd,
         })
-        if SASL_MECHANISM_FOR_PASSWORD:
-            env.update({
-                # for Gfarm 2.8.6 or later
-                'GFARM_SASL_MECHANISMS': SASL_MECHANISM_FOR_PASSWORD,
-                })
     else:  # anonymous
         user = "anonymous"
         env.update({
@@ -698,6 +785,7 @@ async def set_env(request, authorization):
         # https://www.starlette.io/requests/#client-address
         LOG_CLIENT_IP_KEY: request.client.host,
     })
+    logger.debug("set_env:\n" + pf(env))
     return env
 
 
@@ -707,19 +795,6 @@ def get_user_from_env(env):
 
 def get_client_ip_from_env(env):
     return env.get(LOG_CLIENT_IP_KEY, "NO_CLIENT_IP")
-
-
-def log_operation(env, opname, args):
-    user = get_user_from_env(env)
-    ipaddr = get_client_ip_from_env(env)
-    print(f"INFO: ipaddr={ipaddr}, user={user}, command={opname},"
-          f" args={str(args)}")  # TODO log info
-
-
-def log_login(request, user, login_type):
-    ipaddr = request.client.host
-    print(f"INFO: ipaddr={ipaddr},"
-          f" user={user}, login={login_type}")  # TODO log info
 
 
 #############################################################################
@@ -882,13 +957,14 @@ Modify: 2025-02-10 18:27:31.071120060 +0000
 Change: 2025-02-10 18:15:09.400000000 +0900
 MetadataHost: gfmd1
 MetadataPort: 601
-_MetadataUser: user1
+MetadataUser: user1
 """
-    print("test_parse_gfstat:", str(parse_gfstat(test_gfstat_str)))
+    logger.debug("test_parse_gfstat:\n"
+                 + pf(parse_gfstat(test_gfstat_str).dict()))
 
 
-# Test  # TODO
-test_parse_gfstat()
+if DEBUG_MODE:
+    test_parse_gfstat()
 
 
 #############################################################################
@@ -1083,10 +1159,24 @@ async def log_stderr(process: asyncio.subprocess.Process, elist: list) -> None:
         line = await process.stderr.readline()
         if line:
             msg = line.decode().strip()
-            print(f"STDERR: {msg}")  # TODO debug log
+            logger.debug(f"STDERR: {msg}")  # TODO debug log
             elist.append(msg)
         else:
             break
+
+
+def last_emsg(elist):
+    if len(elist) > 0:
+        return elist[-1]
+    return ""
+
+
+def is_utf8(s):
+    try:
+        s.encode('utf-8').decode('utf-8')
+        return True
+    except Exception:
+        return False
 
 
 def gfarm_http_error(command, code, message, stdout, elist):
@@ -1102,7 +1192,9 @@ def gfarm_http_error(command, code, message, stdout, elist):
     )
 
 
-async def gfarm_command_standard_response(proc, command):
+async def gfarm_command_standard_response(env, proc, command):
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(proc, elist))
     data = await proc.stdout.read()
@@ -1110,8 +1202,11 @@ async def gfarm_command_standard_response(proc, command):
     await stderr_task
     return_code = await proc.wait()
     if return_code != 0:
-        print(f"return_code={return_code}")  # TODO log
         errstr = str(elist)
+        last = last_emsg(elist)
+        logger.opt(depth=1).info(
+            f"{ipaddr} user={user}. cmd={command}, return={return_code},"
+            f" last_emsg={last}")
         if "authentication error" in errstr:
             code = 401
             message = "Authentication error"
@@ -1120,6 +1215,13 @@ async def gfarm_command_standard_response(proc, command):
             code = 500
             message = "Error"
             raise gfarm_http_error(command, code, message, stdout, elist)
+    if DEBUG_MODE:
+        if is_utf8(stdout):
+            out = stdout.strip()
+        else:
+            out = "(binary data)"
+        logger.opt(depth=1).debug(
+            f"{ipaddr} user={user}, cmd={command}, stdout={out}")
     return PlainTextResponse(content=stdout)
 
 
@@ -1133,7 +1235,7 @@ async def whoami(request: Request,
     env = await set_env(request, authorization)
     log_operation(env, opname, None)
     p = await async_gfwhoami(env)
-    return await gfarm_command_standard_response(p, opname)
+    return await gfarm_command_standard_response(env, p, opname)
 
 
 @app.get("/d/{gfarm_path:path}")
@@ -1174,7 +1276,7 @@ async def dir_create(gfarm_path: str,
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
     p = await async_gfmkdir(env, gfarm_path)
-    return await gfarm_command_standard_response(p, opname)
+    return await gfarm_command_standard_response(env, p, opname)
 
 
 @app.delete("/d/{gfarm_path:path}")
@@ -1188,7 +1290,7 @@ async def dir_remove(gfarm_path: str,
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
     p = await async_gfrmdir(env, gfarm_path)
-    return await gfarm_command_standard_response(p, opname)
+    return await gfarm_command_standard_response(env, p, opname)
 
 
 # BUFSIZE = 1
@@ -1354,7 +1456,7 @@ async def file_remove(gfarm_path: str,
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
     p = await async_gfrm(env, gfarm_path)
-    return await gfarm_command_standard_response(p, opname)
+    return await gfarm_command_standard_response(env, p, opname)
 
 
 class Move(BaseModel):
@@ -1382,7 +1484,7 @@ async def move_rename(request: Request,
     env = await set_env(request, authorization)
     log_operation(env, opname, {"src": src, "dest": dest})
     p = await async_gfmv(env, src, dest)
-    return await gfarm_command_standard_response(p, opname)
+    return await gfarm_command_standard_response(env, p, opname)
 
 
 @app.get("/a/{gfarm_path:path}")
@@ -1433,7 +1535,7 @@ async def change_attr(gfarm_path: str,
         opname = "gfchmod"
         log_operation(env, opname, gfarm_path)
         proc = await async_gfchmod(env, gfarm_path, stat.Mode)
-        response = await gfarm_command_standard_response(proc, opname)
+        response = await gfarm_command_standard_response(env, proc, opname)
     if response:
         return response
     else:
