@@ -103,21 +103,18 @@ def validate_conf(data, required_keys):
     last_err = None
     for key in required_keys:
         if key not in data:
-            last_err = f"'{key}' is required"
-            print(last_err)  # TODO log error
+            last_err = f"REQUIRED: {key}"
+            logger.error(last_err)
     if last_err:
-        raise ValueError(last_err)
+        sys.exit(1)
+        # raise ValueError(last_err)
 
 
 def format_conf(data, required_keys):
-    last_err = None
     for key in required_keys:
         val = data[key]
         newval = val.format(**data)
-        # print("old", val, "new", newval)#TODO
         data[key] = newval
-    if last_err:
-        raise ValueError(last_err)
 
 
 conf_required_keys = [
@@ -125,11 +122,11 @@ conf_required_keys = [
     "GFARM_HTTP_SECRET",
     "GFARM_HTTP_SESSION_ENCRYPT",
     "GFARM_HTTP_SESSION_COMPRESS_TYPE",
-    "GFARM_HTTP_OIDC_SERVER",
-    "GFARM_HTTP_OIDC_REALM",
+    # "GFARM_HTTP_KEYCLOAK_SERVER",  # optional
+    # "GFARM_HTTP_KEYCLOAK_REALM",   # optional
     "GFARM_HTTP_OIDC_CLIENT_ID",
     "GFARM_HTTP_OIDC_CLIENT_SECRET",
-    "GFARM_HTTP_OIDC_REALM_URL",
+    "GFARM_HTTP_OIDC_BASE_URL",
     "GFARM_HTTP_OIDC_META_URL",
     "GFARM_HTTP_OIDC_CERTS_URL",
     "GFARM_HTTP_OIDC_LOGOUT_URL",
@@ -178,25 +175,20 @@ SESSION_ENCRYPT = str2bool(conf.GFARM_HTTP_SESSION_ENCRYPT)
 # NOTE: For token, the compression ratio of gzip is higher than bz2
 SESSION_COMPRESS_TYPE = conf.GFARM_HTTP_SESSION_COMPRESS_TYPE
 
-# NOTE: not work: "GFARM_HTTP_OIDC_SERVER=http://..."
-#   gfmd[]: <err> [1005366]
-#   SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
-# add this URL to "Valid redirect URIs" of OIDC_CLIENT_ID in Keyclaok
-OIDC_SERVER = conf.GFARM_HTTP_OIDC_SERVER
 OIDC_CLIENT_ID = conf.GFARM_HTTP_OIDC_CLIENT_ID
 OIDC_CLIENT_SECRET = conf.GFARM_HTTP_OIDC_CLIENT_SECRET
 
-# for Keycloak
-# OIDC_REALM = conf.GFARM_HTTP_OIDC_REALM
-# OIDC_REALM_URL = conf.GFARM_HTTP_OIDC_REALM_URL
 OIDC_META_URL = conf.GFARM_HTTP_OIDC_META_URL
+# TODO use jwks_uri from OIDC_META_URL
 OIDC_CERTS_URL = conf.GFARM_HTTP_OIDC_CERTS_URL
+# TODO use end_session_endpoint from OIDC_META_URL
 OIDC_LOGOUT_URL = conf.GFARM_HTTP_OIDC_LOGOUT_URL
 
 TOKEN_VERIFY = conf.GFARM_HTTP_TOKEN_VERIFY
 # sec.
-TOKEN_MIN_VALID_TIME_REMAINING = conf.GFARM_HTTP_TOKEN_MIN_VALID_TIME_REMAINING
-TOKEN_MIN_VALID_TIME_REMAINING = int(TOKEN_MIN_VALID_TIME_REMAINING)
+min_valid_time = conf.GFARM_HTTP_TOKEN_MIN_VALID_TIME_REMAINING
+TOKEN_MIN_VALID_TIME_REMAINING = int(min_valid_time)
+del min_valid_time
 
 TOKEN_AUDIENCE = str2none(conf.GFARM_HTTP_TOKEN_AUDIENCE)
 TOKEN_ISSUERS = str2none(conf.GFARM_HTTP_TOKEN_ISSUERS)
@@ -207,6 +199,14 @@ TOKEN_USER_CLAIM = conf.GFARM_HTTP_TOKEN_USER_CLAIM
 VERIFY_CERT = str2bool(conf.GFARM_HTTP_VERIFY_CERT)
 SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
 ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
+
+
+def check_not_recommended():
+    if not SESSION_ENCRYPT:
+        logger.warning("NOT RECOMENDED: GFARM_HTTP_SESSION_ENCRYPT=no")
+    if not VERIFY_CERT:
+        logger.warning("NOT RECOMENDED: GFARM_HTTP_VERIFY_CERT=no")
+
 
 #############################################################################
 # logging
@@ -292,6 +292,7 @@ def log_login(request, user, login_type):
 
 
 logger.debug("config:\n" + pf(conf.__dict__))
+check_not_recommended()
 
 #############################################################################
 app = FastAPI()

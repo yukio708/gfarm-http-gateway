@@ -64,7 +64,7 @@ HTTP gateway for Gfarm filesystem
   - To specifiy a different file, use `GFARM_HTTP_CONFIG_FILE` environment variable
 - Variables in `gfarm-http.conf`
   - GFARM_HTTP_* can be loaded
-- Default variables and details
+- Required variables and default variables
   - Refer to `api/default.conf`
 - Default variables are overridden by `gfarm-http.conf`
 - Variables from files are overridden by environment variables
