@@ -43,6 +43,10 @@ from cryptography.fernet import Fernet
 from jose import jwt
 
 
+def exit_error():
+    logger.error("Exit (error)")
+    sys.exit(1)
+
 #############################################################################
 # Configuration variables
 
@@ -60,7 +64,7 @@ def str2list(s):
 
 
 def str2none(s):
-    if not s:
+    if not s:  # "" or None or False or not 0
         return None
     if not isinstance(s, str):
         return None
@@ -124,6 +128,8 @@ conf_required_keys = [
     "GFARM_HTTP_SESSION_COMPRESS_TYPE",
     # "GFARM_HTTP_KEYCLOAK_SERVER",  # optional
     # "GFARM_HTTP_KEYCLOAK_REALM",   # optional
+    "GFARM_HTTP_OIDC_REDIRECT_URI_PAGE",
+    "GFARM_HTTP_OIDC_OVERRIDE_REDIRECT_URI",
     "GFARM_HTTP_OIDC_CLIENT_ID",
     "GFARM_HTTP_OIDC_CLIENT_SECRET",
     "GFARM_HTTP_OIDC_BASE_URL",
@@ -175,8 +181,11 @@ SESSION_ENCRYPT = str2bool(conf.GFARM_HTTP_SESSION_ENCRYPT)
 # NOTE: For token, the compression ratio of gzip is higher than bz2
 SESSION_COMPRESS_TYPE = conf.GFARM_HTTP_SESSION_COMPRESS_TYPE
 
+OIDC_REDIRECT_URI_PAGE = conf.GFARM_HTTP_OIDC_REDIRECT_URI_PAGE
+OIDC_OVERRIDE_REDIRECT_URI = conf.GFARM_HTTP_OIDC_OVERRIDE_REDIRECT_URI
+
 OIDC_CLIENT_ID = conf.GFARM_HTTP_OIDC_CLIENT_ID
-OIDC_CLIENT_SECRET = conf.GFARM_HTTP_OIDC_CLIENT_SECRET
+OIDC_CLIENT_SECRET = str2none(conf.GFARM_HTTP_OIDC_CLIENT_SECRET)
 
 OIDC_META_URL = conf.GFARM_HTTP_OIDC_META_URL
 # TODO use jwks_uri from OIDC_META_URL
@@ -203,7 +212,7 @@ SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
 ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
 
 
-def check_not_recommended():
+def conf_check_not_recommended():
     if not SESSION_ENCRYPT:
         logger.warning("NOT RECOMMENDED: GFARM_HTTP_SESSION_ENCRYPT=no")
     if not VERIFY_CERT:
@@ -214,6 +223,16 @@ def check_not_recommended():
         #   advised.
         #   See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings  # noqa: E501
         requests.packages.urllib3.disable_warnings()
+
+
+def conf_check_invalid():
+    error = False
+    if OIDC_REDIRECT_URI_PAGE != "index" \
+       and OIDC_REDIRECT_URI_PAGE != "auth":
+        logger.error("INVALID: GFARM_HTTP_OIDC_REDIRECT_URI_PAGE")
+        error = True
+    if error:
+        exit_error()
 
 
 #############################################################################
@@ -308,7 +327,8 @@ def log_login(request, user, login_type):
 
 
 logger.debug("config:\n" + pf(conf.__dict__))
-check_not_recommended()
+conf_check_not_recommended()
+conf_check_invalid()  # may exit
 
 #############################################################################
 app = FastAPI()
@@ -545,8 +565,28 @@ def gen_csrf(request: Request):
     return csrf_token
 
 
+async def oidc_auth_common(request):
+    try:
+        token = await provider.authorize_access_token(request)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    delete_user_passwd(request)
+    set_token(request, token)
+    access_token = await get_access_token(request)
+    user = get_user_from_access_token(access_token)
+    log_login(request, user, "access_token")
+    # return RedirectResponse(url="./")
+    url = request.url_for("index")
+    return RedirectResponse(url=url)
+
+
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def index(request: Request,
+                session_state: str = None,
+                code: str = None):
+    if session_state is not None and code is not None:
+        return await oidc_auth_common(request)
+
     login_ok = False
     error = ""
     sasl_username = ""
@@ -602,7 +642,10 @@ async def index(request: Request):
 
 @app.get("/login")
 async def login(request: Request):
-    redirect_uri = request.url_for("auth")
+    if OIDC_OVERRIDE_REDIRECT_URI:
+        redirect_uri = OIDC_OVERRIDE_REDIRECT_URI
+    else:
+        redirect_uri = request.url_for(OIDC_REDIRECT_URI_PAGE)
     try:
         return await provider.authorize_redirect(request, redirect_uri)
     except Exception as e:
@@ -611,16 +654,7 @@ async def login(request: Request):
 
 @app.get("/auth")
 async def auth(request: Request):
-    try:
-        token = await provider.authorize_access_token(request)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
-    delete_user_passwd(request)
-    set_token(request, token)
-    access_token = await get_access_token(request)
-    user = get_user_from_access_token(access_token)
-    log_login(request, user, "access_token")
-    return RedirectResponse(url="/")
+    return await oidc_auth_common(request)
 
 
 @app.get("/logout")
