@@ -68,7 +68,7 @@ progress {
         </p>
         <p>
         <input type="text" id="whoami_url3" value="http://c3:8000">
-        <button id="whoami_btn3">Who am I (CORS) (fetch from a remote host usinig token from HTML (may use old token))</button>
+        <button onclick="whoami3()">Who am I (CORS) (fetch from a remote host usinig token from HTML (may use old token))</button>
         <div id="whoami_out3"></div>
         </p>
         <p>
@@ -86,7 +86,7 @@ progress {
         <p>
         <label for="ls_path">Gfarm directory:</label>
         <input type="text" id="ls_path" value="/tmp">
-        <button id="ls_btn">gfls -la</button><br/>
+        <button onclick="list()">gfls -la</button><br/>
         <input type="checkbox" id="ls_recursive">
         <label for="ls_recursive">R=1(Recursive)</label>
         <input type="checkbox" id="ls_ign_err">
@@ -209,38 +209,6 @@ progress {
 
 
 <script>
-  // TODO async function
-  const lsPath = document.getElementById('ls_path');
-  const lsButton = document.getElementById('ls_btn');
-  const lsOut = document.getElementById('ls_out');
-  const lsRecursive = document.getElementById('ls_recursive');
-  const lsIgnoreError = document.getElementById('ls_ign_err');
-  lsButton.addEventListener('click', async () => {
-    const path = lsPath.value.replace(/^\/+/g, "");
-    try {
-      let api_dir = "/d";
-      let fullpath = api_dir + "/" + path + "?a=1";
-      if (lsRecursive.checked) {
-        fullpath += "&R=1";
-      }
-      if (lsIgnoreError.checked) {
-        fullpath += "&ign_err=1";
-      }
-      const response = await fetch(fullpath);
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`HTTP ${response.status}: ${text}`);
-      }
-      //const data = await response.json();
-      //lsOut.textContent = JSON.stringify(data, null, 2);
-      const text = await response.text();
-      lsOut.textContent = text;
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      lsOut.textContent = error;
-    }
-  });
-
   // not used (fetch then style)
   function downloadFile2() {
     let path = document.getElementById("export_path").value;

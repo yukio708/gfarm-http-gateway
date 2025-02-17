@@ -31,7 +31,7 @@ async function oauthInfoShow(tableElem, btnElem) {
 async function whoami1() {
     const whoamiOut = document.getElementById('whoami_out1');
     try {
-        const response = await fetch('c/me');
+        const response = await fetch('./c/me');
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);
         }
@@ -130,6 +130,36 @@ async function whoamiAnonymous() {
     } catch (error) {
         console.error('Error:', error);
         whoamiOut.textContent = error;
+    }
+}
+
+async function list() {
+    const lsPath = document.getElementById('ls_path');
+    const lsOut = document.getElementById('ls_out');
+    const lsRecursive = document.getElementById('ls_recursive');
+    const lsIgnoreError = document.getElementById('ls_ign_err');
+    const path = lsPath.value.replace(/^\/+/g, "");
+    try {
+        let api_dir = "./d";
+        let fullpath = api_dir + "/" + path + "?a=1";
+        if (lsRecursive.checked) {
+            fullpath += "&R=1";
+        }
+        if (lsIgnoreError.checked) {
+            fullpath += "&ign_err=1";
+        }
+        const response = await fetch(fullpath);
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`HTTP ${response.status}: ${text}`);
+        }
+        //const data = await response.json();
+        //lsOut.textContent = JSON.stringify(data, null, 2);
+        const text = await response.text();
+        lsOut.textContent = text;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        lsOut.textContent = error;
     }
 }
 
