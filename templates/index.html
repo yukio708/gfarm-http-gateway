@@ -26,7 +26,7 @@ progress {
 }
 </style>
 
-<script src="/static/js/gfarm.js"></script>
+<script src="./static/js/gfarm.js"></script>
 </head>
 <body>
     <h1>Gfarm HTTP Gateway (Examples of API usage)</h1>
@@ -175,9 +175,9 @@ progress {
 
     <h2>Logout</h2>
         {% if access_token %}
-        <p> <a href="/logout">Logout (Not logging out of OpenID provider)</a> </p>
+        <p> <a href="./logout">Logout (Not logging out of OpenID provider)</a> </p>
         {% else %}
-        <p> <a href="/logout">Logout</a> </p>
+        <p> <a href="./logout">Logout</a> </p>
         {% endif %}
         {% if logout_url %}
         <p> <a href={{ logout_url }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>
@@ -191,11 +191,11 @@ progress {
         {% if error %}
         <p>Error: {{ error }}</p>
         {% endif %}
-        <p> <a href="/login">Login with OpenID provider</a> </p>
+        <p> <a href="./login">Login with OpenID provider</a> </p>
         <hr>
         <p>
           Login with SASL (PLAIN or LOGIN)
-          <form action="/login_passwd" method="POST">
+          <form action="./login_passwd" method="POST">
             <label for="user">Username:</label>
             <input type="text" id="user" name="username"><br/>
             <label for="password">Password:</label>

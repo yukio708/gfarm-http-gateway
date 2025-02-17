@@ -166,10 +166,14 @@ server {
     proxy_buffering off;
     client_max_body_size 0;
 
-    proxy_pass http://127.0.0.1:8000;
+    proxy_pass http://127.0.0.1:8000/;
   }}
 ```
 
+- How to proxy with subpath
+  - ex.: (base URL)/gfarm/
+  - `location /gfarm/ { ...`
+  - use `--root-path /gfarm` option for start.sh (uvicorn)
 - `sudo systemctl restart nginx`
 - (Configure the Redirect URI parameters in Keycloak)
 - Open URL of the server in web browser

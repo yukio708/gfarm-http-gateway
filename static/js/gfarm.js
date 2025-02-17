@@ -47,7 +47,7 @@ async function whoami2() {
     const whoamiURL = document.getElementById('whoami_url2').value;
     const whoamiOut = document.getElementById('whoami_out2');
     try {
-        const response = await fetch('/access_token');
+        const response = await fetch('./access_token');
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);
         }

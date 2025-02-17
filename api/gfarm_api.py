@@ -334,7 +334,9 @@ conf_check_not_recommended()
 conf_check_invalid()  # may exit
 
 #############################################################################
+# https://fastapi.tiangolo.com/advanced/behind-a-proxy/#setting-the-root_path-in-the-fastapi-app
 app = FastAPI()
+#app = FastAPI(root_path="/gfarm/")
 
 api_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(api_path)
@@ -580,6 +582,7 @@ async def oidc_auth_common(request):
     log_login(request, user, "access_token")
     # return RedirectResponse(url="./")
     url = request.url_for("index")
+    logger.error(str(url)) #TODO
     return RedirectResponse(url=url)
 
 
@@ -649,6 +652,7 @@ async def login(request: Request):
         redirect_uri = OIDC_OVERRIDE_REDIRECT_URI
     else:
         redirect_uri = request.url_for(OIDC_REDIRECT_URI_PAGE)
+    logger.error(str(redirect_uri)) #TODO
     try:
         return await provider.authorize_redirect(request, redirect_uri)
     except Exception as e:
@@ -669,7 +673,9 @@ async def logout(request: Request, state: Optional[str] = None):
             raise HTTPException(status_code=401, detail=msg)
     delete_token(request)
     delete_user_passwd(request)
-    return RedirectResponse(url="/")
+    # return RedirectResponse(url="./")
+    url = request.url_for("index")
+    return RedirectResponse(url=url)
 
 
 class AccessToken(BaseModel):
@@ -734,7 +740,9 @@ async def login_passwd(request: Request,
         delete_user_passwd(request)
         raise
     log_login(request, username, "password")
-    return RedirectResponse(url="/", status_code=303)
+    # return RedirectResponse(url="./", status_code=303)
+    url = request.url_for("index")
+    return RedirectResponse(url=url, status_code=303)
 
 
 #############################################################################
