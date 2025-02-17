@@ -171,7 +171,7 @@ async function downloadFile() {
     if (path) {
         let filename = basename(path);
         const epath = encodePath(path)
-        const dlurl = `/file${epath}?action=download`;
+        const dlurl = `./file${epath}?action=download`;
         try {
             const startTime = Date.now();
             const xhr = new XMLHttpRequest();
@@ -242,13 +242,204 @@ async function downloadFile() {
     }
 }
 
+// not used (fetch-then style)
+// async function downloadFile2() {
+//     let path = document.getElementById("export_path").value;
+//     if (path) {
+//         const epath = encodePath(path)
+//         const requrl = `./file${epath}?action=download`;
+//         fetch(requrl)
+//             .then(response => {
+//                 if (!response.ok) {
+//                     return response.text().then(text => {
+//                         throw new Error(`HTTP ${response.status}: ${text}`);
+//                     });
+//                 }
+//                 const contentDisposition = response.headers.get('Content-Disposition');
+//                 if (contentDisposition) {
+//                     // RFC 5987,8187
+//                     let fnMatch = contentDisposition.match(/filename\*=UTF-8\'\'([^"]+)/);
+//                     if (fnMatch) {
+//                         downloadedFilename = decodeURIComponent(fnMatch[1]);
+//                     } else {
+//                         const fnMatch = contentDisposition.match(/filename="([^"]+)"/);
+//                         if (fnMatch) {
+//                             filename = decodeURIComponent(fnMatch[1]);
+//                         }
+//                     }
+//                 }
+//                 return response.blob();
+//             })
+//             .then(blob => {
+//                 const url = window.URL.createObjectURL(blob);
+//                 const a = document.createElement('a');
+//                 a.href = url;
+//                 a.setAttribute('download', filename);
+//                 a.style.display = 'none';
+//                 document.body.appendChild(a);
+//                 a.click();
+//                 document.body.removeChild(a);
+//                 window.URL.revokeObjectURL(url);
+//             })
+//             .catch(error => {
+//                 alert("Error: " + error.message);
+//                 console.error(error);
+//             });
+//     } else {
+//         alert("Please input Gfarm path");
+//     }
+// }
+
+async function displayFile() {
+    let path = document.getElementById("export_path").value;
+    if (path) {
+        const epath = encodePath(path);
+        const url = `./file${epath}`;
+        window.open(url, '_blank');
+    } else {
+        alert("Please input Gfarm path");
+    }
+}
+
+async function updateLink() {
+    let path = document.getElementById("export_path").value;
+    const dlLink = document.getElementById('dl-link');
+    const viewLink = document.getElementById('view-link');
+    if (path) {
+        const epath = encodePath(path);
+        const url = `./file${epath}`;
+        let a = dlLink.querySelector('a');
+        if (!a) {
+            a = document.createElement('a');
+            dlLink.appendChild(a);
+        }
+        a.href = url + "?action=download";
+        a.textContent = `URL for download: ${a.href}`;
+
+        let a2 = viewLink.querySelector('a');
+        if (!a2) {
+            a2 = document.createElement('a');
+            viewLink.appendChild(a2);
+        }
+        a2.href = url + "?action=view";
+        a2.textContent = `URL for view: ${a2.href}`;
+    } else {
+        dlLink.innerHTML = '';
+        viewLink.innerHTML = '';
+    }
+}
+
+async function uploadFile() {
+    const fileInput = document.getElementById('file_input');
+    const cancelButton = document.getElementById('upload-cancel');
+    const file = fileInput.files[0];
+    const regDir = document.getElementById('reg_dir');
+    const progressBar = document.getElementById('upload_progress');
+    const progressText = document.getElementById('upload_progress_text');
+    const status = document.getElementById('upload_status');
+    let dirPath = '/' + regDir.value.replace(/^\/+/, "") + '/';
+    dirPath = dirPath.replace(/\/+$/, "/");
+
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
+    const uploadUrl = './file' + dirPath + file.name;
+    try {
+        // (not work for large files)
+        // const blob = await new Promise((resolve) => {
+        //   const reader = new FileReader();
+        //   reader.onprogress = (event) => {
+        //     if (event.lengthComputable) {
+        //       // const percent = (event.loaded / event.total) * 100;
+        //       // progressBar.value = percent;
+        //       // progressText.textContent = `${event.loaded} / ${event.total}`;
+        //       console.log('reading: %d / %d', event.loaded, event.total);
+        //     }
+        //   };
+        //   reader.onloadend = (event) => resolve(event.srcElement.result);
+        //   reader.readAsArrayBuffer(file);
+        // });
+
+        const mtime = Math.floor(file.lastModified / 1000);  // msec. -> sec.
+        const startTime = Date.now();
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl);
+        xhr.responseType = 'json';
+        cancelButton.addEventListener('click', function() {
+            status.textContent = 'Canceled';
+            xhr.abort();
+        });
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.setRequestHeader('X-File-Timestamp', mtime);
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percent = Math.floor((event.loaded / event.total) * 100);
+                const elapsedTime = Date.now() - startTime;  // msec.
+                const speed = Math.round(event.loaded / elapsedTime * 1000);
+                const sec = Math.floor(elapsedTime / 1000)
+                progressBar.value = percent;
+                progressText.textContent = `${event.loaded} / ${event.total} | ${percent} % | ${sec} sec | ${speed} bytes/sec | (mtime=${mtime})`;
+                console.log('uploaded: %d / %d (%d %)', event.loaded, event.total, percent);
+            }
+        };
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                status.textContent = 'Success (' + dirPath + file.name + ')';
+                //alert('Upload: success (' + dirPath + file.name + ')');
+                console.log('Upload: success');
+            } else {
+                //console.error(xhr.response);
+                const stderr = JSON.stringify(xhr.response.detail.stderr);
+                status.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`;
+                console.error(status.textContent);
+            }
+        };
+        xhr.onerror = () => {
+            status.textContent = 'Network error';
+            console.error('Network error');
+        };
+        status.textContent = 'Uploading...';
+        //xhr.send(blob);
+        xhr.send(file);
+    } catch (error) {
+        alert('Cannot upload:' + error);
+        console.error('Cannot upload:', error);
+        throw error;
+    }
+}
+
+async function removeFile() {
+    let path = document.getElementById("rm_path").value;
+    const output = document.getElementById('rm_output');
+    if (path) {
+        const epath = encodePath(path)
+        try {
+            const url = `./file${epath}`
+            const response = await fetch(url, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            }
+            output.textContent = "Success (removed)";
+        } catch (error) {
+            console.error(error);
+            output.textContent = error;
+        }
+    } else {
+        alert("Please input Gfarm path");
+    }
+}
+
 async function dirCommon(pathId, outputId, method, message) {
     const path = document.getElementById(pathId).value;
     const output = document.getElementById(outputId);
     if (path) {
-        const epath = encodePath(path)
+        const epath = encodePath(path);
         try {
-            const url = `/dir${epath}`
+            const url = `./dir${epath}`
             const response = await fetch(url, {
                 method: method
             });
@@ -287,7 +478,7 @@ async function move() {
         input.textContent = data;
 
         try {
-            const url = `/move`
+            const url = `./move`
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -315,7 +506,7 @@ async function stat() {
     if (path) {
         let filename = basename(path);
         const epath = encodePath(path)
-        const url = `/attr${epath}`
+        const url = `./attr${epath}`
         try {
             const response = await fetch(url);
             if (!response.ok) {
@@ -340,7 +531,7 @@ async function chmod() {
     if (path) {
         let filename = basename(path);
         const epath = encodePath(path)
-        const url = `/attr${epath}`
+        const url = `./attr${epath}`
 
         const data = JSON.stringify({
             "Mode": mode,
