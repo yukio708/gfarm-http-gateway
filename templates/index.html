@@ -209,33 +209,6 @@ progress {
 
 
 <script>
-
-  // TODO async function
-  const whoamiURL3 = document.getElementById('whoami_url3');
-  const whoamiButton3 = document.getElementById('whoami_btn3');
-  const whoamiOut3 = document.getElementById('whoami_out3');
-  whoamiButton3.addEventListener('click', async () => {
-    try {
-      const url = whoamiURL3.value + "/c/me";
-      const atElement = document.getElementById('access_token');
-      const access_token = atElement.textContent;
-      const response = await fetch(url,
-        {
-          headers: {
-            'Authorization': 'Bearer ' + access_token,
-          }
-        });
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      const text = await response.text();
-      whoamiOut3.textContent = text;
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      whoamiOut3.textContent = error;
-    }
-  });
-
   // TODO async function
   const lsPath = document.getElementById('ls_path');
   const lsButton = document.getElementById('ls_btn');
