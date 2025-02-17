@@ -110,7 +110,7 @@ def validate_conf(data, required_keys):
             last_err = f"REQUIRED: {key}"
             logger.error(last_err)
     if last_err:
-        sys.exit(1)
+        exit_error()
         # raise ValueError(last_err)
 
 
@@ -122,6 +122,7 @@ def format_conf(data, required_keys):
 
 
 conf_required_keys = [
+    "GFARM_HTTP_GFARM_CONFIG_FILE",
     "GFARM_HTTP_ORIGINS",
     "GFARM_HTTP_SECRET",
     "GFARM_HTTP_SESSION_ENCRYPT",
@@ -168,6 +169,8 @@ conf = types.SimpleNamespace(**merged_dict)
 del env_dict
 del conf_dict
 del merged_dict
+
+GFARM_CONFIG_FILE = str2none(conf.GFARM_HTTP_GFARM_CONFIG_FILE)
 
 ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
 
@@ -791,7 +794,11 @@ LOG_CLIENT_IP_KEY = "_GFARM_HTTP_CLIENT_IP"
 
 async def set_env(request, authorization):
     ipaddr = get_client_ip_from_request(request)
+
     env = {'PATH': os.environ['PATH']}
+    if GFARM_CONFIG_FILE:
+        gfarm_config = os.path.expanduser(GFARM_CONFIG_FILE)
+        env.update({'GFARM_CONFIG_FILE': gfarm_config})
 
     # prefer session
     # get access token from session in cookie
