@@ -47,6 +47,7 @@ def exit_error():
     logger.error("Exit (error)")
     sys.exit(1)
 
+
 #############################################################################
 # Configuration variables
 
@@ -334,9 +335,7 @@ conf_check_not_recommended()
 conf_check_invalid()  # may exit
 
 #############################################################################
-# https://fastapi.tiangolo.com/advanced/behind-a-proxy/#setting-the-root_path-in-the-fastapi-app
 app = FastAPI()
-#app = FastAPI(root_path="/gfarm/")
 
 api_path = os.path.abspath(__file__)
 api_dir = os.path.dirname(api_path)
@@ -582,7 +581,6 @@ async def oidc_auth_common(request):
     log_login(request, user, "access_token")
     # return RedirectResponse(url="./")
     url = request.url_for("index")
-    logger.error(str(url)) #TODO
     return RedirectResponse(url=url)
 
 
@@ -652,7 +650,6 @@ async def login(request: Request):
         redirect_uri = OIDC_OVERRIDE_REDIRECT_URI
     else:
         redirect_uri = request.url_for(OIDC_REDIRECT_URI_PAGE)
-    logger.error(str(redirect_uri)) #TODO
     try:
         return await provider.authorize_redirect(request, redirect_uri)
     except Exception as e:
@@ -762,6 +759,7 @@ INVALID_AUTHZ = HTTPException(
     status_code=401,
     detail="Invalid Authorization header"
 )
+
 
 def parse_authorization(authz_str: str):
     authz_type = None
