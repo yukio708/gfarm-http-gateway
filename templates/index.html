@@ -31,15 +31,15 @@ progress {
 <body>
     <h1>Gfarm HTTP Gateway (Examples of API usage)</h1>
 
-    <p><a href="/docs">API docs</a></p>
+    <p><a href="./docs">API docs</a></p>
 
     {% if login_ok %}
 
     {% if access_token %}
     <h2>Access Token</h2>
-        <div id="table-container">
-          <button id="toggle-button">OPEN</button>
-          <table>
+        <div id="table-token">
+          <button id="btn-token" onclick="oauthInfoShow('table-token', 'btn-token')">Show</button>
+          <table style="display: none;">
           <tr><td id="access_token">{{ access_token }}</td></tr>
           <tr><td><pre>{{ parsed_at }}</pre></td></tr>
           <tr><td><pre>exp={{ exp }}</pre></td></tr>
@@ -57,13 +57,13 @@ progress {
         <p> <a href="/c/me">Who am I (/me)</a> </p>
 
         <p>
-        <button id="whoami_btn">Who am I (fetch from this host)</button>
-        <div id="whoami_out"></div>
+        <button onclick="whoami1()">Who am I (fetch from this host)</button>
+        <div id="whoami_out1"></div>
         </p>
 
         <p>
         <input type="text" id="whoami_url2" value="http://c3:8000">
-        <button id="whoami_btn2">Who am I (CORS) (fetch from a remote host usinig new token from /access_token API)</button>
+        <button onclick="whoami2()">Who am I (CORS) (fetch from a remote host usinig new token from /access_token API)</button>
         <div id="whoami_out2"></div>
         </p>
         <p>
@@ -209,68 +209,6 @@ progress {
 
 
 <script>
-  // TODO async function
-  const tableContainer = document.getElementById('table-container');
-  const toggleButton = document.getElementById('toggle-button');
-  if (tableContainer) {
-      const table = tableContainer.querySelector('table');
-      toggleButton.addEventListener('click', () => {
-          if (table.style.display === 'none') {
-              table.style.display = 'table';
-              toggleButton.textContent = 'CLOSE';
-          } else {
-              table.style.display = 'none';
-              toggleButton.textContent = 'OPEN';
-          }
-      });
-      table.style.display = 'none';
-  }
-
-  // TODO async function
-  const whoamiButton = document.getElementById('whoami_btn');
-  const whoamiOut = document.getElementById('whoami_out');
-  whoamiButton.addEventListener('click', async () => {
-     try {
-        const response = await fetch('/c/me');
-          if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-          }
-          const text = await response.text();
-          whoamiOut.textContent = text;
-      } catch (error) {
-         console.error('Error fetching data:', error);
-         whoamiOut.textContent = error;
-      }
-  });
-
-  // TODO async function
-  const whoamiURL2 = document.getElementById('whoami_url2');
-  const whoamiButton2 = document.getElementById('whoami_btn2');
-  const whoamiOut2 = document.getElementById('whoami_out2');
-  whoamiButton2.addEventListener('click', async () => {
-    try {
-      const response = await fetch('/access_token');
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      const url = whoamiURL2.value + "/c/me";
-      const data = await response.json();
-      const response2 = await fetch(url,
-        {
-          headers: {
-            'Authorization': 'Bearer ' + data.access_token,
-          }
-        });
-      if (!response2.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      const text = await response2.text();
-      whoamiOut2.textContent = text;
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      whoamiOut2.textContent = error;
-    }
-  });
 
   // TODO async function
   const whoamiURL3 = document.getElementById('whoami_url3');

@@ -713,15 +713,15 @@ def fullpath(path: str):
 AUTHZ_TYPE_BASIC = 'Basic'
 AUTHZ_TYPE_BEARER = 'Bearer'
 
+INVALID_AUTHZ = HTTPException(
+    status_code=401,
+    detail="Invalid Authorization header"
+)
 
 def parse_authorization(authz_str: str):
     authz_type = None
     user = None
     passwd = None
-    no_authz = HTTPException(
-        status_code=401,
-        detail="Invalid Authorization header"
-    )
     if authz_str:
         authz = authz_str.split()
         if len(authz) >= 2:
@@ -732,22 +732,22 @@ def parse_authorization(authz_str: str):
                     b = base64.b64decode(authz_token.encode())
                     user_pass_str = b.decode()
                 except Exception:
-                    raise no_authz
+                    raise INVALID_AUTHZ
                 user_pass = user_pass_str.split(":")
                 if len(user_pass) >= 2:
                     user = user_pass[0]
                     passwd = user_pass[1]
                 else:
-                    raise no_authz
+                    raise INVALID_AUTHZ
             elif authz_type == AUTHZ_TYPE_BEARER:
                 passwd = authz_token
             else:
-                raise no_authz
+                raise INVALID_AUTHZ
         else:
-            raise no_authz
+            raise INVALID_AUTHZ
     else:
         if not ALLOW_ANONYMOUS:
-            raise no_authz
+            raise INVALID_AUTHZ
     return authz_type, user, passwd
 
 
@@ -756,6 +756,7 @@ LOG_CLIENT_IP_KEY = "_GFARM_HTTP_CLIENT_IP"
 
 
 async def set_env(request, authorization):
+    ipaddr = get_client_ip_from_request(request)
     env = {'PATH': os.environ['PATH']}
 
     # prefer session
@@ -776,7 +777,12 @@ async def set_env(request, authorization):
             access_token = passwd
 
     if authz_type == AUTHZ_TYPE_BEARER and access_token is not None:
-        user = get_user_from_access_token(access_token)
+        try:
+            user = get_user_from_access_token(access_token)
+        except Exception as e:
+            logger.error(f"{ipaddr} Invalid Bearer token:"
+                         f" access_token={access_token}, error={e}")
+            raise INVALID_AUTHZ
         if user is not None:
             env.update({'GFARM_SASL_USER': user})
         env.update({
@@ -806,7 +812,7 @@ async def set_env(request, authorization):
     env.update({
         LOG_USERNAME_KEY: user,
         # https://www.starlette.io/requests/#client-address
-        LOG_CLIENT_IP_KEY: get_client_ip_from_request(request),
+        LOG_CLIENT_IP_KEY: ipaddr,
     })
     if DEBUG_MODE:
         copy_env = env.copy()

@@ -4,16 +4,100 @@ function encodePath(path) {
     return p.replace(/[^/]/g, encodeURIComponent);
 }
 
+function removeLastSlash(text) {
+    return text.replace(/\/+$/, "");
+}
+
 function basename(path) {
     return path.split("/").pop();
 }
 
+async function oauthInfoShow(tableElem, btnElem) {
+    const tableContainer = document.getElementById(tableElem);
+    const toggleButton = document.getElementById(btnElem);
+    if (tableContainer) {
+        const table = tableContainer.querySelector('table');
+        if (table.style.display === 'none') {
+            table.style.display = 'table';
+            toggleButton.textContent = 'Hide';
+        } else {
+            table.style.display = 'none';
+            toggleButton.textContent = 'Show';
+        }
+    }
+}
+
+// TODO simplify
+async function whoami1() {
+    const whoamiOut = document.getElementById('whoami_out1');
+    try {
+        const response = await fetch('c/me');
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        const text = await response.text();
+        whoamiOut.textContent = text;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        whoamiOut.textContent = error;
+    }
+}
+
+async function whoami2() {
+    const whoamiURL = document.getElementById('whoami_url2').value;
+    const whoamiOut = document.getElementById('whoami_out2');
+    try {
+        const response = await fetch('/access_token');
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        const url = removeLastSlash(whoamiURL) + "/c/me";
+        const data = await response.json();
+        const response2 = await fetch(url, {
+            headers: {
+                'Authorization': 'Bearer ' + data.access_token,
+            }
+        });
+        if (!response2.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        const text = await response2.text();
+        whoamiOut.textContent = text;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        whoamiOut.textContent = error;
+    }
+}
+
+async function whoami3() {
+    const whoamiURL = document.getElementById('whoami_url3').value;
+    const whoamiOut = document.getElementById('whoami_out3');
+    try {
+        const url = removeLastSlash(whoamiURL) + "/c/me";
+        const atElement = document.getElementById('access_token');
+        const access_token = atElement.textContent;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': 'Bearer ' + access_token,
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        const text = await response.text();
+        whoamiOut.textContent = text;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        whoamiOut.textContent = error;
+    }
+}
+
 // not ANONYMOUS
 async function whoamiWithoutAuth() {
-    const whoamiURL4 = document.getElementById('whoami_url4');
-    const whoamiOut4 = document.getElementById('whoami_out4');
+    const whoamiURL = document.getElementById('whoami_url4').value;
+    const whoamiOut = document.getElementById('whoami_out4');
     try {
-        const url = whoamiURL4.value + "/c/me";
+        const url = removeLastSlash(whoamiURL) + "/c/me";
         const response = await fetch(
             url,
             {
@@ -22,30 +106,30 @@ async function whoamiWithoutAuth() {
                 }
             });
         const text = await response.text();
-        whoamiOut4.textContent = text;
+        whoamiOut.textContent = text;
         //if (!response.ok) {
         //    throw new Error(`HTTP error: ${response.status}`);
         //}
     } catch (error) {
         console.error('Error:', error);
-        whoamiOut4.textContent = error;
+        whoamiOut.textContent = error;
     }
 }
 
 // ANONYMOUS
 async function whoamiAnonymous() {
-    const whoamiURL5 = document.getElementById('whoami_url5');
-    const whoamiOut5 = document.getElementById('whoami_out5');
+    const whoamiURL = document.getElementById('whoami_url5').value;
+    const whoamiOut = document.getElementById('whoami_out5');
     try {
-        const url = whoamiURL5.value + "/c/me";
+        const url = removeLastSlash(whoamiURL) + "/c/me";
         const response = await fetch(
             url,
         );
         const text = await response.text();
-        whoamiOut5.textContent = text;
+        whoamiOut.textContent = text;
     } catch (error) {
         console.error('Error:', error);
-        whoamiOut5.textContent = error;
+        whoamiOut.textContent = error;
     }
 }
 
