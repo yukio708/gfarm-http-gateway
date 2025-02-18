@@ -1285,11 +1285,13 @@ async def async_size(env, path):
 async def log_stderr(command: str,
                      process: asyncio.subprocess.Process,
                      elist: list) -> None:
+    logger.error(f"{process}")
     if process.stderr is None:
         return
     while True:
         line = await process.stderr.readline()
         if line:
+            logger.error(f"{line.decode()}")
             msg = line.decode().strip()
             logger.debug(f"STDERR: {command}: {msg}")
             elist.append(msg)
