@@ -196,7 +196,6 @@ OIDC_CLIENT_SECRET = str2none(conf.GFARM_HTTP_OIDC_CLIENT_SECRET)
 OIDC_META_URL = conf.GFARM_HTTP_OIDC_META_URL
 
 OIDC_KEYS_URL = str2none(conf.GFARM_HTTP_OIDC_KEYS_URL)
-# TODO use end_session_endpoint from OIDC_META_URL
 OIDC_LOGOUT_URL = str2none(conf.GFARM_HTTP_OIDC_LOGOUT_URL)
 
 TOKEN_VERIFY = conf.GFARM_HTTP_TOKEN_VERIFY
@@ -331,8 +330,10 @@ def log_login(request, user, login_type):
     logger.opt(depth=1).info(
         f"{ipaddr}:0 user={user}, login_auth_type={login_type}")
 
+
 if DEBUG:
     logger.debug("config:\n" + pf(conf.__dict__))
+
 conf_check_not_recommended()
 conf_check_invalid()  # may exit
 
@@ -399,6 +400,17 @@ async def oidc_keys_url():
         logger.error("UNEXPECTED: jwks_uri is None")
     logger.debug(f"jwks_uri={jwks_uri}")
     return jwks_uri
+
+
+async def oidc_logout_url():
+    if OIDC_LOGOUT_URL:
+        return OIDC_LOGOUT_URL
+    metadata = await oidc_metadata()
+    logout_url = metadata.get("end_session_endpoint")
+    if logout_url is None:
+        logger.error("UNEXPECTED: end_session_endpoint is None")
+    logger.debug(f"logout_url(end_session_endpoint)={logout_url}")
+    return logout_url
 
 
 def compress_str_gzip(input_str):
@@ -637,14 +649,14 @@ async def index(request: Request,
             login_ok = True
             sasl_username = user
 
-    # TODO use get_oidc_logout_url() instead of OIDC_LOGOUT_URL
+    logout_url_simple = await oidc_logout_url()
     if login_ok:
         if access_token:
             pat = parse_access_token(access_token)
             csrf_token = gen_csrf(request)
+            # NOTE: post_logout_redirect_uri for Keycloak 19 or later
             redirect_uri = request.url_for("logout")
-            # for Keycloak 19 or later ?
-            logout_url = OIDC_LOGOUT_URL + "?client_id=" \
+            logout_url = logout_url_simple + "?client_id=" \
                 + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" \
                 + str(redirect_uri) + "&state=" + csrf_token
             claims = jwt.get_unverified_claims(access_token)
@@ -657,7 +669,6 @@ async def index(request: Request,
         pat = ""
         logout_url = ""
         exp = -1
-    logout_url_simple = OIDC_LOGOUT_URL
     current_time = int(time.time())
     return templates.TemplateResponse("index.html",
                                       {"request": request,
