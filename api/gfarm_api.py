@@ -136,7 +136,7 @@ conf_required_keys = [
     "GFARM_HTTP_OIDC_CLIENT_SECRET",
     "GFARM_HTTP_OIDC_BASE_URL",
     "GFARM_HTTP_OIDC_META_URL",
-    "GFARM_HTTP_OIDC_CERTS_URL",
+    "GFARM_HTTP_OIDC_KEYS_URL",
     "GFARM_HTTP_OIDC_LOGOUT_URL",
     "GFARM_HTTP_TOKEN_VERIFY",
     "GFARM_HTTP_TOKEN_MIN_VALID_TIME_REMAINING",
@@ -191,11 +191,13 @@ OIDC_OVERRIDE_REDIRECT_URI = conf.GFARM_HTTP_OIDC_OVERRIDE_REDIRECT_URI
 OIDC_CLIENT_ID = conf.GFARM_HTTP_OIDC_CLIENT_ID
 OIDC_CLIENT_SECRET = str2none(conf.GFARM_HTTP_OIDC_CLIENT_SECRET)
 
+# OIDC_BASE_URL = conf.GFARM_HTTP_OIDC_BASE_URL
+
 OIDC_META_URL = conf.GFARM_HTTP_OIDC_META_URL
-# TODO use jwks_uri from OIDC_META_URL
-OIDC_CERTS_URL = conf.GFARM_HTTP_OIDC_CERTS_URL
+
+OIDC_KEYS_URL = str2none(conf.GFARM_HTTP_OIDC_KEYS_URL)
 # TODO use end_session_endpoint from OIDC_META_URL
-OIDC_LOGOUT_URL = conf.GFARM_HTTP_OIDC_LOGOUT_URL
+OIDC_LOGOUT_URL = str2none(conf.GFARM_HTTP_OIDC_LOGOUT_URL)
 
 TOKEN_VERIFY = conf.GFARM_HTTP_TOKEN_VERIFY
 # sec.
@@ -298,7 +300,7 @@ logger_uvicorn.handlers = [InterceptHandler()]
 # logger_uvicorn_error.handlers = [InterceptHandler()]
 
 loglevel = logger_uvicorn_access.getEffectiveLevel()
-DEBUG_MODE = loglevel == logging.DEBUG
+DEBUG = loglevel == logging.DEBUG
 
 # set format for root logger
 root_logger = logging.getLogger()
@@ -329,8 +331,8 @@ def log_login(request, user, login_type):
     logger.opt(depth=1).info(
         f"{ipaddr}:0 user={user}, login_auth_type={login_type}")
 
-
-logger.debug("config:\n" + pf(conf.__dict__))
+if DEBUG:
+    logger.debug("config:\n" + pf(conf.__dict__))
 conf_check_not_recommended()
 conf_check_invalid()  # may exit
 
@@ -362,6 +364,7 @@ app.add_middleware(
 
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
+# TODO disable OIDC authorization if OIDC_CLIENT_ID is None
 oauth = OAuth()
 oauth.register(
     name="my_oidc_provider",
@@ -374,6 +377,28 @@ oauth.register(
     },
 )
 provider = oauth.my_oidc_provider
+metadata = None  # cached forever
+
+
+async def oidc_metadata():
+    global metadata
+    if metadata is None:
+        # cache
+        metadata = await provider.load_server_metadata()
+        if DEBUG:
+            logger.debug("oidc_metadata:\n" + pf(metadata))
+    return metadata
+
+
+async def oidc_keys_url():
+    if OIDC_KEYS_URL:
+        return OIDC_KEYS_URL
+    metadata = await oidc_metadata()
+    jwks_uri = metadata.get("jwks_uri")
+    if jwks_uri is None:
+        logger.error("UNEXPECTED: jwks_uri is None")
+    logger.debug(f"jwks_uri={jwks_uri}")
+    return jwks_uri
 
 
 def compress_str_gzip(input_str):
@@ -438,9 +463,7 @@ def set_token(request: Request, token):
 
 async def use_refresh_token(request: Request, token):
     refresh_token = token.get("refresh_token")
-    # TODO cache metadata
-    meta = await provider.load_server_metadata()
-    logger.debug("use_refresh_token: metadata:\n" + pf(meta))
+    meta = await oidc_metadata()
     try:
         data = {
             "grant_type": "refresh_token",
@@ -461,16 +484,22 @@ async def use_refresh_token(request: Request, token):
 
 
 def jwt_error(msg):
-    return HTTPException(status_code=500,
-                         detail=f"JWT error: {msg}")
+    return HTTPException(status_code=500, detail=f"JWT error: {msg}")
 
 
-def verify_token(token, use_raise=False):
+async def verify_token(token, use_raise=False):
     try:
         access_token = token.get("access_token")
-        # TODO get_oidc_cert_url() (use cached metadata or OIDC_CERTS_URL)
-        # TODO cache jwks, cache timeout
-        jwks = requests.get(OIDC_CERTS_URL, verify=VERIFY_CERT).json()
+        jwks_url = await oidc_keys_url()
+        # TODO cache jwks, cache timeout: oidc_jwks()
+        jwks = requests.get(jwks_url, verify=VERIFY_CERT).json()
+        if DEBUG:
+            logger.debug("jwks=\n" + pf(jwks))
+    except Exception:
+        # logger.error(f"verify_token initialization error: {e}")
+        logger.exception("verify_token initialization error")
+        raise
+    try:
         header = jwt.get_unverified_header(access_token)
         if not header:
             raise jwt_error("Invalid header")
@@ -492,9 +521,9 @@ def verify_token(token, use_raise=False):
         return None
 
 
-def is_expired_token(token, use_raise=False):
+async def is_expired_token(token, use_raise=False):
     if TOKEN_VERIFY:
-        claims = verify_token(token, use_raise)
+        claims = await verify_token(token, use_raise)
         if not claims:
             return True  # expired
         return False
@@ -523,10 +552,10 @@ async def get_token(request: Request):
         if not token:
             delete_token(request)
             return None
-    if not is_expired_token(token):
+    if not await is_expired_token(token):
         return token
     new_token = await use_refresh_token(request, token)
-    if not is_expired_token(new_token, use_raise=True):
+    if not await is_expired_token(new_token, use_raise=True):
         return new_token
     delete_token(request)
     return None  # not login
@@ -861,7 +890,7 @@ async def set_env(request, authorization):
         # https://www.starlette.io/requests/#client-address
         LOG_CLIENT_IP_KEY: ipaddr,
     })
-    if DEBUG_MODE:
+    if DEBUG:
         copy_env = env.copy()
         if "GFARM_SASL_PASSWORD" in copy_env:
             copy_env["GFARM_SASL_PASSWORD"] = '*****(MASKED)'
@@ -1047,7 +1076,7 @@ MetadataUser: user1
                  + pf(parse_gfstat(test_gfstat_str).dict()))
 
 
-if DEBUG_MODE:
+if DEBUG:
     test_parse_gfstat()
 
 
@@ -1303,7 +1332,7 @@ async def gfarm_command_standard_response(env, proc, command):
             f"{ipaddr}:0 user={user}, cmd={command}, return={return_code},"
             f" last_emsg={last_e}")
         raise gfarm_http_error(command, code, message, stdout, elist)
-    if DEBUG_MODE:
+    if DEBUG:
         if is_utf8(stdout):
             out = stdout.strip()
         else:
