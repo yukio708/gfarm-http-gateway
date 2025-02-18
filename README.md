@@ -85,6 +85,8 @@ HTTP gateway for Gfarm filesystem
 
 ### Start for developer
 
+- (install GNU make)
+- `make test` to run test
 - `./bin/start-dev.sh --log-level debug`
   - for clients of any hosts (0.0.0.0:8000)
 

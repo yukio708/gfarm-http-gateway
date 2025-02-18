@@ -718,14 +718,15 @@ async def logout(request: Request, state: Optional[str] = None):
 class AccessToken(BaseModel):
     access_token: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "examples": [
                 {
                     "access_token": "abcdefg",
                 }
             ]
         }
+    }
 
 
 @app.get("/access_token")
@@ -949,14 +950,15 @@ def timestamp_to_unix(timestamp_str):
 class UpdateStat(BaseModel):
     Mode: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "examples": [
                 {
                     "Mode": "1777",
                 }
             ]
         }
+    }
 
 
 class Stat(BaseModel):
@@ -980,8 +982,8 @@ class Stat(BaseModel):
     MetadataPort: Optional[str] = None
     MetadataUser: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "examples": [
                 {
                     "File": "/tmp",
@@ -1006,6 +1008,7 @@ class Stat(BaseModel):
                 }
             ]
         }
+    }
 
 
 def parse_gfstat(file_info_str):
@@ -1614,8 +1617,8 @@ class Move(BaseModel):
     source: str
     destination: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "examples": [
                 {
                     "source": "/tmp/testfile1",
@@ -1623,6 +1626,7 @@ class Move(BaseModel):
                 }
             ]
         }
+    }
 
 
 @app.post("/move")
