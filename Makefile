@@ -8,3 +8,6 @@ test-verbose test-v:
 
 flake8:
 	flake8 api
+
+setup:
+	./setup.sh
