@@ -208,7 +208,6 @@ del min_valid_time
 
 TOKEN_AUDIENCE = str2none(conf.GFARM_HTTP_TOKEN_AUDIENCE)
 
-# TODO use issuer from OIDC_META_URL
 TOKEN_ISSUERS = str2none(conf.GFARM_HTTP_TOKEN_ISSUERS)
 if TOKEN_ISSUERS:
     TOKEN_ISSUERS = str2list(TOKEN_ISSUERS)
@@ -655,8 +654,9 @@ async def index(request: Request,
         error = f"Access token verification error: {str(e)}"
 
     if access_token is None and error == "":
-        user, passwd = get_user_passwd(request)
-        if user and passwd:
+        user_passwd = get_user_passwd(request)
+        if user_passwd:
+            user, passwd = user_passwd
             login_ok = True
             sasl_username = user
 
@@ -755,7 +755,7 @@ def get_user_passwd(request):
     username = request.session.get("username")
     password = request.session.get("password")
     if username is None or password is None:
-        return None, None  # not use password authentication
+        return None  # not use password authentication
     if fer:
         b = base64.b85decode(password)
         password = fer.decrypt(b).decode()
@@ -804,11 +804,10 @@ def fullpath(path: str):
     return "/" + path
 
 
-# TODO AUTHZ_KEY_*
-AUTHZ_TYPE_BASIC = 'Basic'
-AUTHZ_TYPE_BEARER = 'Bearer'
-# TODO AUTHZ_TYPE_PASSWORD
-# TODO AUTHZ_TYPE_OAUTH
+AUTHZ_KEY_BASIC = 'Basic'
+AUTHZ_KEY_BEARER = 'Bearer'
+AUTHZ_TYPE_PASSWORD = 'password'
+AUTHZ_TYPE_OAUTH = 'OAuth'
 
 INVALID_AUTHZ = HTTPException(
     status_code=401,
@@ -817,38 +816,67 @@ INVALID_AUTHZ = HTTPException(
 
 
 def parse_authorization(authz_str: str):
-    authz_type = None
-    user = None
-    passwd = None
-    if authz_str:  # TODO indent
-        authz = authz_str.split()
-        if len(authz) >= 2:  # TODO indent
-            # TODO authz_key
-            authz_type = authz[0]
-            authz_token = authz[1]
-            if authz_type == AUTHZ_TYPE_BASIC:
-                try:
-                    b = base64.b64decode(authz_token.encode())
-                    user_pass_str = b.decode()
-                except Exception:
-                    raise INVALID_AUTHZ
-                user_pass = user_pass_str.split(":")
-                if len(user_pass) >= 2:
-                    user = user_pass[0]
-                    passwd = user_pass[1]
-                else:
-                    raise INVALID_AUTHZ
-            elif authz_type == AUTHZ_TYPE_BEARER:
-                passwd = authz_token
-            else:
-                raise INVALID_AUTHZ
-        else:
-            raise INVALID_AUTHZ
-    else:
+    if not authz_str:
         if not ALLOW_ANONYMOUS:
             logger.error("anonymous access is not allowed")
             raise INVALID_AUTHZ
+        authz_type = None
+        user = None
+        passwd = None
+        return authz_type, user, passwd
+
+    # ex. Basic abcdef...
+    # ex. Bearer abcdef...
+    authz = authz_str.split()
+    if len(authz) < 2:
+        raise INVALID_AUTHZ
+
+    authz_key = authz[0]
+    authz_token = authz[1]
+    if authz_key == AUTHZ_KEY_BASIC:
+        authz_type = AUTHZ_TYPE_PASSWORD
+        try:
+            b = base64.b64decode(authz_token.encode())
+            user_pass_str = b.decode()
+        except Exception as e:
+            logger.error(f"invalid Basic authorization: {e}")
+            raise INVALID_AUTHZ
+        # USERNAME:PASSWORD
+        user_pass = user_pass_str.split(":", 1)
+        if len(user_pass) >= 2:
+            user = user_pass[0]
+            passwd = user_pass[1]
+        else:
+            raise INVALID_AUTHZ
+    elif authz_key == AUTHZ_KEY_BEARER:
+        authz_type = AUTHZ_TYPE_OAUTH
+        user = None
+        passwd = authz_token
+    else:
+        raise INVALID_AUTHZ
     return authz_type, user, passwd
+
+
+async def select_auth_from_session(request):
+    # get access token from session in cookie
+    access_token = await get_access_token(request)
+    if access_token is not None:
+        authz_type = AUTHZ_TYPE_OAUTH
+        user = None
+        logger.debug("select_auth_from_session: AUTHZ_TYPE_OAUTH")
+        return authz_type, user, access_token
+
+    # get password from session in cookie
+    user_passwd = get_user_passwd(request)
+    if user_passwd is not None:
+        authz_type = AUTHZ_TYPE_PASSWORD
+        user, passwd = user_passwd
+        logger.debug("select_auth_from_session: AUTHZ_TYPE_PASSWORD,"
+                     f" user={user}")
+        # pass through even if empty password is specified
+        return authz_type, user, passwd
+
+    return None
 
 
 LOG_USERNAME_KEY = "_GFARM_HTTP_USERNAME"
@@ -864,28 +892,17 @@ async def set_env(request, authorization):
         env.update({'GFARM_CONFIG_FILE': gfarm_config})
 
     # prefer session
-    # get access token from session in cookie
-    access_token = await get_access_token(request)
-    if access_token is not None:
-        authz_type = AUTHZ_TYPE_BEARER
-        logger.debug("set_env: session / bearer")
-    else:  # TODO elif
-        # get password from session in cookie
-        user, passwd = get_user_passwd(request)
-        if user is not None or passwd is not None:
-            # pass through even if empty password is specified
-            authz_type = AUTHZ_TYPE_BASIC
-            logger.debug(f"set_env: session / basic, user={user}")
-        else:
-            # get access token or password from Authorization header
-            # print(f"authorization={authorization}")
-            authz_type, user, passwd = parse_authorization(authorization)
-            access_token = passwd
-            logger.debug(f"set_env: authz header / user={user}")
+    auth_info = await select_auth_from_session(request)
+    if auth_info is not None:
+        authz_type, user, passwd = auth_info
+    else:
+        # get access token or password from Authorization header
+        authz_type, user, passwd = parse_authorization(authorization)
+        logger.debug(f"set_env: authz header / user={user}")
 
-    if authz_type == AUTHZ_TYPE_BEARER and access_token is not None:
+    if authz_type == AUTHZ_TYPE_OAUTH:
+        access_token = passwd
         try:
-            # TODO in parse_authorization()
             user = get_user_from_access_token(access_token)
         except Exception as e:
             logger.error(f"{ipaddr} Invalid Bearer token:"
@@ -902,7 +919,7 @@ async def set_env(request, authorization):
             # for old libgfarm (Gfarm 2.8.5 or earlier)
             'JWT_USER_PATH': f'!{bin_dir}/GFARM_SASL_PASSWORD_STDOUT.sh',
         })
-    elif authz_type == AUTHZ_TYPE_BASIC:
+    elif authz_type == AUTHZ_TYPE_PASSWORD:
         env.update({
             # for Gfarm 2.8.6 or later
             'GFARM_SASL_MECHANISMS': SASL_MECHANISM_FOR_PASSWORD,
@@ -1306,7 +1323,6 @@ async def async_size(env, path):
 async def log_stderr(command: str,
                      process: asyncio.subprocess.Process,
                      elist: list) -> None:
-    logger.error(f"{process}")
     if process.stderr is None:
         return
     while True:

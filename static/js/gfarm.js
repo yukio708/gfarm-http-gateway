@@ -302,10 +302,11 @@ async function displayFile() {
 }
 
 async function updateLink() {
-    let path = document.getElementById("export_path").value;
+    let pathElm = document.getElementById("export_path");
     const dlLink = document.getElementById('dl-link');
     const viewLink = document.getElementById('view-link');
-    if (path) {
+    if (pathElm) {
+        const path = pathElm.value;
         const epath = encodePath(path);
         const url = `./file${epath}`;
         let a = dlLink.querySelector('a');
@@ -323,9 +324,6 @@ async function updateLink() {
         }
         a2.href = url + "?action=view";
         a2.textContent = `URL for view: ${a2.href}`;
-    } else {
-        dlLink.innerHTML = '';
-        viewLink.innerHTML = '';
     }
 }
 
