@@ -857,13 +857,13 @@ def parse_authorization(authz_str: str):
     return authz_type, user, passwd
 
 
-async def select_auth_from_session(request):
+async def switch_auth_from_session(request):
     # get access token from session in cookie
     access_token = await get_access_token(request)
     if access_token is not None:
         authz_type = AUTHZ_TYPE_OAUTH
         user = None
-        logger.debug("select_auth_from_session: AUTHZ_TYPE_OAUTH")
+        logger.debug("switch_auth_from_session: AUTHZ_TYPE_OAUTH")
         return authz_type, user, access_token
 
     # get password from session in cookie
@@ -871,7 +871,7 @@ async def select_auth_from_session(request):
     if user_passwd is not None:
         authz_type = AUTHZ_TYPE_PASSWORD
         user, passwd = user_passwd
-        logger.debug("select_auth_from_session: AUTHZ_TYPE_PASSWORD,"
+        logger.debug("switch_auth_from_session: AUTHZ_TYPE_PASSWORD,"
                      f" user={user}")
         # pass through even if empty password is specified
         return authz_type, user, passwd
@@ -892,7 +892,7 @@ async def set_env(request, authorization):
         env.update({'GFARM_CONFIG_FILE': gfarm_config})
 
     # prefer session
-    auth_info = await select_auth_from_session(request)
+    auth_info = await switch_auth_from_session(request)
     if auth_info is not None:
         authz_type, user, passwd = auth_info
     else:
