@@ -88,7 +88,9 @@ progress {
         <input type="text" id="ls_path" value="/tmp">
         <button onclick="list()">gfls -la</button><br/>
         <input type="checkbox" id="ls_recursive">
-        <label for="ls_recursive">R=1(Recursive)</label>
+        <label for="ls_recursive">R=1(-R: Recursive)</label>
+        <input type="checkbox" id="ls_effperm">
+        <label for="ls_effperm">e=1(-e: effective perm)</label>
         <input type="checkbox" id="ls_ign_err">
         <label for="ls_ign_err">ign_err=1</label>
         <table><tr><td><pre><div id="ls_out"></div></pre></td></tr></table>

@@ -1177,12 +1177,14 @@ async def async_gfreg(env, path, mtime):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfls(env, path, _all=0, recursive=0):
+async def async_gfls(env, path, _all=0, recursive=0, effperm=0):
     args = ['-l']
     if _all == 1:
         args.append('-a')
     if recursive == 1:
         args.append('-R')
+    if effperm == 1:
+        args.append('-e')
     args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfls', *args,
@@ -1390,6 +1392,7 @@ async def whoami(request: Request,
 async def dir_list(gfarm_path: str,
                    request: Request,
                    a: int = 0,
+                   e: int = 0,
                    R: int = 0,
                    ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
@@ -1399,7 +1402,7 @@ async def dir_list(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    p = await async_gfls(env, gfarm_path, _all=a, recursive=R)
+    p = await async_gfls(env, gfarm_path, _all=a, recursive=R, effperm=e)
     data = await p.stdout.read()
     stdout = data.decode()
     return_code = await p.wait()

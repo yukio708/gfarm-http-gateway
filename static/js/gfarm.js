@@ -137,6 +137,7 @@ async function list() {
     const lsPath = document.getElementById('ls_path');
     const lsOut = document.getElementById('ls_out');
     const lsRecursive = document.getElementById('ls_recursive');
+    const lsEffectivePerm= document.getElementById('ls_effperm');
     const lsIgnoreError = document.getElementById('ls_ign_err');
     const path = lsPath.value.replace(/^\/+/g, "");
     try {
@@ -144,6 +145,9 @@ async function list() {
         let fullpath = api_dir + "/" + path + "?a=1";
         if (lsRecursive.checked) {
             fullpath += "&R=1";
+        }
+        if (lsEffectivePerm.checked) {
+            fullpath += "&e=1";
         }
         if (lsIgnoreError.checked) {
             fullpath += "&ign_err=1";
