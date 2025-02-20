@@ -75,19 +75,19 @@ HTTP gateway for Gfarm filesystem
 
 ### Start for clients on localhost (127.0.0.1)
 
-- `./bin/start.sh`
+- `./bin/gfarm-http.sh`
 - For production use, it is recommended to use this with a reverse proxy.
 
 ### Start for clients of any hosts
 
 - (not for production use)
-- `./bin/start.sh 0.0.0.0:8000`
+- `./bin/gfarm-http.sh 0.0.0.0:8000`
 
 ### Start for developer
 
 - (install GNU make)
 - `make test` to run test
-- `./bin/start-dev.sh --log-level debug`
+- `./bin/gfarm-http-dev.sh --log-level debug`
   - for clients of any hosts (0.0.0.0:8000)
 
 ## Development environment in gfarm/docker/dist
@@ -102,8 +102,8 @@ HTTP gateway for Gfarm filesystem
 - (in c2 container)
 - `cd ~/gfarm/gfarm-http-gateway`
 - `./setup.sh`
-- `bin/start-dev-for-docker-dist.sh --log-level debug`
-- and, run `bin/start-dev-for-docker-dist.sh --log-level debug` in c3 container using the same procedure described above
+- `bin/gfarm-http-dev-for-docker-dist.sh --log-level debug`
+- and, run `bin/gfarm-http-dev-for-docker-dist.sh --log-level debug` in c3 container using the same procedure described above
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <http://c2:8000/> in a web browser
   - auto-redirect to <http://keycloak>
@@ -175,7 +175,7 @@ server {
 - How to proxy with subpath
   - ex.: (base URL)/gfarm/
   - `location /gfarm/ { ...`
-  - use `--root-path /gfarm` option for start.sh (uvicorn)
+  - use `--root-path /gfarm` option for gfarm-http.sh (uvicorn option)
 - `sudo systemctl restart nginx`
 - (Configure the Redirect URI parameters in Keycloak)
 - Open URL of the server in web browser
