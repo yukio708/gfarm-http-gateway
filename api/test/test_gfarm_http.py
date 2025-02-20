@@ -191,7 +191,7 @@ expect_gfwhoami = (expect_gfwhoami_stdout.encode(), b"error", 0)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfwhoami)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfwhoami], indirect=True)
 async def test_whoami_oidc_auth(mock_claims, mock_exec):
     response = client.get("/conf/me", headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -202,7 +202,7 @@ async def test_whoami_oidc_auth(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfwhoami)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfwhoami], indirect=True)
 async def test_whoami_basic_auth(mock_claims, mock_exec):
     response = client.get("/conf/me", headers=req_headers_basic_auth)
     assert response.status_code == 200
@@ -213,7 +213,7 @@ async def test_whoami_basic_auth(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfwhoami)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfwhoami], indirect=True)
 async def test_whoami_anon_auth_enabled(mock_anon, mock_claims, mock_exec):
     # GFARM_HTTP_ALLOW_ANONYMOUS=yes
     response = client.get("/conf/me", headers=req_headers_anon_auth)
@@ -225,7 +225,7 @@ async def test_whoami_anon_auth_enabled(mock_anon, mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfwhoami)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfwhoami], indirect=True)
 async def test_whoami_anon_auth_disabled(mock_claims, mock_exec):
     # GFARM_HTTP_ALLOW_ANONYMOUS=no (default)
     response = client.get("/conf/me", headers=req_headers_anon_auth)
@@ -233,7 +233,7 @@ async def test_whoami_anon_auth_disabled(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfwhoami)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfwhoami], indirect=True)
 async def test_whoami_oidc_session(mock_claims, mock_access_token, mock_exec):
     response = client.get("/conf/me")
     assert response.status_code == 200
@@ -244,7 +244,7 @@ async def test_whoami_oidc_session(mock_claims, mock_access_token, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfwhoami)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfwhoami], indirect=True)
 async def test_whoami_basic_session(mock_claims, mock_access_token_none,
                                     mock_user_passwd, mock_exec):
     response = client.get("/conf/me")
@@ -260,7 +260,7 @@ expect_gfls = (expect_gfls_stdout.encode(), b"error", 0)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfls)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
 async def test_dir_list(mock_claims, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -270,7 +270,7 @@ async def test_dir_list(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfls)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
 async def test_dir_list_a(mock_claims, mock_exec):
     response = client.get("/dir/testdir?a=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -281,7 +281,7 @@ async def test_dir_list_a(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfls)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
 async def test_dir_list_R(mock_claims, mock_exec):
     response = client.get("/dir/testdir?R=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -291,7 +291,7 @@ async def test_dir_list_R(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfls)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
 async def test_dir_list_e(mock_claims, mock_exec):
     response = client.get("/dir/testdir?e=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -305,7 +305,7 @@ expect_gfls_err = (expect_gfls_err_msg.encode(), b"error", 1)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfls_err)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
 async def test_dir_list_err(mock_claims, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
     assert response.status_code == 500
@@ -315,7 +315,7 @@ async def test_dir_list_err(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfls_err)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
 async def test_dir_list_ign_err(mock_claims, mock_exec):
     response = client.get("/dir/testdir?ign_err=1",
                           headers=req_headers_oidc_auth)
@@ -330,7 +330,7 @@ expect_no_stdout = (no_stdout.encode(), b"", 0)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_no_stdout)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
 async def test_dir_create(mock_claims, mock_exec):
     response = client.put("/dir/a/testdir", headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -340,7 +340,7 @@ async def test_dir_create(mock_claims, mock_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_no_stdout)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
 async def test_dir_remove(mock_claims, mock_exec):
     response = client.delete("/dir/testdir", headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -354,8 +354,8 @@ expect_gfexport = (gfexport_stdout, b"", 0)
 expect_gfstat = (gfstat_file_stdout.encode(), b"", 0)
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfstat", [(expect_gfstat)], indirect=True)
-@pytest.mark.parametrize("mock_exec", [(expect_gfexport)], indirect=True)
+@pytest.mark.parametrize("mock_gfstat", [expect_gfstat], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfexport], indirect=True)
 async def test_file_export(mock_claims, mock_gfstat, mock_exec):
     response = client.get("/file/a/testfile.txt",
                           headers=req_headers_oidc_auth)
