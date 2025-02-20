@@ -123,6 +123,7 @@ def format_conf(data, required_keys):
 
 
 conf_required_keys = [
+    "GFARM_HTTP_DEBUG",
     "GFARM_HTTP_GFARM_CONFIG_FILE",
     "GFARM_HTTP_ORIGINS",
     "GFARM_HTTP_SESSION_SECRET",
@@ -171,6 +172,7 @@ del env_dict
 del conf_dict
 del merged_dict
 
+GFARM_HTTP_DEBUG = str2bool(conf.GFARM_HTTP_DEBUG)
 GFARM_CONFIG_FILE = str2none(conf.GFARM_HTTP_GFARM_CONFIG_FILE)
 
 ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
@@ -291,18 +293,27 @@ class InterceptHandler(logging.Handler):
 logger_uvicorn_access = logging.getLogger("uvicorn.access")
 logger_uvicorn_access.handlers = [InterceptHandler()]
 
+loglevel = logger_uvicorn_access.getEffectiveLevel()
+
+if GFARM_HTTP_DEBUG:
+    DEBUG = True
+    loglevel = logging.DEBUG
+    logger_uvicorn_access.setLevel(loglevel)
+else:
+    DEBUG = loglevel == logging.DEBUG
+
 logger_uvicorn = logging.getLogger("uvicorn")
+logger_uvicorn.setLevel(loglevel)
 logger_uvicorn.handlers = [InterceptHandler()]
 
-# not change
+# not change (duplicated messges are printed)
 # logger_uvicorn_error = logging.getLogger("uvicorn.error")
+# logger_uvicorn_error.setLevel(loglevel)
 # logger_uvicorn_error.handlers = [InterceptHandler()]
-
-loglevel = logger_uvicorn_access.getEffectiveLevel()
-DEBUG = loglevel == logging.DEBUG
 
 # set format for root logger
 root_logger = logging.getLogger()
+root_logger.setLevel(loglevel)
 root_logger.handlers = [InterceptHandler()]
 
 # set format for loguru
@@ -793,8 +804,11 @@ def fullpath(path: str):
     return "/" + path
 
 
+# TODO AUTHZ_KEY_*
 AUTHZ_TYPE_BASIC = 'Basic'
 AUTHZ_TYPE_BEARER = 'Bearer'
+# TODO AUTHZ_TYPE_PASSWORD
+# TODO AUTHZ_TYPE_OAUTH
 
 INVALID_AUTHZ = HTTPException(
     status_code=401,
@@ -809,6 +823,7 @@ def parse_authorization(authz_str: str):
     if authz_str:  # TODO indent
         authz = authz_str.split()
         if len(authz) >= 2:  # TODO indent
+            # TODO authz_key
             authz_type = authz[0]
             authz_token = authz[1]
             if authz_type == AUTHZ_TYPE_BASIC:
@@ -831,6 +846,7 @@ def parse_authorization(authz_str: str):
             raise INVALID_AUTHZ
     else:
         if not ALLOW_ANONYMOUS:
+            logger.error("anonymous access is not allowed")
             raise INVALID_AUTHZ
     return authz_type, user, passwd
 
@@ -852,20 +868,24 @@ async def set_env(request, authorization):
     access_token = await get_access_token(request)
     if access_token is not None:
         authz_type = AUTHZ_TYPE_BEARER
+        logger.debug("set_env: session / bearer")
     else:  # TODO elif
         # get password from session in cookie
         user, passwd = get_user_passwd(request)
         if user is not None or passwd is not None:
             # pass through even if empty password is specified
             authz_type = AUTHZ_TYPE_BASIC
+            logger.debug(f"set_env: session / basic, user={user}")
         else:
             # get access token or password from Authorization header
             # print(f"authorization={authorization}")
             authz_type, user, passwd = parse_authorization(authorization)
             access_token = passwd
+            logger.debug(f"set_env: authz header / user={user}")
 
     if authz_type == AUTHZ_TYPE_BEARER and access_token is not None:
         try:
+            # TODO in parse_authorization()
             user = get_user_from_access_token(access_token)
         except Exception as e:
             logger.error(f"{ipaddr} Invalid Bearer token:"
@@ -1068,7 +1088,8 @@ def parse_gfstat(file_info_str):
         elif key is None:
             continue
         file_info[key] = value
-    return Stat.parse_obj(file_info)
+    # return Stat.parse_obj(file_info)  # Pydantic V1
+    return Stat.model_validate(file_info)  # Pydantic V2
 
 
 def test_parse_gfstat():
@@ -1087,7 +1108,7 @@ MetadataPort: 601
 MetadataUser: user1
 """
     logger.debug("test_parse_gfstat:\n"
-                 + pf(parse_gfstat(test_gfstat_str).dict()))
+                 + pf(parse_gfstat(test_gfstat_str).model_dump()))
 
 
 if DEBUG:
@@ -1291,7 +1312,6 @@ async def log_stderr(command: str,
     while True:
         line = await process.stderr.readline()
         if line:
-            logger.error(f"{line.decode()}")
             msg = line.decode().strip()
             logger.debug(f"STDERR: {command}: {msg}")
             elist.append(msg)
