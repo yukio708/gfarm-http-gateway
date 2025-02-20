@@ -1109,29 +1109,6 @@ def parse_gfstat(file_info_str):
     return Stat.model_validate(file_info)  # Pydantic V2
 
 
-def test_parse_gfstat():
-    test_gfstat_str = """
-File: "/tmp"
-Size: 0             Filetype: directory
-Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
-Inode: 3            Gen: 0
-                    (00000000000000030000000000000000)
-Links: 2            Ncopy: 1
-Access: 2025-02-10 18:27:33.191688265 +0000
-Modify: 2025-02-10 18:27:31.071120060 +0000
-Change: 2025-02-10 18:15:09.400000000 +0900
-MetadataHost: gfmd1
-MetadataPort: 601
-MetadataUser: user1
-"""
-    logger.debug("test_parse_gfstat:\n"
-                 + pf(parse_gfstat(test_gfstat_str).model_dump()))
-
-
-if DEBUG:
-    test_parse_gfstat()
-
-
 #############################################################################
 async def async_gfwhoami(env):
     args = []

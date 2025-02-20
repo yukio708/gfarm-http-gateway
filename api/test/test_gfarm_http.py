@@ -6,10 +6,10 @@ import pytest
 import pytest_asyncio
 from unittest.mock import patch, Mock
 
-from gfarm_http import app
+import gfarm_http
 
 
-client = TestClient(app)
+client = TestClient(gfarm_http.app)
 
 test_access_token = "TEST_access_token"
 req_headers_oidc_auth = {"Authorization": f"Bearer {test_access_token}"}
@@ -116,6 +116,47 @@ def assert_is_anon_auth(kwargs):
     env = kwargs.get("env")
     mech = env.get("GFARM_SASL_MECHANISMS")
     assert mech == "ANONYMOUS"
+
+
+test_gfstat_str = """
+File: "/tmp"
+Size: 54321         Filetype: directory
+Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+Inode: 3            Gen: 5
+                    (00000000000000030000000000000000)
+Links: 2            Ncopy: 1
+Access: 2025-02-10 18:27:33.191688265 +0000
+Modify: 2025-02-10 18:27:31.071120060 +0000
+Change: 2025-02-10 18:15:09.400000000 +0900
+MetadataHost: gfmd1
+MetadataPort: 601
+MetadataUser: user1
+"""
+expect_stat = {
+    "File": "/tmp",
+    "Size": 54321,
+    "Filetype": "directory",
+    "Mode": "1777",
+    "Uid": "user1",
+    "Gid": "gfarmadm",
+    "Inode": 3,
+    "Gen": 5,
+    "Links": 2,
+    "Ncopy": 1,
+    "Access": "2025-02-10 18:27:33.191688 +0000",
+    "AccessSecound": 1739212053.191688,
+    "Modify": "2025-02-10 18:27:31.071120 +0000",
+    "ModifySecound": 1739212051.07112,
+    "Change": "2025-02-10 18:15:09.400000 +0900",
+    "ChangeSecound": 1739178909.4,
+    "MetadataHost": "gfmd1",
+    "MetadataPort": "601",
+    "MetadataUser": "user1",
+}
+
+def test_parse_gfstat():
+    st = gfarm_http.parse_gfstat(test_gfstat_str).model_dump()
+    assert st == expect_stat
 
 
 expect_gfwhoami_stdout = "testuser"
@@ -284,6 +325,30 @@ async def test_file_export(mock_claims, mock_size, mock_exec):
     args, kwargs = mock_exec.call_args
     assert args == ('gfexport', '/a/testfile.txt')
     assert response.content == gfexport_stdout
+
+
+# TODO test_file_import
+# TODO test_file_remove
+# TODO test_move_rename
+# TODO test_get_attr
+
+
+expect_gfstat = (test_gfstat_str.encode(), b"", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [(expect_gfstat)], indirect=True)
+async def test_get_attr(mock_claims, mock_exec):
+    response = client.get("/attr/dir/testfile.txt",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfstat', '-M', '/dir/testfile.txt')
+    assert response.json() == expect_stat
+
+
+# TODO test_change_attr
+
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
 # class patch_exec(object):
