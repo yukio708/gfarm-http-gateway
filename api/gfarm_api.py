@@ -125,7 +125,7 @@ def format_conf(data, required_keys):
 conf_required_keys = [
     "GFARM_HTTP_GFARM_CONFIG_FILE",
     "GFARM_HTTP_ORIGINS",
-    "GFARM_HTTP_SECRET",
+    "GFARM_HTTP_SESSION_SECRET",
     "GFARM_HTTP_SESSION_ENCRYPT",
     "GFARM_HTTP_SESSION_COMPRESS_TYPE",
     # "GFARM_HTTP_KEYCLOAK_SERVER",  # optional
@@ -176,7 +176,7 @@ GFARM_CONFIG_FILE = str2none(conf.GFARM_HTTP_GFARM_CONFIG_FILE)
 ORIGINS = str2list(conf.GFARM_HTTP_ORIGINS)
 
 # ex. openssl rand -base64 32
-SESSION_SECRET = conf.GFARM_HTTP_SECRET
+SESSION_SECRET = conf.GFARM_HTTP_SESSION_SECRET
 
 # NOTE: In default, session in cookie is not encrypted
 SESSION_ENCRYPT = str2bool(conf.GFARM_HTTP_SESSION_ENCRYPT)
@@ -806,9 +806,9 @@ def parse_authorization(authz_str: str):
     authz_type = None
     user = None
     passwd = None
-    if authz_str:
+    if authz_str:  # TODO indent
         authz = authz_str.split()
-        if len(authz) >= 2:
+        if len(authz) >= 2:  # TODO indent
             authz_type = authz[0]
             authz_token = authz[1]
             if authz_type == AUTHZ_TYPE_BASIC:
@@ -852,7 +852,7 @@ async def set_env(request, authorization):
     access_token = await get_access_token(request)
     if access_token is not None:
         authz_type = AUTHZ_TYPE_BEARER
-    else:
+    else:  # TODO elif
         # get password from session in cookie
         user, passwd = get_user_passwd(request)
         if user is not None or passwd is not None:
