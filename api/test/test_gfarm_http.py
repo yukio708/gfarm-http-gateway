@@ -63,12 +63,30 @@ def mock_user_passwd():
 
 @pytest.fixture
 def mock_size():
-    with patch("gfarm_http.async_size") as mock:
+    with patch("gfarm_http.file_size") as mock:
         existing = True
         is_file = True
         size = 1
         mock.return_value = (existing, is_file, size)
         yield mock
+
+
+def mock_exec_common(mock, stdout, stderr, result):
+    # Dummy asyncio.subprocess.Process
+    mock_proc = Mock()
+    mock_proc.stdout = asyncio.StreamReader()
+    if stdout is not None:
+        mock_proc.stdout.feed_data(stdout)
+    mock_proc.stdout.feed_eof()
+    mock_proc.stderr = asyncio.StreamReader()
+    if stderr is not None:
+        mock_proc.stderr.feed_data(stderr)
+    mock_proc.stderr.feed_eof()
+    mock_future_wait = asyncio.Future()
+    mock_proc.wait.return_value = mock_future_wait
+    mock_future_wait.set_result(result)
+    mock.return_value = mock_proc
+    return mock
 
 
 # See: https://docs.pytest.org/en/latest/example/parametrize.html#apply-indirect-on-particular-arguments  # noqa: E501
@@ -77,21 +95,15 @@ async def mock_exec(request):
     # expected parameters
     stdout, stderr, result = request.param
     with patch('asyncio.create_subprocess_exec') as mock:
-        # Dummy asyncio.subprocess.Process
-        mock_proc = Mock()
-        mock_proc.stdout = asyncio.StreamReader()
-        if stdout is not None:
-            mock_proc.stdout.feed_data(stdout)
-        mock_proc.stdout.feed_eof()
-        mock_proc.stderr = asyncio.StreamReader()
-        if stderr is not None:
-            mock_proc.stderr.feed_data(stderr)
-        mock_proc.stderr.feed_eof()
-        mock_future_wait = asyncio.Future()
-        mock_proc.wait.return_value = mock_future_wait
-        mock_future_wait.set_result(result)
-        mock.return_value = mock_proc
-        yield mock
+        yield mock_exec_common(mock, stdout, stderr, result)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_gfstat(request):
+    # expected parameters
+    stdout, stderr, result = request.param
+    with patch('gfarm_http.async_gfstat') as mock:
+        yield mock_exec_common(mock, stdout, stderr, result)
 
 
 def assert_is_oidc_auth(kwargs):
@@ -118,9 +130,23 @@ def assert_is_anon_auth(kwargs):
     assert mech == "ANONYMOUS"
 
 
-test_gfstat_str = """
+gfstat_file_stdout = """
+File: "/tmp/test.pdf"
+Size: 54321         Filetype: regular file
+Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
+Inode: 99999999     Gen: 9999999
+                    (00000000000000030000000000000000)
+Links: 2            Ncopy: 1
+Access: 2025-02-10 18:27:33.191688265 +0000
+Modify: 2025-02-10 18:27:31.071120060 +0000
+Change: 2025-02-10 18:15:09.400000000 +0900
+MetadataHost: gfmd1
+MetadataPort: 601
+MetadataUser: user1
+"""
+gfstat_dir_stdout = """
 File: "/tmp"
-Size: 54321         Filetype: directory
+Size: 0             Filetype: directory
 Mode: (1777)        Uid: ( user1)  Gid: (gfarmadm)
 Inode: 3            Gen: 5
                     (00000000000000030000000000000000)
@@ -132,9 +158,9 @@ MetadataHost: gfmd1
 MetadataPort: 601
 MetadataUser: user1
 """
-expect_stat = {
+parsed_stat = {
     "File": "/tmp",
-    "Size": 54321,
+    "Size": 0,
     "Filetype": "directory",
     "Mode": "1777",
     "Uid": "user1",
@@ -154,9 +180,10 @@ expect_stat = {
     "MetadataUser": "user1",
 }
 
+
 def test_parse_gfstat():
-    st = gfarm_http.parse_gfstat(test_gfstat_str).model_dump()
-    assert st == expect_stat
+    st = gfarm_http.parse_gfstat(gfstat_dir_stdout).model_dump()
+    assert st == parsed_stat
 
 
 expect_gfwhoami_stdout = "testuser"
@@ -324,11 +351,12 @@ async def test_dir_remove(mock_claims, mock_exec):
 
 gfexport_stdout = b"test output data"
 expect_gfexport = (gfexport_stdout, b"", 0)
-
+expect_gfstat = (gfstat_file_stdout.encode(), b"", 0)
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfstat", [(expect_gfstat)], indirect=True)
 @pytest.mark.parametrize("mock_exec", [(expect_gfexport)], indirect=True)
-async def test_file_export(mock_claims, mock_size, mock_exec):
+async def test_file_export(mock_claims, mock_gfstat, mock_exec):
     response = client.get("/file/a/testfile.txt",
                           headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -343,7 +371,7 @@ async def test_file_export(mock_claims, mock_size, mock_exec):
 # TODO test_get_attr
 
 
-expect_gfstat = (test_gfstat_str.encode(), b"", 0)
+expect_gfstat = (gfstat_dir_stdout.encode(), b"", 0)
 
 
 @pytest.mark.asyncio
@@ -354,7 +382,7 @@ async def test_get_attr(mock_claims, mock_exec):
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
     assert args == ('gfstat', '-M', '/dir/testfile.txt')
-    assert response.json() == expect_stat
+    assert response.json() == parsed_stat
 
 
 # TODO test_change_attr

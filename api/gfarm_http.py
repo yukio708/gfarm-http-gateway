@@ -1239,7 +1239,7 @@ async def async_gfchmod(env, path, mode):
 # # SEE ALSO: gfptar
 # PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
 #                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
-# async def async_size(env, path):
+# async def file_size(env, path):
 #     args = ['-ilTd', path]
 #     p = await asyncio.create_subprocess_exec(
 #         'gfls', *args,
@@ -1276,7 +1276,7 @@ async def async_gfchmod(env, path, mode):
 #     return existing, is_file, size
 
 
-async def async_size(env, path):
+async def file_size(env, path):
     metadata = False
     proc = await async_gfstat(env, path, metadata)
     elist = []
@@ -1467,7 +1467,7 @@ async def file_export(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    existing, is_file, size = await async_size(env, gfarm_path)
+    existing, is_file, size = await file_size(env, gfarm_path)
     if not existing:
         # TODO gfarm_http_error
         raise HTTPException(
