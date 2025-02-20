@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eu
 set -x
+
 DIR=$(dirname $(realpath $0))
 CONF=./gfarm-http-for-docker-dist.conf
 
@@ -20,4 +21,4 @@ else
     export GFARM_HTTP_CONFIG_FILE
 fi
 
-exec ${DIR}/gfarm-http-dev.sh "$@"
+exec bash -x ${DIR}/gfarm-http-dev.sh "$@"

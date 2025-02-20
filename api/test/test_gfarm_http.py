@@ -6,7 +6,7 @@ import pytest
 import pytest_asyncio
 from unittest.mock import patch, Mock
 
-from gfarm_api import app
+from gfarm_http import app
 
 
 client = TestClient(app)
@@ -35,28 +35,28 @@ def mock_claims():
 
 @pytest.fixture
 def mock_anon():
-    with patch("gfarm_api.ALLOW_ANONYMOUS") as mock:
+    with patch("gfarm_http.ALLOW_ANONYMOUS") as mock:
         mock = "yes"
         yield mock
 
 
 @pytest.fixture
 def mock_access_token():
-    with patch("gfarm_api.get_access_token") as mock:
+    with patch("gfarm_http.get_access_token") as mock:
         mock.return_value = test_access_token
         yield mock
 
 
 @pytest.fixture
 def mock_access_token_none():
-    with patch("gfarm_api.get_access_token") as mock:
+    with patch("gfarm_http.get_access_token") as mock:
         mock.return_value = None
         yield mock
 
 
 @pytest.fixture
 def mock_user_passwd():
-    with patch("gfarm_api.get_user_passwd") as mock:
+    with patch("gfarm_http.get_user_passwd") as mock:
         mock.return_value = tuple(userpass_str.split(":", 1))
         yield mock
 

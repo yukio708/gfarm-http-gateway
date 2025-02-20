@@ -1,11 +1,12 @@
 #!/bin/bash
+set -eu
 
 DIR=$(realpath $(dirname $0))
 source "${DIR}/gfarm-http-common.sh"
 
 RELOAD=--reload
-#LOGLEVEL=trace
-LOGLEVEL=debug
+LOGLEVEL="--log-level debug"
+OPT_HOST="--host 0.0.0.0"
 
 cd "$SRC_DIR"
-PYTHONPATH="$API_DIR" "$UVICORN" --proxy-headers --log-level $LOGLEVEL --host 0.0.0.0 $RELOAD gfarm_api:app "$@"
+PYTHONPATH="$API_DIR" exec "$UVICORN" "$APP" --proxy-headers $LOGLEVEL $OPT_HOST $RELOAD "$@"

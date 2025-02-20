@@ -89,6 +89,7 @@ HTTP gateway for Gfarm filesystem
 - `make test` to run test
 - `./bin/gfarm-http-dev.sh --log-level debug`
   - for clients of any hosts (0.0.0.0:8000)
+  - high load average
 
 ## Development environment in gfarm/docker/dist
 

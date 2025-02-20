@@ -1,10 +1,10 @@
 #!/bin/bash
+set -eu
 
 DIR=$(realpath $(dirname $0))
 source "${DIR}/gfarm-http-common.sh"
 
-#--workers $(nproc)
-#--log-level info
+#WORKERS="--workers $(nproc)"
 
 cd "$SRC_DIR"
-PYTHONPATH="$API_DIR" "$UVICORN" --proxy-headers gfarm_api:app "$@"
+PYTHONPATH="$API_DIR" exec "$UVICORN" "$APP" --proxy-headers "$@"
