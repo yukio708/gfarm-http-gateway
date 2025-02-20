@@ -99,7 +99,7 @@ expect_gfls = (expect_gfls_stdout.encode(), b"error", 0)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [(expect_gfls)], indirect=True)
-async def test_list(mock_claims, mock_exec):
+async def test_dir_list(mock_claims, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc)
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-l', '/testdir')
@@ -109,7 +109,7 @@ async def test_list(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [(expect_gfls)], indirect=True)
-async def test_list_a(mock_claims, mock_exec):
+async def test_dir_list_a(mock_claims, mock_exec):
     response = client.get("/dir/testdir?a=1", headers=req_headers_oidc)
     # NOT WORK: mock_exec.assert_called_with(args=['gfls', '-a', 'testdir'])
     args, kwargs = mock_exec.call_args
@@ -120,7 +120,7 @@ async def test_list_a(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [(expect_gfls)], indirect=True)
-async def test_list_R(mock_claims, mock_exec):
+async def test_dir_list_R(mock_claims, mock_exec):
     response = client.get("/dir/testdir?R=1", headers=req_headers_oidc)
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-l', '-R', '/testdir')
@@ -134,7 +134,7 @@ expect_gfls_err = (expect_gfls_err_msg.encode(), b"error", 1)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [(expect_gfls_err)], indirect=True)
-async def test_list_err(mock_claims, mock_exec):
+async def test_dir_list_err(mock_claims, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc)
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-l', '/testdir')
@@ -144,9 +144,23 @@ async def test_list_err(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [(expect_gfls_err)], indirect=True)
-async def test_list_ign_err(mock_claims, mock_exec):
+async def test_dir_list_ign_err(mock_claims, mock_exec):
     response = client.get("/dir/testdir?ign_err=1", headers=req_headers_oidc)
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-l', '/testdir')
     assert response.status_code == 200
     assert response.text == expect_gfls_err_msg
+
+
+expect_gfmkdir_stdout = ""
+expect_gfmkdir = (expect_gfmkdir_stdout.encode(), b"", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [(expect_gfmkdir)], indirect=True)
+async def test_dir_create(mock_claims, mock_exec):
+    response = client.put("/dir/testdir", headers=req_headers_oidc)
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfmkdir', '/testdir')
+    assert response.status_code == 200
+    assert response.text == expect_gfmkdir_stdout
