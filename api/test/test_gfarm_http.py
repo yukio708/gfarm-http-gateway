@@ -61,6 +61,16 @@ def mock_user_passwd():
         yield mock
 
 
+@pytest.fixture
+def mock_size():
+    with patch("gfarm_http.async_size") as mock:
+        existing = True
+        is_file = True
+        size = 1
+        mock.return_value = (existing, is_file, size)
+        yield mock
+
+
 # See: https://docs.pytest.org/en/latest/example/parametrize.html#apply-indirect-on-particular-arguments  # noqa: E501
 @pytest_asyncio.fixture(scope="function")
 async def mock_exec(request):
@@ -237,18 +247,43 @@ async def test_dir_list_ign_err(mock_claims, mock_exec):
     assert response.text == expect_gfls_err_msg
 
 
-expect_gfmkdir_stdout = ""
-expect_gfmkdir = (expect_gfmkdir_stdout.encode(), b"", 0)
+no_stdout = ""
+expect_no_stdout = (no_stdout.encode(), b"", 0)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [(expect_gfmkdir)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [(expect_no_stdout)], indirect=True)
 async def test_dir_create(mock_claims, mock_exec):
-    response = client.put("/dir/testdir", headers=req_headers_oidc_auth)
+    response = client.put("/dir/a/testdir", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
-    assert args == ('gfmkdir', '/testdir')
-    assert response.text == expect_gfmkdir_stdout
+    assert args == ('gfmkdir', '/a/testdir')
+    assert response.text == no_stdout
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [(expect_no_stdout)], indirect=True)
+async def test_dir_remove(mock_claims, mock_exec):
+    response = client.delete("/dir/testdir", headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfrmdir', '/testdir')
+    assert response.text == no_stdout
+
+
+gfexport_stdout = b"test output data"
+expect_gfexport = (gfexport_stdout, b"", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [(expect_gfexport)], indirect=True)
+async def test_file_export(mock_claims, mock_size, mock_exec):
+    response = client.get("/file/a/testfile.txt",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfexport', '/a/testfile.txt')
+    assert response.content == gfexport_stdout
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
 # class patch_exec(object):

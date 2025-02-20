@@ -114,8 +114,8 @@ HTTP gateway for Gfarm filesystem
 ## Logging
 
 - To change log level: --log-level
-  - SEE `venv/bin/uvicorn --help`
-  - SEE <https://www.uvicorn.org/settings/#logging>
+  - See `venv/bin/uvicorn --help`
+  - See: <https://www.uvicorn.org/settings/#logging>
 - To change the log format
   - use LOGURU_FORMAT environment variable
     - cannot be specified in a configuration file

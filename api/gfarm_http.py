@@ -244,11 +244,11 @@ def conf_check_invalid():
 #############################################################################
 # logging
 # using loguru: https://github.com/Delgan/loguru
-# SEE: https://github.com/fastapi/fastapi/discussions/7533
+# See: https://github.com/fastapi/fastapi/discussions/7533
 
 
 class InterceptHandler(logging.Handler):
-    # SEE: https://loguru.readthedocs.io/en/stable/overview.html#entirely-compatible-with-standard-logging  # noqa: E501
+    # See: https://loguru.readthedocs.io/en/stable/overview.html#entirely-compatible-with-standard-logging  # noqa: E501
 
     def emit(self, record):
         # Get corresponding Loguru level if it exists
@@ -268,7 +268,7 @@ class InterceptHandler(logging.Handler):
         )
 
 
-# SEE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.add  # noqa: E501
+# See: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.add  # noqa: E501
 # default format: '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>'  # noqa: E501
 # LOGURU_FORMAT environment variable to change the format:
 #   ex. LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>"
@@ -287,7 +287,7 @@ class InterceptHandler(logging.Handler):
 #     return format_string
 
 # set format for uvicorn
-# SEE: https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
+# See: https://github.com/encode/uvicorn/blob/master/uvicorn/config.py
 #   (uvicorn loggers: .error .access .asgi)
 logger_uvicorn_access = logging.getLogger("uvicorn.access")
 logger_uvicorn_access.handlers = [InterceptHandler()]
@@ -316,7 +316,7 @@ root_logger.setLevel(loglevel)
 root_logger.handlers = [InterceptHandler()]
 
 # set format for loguru
-# SEE: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure  # noqa: E501
+# See: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure  # noqa: E501
 loguru_handler = {"sink": sys.stdout, "level": loglevel}
 # loguru_handler.update({"format": format_record})
 loguru_handlers = [loguru_handler]
