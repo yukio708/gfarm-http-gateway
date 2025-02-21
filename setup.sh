@@ -4,6 +4,10 @@ set -x
 
 source /etc/os-release
 
+REQUIREMENTS="${1:-requirements.txt}"
+
+INSTALL_PACKAGES="${INSTALL_PACKAGES:-1}"
+
 DIR=$(realpath $(dirname $0))
 VENV_DIR="${DIR}/venv"
 PIP="${VENV_DIR}/bin/pip3"
@@ -37,16 +41,20 @@ install_python_package() {
     #rm -rf "$VENV_DIR"
     $PYTHON -m venv --upgrade "$VENV_DIR"
 
-    $PIP install -r requirements.txt
+    $PIP install -r "$REQUIREMENTS"
 }
 
 install_for_debian() {
-    install_packages_for_debian
+    if [ $INSTALL_PACKAGES -eq 1 ]; then
+        install_packages_for_debian
+    fi
     install_python_package
 }
 
 install_for_rhel() {
-    install_packages_for_rhel
+    if [ $INSTALL_PACKAGES -eq 1 ]; then
+        install_packages_for_rhel
+    fi
     install_python_package
 }
 

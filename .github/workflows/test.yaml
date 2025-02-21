@@ -28,9 +28,31 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      - name: Make setup
-        run: make setup
-      - name: Make test
+      - name: Run setup-latest-wo-packages
+        run: make setup-latest-wo-packages
+      - name: Run test
         run: make test
-      - name: Make flake8
+      - name: Run flake8
         run: make flake8
+      - name: Update requirements.txt
+        run: make freeze
+      - name: Check for changes (for requirements.txt)
+        run: |
+          git status --porcelain
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "::set-output name=has_changes::true"
+          fi
+      - name: Commit files (for requirements.txt)
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "${{ github.event.pusher.email }}"
+          git config --local user.name "github-actions[bot](by ${{ github.event.pusher.name }})"
+          git commit -a -m "update requirements.txt"
+      # https://github.com/ad-m/github-push-action
+      - name: Push changes (for requirements.txt)
+        if: steps.check_changes.outputs.has_changes == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+          force: false

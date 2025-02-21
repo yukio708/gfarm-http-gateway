@@ -1554,6 +1554,7 @@ async def file_import(gfarm_path: str,
                       x_file_timestamp:
                       Union[str, None] = Header(default=None)):
     # TODO overwrite=1, defaut 0
+    # TODO check writable parent dir or target file
     opname = "gfreg"
     gfarm_path = fullpath(gfarm_path)
 
