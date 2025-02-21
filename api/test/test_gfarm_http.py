@@ -456,7 +456,22 @@ async def test_file_remove(mock_claims, mock_exec):
     assert response.text == no_stdout
 
 
-# TODO test_move_rename
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_move_rename(mock_claims, mock_exec):
+    src = "/dir1/file1.txt"
+    dest = "/dir2/file2.txt"
+    move = {
+        "source": src,
+        "destination": dest
+    }
+    response = client.post("/move",
+                           json=move,
+                           headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfmv', src, dest)
+    assert response.text == no_stdout
 
 
 expect_gfstat = (gfstat_dir_stdout.encode(), b"", 0)
@@ -473,7 +488,20 @@ async def test_get_attr(mock_claims, mock_exec):
     assert response.json() == parsed_stat
 
 
-# TODO test_change_attr
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_change_attr(mock_claims, mock_exec):
+    mode = "1750"
+    update_stat = {
+        "Mode": mode,
+    }
+    response = client.post("/attr/dir/file1.mp4",
+                           json=update_stat,
+                           headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfchmod', mode, "/dir/file1.mp4")
+    assert response.text == no_stdout
 
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
