@@ -1557,10 +1557,13 @@ async def file_import(gfarm_path: str,
     # TODO check writable parent dir or target file
     opname = "gfreg"
     gfarm_path = fullpath(gfarm_path)
+    filename = os.path.basename(gfarm_path)
+    # NOTE: MAXNAMLEN == 255
+    filename_prefix = filename[:128]
 
     choices = string.ascii_letters + string.digits
     randstr = ''.join(random.choices(choices, k=8))
-    tmpname = "gfarm-http-gateway.upload." + randstr
+    tmpname = "gfarm-http.upload." + filename_prefix + "." + randstr
     tmppath = os.path.join(os.path.dirname(gfarm_path), tmpname)
 
     env = await set_env(request, authorization)
@@ -1588,12 +1591,12 @@ async def file_import(gfarm_path: str,
 
     if return_code == 0 and error is None:
         env = await set_env(request, authorization)  # may refresh
-        gfmv = "gfmv"
+        gfmv_cmd = "gfmv"
         p2 = await gfmv(env, tmppath, gfarm_path)
-        stderr_task2 = asyncio.create_task(log_stderr(gfmv, p2, elist))
+        stderr_task2 = asyncio.create_task(log_stderr(gfmv_cmd, p2, elist))
         await stderr_task2
         return_code = await p2.wait()
-        logger.debug(f"{ipaddr}:0 user={user}, cmd={gfmv}, src={tmppath},"
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={gfmv_cmd}, src={tmppath},"
                      f" dest={gfarm_path}, return={return_code}")
         if return_code == 0:
             return Response(status_code=200)

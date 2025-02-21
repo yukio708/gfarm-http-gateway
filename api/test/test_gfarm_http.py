@@ -14,7 +14,7 @@ client = TestClient(gfarm_http.app)
 test_access_token = "TEST_access_token"
 req_headers_oidc_auth = {"Authorization": f"Bearer {test_access_token}"}
 
-user_claim = "testuser1"
+user_claim = "oidc_user1"
 
 userpass_str = "TESTUSER123:PASSWO:RD123"  # allow colon in password
 userpass_b64_bin = base64.b64encode(userpass_str.encode())
@@ -74,6 +74,8 @@ def mock_size():
 def mock_exec_common(mock, stdout, stderr, result):
     # Dummy asyncio.subprocess.Process
     mock_proc = Mock()
+    mock_proc.stdin = Mock(spec=asyncio.StreamWriter)
+    # mock_proc.stdin = Mock(spec=asyncio.StreamWriter()
     mock_proc.stdout = asyncio.StreamReader()
     if stdout is not None:
         mock_proc.stdout.feed_data(stdout)
@@ -100,9 +102,22 @@ async def mock_exec(request):
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfstat(request):
-    # expected parameters
     stdout, stderr, result = request.param
     with patch('gfarm_http.gfstat') as mock:
+        yield mock_exec_common(mock, stdout, stderr, result)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_gfmv(request):
+    stdout, stderr, result = request.param
+    with patch('gfarm_http.gfmv') as mock:
+        yield mock_exec_common(mock, stdout, stderr, result)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_gfrm(request):
+    stdout, stderr, result = request.param
+    with patch('gfarm_http.gfrm') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
 
 
@@ -128,6 +143,15 @@ def assert_is_anon_auth(kwargs):
     env = kwargs.get("env")
     mech = env.get("GFARM_SASL_MECHANISMS")
     assert mech == "ANONYMOUS"
+
+
+def assert_gfarm_http_error(response, code, expect_msg_list):
+    assert response.status_code == code
+    j = response.json()
+    detail = j.get("detail")
+    message = detail.get("message")
+    for msg in expect_msg_list:
+        assert msg in message
 
 
 gfstat_file_stdout = """
@@ -366,7 +390,67 @@ async def test_file_export(mock_claims, mock_gfstat, mock_exec):
     assert response.content == gfexport_stdout
 
 
-# TODO test_file_import
+expect_gfreg = (b"", b"", 0)
+expect_gfmv = (b"", b"", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfmv", [expect_gfmv], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfreg], indirect=True)
+async def test_file_import(mock_claims, mock_gfmv, mock_exec):
+    input_data = b"test data"
+    response = client.put("/file/a/testfile.txt",
+                          content=input_data,
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    assert response.content == b""
+    gfreg_proc = mock_exec.return_value
+    written_data = b"".join([call.args[0] for call in
+                             gfreg_proc.stdin.write.call_args_list])
+    assert written_data == input_data
+    args, kwargs = mock_exec.call_args
+    assert args[0] == 'gfreg'
+    args, kwargs = mock_gfmv.call_args
+    assert args[2] == '/a/testfile.txt'
+
+
+expect_gfreg_err = (b"", b"error", 1)
+expect_gfrm = (b"", b"", 0)
+
+
+def repeat_str(text, length):
+    repeated_string = ""
+    while len(repeated_string) < length:
+        repeated_string += text
+    return repeated_string[:length]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfrm", [expect_gfrm], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_gfreg_err], indirect=True)
+async def test_file_import_err(mock_claims, mock_gfrm, mock_exec):
+    MAXNAMELEN = 255
+    fname = "/dir/" + repeat_str("abcde", MAXNAMELEN)
+    input_data = b"input data2"
+    response = client.put(f"/file{fname}",
+                          content=input_data,
+                          headers=req_headers_oidc_auth)
+    expect_msg_list = ["gfreg error:", f"path={fname}"]
+    assert_gfarm_http_error(response, 500, expect_msg_list)
+    gfreg_proc = mock_exec.return_value
+    written_data = b"".join([call.args[0] for call in
+                             gfreg_proc.stdin.write.call_args_list])
+    assert written_data == input_data
+
+    args, kwargs = mock_exec.call_args
+    assert args[0] == 'gfreg'
+    assert len(args[1]) < MAXNAMELEN
+
+    args, kwargs = mock_gfrm.call_args
+    assert len(args[1]) < MAXNAMELEN
+    assert kwargs["force"] is True
+
+
 # TODO test_file_remove
 # TODO test_move_rename
 # TODO test_get_attr
