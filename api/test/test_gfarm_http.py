@@ -390,20 +390,16 @@ async def test_file_export(mock_claims, mock_gfstat, mock_exec):
     assert response.content == gfexport_stdout
 
 
-expect_gfreg = (b"", b"", 0)
-expect_gfmv = (b"", b"", 0)
-
-
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfmv", [expect_gfmv], indirect=True)
-@pytest.mark.parametrize("mock_exec", [expect_gfreg], indirect=True)
+@pytest.mark.parametrize("mock_gfmv", [expect_no_stdout], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
 async def test_file_import(mock_claims, mock_gfmv, mock_exec):
     input_data = b"test data"
     response = client.put("/file/a/testfile.txt",
                           content=input_data,
                           headers=req_headers_oidc_auth)
     assert response.status_code == 200
-    assert response.content == b""
+    assert response.text == no_stdout
     gfreg_proc = mock_exec.return_value
     written_data = b"".join([call.args[0] for call in
                              gfreg_proc.stdin.write.call_args_list])
@@ -415,7 +411,6 @@ async def test_file_import(mock_claims, mock_gfmv, mock_exec):
 
 
 expect_gfreg_err = (b"", b"error", 1)
-expect_gfrm = (b"", b"", 0)
 
 
 def repeat_str(text, length):
@@ -426,7 +421,7 @@ def repeat_str(text, length):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfrm", [expect_gfrm], indirect=True)
+@pytest.mark.parametrize("mock_gfrm", [expect_no_stdout], indirect=True)
 @pytest.mark.parametrize("mock_exec", [expect_gfreg_err], indirect=True)
 async def test_file_import_err(mock_claims, mock_gfrm, mock_exec):
     MAXNAMELEN = 255
@@ -451,9 +446,17 @@ async def test_file_import_err(mock_claims, mock_gfrm, mock_exec):
     assert kwargs["force"] is True
 
 
-# TODO test_file_remove
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_file_remove(mock_claims, mock_exec):
+    response = client.delete("/file/test.pptx", headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfrm', '/test.pptx')
+    assert response.text == no_stdout
+
+
 # TODO test_move_rename
-# TODO test_get_attr
 
 
 expect_gfstat = (gfstat_dir_stdout.encode(), b"", 0)
