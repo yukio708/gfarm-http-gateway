@@ -349,6 +349,12 @@ def log_login(request, user, login_type):
         f"{ipaddr}:0 user={user}, login_auth_type={login_type}")
 
 
+def log_login_error(request, user, login_type, error):
+    ipaddr = request.client.host
+    logger.opt(depth=1).error(
+        f"{ipaddr}:0 user={user}, login_auth_type={login_type}, error={error}")
+
+
 if DEBUG:
     logger.debug("config:\n" + pf(conf.__dict__))
 
@@ -687,13 +693,17 @@ async def oidc_auth_common(request):
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request,
+                error: str = "",
                 session_state: str = None,
                 code: str = None):
     if session_state is not None and code is not None:
         return await oidc_auth_common(request)
 
     login_ok = False
-    error = ""
+    if error == "":
+        error = request.session.get("error", "")
+        request.session.pop("error", None)
+
     sasl_username = ""
     try:
         access_token = await get_access_token(request)
@@ -835,9 +845,16 @@ async def login_passwd(request: Request,
     p = await gfwhoami(env)
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
-    except Exception:
+    except Exception as e:
         delete_user_passwd(request)
-        raise
+        err = str(e)
+        request.session["error"] = err
+        # err = urllib.parse.quote(err)
+        # url = str(request.url_for("index")) + f"?error={err}"
+        url = request.url_for("index")
+        log_login_error(request, username, "password", err)
+        return RedirectResponse(url=url, status_code=303)
+    # OK
     log_login(request, username, "password")
     # return RedirectResponse(url="./", status_code=303)
     url = request.url_for("index")
