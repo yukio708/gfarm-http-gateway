@@ -1,0 +1,24 @@
+common_help() {
+    echo "Common options:"
+    echo "  -h  Show this help message"
+    echo "  -k  Insecure connection"
+    echo "  -v  Verbose mode"
+    echo "Enviroment variable:"
+    echo "  GFARM_HTTP_URL    base URL of gfarm-http-gateway (required)"
+}
+
+check_GFARM_HTTP_URL() {
+    if [ -z "${GFARM_HTTP_URL:-}" ]; then
+        ERR "GFARM_HTTP_URL is required"
+        help
+        exit 1
+    fi
+}
+
+ERR() {
+    echo >&2 "Error:" "$@"
+}
+
+urlpathencode() {
+    jq -Rr @uri | sed 's|%2F|/|g'
+}
