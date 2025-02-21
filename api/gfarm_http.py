@@ -21,6 +21,7 @@ import urllib
 
 from loguru import logger
 
+import httpx
 import requests
 
 from pydantic import BaseModel
@@ -251,18 +252,20 @@ class InterceptHandler(logging.Handler):
     # See: https://loguru.readthedocs.io/en/stable/overview.html#entirely-compatible-with-standard-logging  # noqa: E501
 
     def emit(self, record):
-        # Get corresponding Loguru level if it exists
+        # Get corresponding Loguru level if it exists.
         try:
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
-        # Find caller from where originated the logged message
-        frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
+        # Find caller from where originated the logged message.
+        frame, depth = logging.currentframe(), 0
+        while frame and (depth == 0
+                         or frame.f_code.co_filename == logging.__file__):
             frame = frame.f_back
             depth += 1
-
+            # print(depth, frame.f_code.co_filename)
+        # print(depth, frame.f_code.co_filename)
         logger.opt(depth=depth, exception=record.exc_info).log(
             level, record.getMessage()
         )
@@ -292,13 +295,12 @@ class InterceptHandler(logging.Handler):
 logger_uvicorn_access = logging.getLogger("uvicorn.access")
 logger_uvicorn_access.handlers = [InterceptHandler()]
 
-loglevel = logger_uvicorn_access.getEffectiveLevel()
-
 if GFARM_HTTP_DEBUG:
     DEBUG = True
     loglevel = logging.DEBUG
     logger_uvicorn_access.setLevel(loglevel)
 else:
+    loglevel = logger_uvicorn_access.getEffectiveLevel()
     DEBUG = loglevel == logging.DEBUG
 
 logger_uvicorn = logging.getLogger("uvicorn")
@@ -483,7 +485,29 @@ def set_token(request: Request, token):
     request.session["token"] = token
 
 
+USE_HTTPX = True
+
+
+async def http_post(url, data):
+    if USE_HTTPX:
+        async with httpx.AsyncClient(verify=VERIFY_CERT) as client:
+            response = await client.post(url, data=data)
+    else:
+        response = requests.post(url, data=data, verify=VERIFY_CERT)
+    return response
+
+
+async def http_get(url):
+    if USE_HTTPX:
+        async with httpx.AsyncClient(verify=VERIFY_CERT) as client:
+            response = await client.get(url)
+    else:
+        response = requests.get(url, verify=VERIFY_CERT)
+    return response
+
+
 async def use_refresh_token(request: Request, token):
+    logger.debug("use_refresh_token is called")
     refresh_token = token.get("refresh_token")
     meta = await oidc_metadata()
     try:
@@ -494,13 +518,13 @@ async def use_refresh_token(request: Request, token):
             "client_secret": OIDC_CLIENT_SECRET,
         }
         token_endpoint_url = meta.get('token_endpoint')
-        # TODO use httpx
-        response = requests.post(token_endpoint_url,
-                                 data=data, verify=VERIFY_CERT)
+        response = await http_post(token_endpoint_url, data)
         response.raise_for_status()
         new_token = response.json()
         set_token(request, new_token)
         return new_token
+    except httpx.HTTPError:
+        raise
     except requests.exceptions.RequestException:
         raise
 
@@ -514,9 +538,10 @@ async def verify_token(token, use_raise=False):
         access_token = token.get("access_token")
         jwks_url = await oidc_keys_url()
         # TODO cache jwks, cache timeout: oidc_jwks()
-        jwks = requests.get(jwks_url, verify=VERIFY_CERT).json()
-        if DEBUG:
-            logger.debug("jwks=\n" + pf(jwks))
+        response = await http_get(jwks_url)
+        jwks = response.json()
+        # if DEBUG:
+        #     logger.debug("jwks=\n" + pf(jwks))
     except Exception:
         # logger.error(f"verify_token initialization error: {e}")
         logger.exception("verify_token initialization error")
