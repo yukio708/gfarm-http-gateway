@@ -9,9 +9,8 @@ on:
   pull_request:
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -37,10 +36,12 @@ jobs:
       - name: Update requirements.txt
         run: make freeze
       - name: Check for changes (for requirements.txt)
+        id: check_changes
+        # https://docs.github.com/ja/actions/writing-workflows/choosing-what-your-workflow-does/passing-information-between-jobs
         run: |
           git status --porcelain
           if [[ -n "$(git status --porcelain)" ]]; then
-            echo "::set-output name=has_changes::true"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Commit files (for requirements.txt)
         if: steps.check_changes.outputs.has_changes == 'true'
