@@ -317,6 +317,12 @@ root_logger = logging.getLogger()
 root_logger.setLevel(loglevel)
 root_logger.handlers = [InterceptHandler()]
 
+if not DEBUG:
+    # hide httpx.client messages
+    httpx_logger = logging.getLogger("httpx")
+    fltr = logging.Filter("httpx.client")
+    httpx_logger.addFilter(fltr)
+
 # set format for loguru
 # See: https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.configure  # noqa: E501
 loguru_handler = {"sink": sys.stdout, "level": loglevel}
@@ -533,13 +539,32 @@ def jwt_error(msg):
     return HTTPException(status_code=500, detail=f"JWT error: {msg}")
 
 
+jwks_cache = None
+jwks_cache_time = None
+jwks_cache_timeout = 600  # sec.
+
+
+# caching jwks
+async def oidc_jwks():
+    global jwks_cache
+    global jwks_cache_time
+    now = int(time.time())
+    if jwks_cache_time is None or now > jwks_cache_time + jwks_cache_timeout:
+        # timeout
+        jwks_cache_time = now
+        jwks_url = await oidc_keys_url()
+        response = await http_get(jwks_url)
+        jwks_cache = response.json()
+        return jwks_cache
+    else:
+        logger.debug("use cached jwks")
+        return jwks_cache
+
+
 async def verify_token(token, use_raise=False):
     try:
         access_token = token.get("access_token")
-        jwks_url = await oidc_keys_url()
-        # TODO cache jwks, cache timeout: oidc_jwks()
-        response = await http_get(jwks_url)
-        jwks = response.json()
+        jwks = await oidc_jwks()
         # if DEBUG:
         #     logger.debug("jwks=\n" + pf(jwks))
     except Exception:
