@@ -145,13 +145,17 @@ def assert_is_anon_auth(kwargs):
     assert mech == "ANONYMOUS"
 
 
-def assert_gfarm_http_error(response, code, expect_msg_list):
+def assert_gfarm_http_error(response, code, command, expect_msg_list, stdout):
     assert response.status_code == code
     j = response.json()
     detail = j.get("detail")
-    message = detail.get("message")
-    for msg in expect_msg_list:
-        assert msg in message
+    assert detail.get("command") == command
+    if expect_msg_list:
+        message = detail.get("message")
+        for msg in expect_msg_list:
+            assert msg in message
+    if stdout:
+        assert detail.get("stdout") == stdout
 
 
 gfstat_file_stdout = """
@@ -332,10 +336,9 @@ expect_gfls_err = (expect_gfls_err_msg.encode(), b"error", 1)
 @pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
 async def test_dir_list_err(mock_claims, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
-    assert response.status_code == 500
+    assert_gfarm_http_error(response, 500, "gfls", None, expect_gfls_err_msg)
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-l', '/testdir')
-    assert response.json() == {"detail": expect_gfls_err_msg}
 
 
 @pytest.mark.asyncio
@@ -431,7 +434,7 @@ async def test_file_import_err(mock_claims, mock_gfrm, mock_exec):
                           content=input_data,
                           headers=req_headers_oidc_auth)
     expect_msg_list = ["gfreg error:", f"path={fname}"]
-    assert_gfarm_http_error(response, 500, expect_msg_list)
+    assert_gfarm_http_error(response, 500, "gfreg", expect_msg_list, None)
     gfreg_proc = mock_exec.return_value
     written_data = b"".join([call.args[0] for call in
                              gfreg_proc.stdin.write.call_args_list])
