@@ -16,8 +16,8 @@ HTTP gateway for Gfarm filesystem
 
 ## Requirements
 
-- Gfarm 2.8.7 or later (use Gfarm clients)
-- Python 3.11 or later
+- Gfarm (clients) 2.8.7 or later
+- Python 3.12 or later
 - python3-venv
 - Python packages (refer to `requirements.txt`)
 - OpenID provider (Keycloak, etc.)
@@ -213,11 +213,22 @@ server {
 - `./jwt-curl-upload /tmp/10GiB http://c2:8000/f/tmp/10GiB`
 - `./jwt-curl -o /tmp/10GiB-2 http://c2:8000/f/tmp/10GiB`
 - `GFARM_SASL_USER=anonymous ./jwt-curl http://c2:8000/c/me`
+  - or `curl http://c2:8000/c/me`
 - `GFARM_SASL_USER=user1 GFARM_SASL_PASSWORD=PASSWORD ./jwt-curl http://c2:8000/c/me`
 
 ### Examples of JavaScript
 
 - Refer to `templates/index.html` and `static/js/gfarm.js`
+
+### Authorization
+
+- How to use OIDC access token
+  - HTTP request header: "Authorization: Bearer <Access token>"
+- How to use username:password
+  - HTTP request header: "Authorization: Basic <base64encoded 'user:pass'>"
+- How to use session
+  - open "/" (index page) by web browser
+  - and login (OpenID provider or password for SASL)
 
 ## API docs
 
@@ -232,9 +243,10 @@ server {
   - `ex. PACKAGENAME>=VERSION`
 - DO NOT edit requirements.txt
 
-### To update requirements.txt
+### To update requirements.txt for latest
 
 ```
+make test
 make freeze
 git add requirements.txt
 git commit requirements.txt
