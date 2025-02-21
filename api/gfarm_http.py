@@ -644,10 +644,6 @@ def delete_token(request: Request):
 
 
 async def get_access_token(request: Request) -> Optional[str]:
-    # TODO cache metadata
-    # meta = await provider.load_server_metadata()
-    # logger.debug(f"metadata:\n" + pf(meta))
-
     token = await get_token(request)
     if token:
         # print("token from session: " + str(token))  # for debug
@@ -1361,7 +1357,7 @@ async def file_size(env, path):
         existing = True
         is_file = (st.Filetype == "regular file")
         size = st.Size
-    # TODO logger.debug
+    logger.debug(f"file_size: {existing}, {is_file}, {size}")
     return existing, is_file, size
 
 
@@ -1477,11 +1473,10 @@ async def dir_list(gfarm_path: str,
         logger.debug(
             f"{ipaddr}:0 user={user}, cmd={opname}, return={return_code},"
             f" message={stdout}")
-        # TODO gfarm_http_error
-        raise HTTPException(
-            status_code=500,
-            detail=stdout
-        )
+        code = 500
+        message = f"gfls error: path={gfarm_path}"
+        elist = []
+        raise gfarm_http_error(opname, code, message, stdout, elist)
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={stdout}")
     return PlainTextResponse(content=stdout)
 
@@ -1536,20 +1531,20 @@ async def file_export(gfarm_path: str,
     log_operation(env, opname, gfarm_path)
     existing, is_file, size = await file_size(env, gfarm_path)
     if not existing:
-        # TODO gfarm_http_error
-        raise HTTPException(
-            status_code=404,
-            detail="The requested URL does not exist."
-        )
+        code = 404
+        message = "The requested URL does not exist."
+        stdout = ""
+        elist = []
+        raise gfarm_http_error(opname, code, message, stdout, elist)
     if not is_file:
-        # TODO gfarm_http_error
-        raise HTTPException(
-            status_code=415,
-            detail="The requested URL does not represent a file."
-        )
+        code = 415
+        message = "The requested URL does not represent a file."
+        stdout = ""
+        elist = []
+        raise gfarm_http_error(opname, code, message, stdout, elist)
 
     if int(size) <= 0:
-        return Response(status_code=204)
+        return Response(status_code=204)  # 0 byte OK
 
     env = await set_env(request, authorization)  # may refresh
     if ASYNC_GFEXPORT:
@@ -1568,11 +1563,11 @@ async def file_export(gfarm_path: str,
     if not first_byte:
         if ASYNC_GFEXPORT:
             await stderr_task
-        # TODO gfarm_http_error
-        raise HTTPException(
-            status_code=403,
-            detail=f"Cannot read: path={gfarm_path}, stderr={str(elist)}"
-        )
+        # TODO check_writable() : True ... 500,  False ... 403
+        code = 403
+        message = f"Cannot read: path={gfarm_path}"
+        stdout = ""
+        raise gfarm_http_error(opname, code, message, stdout, elist)
 
     async def generate():
         yield first_byte
