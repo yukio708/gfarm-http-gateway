@@ -102,7 +102,7 @@ async def mock_exec(request):
 async def mock_gfstat(request):
     # expected parameters
     stdout, stderr, result = request.param
-    with patch('gfarm_http.async_gfstat') as mock:
+    with patch('gfarm_http.gfstat') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
 
 

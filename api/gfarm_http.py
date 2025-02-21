@@ -782,7 +782,7 @@ async def login_passwd(request: Request,
     delete_token(request)
     set_user_passwd(request, username, password)
     env = await set_env(request, None)
-    p = await async_gfwhoami(env)
+    p = await gfwhoami(env)
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
     except Exception:
@@ -1110,7 +1110,7 @@ def parse_gfstat(file_info_str):
 
 
 #############################################################################
-async def async_gfwhoami(env):
+async def gfwhoami(env):
     args = []
     return await asyncio.create_subprocess_exec(
         'gfwhoami', *args,
@@ -1120,7 +1120,7 @@ async def async_gfwhoami(env):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfrm(env, path, force=False):
+async def gfrm(env, path, force=False):
     if force:
         args = ["-f", path]
     else:
@@ -1133,7 +1133,7 @@ async def async_gfrm(env, path, force=False):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfmv(env, src, dest):
+async def gfmv(env, src, dest):
     args = [src, dest]
     return await asyncio.create_subprocess_exec(
         'gfmv', *args,
@@ -1143,7 +1143,7 @@ async def async_gfmv(env, src, dest):
         stderr=asyncio.subprocess.PIPE)
 
 
-def gfexport(env, path):
+def sync_gfexport(env, path):
     args = ['gfexport', path]
     return subprocess.Popen(
         args, shell=False, close_fds=True,
@@ -1153,7 +1153,7 @@ def gfexport(env, path):
         stderr=subprocess.DEVNULL)
 
 
-async def async_gfexport(env, path):
+async def gfexport(env, path):
     args = [path]
     return await asyncio.create_subprocess_exec(
         'gfexport', *args,
@@ -1163,7 +1163,7 @@ async def async_gfexport(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfreg(env, path, mtime):
+async def gfreg(env, path, mtime):
     if mtime:
         args = ['-M', str(mtime)]
     else:
@@ -1177,7 +1177,7 @@ async def async_gfreg(env, path, mtime):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfls(env, path, _all=0, recursive=0, effperm=0):
+async def gfls(env, path, _all=0, recursive=0, effperm=0):
     args = ['-l']
     if _all == 1:
         args.append('-a')
@@ -1194,7 +1194,7 @@ async def async_gfls(env, path, _all=0, recursive=0, effperm=0):
         stderr=asyncio.subprocess.STDOUT)
 
 
-async def async_gfmkdir(env, path):
+async def gfmkdir(env, path):
     args = [path]
     return await asyncio.create_subprocess_exec(
         'gfmkdir', *args,
@@ -1204,7 +1204,7 @@ async def async_gfmkdir(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfrmdir(env, path):
+async def gfrmdir(env, path):
     args = [path]
     return await asyncio.create_subprocess_exec(
         'gfrmdir', *args,
@@ -1214,7 +1214,7 @@ async def async_gfrmdir(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfstat(env, path, metadata):
+async def gfstat(env, path, metadata):
     if metadata:
         args = ['-M', path]
     else:
@@ -1227,7 +1227,7 @@ async def async_gfstat(env, path, metadata):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def async_gfchmod(env, path, mode):
+async def gfchmod(env, path, mode):
     args = [mode, path]
     return await asyncio.create_subprocess_exec(
         'gfchmod', *args,
@@ -1278,7 +1278,7 @@ async def async_gfchmod(env, path, mode):
 
 async def file_size(env, path):
     metadata = False
-    proc = await async_gfstat(env, path, metadata)
+    proc = await gfstat(env, path, metadata)
     elist = []
     stderr_task = asyncio.create_task(log_stderr("gfstat", proc, elist))
     data = await proc.stdout.read()
@@ -1382,7 +1382,7 @@ async def whoami(request: Request,
     opname = "gfwhoami"
     env = await set_env(request, authorization)
     log_operation(env, opname, None)
-    p = await async_gfwhoami(env)
+    p = await gfwhoami(env)
     return await gfarm_command_standard_response(env, p, opname)
 
 
@@ -1402,7 +1402,7 @@ async def dir_list(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    p = await async_gfls(env, gfarm_path, _all=a, recursive=R, effperm=e)
+    p = await gfls(env, gfarm_path, _all=a, recursive=R, effperm=e)
     data = await p.stdout.read()
     stdout = data.decode()
     return_code = await p.wait()
@@ -1429,7 +1429,7 @@ async def dir_create(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
-    p = await async_gfmkdir(env, gfarm_path)
+    p = await gfmkdir(env, gfarm_path)
     return await gfarm_command_standard_response(env, p, opname)
 
 
@@ -1443,7 +1443,7 @@ async def dir_remove(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
-    p = await async_gfrmdir(env, gfarm_path)
+    p = await gfrmdir(env, gfarm_path)
     return await gfarm_command_standard_response(env, p, opname)
 
 
@@ -1486,12 +1486,12 @@ async def file_export(gfarm_path: str,
 
     env = await set_env(request, authorization)  # may refresh
     if ASYNC_GFEXPORT:
-        p = await async_gfexport(env, gfarm_path)
+        p = await gfexport(env, gfarm_path)
         elist = []
         stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
     else:
         # stderr is not supported
-        p = gfexport(env, gfarm_path)
+        p = sync_gfexport(env, gfarm_path)
 
     # size > 0
     if ASYNC_GFEXPORT:
@@ -1567,7 +1567,7 @@ async def file_import(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    p = await async_gfreg(env, tmppath, x_file_timestamp)
+    p = await gfreg(env, tmppath, x_file_timestamp)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
     error = None
@@ -1589,7 +1589,7 @@ async def file_import(gfarm_path: str,
     if return_code == 0 and error is None:
         env = await set_env(request, authorization)  # may refresh
         gfmv = "gfmv"
-        p2 = await async_gfmv(env, tmppath, gfarm_path)
+        p2 = await gfmv(env, tmppath, gfarm_path)
         stderr_task2 = asyncio.create_task(log_stderr(gfmv, p2, elist))
         await stderr_task2
         return_code = await p2.wait()
@@ -1600,13 +1600,13 @@ async def file_import(gfarm_path: str,
 
     # error case
     env = await set_env(request, authorization)  # may refresh
-    p3 = await async_gfrm(env, tmppath, force=True)
-    gfrm = "gfrm"
-    stderr_task3 = asyncio.create_task(log_stderr(gfrm, p3, elist))
+    p3 = await gfrm(env, tmppath, force=True)
+    gfrm_cmd = "gfrm"
+    stderr_task3 = asyncio.create_task(log_stderr(gfrm_cmd, p3, elist))
     await stderr_task3
     # ignore error
     return_code = await p3.wait()
-    logger.debug(f"{ipaddr}:0 user={user}, cmd={gfrm}, path={tmppath},"
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={gfrm_cmd}, path={tmppath},"
                  f" return={return_code}")
 
     code = 500
@@ -1628,7 +1628,7 @@ async def file_remove(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
-    p = await async_gfrm(env, gfarm_path)
+    p = await gfrm(env, gfarm_path)
     return await gfarm_command_standard_response(env, p, opname)
 
 
@@ -1657,7 +1657,7 @@ async def move_rename(request: Request,
     dest = move_data.destination
     env = await set_env(request, authorization)
     log_operation(env, opname, {"src": src, "dest": dest})
-    p = await async_gfmv(env, src, dest)
+    p = await gfmv(env, src, dest)
     return await gfarm_command_standard_response(env, p, opname)
 
 
@@ -1673,7 +1673,7 @@ async def get_attr(gfarm_path: str,
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
     metadata = True
-    proc = await async_gfstat(env, gfarm_path, metadata)
+    proc = await gfstat(env, gfarm_path, metadata)
 
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, proc, elist))
@@ -1708,7 +1708,7 @@ async def change_attr(gfarm_path: str,
     if stat.Mode:
         opname = "gfchmod"
         log_operation(env, opname, gfarm_path)
-        proc = await async_gfchmod(env, gfarm_path, stat.Mode)
+        proc = await gfchmod(env, gfarm_path, stat.Mode)
         response = await gfarm_command_standard_response(env, proc, opname)
     if response:
         return response
