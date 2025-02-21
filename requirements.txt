@@ -1,5 +1,6 @@
 authlib
 fastapi
+flake8
 httpx
 itsdangerous
 Jinja2

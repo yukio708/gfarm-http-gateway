@@ -7,7 +7,7 @@ test-verbose test-v:
 	./bin/gfarm-http-test.sh -v
 
 flake8:
-	flake8 api
+	./venv/bin/flake8 api
 
 setup:
 	./setup.sh

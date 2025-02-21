@@ -353,6 +353,7 @@ gfexport_stdout = b"test output data"
 expect_gfexport = (gfexport_stdout, b"", 0)
 expect_gfstat = (gfstat_file_stdout.encode(), b"", 0)
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfstat", [expect_gfstat], indirect=True)
 @pytest.mark.parametrize("mock_exec", [expect_gfexport], indirect=True)
