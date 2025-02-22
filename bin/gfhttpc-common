@@ -7,18 +7,68 @@ common_help() {
     echo "  GFARM_HTTP_URL    base URL of gfarm-http-gateway (required)"
 }
 
-check_GFARM_HTTP_URL() {
-    if [ -z "${GFARM_HTTP_URL:-}" ]; then
-        ERR "GFARM_HTTP_URL is required"
-        help
-        exit 1
+opt_insecure=0
+opt_verbose=0
+
+common_getopt() {
+    local opt
+    while getopts "khv" opt; do
+        case $opt in
+            k)
+                opt_insecure=1
+            ;;
+            h)
+                help
+                exit 0
+                ;;
+            v)
+                opt_verbose=1
+                set -x
+                ;;
+            \?)
+                echo "Invalid option: -$OPTARG" >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    opts+=("-f")
+    if [ $opt_verbose -eq 1 ]; then
+        opts+=("-v")
+    else
+        opts+=("--no-progress-meter")
     fi
+    if [ $opt_insecure -eq 1 ]; then
+        opts+=("-k")
+    fi
+    echo $OPTIND
 }
 
 ERR() {
     echo >&2 "Error:" "$@"
 }
 
+remove_left_slash() {
+    sed 's/^\/*//'
+}
+
+remove_right_slash() {
+    sed 's/\/*$//'
+}
+
+urlencode() {
+    jq -Rr @uri
+}
+
 urlpathencode() {
-    jq -Rr @uri | sed 's|%2F|/|g'
+    remove_left_slash | urlencode | sed 's|%2F|/|g'
+}
+
+get_url_base() {
+    if [ -z "${GFARM_HTTP_URL:-}" ]; then
+        ERR "GFARM_HTTP_URL is required"
+        help
+        exit 1
+    fi
+    echo "$GFARM_HTTP_URL" | remove_right_slash
 }

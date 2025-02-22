@@ -1,0 +1,29 @@
+#!/bin/bash
+set -eu
+parent=$(realpath $(dirname "$0"))
+source "${parent}/gfhttpc-common"
+
+help() {
+    echo "Usage: $0 [options] Local-path Gfarm-path"
+    common_help
+}
+
+url_base=$(get_url_base)
+opts=()
+optind=$(common_getopt "$@")
+shift $((optind - 1))
+
+if [ $# -ne 2 ]; then
+    help
+    exit 1
+fi
+
+local_in="$1"
+gfarm_out=$(echo "$2" | urlpathencode)
+url="${url_base}/file/${gfarm_out}"
+
+if [ "$local_in" = "-" ]; then
+    exec "${parent}/jwt-curl-upload" - "$url" "${opts[@]}"
+else
+    exec "${parent}/jwt-curl-upload" "$local_in" "$url" "${opts[@]}"
+fi

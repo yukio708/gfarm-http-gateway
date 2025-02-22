@@ -9,54 +9,22 @@ help() {
     common_help
 }
 
-check_GFARM_HTTP_URL
+url_base=$(get_url_base)
+opts=()
+optind=$(common_getopt "$@")
+shift $((optind - 1))
 
-insecure=0
-verbose=0
-while getopts "khv" opt; do
-    case $opt in
-        k)
-            insecure=1
-            ;;
-        h)
-            help
-            exit 0
-            ;;
-        v)
-            verbose=1
-            set -x
-            ;;
-        \?)
-            echo "Invalid option: -$OPTARG" >&2
-            exit 1
-            ;;
-    esac
-done
-
-shift $((OPTIND - 1))
 if [ $# -ne 2 ]; then
     help
     exit 1
 fi
 
-GFPATH=$(echo $1 | sed 's/^\/*//' | urlpathencode)
-OUT="$2"
+gfarm_in=$(echo $1 | urlpathencode)
+local_out="$2"
+url="${url_base}/file/${gfarm_in}"
 
-URL=$(echo "$GFARM_HTTP_URL" | sed 's/\/*$//')
-URL="${URL}/file/${GFPATH}"
-
-OPTS=("-f")
-if [ $verbose -eq 1 ]; then
-    OPTS+=("-v")
+if [ "$local_out" = "-" ]; then
+    exec "${parent}/jwt-curl" "${opts[@]}" "$url"
 else
-    OPTS+=("--no-progress-meter")
-fi
-if [ $insecure -eq 1 ]; then
-    OPTS+=("-k")
-fi
-
-if [ "$OUT" = "-" ]; then
-    exec "${parent}/jwt-curl" "${OPTS[@]}" "$URL"
-else
-    exec "${parent}/jwt-curl" "${OPTS[@]}" -o "$OUT" "$URL"
+    exec "${parent}/jwt-curl" "${opts[@]}" -o "$local_out" "$url"
 fi
