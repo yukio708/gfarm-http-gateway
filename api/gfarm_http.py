@@ -1240,12 +1240,14 @@ async def gfreg(env, path, mtime):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def gfls(env, path, _all=0, recursive=0, effperm=0):
-    args = ['-l']
+async def gfls(env, path, _all=0, recursive=0, _long=0, effperm=0):
+    args = []
     if _all == 1:
         args.append('-a')
     if recursive == 1:
         args.append('-R')
+    if _long == 1:
+        args.append('-l')
     if effperm == 1:
         args.append('-e')
     args.append(path)
@@ -1457,6 +1459,7 @@ async def dir_list(gfarm_path: str,
                    a: int = 0,
                    e: int = 0,
                    R: int = 0,
+                   l: int = 0,
                    ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
@@ -1465,7 +1468,7 @@ async def dir_list(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    p = await gfls(env, gfarm_path, _all=a, recursive=R, effperm=e)
+    p = await gfls(env, gfarm_path, _all=a, recursive=R, _long=l, effperm=e)
     data = await p.stdout.read()
     stdout = data.decode()
     return_code = await p.wait()

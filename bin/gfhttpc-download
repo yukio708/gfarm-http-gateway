@@ -1,6 +1,5 @@
 #!/bin/bash
 set -eu
-
 parent=$(realpath $(dirname "$0"))
 source "${parent}/gfhttpc-common"
 

@@ -1,10 +1,14 @@
+ERR() {
+    echo >&2 "Error:" "$@"
+}
+
 common_help() {
     echo "Common options:"
-    echo "  -h  Show this help message"
-    echo "  -k  Insecure connection"
-    echo "  -v  Verbose mode"
+    echo "  -h  Show this help message."
+    echo "  -k  Insecure connection."
+    echo "  -v  Verbose mode."
     echo "Enviroment variable:"
-    echo "  GFARM_HTTP_URL    base URL of gfarm-http-gateway (required)"
+    echo "  GFARM_HTTP_URL    base URL of gfarm-http-gateway. (required)"
 }
 
 opt_insecure=0
@@ -12,10 +16,12 @@ opt_verbose=0
 
 common_getopt() {
     local opt
-    while getopts "khv" opt; do
+    local ind=1  # instead of OPTIND
+    while getopts "khv" opt 2> /dev/null; do
         case $opt in
             k)
                 opt_insecure=1
+                ind=$((ind + 1))
             ;;
             h)
                 help
@@ -24,10 +30,7 @@ common_getopt() {
             v)
                 opt_verbose=1
                 set -x
-                ;;
-            \?)
-                echo "Invalid option: -$OPTARG" >&2
-                exit 1
+                ind=$((ind + 1))
                 ;;
         esac
     done
@@ -41,11 +44,7 @@ common_getopt() {
     if [ $opt_insecure -eq 1 ]; then
         opts+=("-k")
     fi
-    echo $OPTIND
-}
-
-ERR() {
-    echo >&2 "Error:" "$@"
+    echo $ind
 }
 
 remove_left_slash() {

@@ -136,22 +136,36 @@ async function whoamiAnonymous() {
 async function list() {
     const lsPath = document.getElementById('ls_path');
     const lsOut = document.getElementById('ls_out');
+    const lsAll = document.getElementById('ls_all');
+    const lsLong = document.getElementById('ls_long');
     const lsRecursive = document.getElementById('ls_recursive');
     const lsEffectivePerm= document.getElementById('ls_effperm');
     const lsIgnoreError = document.getElementById('ls_ign_err');
     const path = lsPath.value.replace(/^\/+/g, "");
     try {
         let api_dir = "./d";
-        let fullpath = api_dir + "/" + path + "?a=1";
+        let fullpath = api_dir + "/" + path;
+        let params = new URLSearchParams();
+        if (lsAll.checked) {
+            params.append("a", 1);
+        }
+        if (lsLong.checked) {
+            params.append("l", 1);
+        }
         if (lsRecursive.checked) {
-            fullpath += "&R=1";
+            params.append("R", 1);
         }
         if (lsEffectivePerm.checked) {
-            fullpath += "&e=1";
+            params.append("e", 1);
         }
         if (lsIgnoreError.checked) {
-            fullpath += "&ign_err=1";
+            params.append("ign_err", 1);
         }
+        let params_str = params.toString();
+        if (params_str) {
+            fullpath = `${fullpath}?${params_str}`;
+        }
+
         const response = await fetch(fullpath);
         if (!response.ok) {
             const text = await response.text();
