@@ -293,7 +293,7 @@ async def test_dir_list(mock_claims, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
-    assert args == ('gfls', '-l', '/testdir')
+    assert args == ('gfls', '/testdir')
     assert response.text == expect_gfls_stdout
 
 
@@ -304,7 +304,17 @@ async def test_dir_list_a(mock_claims, mock_exec):
     assert response.status_code == 200
     # NOT WORK: mock_exec.assert_called_with(args=['gfls', '-a', 'testdir'])
     args, kwargs = mock_exec.call_args
-    assert args == ('gfls', '-l', '-a', '/testdir')
+    assert args == ('gfls', '-a', '/testdir')
+    assert response.text == expect_gfls_stdout
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
+async def test_dir_list_l(mock_claims, mock_exec):
+    response = client.get("/dir/testdir?l=1", headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfls', '-l', '/testdir')
     assert response.text == expect_gfls_stdout
 
 
@@ -314,7 +324,7 @@ async def test_dir_list_R(mock_claims, mock_exec):
     response = client.get("/dir/testdir?R=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
-    assert args == ('gfls', '-l', '-R', '/testdir')
+    assert args == ('gfls', '-R', '/testdir')
     assert response.text == expect_gfls_stdout
 
 
@@ -324,7 +334,7 @@ async def test_dir_list_e(mock_claims, mock_exec):
     response = client.get("/dir/testdir?e=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
-    assert args == ('gfls', '-l', '-e', '/testdir')
+    assert args == ('gfls', '-e', '/testdir')
     assert response.text == expect_gfls_stdout
 
 
@@ -338,7 +348,7 @@ async def test_dir_list_err(mock_claims, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
     assert_gfarm_http_error(response, 500, "gfls", None, expect_gfls_err_msg)
     args, kwargs = mock_exec.call_args
-    assert args == ('gfls', '-l', '/testdir')
+    assert args == ('gfls', '/testdir')
 
 
 @pytest.mark.asyncio
@@ -348,7 +358,7 @@ async def test_dir_list_ign_err(mock_claims, mock_exec):
                           headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
-    assert args == ('gfls', '-l', '/testdir')
+    assert args == ('gfls', '/testdir')
     assert response.text == expect_gfls_err_msg
 
 
