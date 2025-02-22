@@ -11,31 +11,51 @@ common_help() {
     echo "  GFARM_HTTP_URL    base URL of gfarm-http-gateway. (required)"
 }
 
+opts=()
 opt_insecure=0
 opt_verbose=0
 
 common_getopt() {
+    shopt -s extglob  # pattern for case
+    local opts_ext="$1"
+    local opts_ext_patt="$2"
+    local opts_ext_func="$3"
+    shift 3
     local opt
-    local ind=1  # instead of OPTIND
-    while getopts "khv" opt 2> /dev/null; do
+    local opts_all="khv${opts_ext}"
+    local patt
+    if [ -n "$opts_ext_patt" ]; then
+        patt="@(${opts_ext_patt})"
+    else
+        patt=NOOPT
+    fi
+    while getopts "$opts_all" opt; do
         case $opt in
             k)
                 opt_insecure=1
-                ind=$((ind + 1))
-            ;;
-            h)
-                help
-                exit 0
                 ;;
             v)
                 opt_verbose=1
                 set -x
-                ind=$((ind + 1))
+                ;;
+            h)
+                help
+                exit 0
+                ;;
+            $patt)
+                $opts_ext_func $opt
+                ;;
+            \?)
+                ERR "Unknown option"
+                help
+                exit 1
                 ;;
         esac
     done
+    optind=$OPTIND
 
-    opts+=("-f")
+    #opts+=("--fail")  # TODO
+    opts+=("--fail-with-body")  # curl 7.76.0 or later
     if [ $opt_verbose -eq 1 ]; then
         opts+=("-v")
     else
@@ -44,7 +64,6 @@ common_getopt() {
     if [ $opt_insecure -eq 1 ]; then
         opts+=("-k")
     fi
-    echo $ind
 }
 
 remove_left_slash() {
@@ -70,4 +89,13 @@ get_url_base() {
         exit 1
     fi
     echo "$GFARM_HTTP_URL" | remove_right_slash
+}
+
+get_url_params_str() {
+    if [ ${#params[@]} -gt 0 ]; then
+        url_params="?"$(IFS='&'; echo "${params[*]}")
+    else
+        url_params=""
+    fi
+    echo $url_params
 }

@@ -9,10 +9,8 @@ help() {
 }
 
 url_base=$(get_url_base)
-opts=()
-optind=$(common_getopt "$@")
+common_getopt "" "" "" "$@"
 shift $((optind - 1))
-
 if [ $# -ne 2 ]; then
     help
     exit 1

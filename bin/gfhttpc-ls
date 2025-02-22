@@ -5,25 +5,17 @@ source "${parent}/gfhttpc-common"
 
 help() {
     echo "Usage: $0 [options] Gfarm-path"
-    echo "  -a  Do not hide entries starting with ``.''."
+    echo "Options:"
+    echo "  -a  Do not hide entries starting with '.'."
     echo "  -e  Display effective permissions for a file."
     echo "  -l  List in long format."
     echo "  -R  Recursively lists subdirectories encountered."
     common_help
 }
 
-url_base=$(get_url_base)
-opts=()
-optind=$(common_getopt "$@")
-shift $((optind - 1))
-
-if [ $opt_verbose -eq 1 ]; then
-    set -x
-fi
-
 params=()
-OPTIND=1
-while getopts "aelR" opt 2> /dev/null; do
+getopt_ls() {
+    local opt="$1"
     case $opt in
         a)
             params+=("a=1")
@@ -38,20 +30,18 @@ while getopts "aelR" opt 2> /dev/null; do
             params+=("R=1")
             ;;
     esac
-done
-shift $((OPTIND - 1))
+}
 
+url_base=$(get_url_base)
+common_getopt "aelR" "a|e|l|R" getopt_ls "$@"
+shift $((optind - 1))
 if [ $# -ne 1 ]; then
     help
     exit 1
 fi
 
 gfarm_path=$(echo $1 | urlpathencode)
-if [ ${#params[@]} -gt 0 ]; then
-  url_params="?"$(IFS='&'; echo "${params[*]}")
-else
-  url_params=""
-fi
-url="${url_base}/dir/${gfarm_path}${url_params}"
+params_str=$(get_url_params_str)
+url="${url_base}/dir/${gfarm_path}${params_str}"
 
 exec "${parent}/jwt-curl" "${opts[@]}" "$url"
