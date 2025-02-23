@@ -1775,7 +1775,7 @@ async def change_attr(gfarm_path: str,
     opname = None
     if stat.Mode:
         opname = "gfchmod"
-        log_operation(env, opname, gfarm_path)
+        log_operation(env, opname, (stat.Mode, gfarm_path))
         proc = await gfchmod(env, gfarm_path, stat.Mode)
         response = await gfarm_command_standard_response(env, proc, opname)
     if response:
