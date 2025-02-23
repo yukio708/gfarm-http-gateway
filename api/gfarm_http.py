@@ -1759,7 +1759,9 @@ async def get_attr(gfarm_path: str,
             code = 500
             message = "Error"
             raise gfarm_http_error(opname, code, message, stdout, elist)
-    return parse_gfstat(stdout)
+    st = parse_gfstat(stdout)
+    logger.debug("Stat=\n" + pf(st.model_dump()))
+    return st
 
 
 @app.post("/a/{gfarm_path:path}")
