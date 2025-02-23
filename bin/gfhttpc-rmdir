@@ -1,0 +1,22 @@
+#!/bin/bash
+set -eu
+parent=$(realpath $(dirname "$0"))
+source "${parent}/gfhttpc-common"
+
+help() {
+    echo "Usage: $0 [options] Gfarm-path"
+    common_help
+}
+
+url_base=$(get_url_base)
+common_getopt "" "" "" "$@"
+shift $((optind - 1))
+if [ $# -ne 1 ]; then
+    help
+    exit 1
+fi
+
+gfarm_path=$(echo $1 | urlpathencode)
+url="${url_base}/dir/${gfarm_path}"
+
+exec "${parent}/jwt-curl" -X DELETE "${opts[@]}" "$url"
