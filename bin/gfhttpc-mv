@@ -1,0 +1,32 @@
+#!/bin/bash
+set -eu
+parent=$(realpath $(dirname "$0"))
+source "${parent}/gfhttpc-common"
+
+help() {
+    echo "Usage: $0 [options] Gfarm-path-src Gfarm-path-dest"
+    common_help
+}
+
+url_base=$(get_url_base)
+common_getopt "" "" "" "$@"
+shift $((optind - 1))
+if [ $# -ne 2 ]; then
+    help
+    exit 1
+fi
+
+gfarm_src=$(echo -n $1 | xargs -0 printf "%q")
+gfarm_dest=$(echo -n $2 | xargs -0 printf "%q")
+# url="${url_base}/move/"  # "curl -L" required
+url="${url_base}/move"
+
+headers=("-X" "POST" "-d" "@-")
+headers+=("-H" "Content-Type: application/json")
+
+exec "${parent}/jwt-curl" "${headers[@]}" "${opts[@]}" "$url" <<EOF
+{
+  "source": "$gfarm_src",
+  "destination": "$gfarm_dest"
+}
+EOF
