@@ -6,6 +6,11 @@ test:
 test-verbose test-v:
 	./bin/gfarm-http-test.sh -v
 
+test-gfhttpc:
+	./bin/gfhttpc-test.sh /tmp
+
+test-all: test-flake8 test-gfhttpc
+
 flake8:
 	./venv/bin/flake8 api
 
