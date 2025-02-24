@@ -106,6 +106,7 @@ HTTP gateway for Gfarm filesystem
 - `bin/gfarm-http-dev-for-docker-dist.sh  --port 8000 --log-level debug`
 - and, run `bin/gfarm-http-dev-for-docker-dist.sh  --port 8000 --log-level debug` in c3 container using the same procedure described above
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
+- `make test-all`
 - open <http://c2:8000/> in a web browser
   - auto-redirect to <http://keycloak>
   - login: `user1/PASSWORD`
