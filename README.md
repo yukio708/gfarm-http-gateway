@@ -21,9 +21,10 @@ HTTP gateway for Gfarm filesystem
 - python3-venv
 - Python packages (refer to `requirements.txt`)
 - OpenID provider (Keycloak, etc.)
-- JWT server and jwt-agent if you use jwt-curl clients
+- JWT server and jwt-agent if you use gfhttpc-* and jwt-curl commands
   - JWT Server: <https://github.com/oss-tsukuba/jwt-server>
   - jwt-agent: <https://github.com/oss-tsukuba/jwt-agent>
+- curl 7.76.0 or later (for gfhttpc-* commands)
 
 ## Setup
 
@@ -185,7 +186,21 @@ server {
 
 ## How to use clients
 
-### curl client for jwt-agent
+### gfhttpc-* commands
+
+- bin/gfhttpc-download Gfarm-path Local-path
+- bin/gfhttpc-upload Local-path Gfarm-path
+- bin/gfhttpc-whoami
+- bin/gfhttpc-ls [-laeR] Gfarm-path
+- bin/gfhttpc-rm Gfarm-path
+- bin/gfhttpc-mkdir Gfarm-path
+- bin/gfhttpc-rmdir Gfarm-path
+- bin/gfhttpc-mv Gfarm-path-src Gfarm-path-dest
+- bin/gfhttpc-stat Gfarm-path
+- bin/gfhttpc-chmod mode Gfarm-path
+- bin/gfhttpc-test.sh
+
+### curl commands for jwt-agent (low level commands for gfhttpc-* commands)
 
 - bin/jwt-curl [curl options]
   - Automatically add the access token from jwt-agent to the Authorization header

@@ -16,7 +16,7 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-# not use curl options
+# not use "opts" generated from common_getopt
 opts=()
 if [ $opt_insecure -eq 1 ]; then
     opts+=("-k")
