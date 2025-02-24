@@ -42,7 +42,7 @@ HTTP gateway for Gfarm filesystem
     - DO NOT set `sasl_user <...>`
 - Refer to `setup.sh` to install requirements for gfarm-http-gateway
   - venv (python3-venv)
-- (For Ubuntu 24.04  or RHEL9 family)
+- (For Ubuntu 24.04 or RHEL(8,9) family)
   - Run `make setup`
 - (Using Pyenv)
   - install GNU Make

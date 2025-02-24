@@ -27,8 +27,8 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      - name: Run setup-latest-wo-packages
-        run: make setup-latest-wo-packages
+      - name: Run setup-latest-wo-sys-packages
+        run: make setup-latest-wo-sys-packages
       - name: Run test
         run: make test
       - name: Run flake8
