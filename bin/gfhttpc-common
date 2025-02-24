@@ -7,8 +7,11 @@ common_help() {
     echo "  -h  Show this help message."
     echo "  -k  Insecure connection."
     echo "  -v  Verbose mode."
-    echo "Enviroment variable:"
-    echo "  GFARM_HTTP_URL    base URL of gfarm-http-gateway. (required)"
+    echo "Enviroment variables:"
+    echo "  GFARM_HTTP_URL       the base URL of gfarm-http-gateway. (required)"
+    echo "  GFARM_SASL_USER      SASL username. (optional)"
+    echo "  GFARM_SASL_PASSWORD  SASL password. (optional)"
+    echo "  JWT_USER_PATH        the file of JWT or SASL password. (optional)"
 }
 
 opts=()
