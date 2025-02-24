@@ -18,7 +18,7 @@ HTTP gateway for Gfarm filesystem
 
 - Gfarm (clients) 2.8.7 or later
 - Python 3.12 or later
-- python3-venv
+- venv (python3-venv)
 - Python packages (refer to `requirements.txt`)
 - OpenID provider (Keycloak, etc.)
 - JWT server and jwt-agent if you use gfhttpc-* and jwt-curl commands
@@ -40,8 +40,16 @@ HTTP gateway for Gfarm filesystem
     - DO NOT set `sasl_mechanisms <...>`
     - DO NOT set `sasl_user <...>`
 - Refer to `setup.sh` to install requirements for gfarm-http-gateway
+  - venv (python3-venv)
 - (For Ubuntu 24.04  or RHEL9 family)
   - Run `make setup`
+- (Using Pyenv)
+  - install and setup Pyenv: <https://github.com/pyenv/pyenv>
+  - `pyenv install -v 3.12`
+  - `cd gfarm-http-gateway`
+  - `rm -rf venv`
+  - `pyenv local 3.12`
+  - `INSTALL_PACKAGES=0 ./setup.sh`
 - Required OpenID Connect configurations
   - client ID and client secret
   - redirect URI
@@ -258,6 +266,7 @@ server {
 - Edit requirements_dev.txt
   - `ex. PACKAGENAME>=VERSION`
 - DO NOT edit requirements.txt
+- `INSTALL_PACKAGES=0 ./setup.sh requirements_dev.txt`
 
 ### To update requirements.txt for latest
 

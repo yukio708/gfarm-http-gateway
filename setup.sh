@@ -38,7 +38,10 @@ install_packages_for_rhel() {
 }
 
 install_python_package() {
-    #rm -rf "$VENV_DIR"
+    if [ -n "$PYENV_ROOT" ]; then
+        PYTHON=python3
+    fi
+    # $PYTHON -m venv --clear "$VENV_DIR"
     $PYTHON -m venv --upgrade "$VENV_DIR"
 
     $PIP install -r "$REQUIREMENTS"
