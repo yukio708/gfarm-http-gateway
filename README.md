@@ -20,6 +20,7 @@ HTTP gateway for Gfarm filesystem
 - Python 3.12 or later
 - venv (python3-venv)
 - Python packages (refer to `requirements.txt`)
+- GNU Make
 - OpenID provider (Keycloak, etc.)
 - JWT server and jwt-agent if you use gfhttpc-* and jwt-curl commands
   - JWT Server: <https://github.com/oss-tsukuba/jwt-server>
@@ -44,12 +45,13 @@ HTTP gateway for Gfarm filesystem
 - (For Ubuntu 24.04  or RHEL9 family)
   - Run `make setup`
 - (Using Pyenv)
+  - install GNU Make
   - install and setup Pyenv: <https://github.com/pyenv/pyenv>
   - `pyenv install -v 3.12`
   - `cd gfarm-http-gateway`
-  - `rm -rf venv`
+  - `make clear-venv`
   - `pyenv local 3.12`
-  - `INSTALL_PACKAGES=0 ./setup.sh`
+  - `make setup-wo-packages`
 - Required OpenID Connect configurations
   - client ID and client secret
   - redirect URI
@@ -264,9 +266,9 @@ server {
 ### To freeze python packages
 
 - Edit requirements_dev.txt
-  - `ex. PACKAGENAME>=VERSION`
+  - ex. `uvicorn>=0.34`
 - DO NOT edit requirements.txt
-- `INSTALL_PACKAGES=0 ./setup.sh requirements_dev.txt`
+- `make setup-latest-wo-sys-packages`
 
 ### To update requirements.txt for latest
 

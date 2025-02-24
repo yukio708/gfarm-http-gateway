@@ -17,14 +17,17 @@ flake8:
 setup setup-freezed:
 	./setup.sh
 
-setup-wo-packages:
-	INSTALL_PACKAGES=0 ./setup.sh
+setup-wo-sys-packages:
+	INSTALL_SYS_PACKAGES=0 ./setup.sh
 
 setup-latest:
 	./setup.sh requirements_dev.txt
 
-setup-latest-wo-packages:
-	INSTALL_PACKAGES=0 ./setup.sh requirements_dev.txt
+setup-latest-wo-sys-packages:
+	INSTALL_SYS_PACKAGES=0 ./setup.sh requirements_dev.txt
 
 freeze:
 	./venv/bin/pip3 freeze > requirements.txt
+
+clear-venv:
+	rm -rf ./venv

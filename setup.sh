@@ -6,7 +6,7 @@ source /etc/os-release
 
 REQUIREMENTS="${1:-requirements.txt}"
 
-INSTALL_PACKAGES="${INSTALL_PACKAGES:-1}"
+INSTALL_SYS_PACKAGES="${INSTALL_SYS_PACKAGES:-1}"
 
 DIR=$(realpath $(dirname $0))
 VENV_DIR="${DIR}/venv"
@@ -29,16 +29,16 @@ DNF() {
 install_packages_for_debian() {
     # for Ubuntu 24.04
     APTGET update
-    APTGET install -y python3-minimal python3-pip python3-venv
+    APTGET install -y make python3-minimal python3-pip python3-venv
 }
 
 install_packages_for_rhel() {
     # for RHEL9 family
-    DNF install -y python3.12 python3.12-pip
+    DNF install -y make python3.12 python3.12-pip
 }
 
 install_python_package() {
-    if [ -n "$PYENV_ROOT" ]; then
+    if [ -n "${PYENV_ROOT:-}" ]; then
         PYTHON=python3
     fi
     # $PYTHON -m venv --clear "$VENV_DIR"
@@ -48,14 +48,14 @@ install_python_package() {
 }
 
 install_for_debian() {
-    if [ $INSTALL_PACKAGES -eq 1 ]; then
+    if [ $INSTALL_SYS_PACKAGES -eq 1 ]; then
         install_packages_for_debian
     fi
     install_python_package
 }
 
 install_for_rhel() {
-    if [ $INSTALL_PACKAGES -eq 1 ]; then
+    if [ $INSTALL_SYS_PACKAGES -eq 1 ]; then
         install_packages_for_rhel
     fi
     install_python_package
