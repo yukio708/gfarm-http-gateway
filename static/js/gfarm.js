@@ -48,22 +48,6 @@ async function my_fetch(url, options = {}) {
 async function whoami1() {
     const whoamiOut = document.getElementById('whoami_out1');
     try {
-        const response = await my_fetch('./c/me');
-        if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-        }
-        const text = await response.text();
-        whoamiOut.textContent = text;
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        whoamiOut.textContent = error;
-    }
-}
-
-async function whoami_invalid_csrf() {
-    const whoamiOut = document.getElementById('whoami_out_invalid_csrf');
-    try {
-        // without X-CSRF-Token header
         const response = await fetch('./c/me');
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);

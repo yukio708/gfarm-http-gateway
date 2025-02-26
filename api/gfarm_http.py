@@ -389,7 +389,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+# TODO GFARM_HTTP_SESSION_MAX_AGE
+SESSION_MAX_AGE = 60 * 60 * 24  # 1 day
+
+# https://www.starlette.io/middleware/#sessionmiddleware
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET,
+                   same_site="strict",
+                   max_age=SESSION_MAX_AGE)
 
 # TODO disable OIDC authorization if OIDC_CLIENT_ID is None
 oauth = OAuth()
@@ -910,6 +916,8 @@ def parse_authorization(authz_str: str):
         if not ALLOW_ANONYMOUS:
             logger.error("anonymous access is not allowed")
             raise INVALID_AUTHZ
+        # TODO GFARM_HTTP_REQUIRE_ANONYMOUS_HEADER
+        # Authorization": Basic (base64(anonymous:))
         authz_type = None
         user = None
         passwd = None
@@ -1010,6 +1018,7 @@ async def set_env(request, authorization):
             'JWT_USER_PATH': f'!{bin_dir}/GFARM_SASL_PASSWORD_STDOUT.sh',
         })
     elif authz_type == AUTHZ_TYPE_PASSWORD:
+        # TODO and user != "anonymous"
         env.update({
             # for Gfarm 2.8.6 or later
             'GFARM_SASL_MECHANISMS': SASL_MECHANISM_FOR_PASSWORD,
