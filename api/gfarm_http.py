@@ -27,7 +27,8 @@ import requests
 from pydantic import BaseModel
 
 from authlib.integrations.starlette_client import OAuth
-from fastapi import FastAPI, Header, HTTPException, Request, Form, status
+from fastapi import (FastAPI, Query, Header, HTTPException, Request,
+                     Form, status)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (PlainTextResponse,
                                StreamingResponse,
@@ -383,7 +384,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    # allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -716,43 +718,45 @@ async def index(request: Request,
             login_ok = True
             sasl_username = user
 
-    logout_url_simple = await oidc_logout_url()
-    if login_ok:
-        if access_token:
-            pat = parse_access_token(access_token)
-            csrf_token = gen_csrf(request)
-            # NOTE: post_logout_redirect_uri for Keycloak 19 or later
-            redirect_uri = request.url_for("logout")
-            logout_url = logout_url_simple + "?client_id=" \
-                + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" \
-                + str(redirect_uri) + "&state=" + csrf_token
-            claims = jwt.get_unverified_claims(access_token)
-            exp = claims.get("exp")
-        else:
-            pat = ""
-            logout_url = ""
-            exp = -1
-    else:
-        pat = ""
-        logout_url = ""
-        exp = -1
+    csrf_token = gen_csrf(request)
+    pat = ""
+    logout_url_base = str(request.url_for("logout"))
+    logout_url = logout_url_base + "?state=" + csrf_token
+    logout_url_with_oidc = ""
+    logout_url_oidc_only = await oidc_logout_url()
+    exp = -1
     current_time = int(time.time())
+    if login_ok and access_token:
+        pat = parse_access_token(access_token)
+        # NOTE: post_logout_redirect_uri for Keycloak 19 or later
+        logout_url_with_oidc = logout_url_oidc_only + "?client_id=" \
+            + OIDC_CLIENT_ID + "&post_logout_redirect_uri=" \
+            + logout_url + "&state=" + csrf_token
+        claims = jwt.get_unverified_claims(access_token)
+        exp = claims.get("exp")
     return templates.TemplateResponse("index.html",
                                       {"request": request,
                                        "error": error,
+                                       "csrf_token": csrf_token,
                                        "login_ok": login_ok,
                                        "access_token": access_token,
                                        "parsed_at": pat,
                                        "sasl_username": sasl_username,
                                        "logout_url": logout_url,
-                                       "logout_url_simple": logout_url_simple,
+                                       "logout_url_with_oidc":
+                                       logout_url_with_oidc,
+                                       "logout_url_oidc_only":
+                                       logout_url_oidc_only,
                                        "current_time": current_time,
                                        "exp": exp,
                                        })
 
 
-@app.get("/login")
-async def login(request: Request):
+@app.get("/login_oidc")
+async def login_oidc(request: Request):
+    """
+    start OIDC login
+    """
     if OIDC_OVERRIDE_REDIRECT_URI:
         redirect_uri = OIDC_OVERRIDE_REDIRECT_URI
     else:
@@ -764,17 +768,35 @@ async def login(request: Request):
 
 
 @app.get("/auth")
-async def auth(request: Request):
+async def auth(request: Request,
+               session_state: str = None,
+               code: str = None):
+    """
+    get OIDC authorization code
+    """
     return await oidc_auth_common(request)
 
 
+def check_csrf(request, csrf_token=None, x_csrf_token=None):
+    if csrf_token:
+        logger.debug("csrf_check: using request param")
+    else:
+        # csrf_token = request.headers.get('X-CSRF-Token')
+        csrf_token = x_csrf_token
+        logger.debug("csrf_check: using X-CSRF-Token header")
+    expected = get_csrf(request)
+    if expected is not None:
+        if expected != csrf_token:
+            msg1 = f"CSRF token mismatch: {expected} != {csrf_token}"
+            logger.error(msg1)
+            msg2 = "CSRF token mismatch"
+            raise HTTPException(status_code=401, detail=msg2)
+
+
 @app.get("/logout")
-async def logout(request: Request, state: Optional[str] = None):
-    if state is not None:
-        csrf_token = get_csrf(request)
-        if state != csrf_token:
-            msg = "CSRF token mismatch"
-            raise HTTPException(status_code=401, detail=msg)
+async def logout(request: Request,
+                 state: Optional[str] = Query(None, description="CSRF token")):
+    check_csrf(request, state)
     delete_token(request)
     delete_user_passwd(request)
     # return RedirectResponse(url="./")
@@ -797,7 +819,10 @@ class AccessToken(BaseModel):
 
 
 @app.get("/access_token")
-async def access_token(request: Request) -> AccessToken:
+async def access_token(request: Request,
+                       x_csrf_token: Union[str, None] = Header(default=None)
+                       ) -> AccessToken:
+    check_csrf(request, x_csrf_token)
     access_token = await get_access_token(request)
     if not access_token:
         raise HTTPException(
@@ -834,7 +859,9 @@ def delete_user_passwd(request: Request):
 @app.post("/login_passwd")
 async def login_passwd(request: Request,
                        username: str = Form(),
-                       password: str = Form()):
+                       password: str = Form(),
+                       csrf_token: str = Form()):
+    check_csrf(request, csrf_token)
     delete_token(request)
     set_user_passwd(request, username, password)
     env = await set_env(request, None)
@@ -1489,7 +1516,9 @@ async def dir_list(gfarm_path: str,
 @app.put("/directories/{gfarm_path:path}")
 async def dir_create(gfarm_path: str,
                      request: Request,
-                     authorization: Union[str, None] = Header(default=None)):
+                     authorization: Union[str, None] = Header(default=None),
+                     x_csrf_token: Union[str, None] = Header(default=None)):
+    check_csrf(request, x_csrf_token)
     opname = "gfmkdir"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
@@ -1503,7 +1532,9 @@ async def dir_create(gfarm_path: str,
 @app.delete("/directories/{gfarm_path:path}")
 async def dir_remove(gfarm_path: str,
                      request: Request,
-                     authorization: Union[str, None] = Header(default=None)):
+                     authorization: Union[str, None] = Header(default=None),
+                     x_csrf_token: Union[str, None] = Header(default=None)):
+    check_csrf(request, x_csrf_token)
     opname = "gfrmdir"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
@@ -1615,9 +1646,11 @@ async def file_export(gfarm_path: str,
 @app.put("/files/{gfarm_path:path}")
 async def file_import(gfarm_path: str,
                       request: Request,
-                      authorization: Union[str, None] = Header(default=None),
                       x_file_timestamp:
-                      Union[str, None] = Header(default=None)):
+                      Union[str, None] = Header(default=None),
+                      authorization: Union[str, None] = Header(default=None),
+                      x_csrf_token: Union[str, None] = Header(default=None)):
+    check_csrf(request, x_csrf_token)
     # TODO overwrite=1, defaut 0
     # TODO check writable parent dir or target file
     opname = "gfreg"
@@ -1691,7 +1724,9 @@ async def file_import(gfarm_path: str,
 @app.delete("/files/{gfarm_path:path}")
 async def file_remove(gfarm_path: str,
                       request: Request,
-                      authorization: Union[str, None] = Header(default=None)):
+                      authorization: Union[str, None] = Header(default=None),
+                      x_csrf_token: Union[str, None] = Header(default=None)):
+    check_csrf(request, x_csrf_token)
     opname = "gfrm"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
@@ -1719,7 +1754,9 @@ class Move(BaseModel):
 @app.post("/move")
 async def move_rename(request: Request,
                       move_data: Move,
-                      authorization: Union[str, None] = Header(default=None)):
+                      authorization: Union[str, None] = Header(default=None),
+                      x_csrf_token: Union[str, None] = Header(default=None)):
+    check_csrf(request, x_csrf_token)
     opname = "gfmv"
     src = move_data.source
     dest = move_data.destination
@@ -1734,8 +1771,8 @@ async def move_rename(request: Request,
 @app.get("/attributes/{gfarm_path:path}")
 async def get_attr(gfarm_path: str,
                    request: Request,
-                   authorization:
-                   Union[str, None] = Header(default=None)) -> Stat:
+                   authorization: Union[str, None] = Header(default=None)
+                   ) -> Stat:
     opname = "gfstat"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
@@ -1770,7 +1807,9 @@ async def get_attr(gfarm_path: str,
 async def change_attr(gfarm_path: str,
                       stat: UpdateStat,
                       request: Request,
-                      authorization: Union[str, None] = Header(default=None)):
+                      authorization: Union[str, None] = Header(default=None),
+                      x_csrf_token: Union[str, None] = Header(default=None)):
+    check_csrf(request, x_csrf_token)
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     response = None

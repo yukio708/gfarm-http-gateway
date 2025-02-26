@@ -35,7 +35,8 @@ progress {
     <p><a href="./docs">API docs (Swagger UI)</a></p>
     <p><a href="./redoc">API docs (ReDoc)</a></p>
 
-    {% if login_ok %}
+{% if login_ok %}
+    <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
 
     {% if access_token %}
     <h2>Access Token</h2>
@@ -61,6 +62,11 @@ progress {
         <p>
         <button onclick="whoami1()">Who am I (fetch from this host)</button>
         <div id="whoami_out1"></div>
+        </p>
+
+        <p>
+        <button onclick="whoami_invalid_csrf()">Who am I (invalid CSRF token)</button>
+        <div id="whoami_out_invalid_csrf"></div>
         </p>
 
         <p>
@@ -183,24 +189,25 @@ progress {
 
     <h2>Logout</h2>
         {% if access_token %}
-        <p> <a href="./logout">Logout (Not logging out of OpenID provider)</a> </p>
-        {% else %}
-        <p> <a href="./logout">Logout</a> </p>
+        <p> <a href={{ logout_url }}>Logout (Not logging out of OpenID provider)</a> </p>
+        {% else %} <!-- access_token -->
+        <p> <a href={{ logout_url }}>Logout</a> </p>
+        {% endif %} <!-- access_token -->
+
+        {% if logout_url_with_oidc %}
+        <p> <a href={{ logout_url_with_oidc }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>
         {% endif %}
-        {% if logout_url %}
-        <p> <a href={{ logout_url }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>
-        {% endif %}
-        {% if access_token %}
-        <p> <a href={{ logout_url_simple }}>Logout of OpenID provider only (no redirect)</a> </p>
+        {% if logout_url_oidc_only %}
+        <p> <a href={{ logout_url_oidc_only }}>Logout of OpenID provider only (no redirect)</a> </p>
         {% endif %}
 
-    {% else %}
+{% else %} <!-- login_ok -->
         <hr>
         {% if error %}
         <p>Error: {{ error }}</p>
         {% endif %}
         <hr>
-        <p> <a href="./login">Login with OpenID provider</a> </p>
+        <p> <a href="./login_oidc">Login with OpenID provider</a> </p>
         <hr>
         <p>
           Login with SASL (PLAIN or LOGIN)
@@ -209,12 +216,13 @@ progress {
             <input type="text" id="user" name="username"><br/>
             <label for="password">Password:</label>
             <input type="password" id="password" name="password"><br/>
+            <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit">Login</button>
           </form>
         </p>
         <hr>
-        <p> <a href={{ logout_url_simple }}>Logout of OpenID provider only (no redirect)</a> </p>
-    {% endif %}
+        <p> <a href={{ logout_url_oidc_only }}>Logout of OpenID provider only (no redirect)</a> </p>
+{% endif %} <!-- login_ok -->
 
 <script>
   updateLink();

@@ -27,10 +27,43 @@ async function oauthInfoShow(tableElem, btnElem) {
     }
 }
 
+async function my_fetch(url, options = {}) {
+    const csrf_token = document.getElementById('csrf_token').value;
+    const defaultHeaders = {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf_token,
+    };
+    const mergedHeaders = {
+        ...defaultHeaders,
+        ...(options.headers || {})
+    };
+    const mergedOptions = {
+        ...options,
+        headers: mergedHeaders
+    };
+    return fetch(url, mergedOptions);
+}
+
 // TODO simplify
 async function whoami1() {
     const whoamiOut = document.getElementById('whoami_out1');
     try {
+        const response = await my_fetch('./c/me');
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        const text = await response.text();
+        whoamiOut.textContent = text;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        whoamiOut.textContent = error;
+    }
+}
+
+async function whoami_invalid_csrf() {
+    const whoamiOut = document.getElementById('whoami_out_invalid_csrf');
+    try {
+        // without X-CSRF-Token header
         const response = await fetch('./c/me');
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);
@@ -47,7 +80,7 @@ async function whoami2() {
     const whoamiURL = document.getElementById('whoami_url2').value;
     const whoamiOut = document.getElementById('whoami_out2');
     try {
-        const response = await fetch('./access_token');
+        const response = await my_fetch('./access_token');
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);
         }
@@ -92,7 +125,7 @@ async function whoami3() {
     }
 }
 
-// not ANONYMOUS
+// invalid Access token
 async function whoamiWithoutAuth() {
     const whoamiURL = document.getElementById('whoami_url4').value;
     const whoamiOut = document.getElementById('whoami_out4');
@@ -166,7 +199,7 @@ async function list() {
             fullpath = `${fullpath}?${params_str}`;
         }
 
-        const response = await fetch(fullpath);
+        const response = await my_fetch(fullpath);
         if (!response.ok) {
             const text = await response.text();
             throw new Error(`HTTP ${response.status}: ${text}`);
@@ -353,6 +386,7 @@ async function uploadFile() {
     const progressBar = document.getElementById('upload_progress');
     const progressText = document.getElementById('upload_progress_text');
     const status = document.getElementById('upload_status');
+    const csrf_token = document.getElementById('csrf_token').value;
     let dirPath = '/' + regDir.value.replace(/^\/+/, "") + '/';
     dirPath = dirPath.replace(/\/+$/, "/");
 
@@ -388,6 +422,7 @@ async function uploadFile() {
         });
         xhr.setRequestHeader('Content-Type', file.type);
         xhr.setRequestHeader('X-File-Timestamp', mtime);
+        xhr.setRequestHeader('X-CSRF-Token', csrf_token);
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
                 const percent = Math.floor((event.loaded / event.total) * 100);
@@ -432,7 +467,7 @@ async function removeFile() {
         const epath = encodePath(path)
         try {
             const url = `./file${epath}`
-            const response = await fetch(url, {
+            const response = await my_fetch(url, {
                 method: 'DELETE'
             });
             if (!response.ok) {
@@ -456,7 +491,7 @@ async function dirCommon(pathId, outputId, method, message) {
         const epath = encodePath(path);
         try {
             const url = `./dir${epath}`
-            const response = await fetch(url, {
+            const response = await my_fetch(url, {
                 method: method
             });
             if (!response.ok) {
@@ -495,7 +530,7 @@ async function move() {
 
         try {
             const url = `./move`
-            const response = await fetch(url, {
+            const response = await my_fetch(url, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json"
@@ -555,7 +590,7 @@ async function chmod() {
         input.textContent = data;
 
         try {
-            const response = await fetch(url, {
+            const response = await my_fetch(url, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json"
