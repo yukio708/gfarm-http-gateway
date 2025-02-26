@@ -27,10 +27,16 @@ async function oauthInfoShow(tableElem, btnElem) {
     }
 }
 
+// not needed in newer browsers
+// (SEE ALSO: gfarm_http.py:CHECK_CSRF)
+const use_csrf_token = false;
+
 async function my_fetch(url, options = {}) {
+    if (!use_csrf_token) {
+        return fetch(url, options);
+    }
     const csrf_token = document.getElementById('csrf_token').value;
     const defaultHeaders = {
-        'Content-Type': 'application/json',
         'X-CSRF-Token': csrf_token,
     };
     const mergedHeaders = {
@@ -406,7 +412,9 @@ async function uploadFile() {
         });
         xhr.setRequestHeader('Content-Type', file.type);
         xhr.setRequestHeader('X-File-Timestamp', mtime);
-        xhr.setRequestHeader('X-CSRF-Token', csrf_token);
+        if (use_csrf_token) {
+            xhr.setRequestHeader('X-CSRF-Token', csrf_token);
+        }
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
                 const percent = Math.floor((event.loaded / event.total) * 100);
@@ -426,7 +434,11 @@ async function uploadFile() {
             } else {
                 //console.error(xhr.response);
                 const stderr = JSON.stringify(xhr.response.detail.stderr);
-                status.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`;
+                if (stderr === undefined) {
+                    status.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}, detail=${xhr.response.detail}`;
+                } else {
+                    status.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`;
+                }
                 console.error(status.textContent);
             }
         };

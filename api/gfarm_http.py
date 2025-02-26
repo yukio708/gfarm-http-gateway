@@ -783,7 +783,15 @@ async def auth(request: Request,
     return await oidc_auth_common(request)
 
 
+# not needed in newer browsers
+# (SEE ALSO: gfarm.js:use_csrf_token)
+CHECK_CSRF = False
+
+
 def check_csrf(request, csrf_token=None, x_csrf_token=None):
+    if not CHECK_CSRF:
+        return
+
     if csrf_token:
         logger.debug("csrf_check: using request param")
     else:
