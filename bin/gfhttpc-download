@@ -16,6 +16,8 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 
+opts+=("-R")  # --remote-time
+
 gfarm_in=$(echo $1 | urlpathencode)
 local_out="$2"
 url="${url_base}/file/${gfarm_in}"
