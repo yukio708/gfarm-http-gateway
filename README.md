@@ -22,7 +22,7 @@ HTTP gateway for Gfarm filesystem
 - Python packages (refer to `requirements.txt`)
 - GNU Make
 - OpenID provider (Keycloak, etc.)
-- JWT server and jwt-agent if you use gfhttpc-* and jwt-curl commands
+- JWT server and jwt-agent (for gfhttpc-* and jwt-curl commands)
   - JWT Server: <https://github.com/oss-tsukuba/jwt-server>
   - jwt-agent: <https://github.com/oss-tsukuba/jwt-agent>
 - curl 7.76.0 or later (for gfhttpc-* commands)
@@ -44,8 +44,7 @@ HTTP gateway for Gfarm filesystem
   - venv (python3-venv)
 - (For Ubuntu 24.04 or RHEL(8,9) family)
   - Run `make setup`
-- (Using Pyenv)
-  - install GNU Make
+- (When using Pyenv python3 instead of system python3)
   - install and setup Pyenv: <https://github.com/pyenv/pyenv>
   - `pyenv install -v 3.12`
   - `cd gfarm-http-gateway`
@@ -209,6 +208,12 @@ server {
 - bin/gfhttpc-stat Gfarm-path
 - bin/gfhttpc-chmod mode Gfarm-path
 - bin/gfhttpc-test.sh
+
+#### Example of gfhttpc-* commands
+
+- `GFARM_HTTP_URL=http://c2:8000 bin/gfhttpc-whoami`
+- `GFARM_HTTP_URL=http://c2:8000 GFARM_SASL_USER=user1 GFARM_SASL_PASSWORD=PASSWORD bin/gfhttpc-whoami`
+- `GFARM_HTTP_URL=http://c2:8000 GFARM_SASL_USER=anonymous bin/gfhttpc-whoami`
 
 ### curl commands for jwt-agent (low level commands for gfhttpc-* commands)
 
