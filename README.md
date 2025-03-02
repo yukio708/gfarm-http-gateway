@@ -63,11 +63,11 @@ HTTP gateway for Gfarm filesystem
     - HPCI (realm) and hpci-jwt-server (client ID) has already been created
     - hpci-jwt-sever ->
       - Valid redirect URIs -> Add valid redirect URIs
-        - ex. `http://c2:8000/*`
-        - ex. `http://c2/*`
+        - Ex.: `http://c2:8000/*`
+        - Ex.: `http://c2/*`
       - Valid post logout redirect URIs -> Add valid post logout redirect URIs
-        - ex. `http://c2:8000/*`
-        - ex. `http://c2/*`
+        - Ex.: `http://c2:8000/*`
+        - Ex.: `http://c2/*`
       - `Save` button
 
 ## Configuration variables
@@ -131,14 +131,14 @@ HTTP gateway for Gfarm filesystem
 - To change the log format
   - use LOGURU_FORMAT environment variable
     - cannot be specified in a configuration file
-  - ex. `LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>"`
+  - Ex.: `LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>"`
   - default: LOGURU_FORMAT from loguru._defaults
     - <https://github.com/Delgan/loguru/blob/master/loguru/_defaults.py>
 
 ## Systemd
 
 - Copy this gfarm-http-gateway (source tree) to any directory
-  - ex. /opt/gfarm-http-gateway
+  - Ex.: /opt/gfarm-http-gateway
 - `sudo cp gfarm-http.service /etc/systemd/system/`
   - `gfarm-http.service` is an example file
 - Edit `/etc/systemd/system/gfarm-http.service` for your environment
@@ -186,7 +186,7 @@ server {
 ```
 
 - How to proxy with subpath
-  - ex.: (base URL)/gfarm/
+  - Ex.: (base URL)/gfarm/
   - `location /gfarm/ { ...`
   - use `--root-path /gfarm` option for gfarm-http.sh (uvicorn option)
 - `sudo systemctl restart nginx`
@@ -266,7 +266,7 @@ server {
 ### To freeze python packages
 
 - Edit requirements_dev.txt
-  - ex. `uvicorn>=0.34`
+  - Ex.: `uvicorn>=0.34`
 - DO NOT edit requirements.txt
 - `make setup-latest-wo-sys-packages`
 
