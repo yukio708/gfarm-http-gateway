@@ -1503,7 +1503,7 @@ async def dir_list(gfarm_path: str,
                    a: int = 0,
                    e: int = 0,
                    R: int = 0,
-                   l: int = 0,
+                   l: int = 0,  # noqa: E741
                    ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
