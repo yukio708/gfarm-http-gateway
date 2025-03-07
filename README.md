@@ -46,11 +46,11 @@ HTTP gateway for Gfarm filesystem
   - Run `make setup`
 - (When using Pyenv python3 instead of system python3)
   - install and setup Pyenv: <https://github.com/pyenv/pyenv>
-  - `pyenv install -v 3.12`
+  - (ex.) `pyenv install -v 3.12`
   - `cd gfarm-http-gateway`
   - `make clear-venv`
-  - `pyenv local 3.12`
-  - `make setup-wo-packages`
+  - (ex.) `pyenv local 3.12`
+  - `make setup-wo-sys-packages` or `setup-latest-wo-sys-packages`
 - Required OpenID Connect configurations
   - client ID and client secret
   - redirect URI
