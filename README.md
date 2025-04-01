@@ -53,14 +53,14 @@ HTTP gateway for Gfarm filesystem
   - `make setup-wo-sys-packages` or `setup-latest-wo-sys-packages`
 - Required OpenID Connect configurations
   - client ID and client secret
-  - redirect URI
+  - valid redirect URI
   - logout redirect URI (optional)
   - Example of Keycloak on Gfarm docker/dist (developer environment)
     - Open Keycloak admin console in web browser
       - `https://keycloak:8443/auth/admin/master/console/#/HPCI/`
       - login: `admin/admin`
-    - HPCI (realm) and hpci-jwt-server (client ID) has already been created
-    - hpci-jwt-sever ->
+    - HPCI (realm) and hpci-pub (client ID) has already been created
+    - hpci-pub ->
       - Valid redirect URIs -> Add valid redirect URIs
         - Ex.: `http://c2:8000/*`
         - Ex.: `http://c2/*`
@@ -114,9 +114,15 @@ HTTP gateway for Gfarm filesystem
 - `cd ~/gfarm/gfarm-http-gateway`
 - `make setup-latest`
 - `bin/gfarm-http-dev-for-docker-dist.sh  --port 8000 --log-level debug`
-- and, run `bin/gfarm-http-dev-for-docker-dist.sh  --port 8000 --log-level debug` in c3 container using the same procedure described above
+- `bin/gfarm-http-dev-for-docker-dist.sh  --port 8000 --log-level debug` in c3 container using the same procedure described above
+- Refer to `Setup -> Required OpenID Connect configurations` above
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
-- `make test-all`
+- open <https://jwt-server/> in a web browser
+- copy the command line of jwt-agent and start jwt-agent in c1 container
+  - input the passphrase from jwt-server
+- `gfmkdir -m 1777 /tmp`
+- `export GFARM_HTTP_URL=http://c2:8000`
+- `make test-all` in c1 container
 - open <http://c2:8000/> in a web browser
   - auto-redirect to <http://keycloak>
   - login: `user1/PASSWORD`
