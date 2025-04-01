@@ -394,7 +394,7 @@ SESSION_MAX_AGE = 60 * 60 * 24  # 1 day
 
 # https://www.starlette.io/middleware/#sessionmiddleware
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET,
-                   same_site="strict",
+                   same_site="lax",
                    max_age=SESSION_MAX_AGE)
 
 # TODO disable OIDC authorization if OIDC_CLIENT_ID is None
