@@ -3,3 +3,6 @@
 /api/__pycache__/
 /api/test/__pycache__/
 /venv/
+
+static/react
+.vscode

@@ -18,6 +18,7 @@ import subprocess
 import sys
 from typing import Union, Optional
 import urllib
+import re
 
 from loguru import logger
 
@@ -34,7 +35,8 @@ from fastapi.responses import (PlainTextResponse,
                                StreamingResponse,
                                Response,
                                HTMLResponse,
-                               RedirectResponse)
+                               RedirectResponse,
+                               JSONResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -49,6 +51,12 @@ def exit_error():
     logger.error("Exit (error)")
     sys.exit(1)
 
+# Ex. 12345 -rw-rw-r-- 1 user1  gfarmadm     29 Jan  1 00:00:00 2022 fname
+PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
+                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
+# Ex. -rw-rw-r-- 1 user1  gfarmadm     29 Jan  1 00:00:00 2022 fname
+PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
+                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
 
 #############################################################################
 # Configuration variables
@@ -379,6 +387,8 @@ else:
 templates = Jinja2Templates(directory="templates")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+app.mount("/react", StaticFiles(directory="static/react", html=True), name="react")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1294,6 +1304,7 @@ async def gfls(env, path, _all=0, recursive=0, _long=0, effperm=0):
         args.append('-l')
     if effperm == 1:
         args.append('-e')
+    args.append('-T')
     args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfls', *args,
@@ -1524,6 +1535,37 @@ async def dir_list(gfarm_path: str,
         message = f"gfls error: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, stdout, elist)
+
+    json = []
+    for line in stdout.splitlines():
+        logger.debug(f"line={line}")
+        m = PAT_ENTRY2.match(line)
+        if m is None:
+            continue
+        logger.debug(f"m={m}")
+        mode_str = m.group(1)
+        isfile = mode_str[0] != 'd'
+        nlink = int(m.group(2))
+        uname = m.group(3)
+        gname = m.group(4)
+        size = int(m.group(5))
+        mtime_str = m.group(6)
+        name = m.group(7)
+        json.append({
+            "mode_str": mode_str,
+            "isfile": isfile,
+            "nlink": nlink,
+            "uname": uname,
+            "gname": gname,
+            "size": size,
+            "mtime_str": mtime_str,
+            "name": name,
+            "path": os.path.join(gfarm_path, name)
+        })
+    if len(json) > 0:
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json}")
+        return JSONResponse(content=json)
+
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={stdout}")
     return PlainTextResponse(content=stdout)
 
