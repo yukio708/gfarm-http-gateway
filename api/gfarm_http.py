@@ -51,9 +51,6 @@ def exit_error():
     logger.error("Exit (error)")
     sys.exit(1)
 
-# Ex. 12345 -rw-rw-r-- 1 user1  gfarmadm     29 Jan  1 00:00:00 2022 fname
-PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
-                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
 # Ex. -rw-rw-r-- 1 user1  gfarmadm     29 Jan  1 00:00:00 2022 fname
 PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                         r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
@@ -1515,6 +1512,7 @@ async def dir_list(gfarm_path: str,
                    e: int = 0,
                    R: int = 0,
                    l: int = 0,  # noqa: E741
+                   format: str = 'json',
                    ign_err: int = 0,
                    authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
@@ -1536,33 +1534,33 @@ async def dir_list(gfarm_path: str,
         elist = []
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
-    json = []
-    for line in stdout.splitlines():
-        logger.debug(f"line={line}")
-        m = PAT_ENTRY2.match(line)
-        if m is None:
-            continue
-        logger.debug(f"m={m}")
-        mode_str = m.group(1)
-        isfile = mode_str[0] != 'd'
-        nlink = int(m.group(2))
-        uname = m.group(3)
-        gname = m.group(4)
-        size = int(m.group(5))
-        mtime_str = m.group(6)
-        name = m.group(7)
-        json.append({
-            "mode_str": mode_str,
-            "isfile": isfile,
-            "nlink": nlink,
-            "uname": uname,
-            "gname": gname,
-            "size": size,
-            "mtime_str": mtime_str,
-            "name": name,
-            "path": os.path.join(gfarm_path, name)
-        })
-    if len(json) > 0:
+    if format == 'json':
+        json = []
+        for line in stdout.splitlines():
+            logger.debug(f"line={line}")
+            m = PAT_ENTRY2.match(line)
+            if m is None:
+                continue
+            logger.debug(f"m={m}")
+            mode_str = m.group(1)
+            isfile = mode_str[0] != 'd'
+            nlink = int(m.group(2))
+            uname = m.group(3)
+            gname = m.group(4)
+            size = int(m.group(5))
+            mtime_str = m.group(6)
+            name = m.group(7)
+            json.append({
+                "mode_str": mode_str,
+                "isfile": isfile,
+                "nlink": nlink,
+                "uname": uname,
+                "gname": gname,
+                "size": size,
+                "mtime_str": mtime_str,
+                "name": name,
+                "path": os.path.join(gfarm_path, name)
+            })
         logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json}")
         return JSONResponse(content=json)
 
