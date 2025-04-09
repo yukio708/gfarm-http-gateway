@@ -1,0 +1,14 @@
+services:
+  react:
+    container_name: react
+    build: 
+      context: .
+      dockerfile: dockerfile
+    volumes:
+      - type: bind
+        source: ./app
+        target: /usr/src/app
+    command: sh -c "cd react-app-test && yarn start" 
+    ports:
+      - 3000:3000
+    stdin_open: true
