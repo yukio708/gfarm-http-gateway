@@ -11,7 +11,7 @@ function CurrentDirView({currentDir, onNavigate}) {
                 <BsHouse />
             </Breadcrumb.Item>
             {parts.map((part, index) => {
-                const path = parts.slice(0, index + 1).join('/');
+                const path = '/'+ parts.slice(0, index + 1).join('/');
                 return (
                     <Breadcrumb.Item key={index} onClick={() => onNavigate(path)}>
                         {part}

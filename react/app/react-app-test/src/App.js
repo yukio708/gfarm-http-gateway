@@ -4,6 +4,7 @@ import FileListView from './components/FileListView';
 import CurrentDirView from './components/CurrentDirView';
 import DetailView from './components/DetailView';
 import ProgressView from './components/ProgressView';
+import DropZone from './components/DropZone';
 import useFileList from './hooks/useFileList';
 import upload from './utils/upload';
 import download from './utils/download';
@@ -21,8 +22,7 @@ function App() {
     const { files, loading, error } = useFileList(currentDir);
     const [detailContent, setDetailContent] = useState(null);
     const [progress, setProgress] = useState({value:0, textContent:""});
-    const [xhrInstance, setXhrInstance] = useState(null);
-
+    const cancelRef = useRef(null);
     const jumpDirectory = (newdir) => {
         setCurrentDir(newdir);
     };
@@ -30,19 +30,26 @@ function App() {
     const downloadFile = async (filepath) => {
         console.log("downloadFile: filepath:", filepath);
         try {
-            await download(filepath, setProgress, setXhrInstance);
+            await download(filepath, setProgress, cancelRef);
         } catch (err) {
             console.error('Download failed:', err);
         }
     };
 
-    const cancelDownload = () => {
-        if (xhrInstance) {
-            xhrInstance.abort();
-            setXhrInstance(null);
-            setProgress({value:0, textContent:""});
-            console.log("Download canceled.");
+    const uploadFiles = async (files) => {
+        console.log("uploadFiles: files:", files);
+        try {
+            await upload(currentDir, files, setProgress, cancelRef);
+        } catch (err) {
+            console.error('Upload failed:', err);
         }
+    };
+
+    const handleCancel = () => {
+        if(cancelRef.current) {
+            cancelRef.current();
+        };
+        setProgress({value:0, textContent:""});
     };
 
     const showDetail = async (name, filepath) => {
@@ -90,9 +97,10 @@ function App() {
                 </Col>
                 }
             </Row>
-            {xhrInstance && (
+            <DropZone onUpload={uploadFiles}/>
+            {progress.value > 0 && (
             <ProgressView 
-                now={progress.value} label={progress.textContent} onCancel={cancelDownload} />
+                now={progress.value} label={progress.textContent} onCancel={handleCancel} />
             )}
 
         </Container>

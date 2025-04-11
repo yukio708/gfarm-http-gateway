@@ -1,7 +1,7 @@
 import React from 'react';
 import { encodePath } from './func'
 
-async function download(path, setProgress, setXhrInstance) {
+async function download(path, setProgress, cancelRef) {
     console.log("download: filepath:", path);
     if (!path) {
         alert('Please input Gfarm path');
@@ -15,9 +15,10 @@ async function download(path, setProgress, setXhrInstance) {
         let filename = path.split("/").pop();
         const startTime = Date.now();
         const xhr = new XMLHttpRequest();
-        setXhrInstance(xhr);
         xhr.open('GET', dlurl);
         xhr.responseType = 'blob';
+
+        cancelRef.current = () => {xhr.abort()};
 
         // cancelButton.addEventListener('click', function() {
         //     progressText.textContent = "Canceled";
@@ -67,13 +68,11 @@ async function download(path, setProgress, setXhrInstance) {
                 progress.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}`;
                 console.error(progress.textContent);
             }
-            setXhrInstance(null);
         };
         
         xhr.onerror = () => {
             progress.textContent = 'Network error';
             console.error('Network error');
-            setXhrInstance(null);
         };
 
         xhr.send();
@@ -81,7 +80,6 @@ async function download(path, setProgress, setXhrInstance) {
     } catch(error) {
         alert("Error: " + error.message);
         console.error(error);
-        setXhrInstance(null);
     }
 }
 
