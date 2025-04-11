@@ -28,7 +28,12 @@ function App() {
     const cancelRef = useRef(null);
 
     const jumpDirectory = (newdir) => {
-        setCurrentDir(newdir);
+        if (currentDir == newdir) {
+            setRefreshKey(prev => !prev);
+        }
+        else {
+            setCurrentDir(newdir);
+        }
     };
 
     const downloadFile = async (filepath) => {
