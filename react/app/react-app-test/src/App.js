@@ -4,7 +4,8 @@ import FileListView from './components/FileListView';
 import CurrentDirView from './components/CurrentDirView';
 import DetailView from './components/DetailView';
 import ProgressView from './components/ProgressView';
-import DropZone from './components/DropZone';
+import UploadDropZone from './components/UploadDropZone';
+import UploadConfirmModal from './components/UploadConfirmModal';
 import useFileList from './hooks/useFileList';
 import upload from './utils/upload';
 import download from './utils/download';
@@ -23,6 +24,7 @@ function App() {
     const [detailContent, setDetailContent] = useState(null);
     const [progress, setProgress] = useState({value:0, textContent:""});
     const cancelRef = useRef(null);
+
     const jumpDirectory = (newdir) => {
         setCurrentDir(newdir);
     };
@@ -40,6 +42,7 @@ function App() {
         console.log("uploadFiles: files:", files);
         try {
             await upload(currentDir, files, setProgress, cancelRef);
+            setCurrentDir(currentDir);
         } catch (err) {
             console.error('Upload failed:', err);
         }
@@ -97,7 +100,7 @@ function App() {
                 </Col>
                 }
             </Row>
-            <DropZone onUpload={uploadFiles}/>
+            <UploadDropZone onUpload={uploadFiles}/>
             {progress.value > 0 && (
             <ProgressView 
                 now={progress.value} label={progress.textContent} onCancel={handleCancel} />
