@@ -20,7 +20,8 @@ import Row from 'react-bootstrap/Row';
 
 function App() {
     const [currentDir, setCurrentDir] = useState("/");
-    const { files, loading, error } = useFileList(currentDir);
+    const [refreshKey, setRefreshKey] = useState(false);
+    const { files, loading, error } = useFileList(currentDir, refreshKey);
     const [detailContent, setDetailContent] = useState(null);
     const [progress, setProgress] = useState({value:0, textContent:""});
     const cancelRef = useRef(null);
@@ -38,11 +39,12 @@ function App() {
         }
     };
 
-    const uploadFiles = async (files) => {
-        console.log("uploadFiles: files:", files);
+    const uploadFiles = async (uploadfiles) => {
         try {
-            await upload(currentDir, files, setProgress, cancelRef);
-            setCurrentDir(currentDir);
+            for (const file of uploadfiles) {
+                await upload(currentDir, file, setProgress, cancelRef);
+            }
+            setRefreshKey(prev => !prev);
         } catch (err) {
             console.error('Upload failed:', err);
         }

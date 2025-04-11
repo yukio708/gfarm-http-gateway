@@ -67,16 +67,17 @@ function UploadDropZone({ onUpload }) {
     };
 
     const confirmUpload = () => {
+        setIsDragActive(false);
         setShowConfirm(false);
         if (selectedFiles.length > 0) {
+            console.log("selectedFiles:", selectedFiles);
             onUpload(selectedFiles); // pass to upload function
         }
-        setIsDragActive(false);
     };
 
     const cancelUpload = () => {
-        setShowConfirm(false);
         setIsDragActive(false);
+        setShowConfirm(false);
     }
 
     return (isDragActive &&

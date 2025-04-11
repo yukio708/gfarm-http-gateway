@@ -2,14 +2,13 @@
 import { useState, useEffect } from 'react';
 import { dummyFiles } from '../utils/dummyData'; // Import dummy data
 
-function useFileList(dirPath) {
+function useFileList(dirPath, reload) {
     const [files, setFiles] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
   
     useEffect(() => {
         const fetchFiles = async () => {
-            console.log("dirPath:", dirPath);
             const fullpath = "../d" + dirPath + "?a=1&l=1&format=json";
             setLoading(true);
             setError(null);
@@ -29,7 +28,7 @@ function useFileList(dirPath) {
         };
   
         fetchFiles();
-    }, [dirPath]);
+    }, [dirPath, reload]);
   
     return { files, loading, error };
 }
