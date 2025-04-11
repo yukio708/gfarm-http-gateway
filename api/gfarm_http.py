@@ -1538,7 +1538,7 @@ async def dir_list(gfarm_path: str,
         json = []
         for line in stdout.splitlines():
             logger.debug(f"line={line}")
-            m = PAT_ENTRY2.match(line)
+            m = PAT_ENTRY2.match(line) # -alが指定されていないと空のJSONが返る
             if m is None:
                 continue
             logger.debug(f"m={m}")
