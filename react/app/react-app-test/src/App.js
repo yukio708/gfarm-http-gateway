@@ -5,7 +5,7 @@ import CurrentDirView from './components/CurrentDirView';
 import DetailView from './components/DetailView';
 import ProgressView from './components/ProgressView';
 import UploadDropZone from './components/UploadDropZone';
-import UploadConfirmModal from './components/UploadConfirmModal';
+import UploadButton from './components/UploadButton';
 import useFileList from './hooks/useFileList';
 import upload from './utils/upload';
 import download from './utils/download';
@@ -75,7 +75,7 @@ function App() {
     }
     
     const closeDetail = () => {
-        setDetailContent(null);  // Clear file content when closing DetailView
+        setDetailContent(null);
     };
 
 
@@ -91,7 +91,10 @@ function App() {
                     <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
                 </Row>
                 <Row>
-                    <Navbar>
+                    <Navbar bg="dark" data-bs-theme="dark">
+                        <Navbar.Collapse>
+                            <UploadButton onUpload={uploadFiles} />
+                        </Navbar.Collapse>
                     </Navbar>
                 </Row>
                 <Row>

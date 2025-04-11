@@ -9,7 +9,7 @@ function ProgressView({now, label, onCancel}) {
         <div className='progressbar'>
             <ProgressBar now={now} label={label} />
             {now < 100 &&
-            <Button variant="danger" onClick={onCancel} className="mt-2">
+            <Button variant="danger" size="sm" onClick={onCancel} className="mt-2">
                 Cancel
             </Button>
             }
