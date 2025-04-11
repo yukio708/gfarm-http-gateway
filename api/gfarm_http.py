@@ -385,7 +385,7 @@ templates = Jinja2Templates(directory="templates")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.mount("/react", StaticFiles(directory="static/react", html=True), name="react")
+app.mount("/react", StaticFiles(directory="react/app/react-app-test/build", html=True), name="react")
 
 app.add_middleware(
     CORSMiddleware,

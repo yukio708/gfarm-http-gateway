@@ -17,6 +17,7 @@ import setPermission from './utils/setPermission';
 import Container from 'react-bootstrap/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
+import Navbar from 'react-bootstrap/Navbar';
 
 function App() {
     const [currentDir, setCurrentDir] = useState("/");
@@ -74,41 +75,48 @@ function App() {
 
 
     return (
-        <Container fluid className="App">
-            <Row>
-                <header className="App-header">
-                    <h1>Hello!</h1>
-                </header>
-            </Row>
-            <Row>
-                <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
-            </Row>
-            <Row>
-                {/* menu */}
-            </Row>
-            <Row>
-                <Col>
-                    <FileListView 
-                        files={files} 
-                        jumpDirectory={jumpDirectory}
-                        downloadFile={downloadFile}
-                        showDetail={showDetail}
-                        displayFile={displayFile}
-                    />
-                </Col>
-                {detailContent &&
-                <Col md={3}>
-                    <DetailView detail={detailContent} onClose={closeDetail}/>
-                </Col>
-                }
-            </Row>
-            <UploadDropZone onUpload={uploadFiles}/>
-            {progress.value > 0 && (
-            <ProgressView 
-                now={progress.value} label={progress.textContent} onCancel={handleCancel} />
-            )}
+        <div>
+            <Container fluid className="App">
+                <Row>
+                    <header className="App-header">
+                        <h1>Hello!</h1>
+                    </header>
+                </Row>
+                <Row>
+                    <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
+                </Row>
+                <Row>
+                    <Navbar>
+                    </Navbar>
+                </Row>
+                <Row>
+                    {progress.value > 0 && (
+                    <ProgressView 
+                        now={progress.value} label={progress.textContent} onCancel={handleCancel} />
+                    )}
+                </Row>
+                <Row>
+                    <Col>
+                        <FileListView 
+                            files={files} 
+                            jumpDirectory={jumpDirectory}
+                            downloadFile={downloadFile}
+                            showDetail={showDetail}
+                            displayFile={displayFile}
+                        />
+                    </Col>
+                    {detailContent &&
+                    <Col md={3}>
+                        <DetailView detail={detailContent} onClose={closeDetail}/>
+                    </Col>
+                    }
+                </Row>
+                <Row>
+                    <UploadDropZone onUpload={uploadFiles}/>
+                </Row>
 
-        </Container>
+            </Container>
+        </div>
         );
 }
 

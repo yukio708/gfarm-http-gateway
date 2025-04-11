@@ -8,9 +8,11 @@ function ProgressView({now, label, onCancel}) {
     return (
         <div className='progressbar'>
             <ProgressBar now={now} label={label} />
+            {now < 100 &&
             <Button variant="danger" onClick={onCancel} className="mt-2">
-                Cancel Download
+                Cancel
             </Button>
+            }
         </div> 
     );
 }
