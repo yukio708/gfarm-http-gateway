@@ -2,7 +2,7 @@ import React from 'react';
 import { encodePath } from './func'
 import { API_URL } from '../utils/api_url';
 
-async function download(path, setProgress, cancelRef) {
+async function download(path, setTasks) {
     console.log("download: filepath:", path);
     if (!path) {
         alert('Please input Gfarm path');
@@ -19,10 +19,19 @@ async function download(path, setProgress, cancelRef) {
         xhr.open('GET', dlurl);
         xhr.responseType = 'blob';
 
-        cancelRef.current = () => {xhr.abort()};
+        const newTask = {
+            name: filename,
+            value: 0,
+            status: 'downloading',
+            onCancel: () => {
+                xhr.abort();
+                console.log('cancel:', path);
+            }
+        };
+        setTasks(prev => [...prev, newTask]);
 
         // cancelButton.addEventListener('click', function() {
-        //     progressText.textContent = "Canceled";
+        //     progressText.status = "Canceled";
         //     xhr.abort();
         // });
 
@@ -32,9 +41,13 @@ async function download(path, setProgress, cancelRef) {
                 const elapsedTime = Date.now() - startTime;  // msec.
                 const speed = Math.round(event.loaded / elapsedTime * 1000);
                 const sec = Math.floor(elapsedTime / 1000)
-                progress.value = percent;
-                progress.textContent = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
-                setProgress(progress);
+                const value = percent;
+                const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+                setTasks( prev =>
+                    prev.map(task =>
+                        task.name === filename ? { ...task, value, status } : task
+                    )
+                );
                 console.log('downloaded: %d / %d (%d %)', event.loaded, event.total, percent);
             }
         };
@@ -66,13 +79,22 @@ async function download(path, setProgress, cancelRef) {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
             } else {
-                progress.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}`;
-                console.error(progress.textContent);
+                const status = `Error: HTTP ${xhr.status}: ${xhr.statusText}`;
+                setTasks( prev =>
+                    prev.map(task =>
+                        task.name === filename ? { ...task, status } : task
+                    )
+                );
+                console.error(status);
             }
         };
         
         xhr.onerror = () => {
-            progress.textContent = 'Network error';
+            setTasks( prev =>
+                prev.map(task =>
+                    task.name === filename ? { ...task, status:'Network error' } : task
+                )
+            );
             console.error('Network error');
         };
 

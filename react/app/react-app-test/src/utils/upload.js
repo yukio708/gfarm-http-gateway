@@ -1,23 +1,31 @@
 import { API_URL } from '../utils/api_url';
 
-async function upload(currentDir, file, setProgress, cancelRef) {
+async function upload(currentDir, file, setTasks) {
     if (!file) {
         alert('Please select a file');
         return;
     }
     const uploadUrl = `${API_URL}/file` + currentDir + '/' + file.name;
-    const progress = {};
+    console.log("currentDir", currentDir);
+    console.log("uploadUrl", uploadUrl);
+
     try {
         const mtime = Math.floor(file.lastModified / 1000);  // msec. -> sec.
         const startTime = Date.now();
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', uploadUrl);
         xhr.responseType = 'json';
-
-        cancelRef.current = () => {
-            xhr.abort();
-            console.log('cancel');
+        
+        const newTask = {
+            name: file.name,
+            value: 0,
+            status: 'uploading',
+            onCancel: () => {
+                xhr.abort();
+                console.log('cancel:', file);
+            }
         };
+        setTasks(prev => [...prev, newTask]);
 
         xhr.setRequestHeader('Content-Type', file.type);
         xhr.setRequestHeader('X-File-Timestamp', mtime);
@@ -27,33 +35,48 @@ async function upload(currentDir, file, setProgress, cancelRef) {
                 const elapsedTime = Date.now() - startTime;  // msec.
                 const speed = Math.round(event.loaded / elapsedTime * 1000);
                 const sec = Math.floor(elapsedTime / 1000)
-                progress.value = percent;
-                progress.textContent = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
-                setProgress(progress);
+                const value = percent;
+                const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+                setTasks( prev =>
+                    prev.map(task =>
+                        task.name === file.name ? { ...task, value, status } : task
+                    )
+                );
                 console.log('uploaded: %d / %d (%d %)', event.loaded, event.total, percent);
             }
         };
         xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-                progress.textContent = 'Success (' + currentDir + '/' + file.name + ')';
-                setProgress(progress);
-                //alert('Upload: success (' + dirPath + file.name + ')');
+                const status = 'Success (' + currentDir + '/' + file.name + ')';
+                setTasks( prev =>
+                    prev.map(task =>
+                        task.name === file.name ? { ...task, status } : task
+                    )
+                );
                 console.log('Upload: success');
             } else {
                 //console.error(xhr.response);
                 const stderr = JSON.stringify(xhr.response.detail.stderr);
+                let status = "";
                 if (stderr === undefined) {
-                    progress.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}, detail=${xhr.response.detail}`;
+                    status = `Error: HTTP ${xhr.status}: ${xhr.statusText}, detail=${xhr.response.detail}`;
                 } else {
-                    progress.textContent = `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`;
+                    status = `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`;
                 }
-                setProgress(progress);
-                console.error(progress.textContent);
+                setTasks( prev =>
+                    prev.map(task =>
+                        task.name === file.name ? { ...task, status } : task
+                    )
+                );
+                console.error(status);
             }
         };
         xhr.onerror = () => {
-            progress.textContent = 'Network error';
-            setProgress(progress);
+            setTasks( prev =>
+                prev.map(task =>
+                    task.name === file.name ? { ...task, status:'Network error' } : task
+                )
+            );
             console.error('Network error');
         };
         xhr.send(file);

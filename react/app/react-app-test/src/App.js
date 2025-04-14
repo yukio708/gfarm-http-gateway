@@ -24,8 +24,7 @@ function App() {
     const [refreshKey, setRefreshKey] = useState(false);
     const { files, loading, error } = useFileList(currentDir, refreshKey);
     const [detailContent, setDetailContent] = useState(null);
-    const [progress, setProgress] = useState({value:0, textContent:""});
-    const cancelRef = useRef(null);
+    const [tasks, setTasks] = useState([]);
 
     const jumpDirectory = (newdir) => {
         if (currentDir == newdir) {
@@ -39,28 +38,30 @@ function App() {
     const downloadFile = async (filepath) => {
         console.log("downloadFile: filepath:", filepath);
         try {
-            await download(filepath, setProgress, cancelRef);
+            await download(filepath, setTasks);
         } catch (err) {
             console.error('Download failed:', err);
         }
+        setTimeout(()=>{
+            setTasks([]);
+        }, 3000);
     };
 
-    const uploadFiles = async (uploadfiles) => {
-        try {
-            for (const file of uploadfiles) {
-                await upload(currentDir, file, setProgress, cancelRef);
+    const uploadFiles = async (uploadfiles, concurrency = 3) => {
+        const uploadQueue = [...uploadfiles];
+
+        const worker = async () => {
+            while (uploadQueue.length) {
+                const file = uploadQueue.shift(); // safely take one
+                await upload(currentDir, file, setTasks);
             }
-            setRefreshKey(prev => !prev);
-        } catch (err) {
-            console.error('Upload failed:', err);
-        }
-    };
-
-    const handleCancel = () => {
-        if(cancelRef.current) {
-            cancelRef.current();
         };
-        setProgress({value:0, textContent:""});
+        const workers = Array(concurrency).fill().map(worker);
+        await Promise.all(workers);
+        setTimeout(()=>{
+            setTasks([]);
+            setRefreshKey(prev => !prev);
+        }, 3000);
     };
 
     const showDetail = async (name, filepath) => {
@@ -98,12 +99,6 @@ function App() {
                     </Navbar>
                 </Row>
                 <Row>
-                    {progress.value > 0 && (
-                    <ProgressView 
-                        now={progress.value} label={progress.textContent} onCancel={handleCancel} />
-                    )}
-                </Row>
-                <Row>
                     <Col>
                         <FileListView 
                             files={files} 
@@ -122,6 +117,7 @@ function App() {
                 <Row>
                     <UploadDropZone onUpload={uploadFiles}/>
                 </Row>
+                <ProgressView tasks={tasks} />
 
             </Container>
         </div>
