@@ -9,7 +9,7 @@ async function download(path, setTasks) {
         return;
     }
     const epath = encodePath(path)
-    const dlurl = `${API_URL}/file/${epath}?action=download`;
+    const dlurl = `${API_URL}/file${epath}?action=download`;
     const progress = {};
 
     try{

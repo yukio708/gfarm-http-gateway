@@ -1,3 +1,4 @@
+import { encodePath } from './func'
 import { API_URL } from '../utils/api_url';
 
 async function upload(currentDir, file, setTasks) {
@@ -5,10 +6,11 @@ async function upload(currentDir, file, setTasks) {
         alert('Please select a file');
         return;
     }
-    const uploadUrl = file.fullPath
-                    ? `${API_URL}/file/` + file.fullPath
-                    : `${API_URL}/file/` + currentDir + file.name;
-    console.log("uploadUrl", uploadUrl);
+    const epath = encodePath( file.fullPath
+        ? currentDir + file.fullPath
+        : currentDir + file.name
+    );
+    const uploadUrl = `${API_URL}/file` + epath;
 
     try {
         const mtime = Math.floor(file.lastModified / 1000);  // msec. -> sec.

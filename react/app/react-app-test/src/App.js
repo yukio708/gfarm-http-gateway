@@ -53,7 +53,12 @@ function App() {
         const worker = async () => {
             while (uploadQueue.length) {
                 const file = uploadQueue.shift(); // safely take one
-                await upload(currentDir, file, setTasks);
+                if (currentDir.endsWith('/')) {
+                    await upload(currentDir, file, setTasks);
+                } else{
+                    console.log("worker:currentDir", currentDir);
+                    await upload(currentDir + '/', file, setTasks);
+                }
             }
         };
         const workers = Array(concurrency).fill().map(worker);

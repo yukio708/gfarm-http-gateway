@@ -1,4 +1,4 @@
-// src/hooks/useFileList.js
+import { encodePath } from '../utils/func'
 import { useState, useEffect } from 'react';
 import { API_URL } from '../utils/api_url';
 
@@ -9,8 +9,8 @@ function useFileList(dirPath, reload) {
   
     useEffect(() => {
         const fetchFiles = async () => {
-            const fullpath = `${API_URL}/d/` + dirPath + "?a=1&l=1&format=json";
-            console.log(fullpath);
+            const epath = encodePath(dirPath);
+            const fullpath = `${API_URL}/d` + epath + "?a=1&l=1&format=json";
             setLoading(true);
             setError(null);
             try {
