@@ -9,7 +9,7 @@ function useFileList(dirPath, reload) {
   
     useEffect(() => {
         const fetchFiles = async () => {
-            const fullpath = `${API_URL}/d` + dirPath + "?a=1&l=1&format=json";
+            const fullpath = `${API_URL}/d/` + dirPath + "?a=1&l=1&format=json";
             console.log(fullpath);
             setLoading(true);
             setError(null);

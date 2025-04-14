@@ -5,8 +5,9 @@ async function upload(currentDir, file, setTasks) {
         alert('Please select a file');
         return;
     }
-    const uploadUrl = `${API_URL}/file` + currentDir + '/' + file.name;
-    console.log("currentDir", currentDir);
+    const uploadUrl = file.fullPath
+                    ? `${API_URL}/file/` + file.fullPath
+                    : `${API_URL}/file/` + currentDir + file.name;
     console.log("uploadUrl", uploadUrl);
 
     try {

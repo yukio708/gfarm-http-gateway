@@ -8,7 +8,7 @@ function displayFile(path) {
         return;
     }
     const epath = encodePath(path);
-    const url = `${API_URL}/file${epath}`;
+    const url = `${API_URL}/file/${epath}`;
     window.open(url, '_blank');
 }
 

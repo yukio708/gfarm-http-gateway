@@ -54,14 +54,45 @@ function UploadDropZone({ onUpload }) {
         setDragging(false);
     };
 
-    const handleDrop = (e) => {
+    const handleDrop = async (e) => {
         e.preventDefault();
         e.stopPropagation();
         setDragging(false);
-        // const files = e.dataTransfer.files;
-        const files = Array.from(e.dataTransfer.files);
-        console.log(files);
-        console.log(Array.isArray(files)); // should be true
+        // const files = Array.from(e.dataTransfer.files);
+        const items = e.dataTransfer.items;
+        const files = [];
+    
+        const traverseFileTree = async (item, path = "") => {
+            return new Promise((resolve) => {
+                if (item.isFile) {
+                    item.file((file) => {
+                        file.fullPath = path + file.name;
+                        files.push(file);
+                        resolve();
+                    });
+                } else if (item.isDirectory) {
+                    const dirReader = item.createReader();
+                    dirReader.readEntries(async (entries) => {
+                        for (const entry of entries) {
+                            await traverseFileTree(entry, path + item.name + "/");
+                        }
+                        resolve();
+                    });
+                } else {
+                    resolve();
+                }
+            });
+        };
+    
+        const promises = [];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i].webkitGetAsEntry();
+            if (item) {
+                promises.push(traverseFileTree(item));
+            }
+        }
+        await Promise.all(promises);
+        console.log("Collected files:", files);
         setSelectedFiles(files);
         setShowConfirm(true);
     };
