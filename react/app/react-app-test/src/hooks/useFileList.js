@@ -34,18 +34,3 @@ function useFileList(dirPath, reload) {
 }
 
 export default useFileList;
-
-// const GetList = async (dirPath) => {
-//     const fullpath = "../d/" + dirPath + "?a=1&l=1";
-//     try {
-//       const res = await fetch(fullpath);
-//       if (!res.ok) throw new Error("Fetch failed");
-//       const data = await res.json();
-  
-//       return { newfiles: data, err: null };
-//     } catch (error) {
-//       return { newfiles: dummyFiles, err: error.message };
-//     }
-// };
-
-// export default GetList;
