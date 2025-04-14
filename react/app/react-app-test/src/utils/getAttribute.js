@@ -1,8 +1,8 @@
 import React from 'react';
-import { dummyDetail } from './dummyDetail';
+import { API_URL } from '../utils/api_url';
 
 async function getAttribute(filepath) {
-    const fullpath = "../attr" + filepath;
+    const fullpath = `${API_URL}/attr` + filepath;
     console.log("Attribute: filepath:", filepath);
     try {
         const response = await fetch(fullpath);
@@ -14,7 +14,6 @@ async function getAttribute(filepath) {
         return json;  // assuming the data is in the correct format
     } catch (error) {
         console.error('Fetch error: ', error);
-        return dummyDetail;
         return null;  // Return null in case of error
     }
 }

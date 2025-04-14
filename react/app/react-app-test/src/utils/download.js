@@ -1,5 +1,6 @@
 import React from 'react';
 import { encodePath } from './func'
+import { API_URL } from '../utils/api_url';
 
 async function download(path, setProgress, cancelRef) {
     console.log("download: filepath:", path);
@@ -8,7 +9,7 @@ async function download(path, setProgress, cancelRef) {
         return;
     }
     const epath = encodePath(path)
-    const dlurl = `../file${epath}?action=download`;
+    const dlurl = `${API_URL}/file${epath}?action=download`;
     const progress = {};
 
     try{

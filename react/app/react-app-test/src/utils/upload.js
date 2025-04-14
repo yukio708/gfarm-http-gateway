@@ -1,10 +1,11 @@
+import { API_URL } from '../utils/api_url';
 
 async function upload(currentDir, file, setProgress, cancelRef) {
     if (!file) {
         alert('Please select a file');
         return;
     }
-    const uploadUrl = '../file' + currentDir + '/' + file.name;
+    const uploadUrl = `${API_URL}/file` + currentDir + '/' + file.name;
     const progress = {};
     try {
         const mtime = Math.floor(file.lastModified / 1000);  // msec. -> sec.

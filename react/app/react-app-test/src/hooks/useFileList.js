@@ -1,6 +1,6 @@
 // src/hooks/useFileList.js
 import { useState, useEffect } from 'react';
-import { dummyFiles } from '../utils/dummyData'; // Import dummy data
+import { API_URL } from '../utils/api_url';
 
 function useFileList(dirPath, reload) {
     const [files, setFiles] = useState([]);
@@ -9,7 +9,8 @@ function useFileList(dirPath, reload) {
   
     useEffect(() => {
         const fetchFiles = async () => {
-            const fullpath = "../d" + dirPath + "?a=1&l=1&format=json";
+            const fullpath = `${API_URL}/d` + dirPath + "?a=1&l=1&format=json";
+            console.log(fullpath);
             setLoading(true);
             setError(null);
             try {
@@ -20,7 +21,6 @@ function useFileList(dirPath, reload) {
                 const data = await response.json();
                 setFiles(data);
             } catch (err) {
-                setFiles(dummyFiles); // debug
                 setError(err.message);
             } finally {
                 setLoading(false);
