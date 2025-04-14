@@ -14,13 +14,14 @@ import deleteFile from './utils/deleteFile';
 import moveFile from './utils/moveFile';
 import getAttribute from './utils/getAttribute';
 import setPermission from './utils/setPermission';
+import { createDir, removeDir } from './utils/dircommon';
 import Container from 'react-bootstrap/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 import Navbar from 'react-bootstrap/Navbar';
 
 function App() {
-    const [currentDir, setCurrentDir] = useState("/");
+    const [currentDir, setCurrentDir] = useState("");
     const [refreshKey, setRefreshKey] = useState(false);
     const { files, loading, error } = useFileList(currentDir, refreshKey);
     const [detailContent, setDetailContent] = useState(null);
@@ -52,8 +53,8 @@ function App() {
 
         const worker = async () => {
             while (uploadQueue.length) {
-                const file = uploadQueue.shift(); // safely take one
-                if (currentDir.endsWith('/')) {
+                const file = uploadQueue.shift();
+                if (currentDir.endsWith('/')) { // 確認
                     await upload(currentDir, file, setTasks);
                 } else{
                     console.log("worker:currentDir", currentDir);

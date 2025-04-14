@@ -66,7 +66,7 @@ function UploadDropZone({ onUpload }) {
             return new Promise((resolve) => {
                 if (item.isFile) {
                     item.file((file) => {
-                        file.fullPath = path + file.name;
+                        file.dirPath = path;
                         files.push(file);
                         resolve();
                     });

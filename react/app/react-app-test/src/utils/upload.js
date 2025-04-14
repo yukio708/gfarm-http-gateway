@@ -6,11 +6,13 @@ async function upload(currentDir, file, setTasks) {
         alert('Please select a file');
         return;
     }
-    const epath = encodePath( file.fullPath
-        ? currentDir + file.fullPath
+
+    const epath = encodePath( file.dirPath
+        ? currentDir + file.dirPath + file.name
         : currentDir + file.name
     );
     const uploadUrl = `${API_URL}/file` + epath;
+    console.log("uploadUrl:", uploadUrl);
 
     try {
         const mtime = Math.floor(file.lastModified / 1000);  // msec. -> sec.
@@ -50,7 +52,7 @@ async function upload(currentDir, file, setTasks) {
         };
         xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-                const status = 'Success (' + currentDir + '/' + file.name + ')';
+                const status = 'Success (' + file.dirPath + file.name + ')';
                 setTasks( prev =>
                     prev.map(task =>
                         task.name === file.name ? { ...task, status } : task

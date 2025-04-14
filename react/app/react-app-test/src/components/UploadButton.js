@@ -10,7 +10,11 @@ function UploadButton({ onUpload }) {
         const files = Array.from(e.target.files);
 
         const uploadFiles = files.map(file => {
-            file.fullPath = file.webkitRelativePath || file.name;
+            console.log("file.webkitRelativePath:", file.webkitRelativePath);
+            const dirPath = file.webkitRelativePath
+                ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + '/'
+                : "";
+            file.dirPath = dirPath;
             return file;
         });
         if (uploadFiles.length > 0) {
