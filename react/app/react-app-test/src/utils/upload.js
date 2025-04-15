@@ -8,8 +8,8 @@ async function upload(currentDir, file, setTasks) {
     }
 
     const epath = encodePath( file.dirPath
-        ? currentDir + file.dirPath + file.name
-        : currentDir + file.name
+        ? currentDir + '/' + file.dirPath + file.name
+        : currentDir + '/' + file.name
     );
     const uploadUrl = `${API_URL}/file` + epath;
     console.log("uploadUrl:", uploadUrl);
