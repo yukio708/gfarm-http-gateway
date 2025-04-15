@@ -1312,7 +1312,9 @@ async def gfls(env, path, _all=0, recursive=0, _long=0, effperm=0):
 
 
 async def gfmkdir(env, path):
-    args = [path]
+    args = []
+    args.append('-p')
+    args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfmkdir', *args,
         env=env,
