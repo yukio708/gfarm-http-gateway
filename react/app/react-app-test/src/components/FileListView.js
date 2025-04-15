@@ -88,10 +88,6 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
             return <BsArrowDownShort style={{ marginLeft: '5px' }} />;
         }
     };
-
-    const getFileSize = (filesize) => {
-        return <>{filesize} KB</>
-    };
     
     useEffect(() => {
         if (headerCheckboxRef.current) {
@@ -141,9 +137,25 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
             displayFile(filepath)
         }
         else{
+            console.log("handleNameCick: filepath", filepath);
             jumpDirectory(filepath);
         }
     };
+
+    const formatFileSize = (filesize) => {
+        if (filesize === 0) {
+            return (<></>);
+        }
+    
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+        const i = Math.floor(Math.log(filesize) / Math.log(k));
+    
+        const sizestr =  parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        return (
+            <>{sizestr}</>
+        )
+    }
   
     return (
         <div>
@@ -176,7 +188,7 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
                     </td>
                     <td>{getFileIcon(file)}</td>
                     <td onClick={() => handleNameCick(file.path, file.isfile)}>{file.name}</td>
-                    <td>{getFileSize(file.size)}</td>
+                    <td>{formatFileSize(file.size)}</td>
                     <td>{file.mtime_str}</td>
                     <td>
                     <Dropdown>
