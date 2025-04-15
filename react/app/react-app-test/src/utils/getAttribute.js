@@ -1,9 +1,10 @@
 import React from 'react';
-import { API_URL } from '../utils/api_url';
+import { encodePath } from './func'
+import { API_URL } from './api_url';
 
 async function getAttribute(filepath) {
-    const fullpath = `${API_URL}/attr/` + filepath;
-    console.log("Attribute: filepath:", filepath);
+    const epath = encodePath(filepath);
+    const fullpath = `${API_URL}/attr${epath}`;
     try {
         const response = await fetch(fullpath);
         const text = await response.text();

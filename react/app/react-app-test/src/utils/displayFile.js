@@ -1,5 +1,5 @@
 import { encodePath } from './func'
-import { API_URL } from '../utils/api_url';
+import { API_URL } from './api_url';
 
 function displayFile(path) {
     console.log("displayFile: filepath:", path);

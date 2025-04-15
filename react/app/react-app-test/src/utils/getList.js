@@ -1,5 +1,5 @@
-import { encodePath } from '../utils/func';
-import { API_URL } from '../utils/api_url';
+import { encodePath } from './func';
+import { API_URL } from './api_url';
 
 async function getList(dirPath) {
     const epath = encodePath(dirPath);

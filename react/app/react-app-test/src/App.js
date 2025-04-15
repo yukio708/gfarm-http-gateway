@@ -48,8 +48,12 @@ function App() {
         }, 3000);
     };
 
-    const uploadFiles = async (uploadfiles, concurrency = 3) => {
+    const uploadFiles = async (uploadfiles, uploaddirs, concurrency = 3) => {
         const uploadQueue = [...uploadfiles];
+
+        for (let dirpath of uploaddirs) {
+            await createDir(currentDir + '/' + dirpath);
+        }
 
         const worker = async () => {
             while (uploadQueue.length) {

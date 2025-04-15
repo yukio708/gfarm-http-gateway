@@ -1,5 +1,5 @@
 import { encodePath } from './func'
-import { API_URL } from '../utils/api_url';
+import { API_URL } from './api_url';
 
 async function upload(currentDir, file, setTasks) {
     if (!file) {

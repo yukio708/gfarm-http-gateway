@@ -1,10 +1,11 @@
 import { encodePath } from './func'
+import { API_URL } from './api_url';
 
 async function dirCommon(path, method, message) {
     if (path) {
         const epath = encodePath(path);
         try {
-            const url = `./dir${epath}`
+            const url = `${API_URL}/dir${epath}`
             const response = await fetch(url, {
                 method: method
             });

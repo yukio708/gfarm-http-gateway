@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UploadConfirmModal from './UploadConfirmModal';
+import { getDeepestDirs, CollectPathsFromItems } from '../utils/func';
 import '../css/DropZone.css'
 
 function UploadDropZone({ onUpload }) {
@@ -7,6 +8,7 @@ function UploadDropZone({ onUpload }) {
     const [dragging, setDragging] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState(null);
+    const [selectedDirs, setSelectedDirs] = useState(null);
 
     useEffect(() => {
         const handleDragEnter = (e) => {
@@ -60,40 +62,11 @@ function UploadDropZone({ onUpload }) {
         setDragging(false);
         // const files = Array.from(e.dataTransfer.files);
         const items = e.dataTransfer.items;
-        const files = [];
-    
-        const traverseFileTree = async (item, path = "") => {
-            return new Promise((resolve) => {
-                if (item.isFile) {
-                    item.file((file) => {
-                        file.dirPath = path;
-                        files.push(file);
-                        resolve();
-                    });
-                } else if (item.isDirectory) {
-                    const dirReader = item.createReader();
-                    dirReader.readEntries(async (entries) => {
-                        for (const entry of entries) {
-                            await traverseFileTree(entry, path + item.name + "/");
-                        }
-                        resolve();
-                    });
-                } else {
-                    resolve();
-                }
-            });
-        };
-    
-        const promises = [];
-        for (let i = 0; i < items.length; i++) {
-            const item = items[i].webkitGetAsEntry();
-            if (item) {
-                promises.push(traverseFileTree(item));
-            }
-        }
-        await Promise.all(promises);
-        console.log("Collected files:", files);
-        setSelectedFiles(files);
+        const data = await CollectPathsFromItems(items);
+        console.log("Collected files:", data.files);
+
+        setSelectedDirs(getDeepestDirs(data.dirSet));
+        setSelectedFiles(data.files);
         setShowConfirm(true);
     };
 
@@ -102,7 +75,7 @@ function UploadDropZone({ onUpload }) {
         setShowConfirm(false);
         if (selectedFiles.length > 0) {
             console.log("selectedFiles:", selectedFiles);
-            onUpload(selectedFiles); // pass to upload function
+            onUpload(selectedFiles, selectedDirs); // pass to upload function
         }
     };
 

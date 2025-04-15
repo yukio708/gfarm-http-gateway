@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { getDeepestDirs, CollectPathsFromFiles } from '../utils/func';
 import Dropdown from 'react-bootstrap/Dropdown';
 import ButtonGroup from 'react-bootstrap/ButtonGroup'
 
@@ -8,18 +9,10 @@ function UploadButton({ onUpload }) {
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
-
-        const uploadFiles = files.map(file => {
-            console.log("file.webkitRelativePath:", file.webkitRelativePath);
-            const dirPath = file.webkitRelativePath
-                ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + '/'
-                : "";
-            file.dirPath = dirPath;
-            return file;
-        });
-        if (uploadFiles.length > 0) {
-            console.log(uploadFiles);
-            onUpload(uploadFiles);
+        const data = CollectPathsFromFiles(files);
+        if (data.files) {
+            console.log("Collected files:", data.files);
+            onUpload(data.files, getDeepestDirs(data.dirSet));
         }
     };
 
