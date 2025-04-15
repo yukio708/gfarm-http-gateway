@@ -10,7 +10,6 @@ async function download(path, setTasks) {
     }
     const epath = encodePath(path)
     const dlurl = `${API_URL}/file${epath}?action=download`;
-    const progress = {};
 
     try{
         let filename = path.split("/").pop();
@@ -20,6 +19,7 @@ async function download(path, setTasks) {
         xhr.responseType = 'blob';
 
         const newTask = {
+            path: path,
             name: filename,
             value: 0,
             status: 'downloading',
@@ -45,7 +45,7 @@ async function download(path, setTasks) {
                 const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
                 setTasks( prev =>
                     prev.map(task =>
-                        task.name === filename ? { ...task, value, status } : task
+                        task.path === path ? { ...task, value, status } : task
                     )
                 );
                 console.log('downloaded: %d / %d (%d %)', event.loaded, event.total, percent);
@@ -82,7 +82,7 @@ async function download(path, setTasks) {
                 const status = `Error: HTTP ${xhr.status}: ${xhr.statusText}`;
                 setTasks( prev =>
                     prev.map(task =>
-                        task.name === filename ? { ...task, status } : task
+                        task.path === path ? { ...task, status } : task
                     )
                 );
                 console.error(status);
@@ -92,7 +92,7 @@ async function download(path, setTasks) {
         xhr.onerror = () => {
             setTasks( prev =>
                 prev.map(task =>
-                    task.name === filename ? { ...task, status:'Network error' } : task
+                    task.path === path ? { ...task, status:'Network error' } : task
                 )
             );
             console.error('Network error');

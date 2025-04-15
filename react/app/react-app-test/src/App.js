@@ -26,6 +26,8 @@ function App() {
     const { files, error } = useFileList(currentDir, refreshKey);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
+    const uploadQueueRef = useRef([]);
+    const [isUploading, setIsUploading] = useState(false);
 
     const jumpDirectory = (newdir) => {
         if (currentDir == newdir) {
@@ -44,30 +46,43 @@ function App() {
             console.error('Download failed:', err);
         }
         setTimeout(()=>{
-            setTasks([]);
-        }, 3000);
+            setTasks(prev => prev.filter(t => t.path !== filepath));
+        }, 10000);
     };
 
-    const uploadFiles = async (uploadfiles, uploaddirs, concurrency = 3) => {
-        const uploadQueue = [...uploadfiles];
-
+    const addFilesToUpload = async(newFiles, uploaddirs) => {
         for (let dirpath of uploaddirs) {
             await createDir(currentDir + '/' + dirpath);
         }
+        for ( let newfile of newFiles ) {
+            uploadQueueRef.current.push(newfile);
+        }
+        setIsUploading(true);
+    };
 
+    const uploadFiles = async () => {
+        const concurrency = 3;
         const worker = async () => {
-            while (uploadQueue.length) {
-                const file = uploadQueue.shift();
+            while (uploadQueueRef.current.length) {
+                const file = uploadQueueRef.current.shift();
+                const fullpath = currentDir + '/' + file.dirPath + file.name; // 現在位置が変わると違う場所にアップロードされてしまう
                 await upload(currentDir, file, setTasks);
+                setTimeout(()=>{
+                    setTasks(prev => prev.filter(t => t.path !== fullpath));
+                }, 10000);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
         await Promise.all(workers);
-        setTimeout(()=>{
-            setTasks([]);
-            setRefreshKey(prev => !prev);
-        }, 3000);
+        setIsUploading(false);
+        setRefreshKey(prev => !prev);
     };
+
+    useEffect(() => {
+        if (isUploading) {
+            uploadFiles();
+        }
+    }, [isUploading]);
 
     const showDetail = async (name, filepath) => {
         try {
@@ -99,7 +114,7 @@ function App() {
                 <Row>
                     <Navbar bg="dark" data-bs-theme="dark">
                         <Navbar.Collapse>
-                            <UploadButton onUpload={uploadFiles} />
+                            <UploadButton onUpload={addFilesToUpload} />
                         </Navbar.Collapse>
                     </Navbar>
                 </Row>
@@ -120,7 +135,7 @@ function App() {
                     }
                 </Row>
                 <Row>
-                    <UploadDropZone onUpload={uploadFiles}/>
+                    <UploadDropZone onUpload={addFilesToUpload}/>
                 </Row>
                 <ProgressView tasks={tasks} />
 

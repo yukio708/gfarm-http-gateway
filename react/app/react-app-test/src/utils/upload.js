@@ -6,11 +6,8 @@ async function upload(currentDir, file, setTasks) {
         alert('Please select a file');
         return;
     }
-
-    const epath = encodePath( file.dirPath
-        ? currentDir + '/' + file.dirPath + file.name
-        : currentDir + '/' + file.name
-    );
+    const fullpath = currentDir + '/' + file.dirPath + file.name;
+    const epath = encodePath(fullpath);
     const uploadUrl = `${API_URL}/file` + epath;
     console.log("uploadUrl:", uploadUrl);
 
@@ -22,6 +19,7 @@ async function upload(currentDir, file, setTasks) {
         xhr.responseType = 'json';
         
         const newTask = {
+            path: fullpath,
             name: file.name,
             value: 0,
             status: 'uploading',
@@ -44,7 +42,7 @@ async function upload(currentDir, file, setTasks) {
                 const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
                 setTasks( prev =>
                     prev.map(task =>
-                        task.name === file.name ? { ...task, value, status } : task
+                        task.path === fullpath ? { ...task, value, status } : task
                     )
                 );
                 console.log('uploaded: %d / %d (%d %)', event.loaded, event.total, percent);
@@ -55,7 +53,7 @@ async function upload(currentDir, file, setTasks) {
                 const status = 'Success (' + file.dirPath + file.name + ')';
                 setTasks( prev =>
                     prev.map(task =>
-                        task.name === file.name ? { ...task, status } : task
+                        task.path === fullpath ? { ...task, status } : task
                     )
                 );
                 console.log('Upload: success');
@@ -70,7 +68,7 @@ async function upload(currentDir, file, setTasks) {
                 }
                 setTasks( prev =>
                     prev.map(task =>
-                        task.name === file.name ? { ...task, status } : task
+                        task.path === fullpath ? { ...task, status } : task
                     )
                 );
                 console.error(status);
@@ -79,7 +77,7 @@ async function upload(currentDir, file, setTasks) {
         xhr.onerror = () => {
             setTasks( prev =>
                 prev.map(task =>
-                    task.name === file.name ? { ...task, status:'Network error' } : task
+                    task.path === fullpath ? { ...task, status:'Network error' } : task
                 )
             );
             console.error('Network error');
