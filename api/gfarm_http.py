@@ -1311,9 +1311,10 @@ async def gfls(env, path, _all=0, recursive=0, _long=0, effperm=0):
         stderr=asyncio.subprocess.STDOUT)
 
 
-async def gfmkdir(env, path):
+async def gfmkdir(env, path, p=0):
     args = []
-    args.append('-p')
+    if p == 1:
+        args.append('-p')
     args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfmkdir', *args,
@@ -1582,7 +1583,7 @@ async def dir_create(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
-    p = await gfmkdir(env, gfarm_path)
+    p = await gfmkdir(env, gfarm_path, p=1)
     return await gfarm_command_standard_response(env, p, opname)
 
 
