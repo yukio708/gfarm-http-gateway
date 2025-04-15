@@ -1,0 +1,19 @@
+import { encodePath } from '../utils/func';
+import { API_URL } from '../utils/api_url';
+
+async function getList(dirPath) {
+    const epath = encodePath(dirPath);
+    const fullpath = `${API_URL}/d` + epath + "?a=1&l=1&format=json";
+    try {
+        const response = await fetch(fullpath);
+        if (!response.ok) {
+            throw new Error(`Error: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (err) {
+        return err.message;
+    }
+};
+
+export default getList;

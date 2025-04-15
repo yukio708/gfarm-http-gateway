@@ -1,36 +1,25 @@
-import { encodePath } from '../utils/func'
 import { useState, useEffect } from 'react';
-import { API_URL } from '../utils/api_url';
+import getList from '../utils/getList';
 
 function useFileList(dirPath, reload) {
     const [files, setFiles] = useState([]);
     const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false);
   
     useEffect(() => {
         const fetchFiles = async () => {
-            const epath = encodePath(dirPath);
-            const fullpath = `${API_URL}/d` + epath + "?a=1&l=1&format=json";
-            setLoading(true);
             setError(null);
-            try {
-                const response = await fetch(fullpath);
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.status}`);
-                }
-                const data = await response.json();
+            const data = await getList(dirPath);
+            if (Array.isArray(data)) {
                 setFiles(data);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+            } else{
+                setError(data);
             }
         };
   
         fetchFiles();
     }, [dirPath, reload]);
   
-    return { files, loading, error };
+    return { files, error };
 }
 
 export default useFileList;

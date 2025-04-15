@@ -23,7 +23,7 @@ import Navbar from 'react-bootstrap/Navbar';
 function App() {
     const [currentDir, setCurrentDir] = useState("");
     const [refreshKey, setRefreshKey] = useState(false);
-    const { files, loading, error } = useFileList(currentDir, refreshKey);
+    const { files, error } = useFileList(currentDir, refreshKey);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
 
@@ -54,12 +54,7 @@ function App() {
         const worker = async () => {
             while (uploadQueue.length) {
                 const file = uploadQueue.shift();
-                if (currentDir.endsWith('/')) { // 確認
-                    await upload(currentDir, file, setTasks);
-                } else{
-                    console.log("worker:currentDir", currentDir);
-                    await upload(currentDir + '/', file, setTasks);
-                }
+                await upload(currentDir, file, setTasks);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
