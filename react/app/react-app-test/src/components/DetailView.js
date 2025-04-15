@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { formatFileSize } from '../utils/func';
 import Button from 'react-bootstrap/Button';
 import '../css/DetailView.css'
 
 function DetailView({detail, onClose}) {
     if (!detail) return null;
-    console.log("detail:", detail);
+    
+    const getSize = (filesize) => {
+        return (<>{formatFileSize(filesize)}</>);
+    }
 
     return (
         <div className="detail-view">
@@ -22,7 +26,7 @@ function DetailView({detail, onClose}) {
                     </tr>
                     <tr>
                         <td><strong>Size:</strong></td>
-                        <td>{detail.Size} KB</td>
+                        <td>{getSize(detail.Size)}</td>
                     </tr>
                     <tr>
                         <td><strong>Permissions:</strong></td>

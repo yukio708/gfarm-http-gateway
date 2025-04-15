@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { formatFileSize } from '../utils/func';
 import Dropdown from 'react-bootstrap/Dropdown';
 import Form from 'react-bootstrap/Form';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -142,19 +143,8 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
         }
     };
 
-    const formatFileSize = (filesize) => {
-        if (filesize === 0) {
-            return (<></>);
-        }
-    
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-        const i = Math.floor(Math.log(filesize) / Math.log(k));
-    
-        const sizestr =  parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        return (
-            <>{sizestr}</>
-        )
+    const getSize = (filesize) => {
+        return (<>{formatFileSize(filesize)}</>);
     }
   
     return (
@@ -188,7 +178,7 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
                     </td>
                     <td>{getFileIcon(file)}</td>
                     <td onClick={() => handleNameCick(file.path, file.isfile)}>{file.name}</td>
-                    <td>{formatFileSize(file.size)}</td>
+                    <td>{getSize(file.size)}</td>
                     <td>{file.mtime_str}</td>
                     <td>
                     <Dropdown>

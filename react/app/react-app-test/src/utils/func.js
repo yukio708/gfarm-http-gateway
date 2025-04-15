@@ -80,3 +80,16 @@ export const CollectPathsFromFiles = (files) => {
 
     return {files:uploadFiles, dirSet};
 }
+
+export const formatFileSize = (filesize) => {
+    if (filesize === 0) {
+        return "";
+    }
+
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    const i = Math.floor(Math.log(filesize) / Math.log(k));
+
+    const sizestr =  parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return sizestr;
+}
