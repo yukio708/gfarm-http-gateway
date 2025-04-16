@@ -6,3 +6,6 @@
 
 static/react
 .vscode
+
+__pycache__
+.pytest_cache

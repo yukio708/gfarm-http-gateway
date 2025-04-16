@@ -7,8 +7,22 @@ services:
     volumes:
       - type: bind
         source: ./app
-        target: /usr/src/app
+        target: /app
     command: sh -c "cd react-app-test && yarn start" 
     ports:
       - 3000:3000
+    stdin_open: true
+
+  tests:
+    container_name: react-test
+    build:
+      context: .
+      dockerfile: dockerfile.test
+    volumes:
+      - type: bind
+        source: ./test
+        target: /test
+    command: sh -c "pip install -r /test/requirements.txt && python /test/test.py && pytest /test/test.py"
+    depends_on:
+      - react
     stdin_open: true

@@ -1,0 +1,57 @@
+[
+    {
+        "mode_str": "drwxrwxrwt",
+        "isfile": false,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 0,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": ".",
+        "path": "/tmp/."
+    },
+    {
+        "mode_str": "-rwxrwxrwt",
+        "isfile": true,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 2048,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": "file2.jpg",
+        "path": "/files/file2.jpg"
+    },
+    {
+        "mode_str": "-rwxrwxrwt",
+        "isfile": true,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 512,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": "file3.pdf",
+        "path": "/files/file3.pdf"
+    },
+    {
+        "mode_str": "-rwxrwxrwt",
+        "isfile": true,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 128,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": "file4.py",
+        "path": "/files/file4.py"
+    },
+    {
+        "mode_str": "drwxrwxrwt",
+        "isfile": false,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 0,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": "dir1",
+        "path": "/files/dir1"
+    }
+]

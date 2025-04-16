@@ -1,0 +1,14 @@
+{
+    "File": "/tmp/hello.py",
+    "Filetype": "regular file",
+    "Size": 35,
+    "Uid": "otsukay",
+    "Gid": "gfarmadm",
+    "Mode": "0600",
+    "Access": "2025-04-09 00:58:52.808484 +0000",
+    "Modify": "2025-02-05 09:20:30.000000 +0000",
+    "Change": "2025-04-09 00:57:34.304146 +0000",
+    "MetadataHost": "c1",
+    "MetadataPort": "601",
+    "MetadataUser": "otsukay"
+}
