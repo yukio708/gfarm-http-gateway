@@ -21,3 +21,9 @@ RUN wget -O chrome.json https://googlechromelabs.github.io/chrome-for-testing/kn
     wget -O chrome.zip $LINUX_STABLE_URL && \
     unzip chrome.zip && \
     rm chrome.zip chrome.json
+
+
+COPY ./test/requirements.txt /
+
+RUN pip install -r /requirements.txt
+RUN playwright install

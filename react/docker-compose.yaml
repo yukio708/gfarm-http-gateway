@@ -22,7 +22,7 @@ services:
       - type: bind
         source: ./test
         target: /test
-    command: sh -c "pip install -r /test/requirements.txt && python /test/test.py && pytest /test/test.py"
+    command: pytest -s /test/test_playwright.py
     depends_on:
       - react
     stdin_open: true
