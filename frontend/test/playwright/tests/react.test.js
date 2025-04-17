@@ -3,7 +3,7 @@ const fs = require('fs');
 
 async function handleRoute(route, request) {    
     if (request.url().includes('/dir1')) {
-        const mockData = JSON.parse(fs.readFileSync('../../data/datalist2.json', 'utf8'));
+        const mockData = JSON.parse(fs.readFileSync('/data/datalist2.json', 'utf8'));
         // Mocking the response for API call
         route.fulfill({
             status: 200,
@@ -11,7 +11,7 @@ async function handleRoute(route, request) {
             body: JSON.stringify(mockData), // Mocked response data
         });
     } else if (request.url().includes('/d/')) {
-        const mockData = JSON.parse(fs.readFileSync('../../data/datalist.json', 'utf8'));
+        const mockData = JSON.parse(fs.readFileSync('/data/datalist.json', 'utf8'));
         // Mocking the response for API call
         route.fulfill({
             status: 200,
@@ -33,7 +33,7 @@ async function runTest() {
     await page.route('**/*', handleRoute);
 
     // Navigate to your app or page
-    await page.goto('http://localhost:3000');
+    await page.goto('http://react:3000');
 
     // You can now perform actions on your page and verify that the mocked data is used
 

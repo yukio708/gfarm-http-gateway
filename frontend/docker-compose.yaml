@@ -18,14 +18,14 @@ services:
     container_name: react-test-playwright
     build:
       context: .
-      dockerfile: dockerfile.test
+      dockerfile: dockerfile.playwright
     environment:
       - DISPLAY=${DISPLAY}
     volumes:
       - ./test/playwright:/test
       - ./test/data:/data
       - /tmp/.X11-unix:/tmp/.X11-unix
-    command: pytest -s /test/test_playwright.py
+    command: npm test
     devices:
       - /dev/dri
     depends_on:
@@ -33,17 +33,17 @@ services:
     stdin_open: true
     tty: true
 
-  puppeteer:
-    container_name: react-test-puppeteer
-    build:
-      context: .
-      dockerfile: dockerfile.puppeteer
-    volumes:
-      - ./test/puppeteer:/test
-      - /test/node_modules
-      - ./test/data:/data
-    command: npm run start
-    depends_on:
-      - react
-    stdin_open: true
-    tty: true
+  # puppeteer:
+  #   container_name: react-test-puppeteer
+  #   build:
+  #     context: .
+  #     dockerfile: dockerfile.puppeteer
+  #   volumes:
+  #     - ./test/puppeteer:/test
+  #     - /test/node_modules
+  #     - ./test/data:/data
+  #   command: npm run start
+  #   depends_on:
+  #     - react
+  #   stdin_open: true
+  #   tty: true
