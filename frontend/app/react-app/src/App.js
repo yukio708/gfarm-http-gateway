@@ -30,7 +30,7 @@ function App() {
     const [isUploading, setIsUploading] = useState(false);
 
     const jumpDirectory = (newdir) => {
-        if (currentDir == newdir) {
+        if (currentDir === newdir) {
             setRefreshKey(prev => !prev);
         }
         else {
