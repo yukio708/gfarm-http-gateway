@@ -12,17 +12,19 @@ services:
     ports:
       - 3000:3000
     stdin_open: true
+    tty: true
 
-  tests:
-    container_name: react-test
-    build:
-      context: .
-      dockerfile: dockerfile.test
-    volumes:
-      - type: bind
-        source: ./test
-        target: /test
-    command: pytest -s /test/test_playwright.py
-    depends_on:
-      - react
-    stdin_open: true
+  # tests:
+  #   container_name: react-test-playwright
+  #   build:
+  #     context: .
+  #     dockerfile: dockerfile.test
+  #   volumes:
+  #     - type: bind
+  #       source: ./test
+  #       target: /test
+  #   command: pytest -s /test/test_playwright.py
+  #   depends_on:
+  #     - react
+  #   stdin_open: true
+  #   tty: true
