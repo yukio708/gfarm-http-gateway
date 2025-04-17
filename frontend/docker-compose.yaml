@@ -14,22 +14,7 @@ services:
     stdin_open: true
     tty: true
 
-  # tests:
-  #   container_name: react-test-puppeteer
-  #   build:
-  #     context: .
-  #     dockerfile: dockerfile.puppeteer
-  #   volumes:
-  #     - ./test/puppeteer:/test
-  #     - /test/node_modules
-  #     - ./test/data:/data
-  #   command: npm run start
-  #   depends_on:
-  #     - react
-  #   stdin_open: true
-  #   tty: true
-
-  tests:
+  playwright:
     container_name: react-test-playwright
     build:
       context: .
@@ -43,6 +28,21 @@ services:
     command: pytest -s /test/test_playwright.py
     devices:
       - /dev/dri
+    depends_on:
+      - react
+    stdin_open: true
+    tty: true
+
+  puppeteer:
+    container_name: react-test-puppeteer
+    build:
+      context: .
+      dockerfile: dockerfile.puppeteer
+    volumes:
+      - ./test/puppeteer:/test
+      - /test/node_modules
+      - ./test/data:/data
+    command: npm run start
     depends_on:
       - react
     stdin_open: true
