@@ -4,6 +4,18 @@ FROM python:3.12
 RUN apt-get update && apt-get install -y \
     wget \
     unzip \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxi6 \
+    libxtst6 \
+    libxrandr2 \
+    libasound2 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
+    libgbm-dev \
     libglib2.0-0 \
     libnss3 \
     libgconf-2-4 \

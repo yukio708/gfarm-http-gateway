@@ -20,31 +20,48 @@ def wait_for_react():
 
 wait_for_react()
 
+def handle_route(route, request):
+    if '/dir1' in request.url:
+        print("dir1 Intercepted:", request.url)
+        json_data = []
+        with open('/data/datalist2.json', 'r') as f:
+            json_data = json.load(f)
+        route.fulfill(
+            status=200,
+            content_type='application/json',
+            body=json.dumps(json_data)
+        )
+    elif '/d/' in request.url:
+        print("Intercepted:", request.url)
+        json_data = []
+        with open('/data/datalist.json', 'r') as f:
+            json_data = json.load(f)
+        route.fulfill(
+            status=200,
+            content_type='application/json',
+            body=json.dumps(json_data)
+        )
+    else:
+        route.continue_()
+
 @pytest.fixture(scope="session")
 def playwright_instance():
     with sync_playwright() as p:
         yield p
 
 def test_mock_api(playwright_instance):
-    browser = playwright_instance.chromium.launch(headless=True)
+    browser = playwright_instance.chromium.launch(headless=False)
     page = browser.new_page()
 
     # Intercept and mock the API response
-    json_load = {}
-    with open('test/data/datalist.json', 'r') as f:
-       json_load = json.load(f)
-    page.route(API_ENDPOINT + "/d/?a=1&l=1&format=json", lambda route: route.fulfill(
-        status=200,
-        content_type="application/json",
-        body=json.dumps(json_load) 
-    ))
+    page.route("**/*", handle_route)
 
     # Navigate to the app
     print("Navigating to app...")
     page.goto(FRONTEND_URL)
     
     # Debug: Check page content
-    print("Page content:", page.content())
+    # print("Page content:", page.content())
 
     # Wait for header and print text
     page.wait_for_selector(".App-header", timeout=10000)
@@ -56,7 +73,16 @@ def test_mock_api(playwright_instance):
     file_text = page.locator(".file-table").text_content()
     print(f"File text: {file_text}")
 
+    page.wait_for_selector("text=dir1", timeout=10000)
     # Assertion
-    assert "file2.jpg" in file_text  # Check if file2.jpg is found in the text
+    assert "dir1" in file_text  # Check if file2.jpg is found in the text
+
+    page.click("text=dir1")
+    
+    page.wait_for_selector("text=dir1", timeout=10000)
+    file_text = page.locator(".file-table").text_content()
+    print(f"File text: {file_text}")
+
+    assert "dir1" in file_text  # Check if file2.jpg is found in the text
 
     browser.close()

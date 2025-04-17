@@ -1,0 +1,24 @@
+[
+    {
+        "mode_str": "-rwxrwxrwt",
+        "isfile": true,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 512,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": "dir1-file1.py",
+        "path": "files/dir1/dir1-file1.py"
+    },
+    {
+        "mode_str": "-rwxrwxrwt",
+        "isfile": true,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 128,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": "dir1-file2.py",
+        "path": "files/dir1/dir1-file2.py"
+    }
+]

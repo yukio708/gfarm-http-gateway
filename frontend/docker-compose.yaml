@@ -6,7 +6,7 @@ services:
       dockerfile: dockerfile
     volumes:
       - ./app/react-app:/app
-      # - /app/node_modules
+      - /app/node_modules
     # command: sh -c "npm install && npm run start"
     command: npm run start
     ports:
@@ -14,32 +14,36 @@ services:
     stdin_open: true
     tty: true
 
-  tests:
-    container_name: react-test-puppeteer
-    build:
-      context: .
-      dockerfile: dockerfile.puppeteer
-    volumes:
-      - ./test/puppeteer:/test
-      - /test/node_modules
-      - ./test/data:/data
-    command: npm run start
-    depends_on:
-      - react
-    stdin_open: true
-    tty: true
-
   # tests:
-  #   container_name: react-test-playwright
+  #   container_name: react-test-puppeteer
   #   build:
   #     context: .
-  #     dockerfile: dockerfile.test
+  #     dockerfile: dockerfile.puppeteer
   #   volumes:
-  #     - type: bind
-  #       source: ./test
-  #       target: /test
-  #   command: pytest -s /test/test_playwright.py
+  #     - ./test/puppeteer:/test
+  #     - /test/node_modules
+  #     - ./test/data:/data
+  #   command: npm run start
   #   depends_on:
   #     - react
   #   stdin_open: true
   #   tty: true
+
+  tests:
+    container_name: react-test-playwright
+    build:
+      context: .
+      dockerfile: dockerfile.test
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - ./test/playwright:/test
+      - ./test/data:/data
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    command: pytest -s /test/test_playwright.py
+    devices:
+      - /dev/dri
+    depends_on:
+      - react
+    stdin_open: true
+    tty: true
