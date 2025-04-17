@@ -5,9 +5,8 @@ services:
       context: .
       dockerfile: dockerfile
     volumes:
-      - type: bind
-        source: ./app/react-app
-        target: /app
+      - ./app/react-app:/app
+      # - /app/node_modules
     # command: sh -c "npm install && npm run start"
     command: npm run start
     ports:
@@ -21,13 +20,9 @@ services:
       context: .
       dockerfile: dockerfile.puppeteer
     volumes:
-      - type: bind
-        source: ./test/puppeteer
-        target: /test
-      - type: bind
-        source: ./test/data
-        target: /data
-    # command: sh -c "npm install && npm run start"
+      - ./test/puppeteer:/test
+      - /test/node_modules
+      - ./test/data:/data
     command: npm run start
     depends_on:
       - react
