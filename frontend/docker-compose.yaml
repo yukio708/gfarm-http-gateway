@@ -18,14 +18,16 @@ services:
     container_name: react-test-playwright
     build:
       context: .
-      dockerfile: dockerfile.playwright
+      # dockerfile: dockerfile.js.playwright
+      dockerfile: dockerfile.py.playwright
     environment:
       - DISPLAY=${DISPLAY}
     volumes:
       - ./test/playwright:/test
       - ./test/data:/data
       - /tmp/.X11-unix:/tmp/.X11-unix
-    command: npm test
+    # command: npm test
+    command: pytest test_playwright.py
     devices:
       - /dev/dri
     depends_on:
