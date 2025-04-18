@@ -1072,6 +1072,12 @@ def get_client_ip_from_env(env):
 def get_client_ip_from_request(request):
     return request.client.host
 
+def set_tokenfilepath_to_env(access_token, filepath=None):
+    # アクセストークンを取得
+    # filepath=Noneのとき
+        # ファイル生成
+    # アクセストークン書き込み
+    return 
 
 #############################################################################
 def keyval(s):
@@ -1417,6 +1423,14 @@ async def file_size(env, path):
     logger.debug(f"file_size: {existing}, {is_file}, {size}")
     return existing, is_file, size
 
+async def gfptar(env, cmd:str, outdir, basedir, src):
+    args = [f"-{cmd}", outdir, "-C", basedir, src]
+    return await asyncio.create_subprocess_exec(
+        'gfptar', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
 
 #############################################################################
 async def log_stderr(command: str,
@@ -1887,3 +1901,51 @@ async def change_attr(gfarm_path: str,
         stdout = None
         elist = None
         raise gfarm_http_error(opname, code, message, stdout, elist)
+
+@app.post("/gfptar/{gfarm_path:path}")
+async def compress(gfarm_path: str,
+                    request: Request,
+                    cmd: str = 'c',
+                    src: str = '',
+                    authorization: Union[str, None] = Header(default=None)):
+    opname = "gfptar"
+    gfarm_path = fullpath(gfarm_path)
+    env = await set_env(request, authorization)
+    # token用のファイルパスを環境変数にセット
+    tokenfilepath = set_tokenfilepath_to_env(request)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
+    log_operation(env, opname, gfarm_path)
+
+    p = gfptar(env, cmd, gfarm_path, src)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
+
+    async def stream_response():
+        buffer = b""
+        while True:
+            chunk = await p.stdout.read(1)
+            if not chunk:
+                break
+            buffer += chunk
+            if b"\r" in buffer or b"\n" in buffer:
+                msg = buffer.decode("utf-8", errors="replace").strip()
+                buffer = b""
+                json_line = json.dumps({ "message": msg }) # TODO:msgを項目ごとに変換する
+                yield json_line + '\n'
+                logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json_line}")
+                # アクセストークン更新チェック
+                # アクセストークン更新
+                set_tokenfilepath_to_env(request, tokenfilepath)
+            
+        await stderr_task
+        return_code = await p.wait()
+        if return_code != 0:
+            # error!
+            code = 500
+            message = f"path={gfarm_path}"
+            stdout = buffer.decode("utf-8", errors="replace").strip()
+            raise gfarm_http_error(opname, code, message, stdout, elist)
+
+    return StreamingResponse(content=stream_response(),
+                             media_type='application/json')
