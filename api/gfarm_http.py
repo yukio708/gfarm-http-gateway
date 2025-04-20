@@ -385,7 +385,7 @@ templates = Jinja2Templates(directory="templates")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.mount("/react", StaticFiles(directory="react/app/react-app-test/build", html=True), name="react")
+app.mount("/react", StaticFiles(directory="frontend/app/react-app/build", html=True), name="react")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1077,7 +1077,7 @@ def set_tokenfilepath_to_env(access_token, filepath=None):
     # filepath=Noneのとき
         # ファイル生成
     # アクセストークン書き込み
-    return 
+    return None
 
 #############################################################################
 def keyval(s):
