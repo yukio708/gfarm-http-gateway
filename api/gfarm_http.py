@@ -1902,22 +1902,43 @@ async def change_attr(gfarm_path: str,
         elist = None
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
-@app.post("/gfptar/{gfarm_path:path}")
-async def compress(gfarm_path: str,
-                    request: Request,
-                    cmd: str = 'c',
-                    src: str = '',
+class Tar(BaseModel):
+    command: str
+    basedir: str
+    source: str
+    outdir: str
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "command": "c",
+                    "basedir": "/",
+                    "source": "./tmp",
+                    "outdir": "/tmp2",
+                }
+            ]
+        }
+    }
+
+@app.post("/gfptar")
+async def compress(request: Request,
+                    tar_data: Tar,
                     authorization: Union[str, None] = Header(default=None)):
+    logger.debug("!!!!!!!!!!!!!!! test !!!!!!!!!!!!!!!!!")
     opname = "gfptar"
-    gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     # token用のファイルパスを環境変数にセット
     tokenfilepath = set_tokenfilepath_to_env(request)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, opname, tar_data)
+    cmd = tar_data.command
+    basedir = tar_data.basedir
+    src = tar_data.source
+    outdir = tar_data.outdir
 
-    p = gfptar(env, cmd, gfarm_path, src)
+    p = await gfptar(env, cmd, outdir, basedir, src)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
 
@@ -1928,6 +1949,7 @@ async def compress(gfarm_path: str,
             if not chunk:
                 break
             buffer += chunk
+            # logger.debug(f"buffer:{buffer}")
             if b"\r" in buffer or b"\n" in buffer:
                 msg = buffer.decode("utf-8", errors="replace").strip()
                 buffer = b""
@@ -1943,7 +1965,7 @@ async def compress(gfarm_path: str,
         if return_code != 0:
             # error!
             code = 500
-            message = f"path={gfarm_path}"
+            message = f"path={outdir}"
             stdout = buffer.decode("utf-8", errors="replace").strip()
             raise gfarm_http_error(opname, code, message, stdout, elist)
 

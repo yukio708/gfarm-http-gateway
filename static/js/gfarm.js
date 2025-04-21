@@ -606,3 +606,52 @@ async function chmod() {
         alert("Please input Gfarm path");
     }
 }
+
+async function gfptar() {
+    const cmd = document.getElementById("gfptar_cmd").value;
+    const base = document.getElementById("gfptar_bace").value;
+    const src = document.getElementById("gfptar_src").value;
+    const dest = document.getElementById("gfptar_dest").value;
+    const input = document.getElementById("gfptar_input");
+    const output = document.getElementById("gfptar_output");
+    if (src && dest) {
+        const data = JSON.stringify({
+            "command": cmd,
+            "basedir": base,
+            "source": src,
+            "outdir": dest,
+        }, null, 2);
+        input.textContent = data;
+
+        try {
+            const response = await fetch("/gfptar", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: data
+              });
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+            
+                text = decoder.decode(value, { stream: true });
+                console.log("Received:", text);
+                output.textContent = text;
+                buffer += text;
+            }
+            console.log("result:", buffer);
+            
+        } catch(error) {
+            alert("Error: " + error.message);
+            console.error(error);
+        };
+    } else {
+        alert("Please input Gfarm path");
+    }
+}
