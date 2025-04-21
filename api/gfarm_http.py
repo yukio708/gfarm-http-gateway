@@ -19,6 +19,8 @@ import sys
 from typing import Union, Optional
 import urllib
 import re
+import tempfile
+
 
 from loguru import logger
 
@@ -1072,12 +1074,36 @@ def get_client_ip_from_env(env):
 def get_client_ip_from_request(request):
     return request.client.host
 
-def set_tokenfilepath_to_env(access_token, filepath=None):
-    # アクセストークンを取得
-    # filepath=Noneのとき
-        # ファイル生成
-    # アクセストークン書き込み
-    return None
+async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
+    tokenfile = filepath
+    
+    access_token = await get_access_token(request)
+    if access_token is None:
+        return None, env, exp
+    
+    claims = jwt.get_unverified_claims(access_token)
+    exp = claims.get("exp")
+    logger.debug(f'expire: {expire} exp: {exp}')
+    if expire is not None:
+        current_time = int(time.time())
+        logger.debug(f'expiretime: {expire-(current_time+TOKEN_MIN_VALID_TIME_REMAINING)}')
+    
+    if tokenfile is not None and expire == exp:
+        return tokenfile, env, exp
+
+    # Create token file
+    if tokenfile is None:
+        env.pop('GFARM_SASL_PASSWORD', None)
+        with tempfile.NamedTemporaryFile(delete_on_close=False) as fp:
+            tokenfile = fp.name
+            env['JWT_USER_PATH'] = tokenfile
+            logger.debug(f"!!!!!!! env['JWT_USER_PATH']: {env['JWT_USER_PATH']}")
+    
+    # Write access_token in the token file
+    with open(tokenfile, "w") as f:
+        logger.debug(f'!!!!!!! access_token changed!')
+        f.write(access_token)
+    return tokenfile, env, exp
 
 #############################################################################
 def keyval(s):
@@ -1925,11 +1951,10 @@ class Tar(BaseModel):
 async def compress(request: Request,
                     tar_data: Tar,
                     authorization: Union[str, None] = Header(default=None)):
-    logger.debug("!!!!!!!!!!!!!!! test !!!!!!!!!!!!!!!!!")
     opname = "gfptar"
     env = await set_env(request, authorization)
-    # token用のファイルパスを環境変数にセット
-    tokenfilepath = set_tokenfilepath_to_env(request)
+    # Set the token file path to env
+    tokenfilepath, env, expire = await set_tokenfilepath_to_env(request, env)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, tar_data)
@@ -1943,31 +1968,33 @@ async def compress(request: Request,
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
 
     async def stream_response():
-        buffer = b""
-        while True:
-            chunk = await p.stdout.read(1)
-            if not chunk:
-                break
-            buffer += chunk
-            # logger.debug(f"buffer:{buffer}")
-            if b"\r" in buffer or b"\n" in buffer:
-                msg = buffer.decode("utf-8", errors="replace").strip()
-                buffer = b""
-                json_line = json.dumps({ "message": msg }) # TODO:msgを項目ごとに変換する
-                yield json_line + '\n'
-                logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json_line}")
-                # アクセストークン更新チェック
-                # アクセストークン更新
-                set_tokenfilepath_to_env(request, tokenfilepath)
-            
-        await stderr_task
-        return_code = await p.wait()
-        if return_code != 0:
-            # error!
-            code = 500
-            message = f"path={outdir}"
-            stdout = buffer.decode("utf-8", errors="replace").strip()
-            raise gfarm_http_error(opname, code, message, stdout, elist)
+        try:
+            exp = expire
+            buffer = b""
+            while True:
+                chunk = await p.stdout.read(1)
+                if not chunk:
+                    break
+                buffer += chunk
+                # logger.debug(f"buffer:{buffer}")
+                if b"\r" in buffer or b"\n" in buffer:
+                    msg = buffer.decode("utf-8", errors="replace").strip()
+                    buffer = b""
+                    json_line = json.dumps({ "message": msg }) # TODO:msgを項目ごとに変換する
+                    yield json_line + '\n'
+                    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json_line}")
+                    # Update access_token
+                    _, _, exp = await set_tokenfilepath_to_env(request, env, tokenfilepath, exp)
+        finally:
+            await stderr_task
+            return_code = await p.wait()
+            os.remove(tokenfilepath)
+            if return_code != 0:
+                # error!
+                code = 500
+                message = f"path={outdir}"
+                stdout = buffer.decode("utf-8", errors="replace").strip()
+                raise gfarm_http_error(opname, code, message, stdout, elist)
 
     return StreamingResponse(content=stream_response(),
                              media_type='application/json')
