@@ -1984,16 +1984,23 @@ async def compress(request: Request,
                     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json_line}")
                     # Update access_token
                     _, _, exp = await set_tokenfilepath_to_env(request, env, tokenfilepath, exp)
-        finally:
             await stderr_task
             return_code = await p.wait()
-            os.remove(tokenfilepath)
             if return_code != 0:
                 # error!
-                code = 500
+                code = status.HTTP_500_INTERNAL_SERVER_ERROR
                 message = f"path={outdir}"
                 stdout = buffer.decode("utf-8", errors="replace").strip()
                 raise gfarm_http_error(opname, code, message, stdout, elist)
+        except asyncio.CancelledError:
+            p.kill()
+            logger.error(f"{ipaddr}:0 user={user}, cmd={opname}, Client disconnected")
+        finally:
+            try:
+                os.remove(tokenfilepath)
+            except Exception as e:
+                logger.error(f"{ipaddr}:0 user={user}, cmd={opname}, os.remove({tokenfilepath}) error: {e}")
+
 
     return StreamingResponse(content=stream_response(),
                              media_type='application/json')
