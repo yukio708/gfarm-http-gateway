@@ -20,7 +20,7 @@ from typing import Union, Optional
 import urllib
 import re
 import tempfile
-
+import shutil
 
 from loguru import logger
 
@@ -56,6 +56,8 @@ def exit_error():
 # Ex. -rw-rw-r-- 1 user1  gfarmadm     29 Jan  1 00:00:00 2022 fname
 PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                         r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
+
+TMPDIR = "/tmp/gfarm-http"
 
 #############################################################################
 # Configuration variables
@@ -368,6 +370,11 @@ if DEBUG:
 
 conf_check_not_recommended()
 conf_check_invalid()  # may exit
+
+#############################################################################
+def delete_tempfiles():
+    if os.path.exists(TMPDIR): shutil.rmtree(TMPDIR)
+delete_tempfiles()
 
 #############################################################################
 app = FastAPI()
@@ -1088,20 +1095,23 @@ async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
         return None, env, expire
     
     claims = jwt.get_unverified_claims(access_token)
-    exp = claims.get("exp")        
+    exp = claims.get("exp", None)        
     
     # Create token file
     if tokenfile is None:
+        user = claims.get(TOKEN_USER_CLAIM, None)
+        tmpdir = f"{TMPDIR}/{user}/" if user is not None else TMPDIR
         env.pop('GFARM_SASL_PASSWORD', None)
-        with tempfile.NamedTemporaryFile(delete_on_close=False) as fp:
+        os.makedirs(tmpdir, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=tmpdir, delete_on_close=False) as fp:
             tokenfile = fp.name
             env['JWT_USER_PATH'] = tokenfile
-            logger.debug(f"!!!!!!! env['JWT_USER_PATH']: {env['JWT_USER_PATH']}")
     
     # Write access_token in the token file
     with open(tokenfile, "w") as f:
-        logger.debug(f'!!!!!!! access_token changed!')
         f.write(access_token)
+    ipaddr = get_client_ip_from_request(request)
+    logger.debug(f"{ipaddr}:0 user={user}, access_token file:{tokenfile} updated")
     return tokenfile, env, exp
 
 #############################################################################
