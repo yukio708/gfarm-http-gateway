@@ -1458,8 +1458,23 @@ async def file_size(env, path):
     logger.debug(f"file_size: {existing}, {is_file}, {size}")
     return existing, is_file, size
 
-async def gfptar(env, cmd:str, outdir, basedir, src):
-    args = [f"-{cmd}", outdir, "-C", basedir, src]
+async def gfptar(env, 
+                 cmd:str, 
+                 outdir, 
+                 basedir, 
+                 src,
+                 options={}):
+    args = []
+    for key, value in options.items():
+        if value is None:
+            continue
+        args.append(f"--{key}={value}")
+
+    if cmd == "x":
+        args.extend([f"-{cmd}", outdir, src])
+    else:
+        args.extend([f"-{cmd}", outdir, "-C", basedir, src])
+
     return await asyncio.create_subprocess_exec(
         'gfptar', *args,
         env=env,
@@ -1632,7 +1647,7 @@ async def dir_create(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
-    p = await gfmkdir(env, gfarm_path, p=1)
+    p = await gfmkdir(env, gfarm_path, p=1) # TODO: p should be passed as a parameter
     return await gfarm_command_standard_response(env, p, opname)
 
 
@@ -1942,6 +1957,11 @@ class Tar(BaseModel):
     basedir: str
     source: str
     outdir: str
+    exclude: str | None
+    jobs: int | None
+    size: str | None
+    type: str | None
+    compress: str | None
 
     model_config = {
         "json_schema_extra": {
@@ -1951,13 +1971,19 @@ class Tar(BaseModel):
                     "basedir": "/",
                     "source": "./tmp",
                     "outdir": "/tmp2",
+                    "exclude": "",
+                    "jobs": 4,
+                    "size": "200Mi",
+                    "type": "gz",
+                    "compress": ""
+
                 }
             ]
         }
     }
 
 @app.post("/gfptar")
-async def compress(request: Request,
+async def compress_or_extract(request: Request,
                     tar_data: Tar,
                     authorization: Union[str, None] = Header(default=None)):
     opname = "gfptar"
@@ -1967,12 +1993,14 @@ async def compress(request: Request,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, tar_data)
-    cmd = tar_data.command
-    basedir = tar_data.basedir
-    src = tar_data.source
-    outdir = tar_data.outdir
 
-    p = await gfptar(env, cmd, outdir, basedir, src)
+    tar_dict = tar_data.model_dump()
+    cmd = tar_dict.pop("command", None)
+    basedir = tar_dict.pop("basedir", None)
+    src = tar_dict.pop("source", None)
+    outdir = tar_dict.pop("outdir", None)
+
+    p = await gfptar(env, cmd, outdir, basedir, src, tar_dict)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
 
@@ -2010,7 +2038,6 @@ async def compress(request: Request,
                 os.remove(tokenfilepath)
             except Exception as e:
                 logger.error(f"{ipaddr}:0 user={user}, cmd={opname}, os.remove({tokenfilepath}) error: {e}")
-
 
     return StreamingResponse(content=stream_response(),
                              media_type='application/json')

@@ -182,16 +182,16 @@ progress {
         <div id="chmod_output"></div>
         </p>
 
-        <h2>(gfmv) API: POST /gfptar</h2>
+        <h2>(gfptar) API: POST /gfptar</h2>
         <p>
         <label for="gfptar_cmd">gfptar command:</label>
         <input type="text" id="gfptar_cmd" value="c"> <br/>
         <label for="gfptar_bace">Gfarm path (base):</label>
-        <input type="text" id="gfptar_bace" value="gfarm:/"> <br/>
+        <input type="text" id="gfptar_bace" value="gfarm:/tmp"> <br/>
         <label for="gfptar_src">Gfarm path (source):</label>
-        <input type="text" id="gfptar_src" value="./tmp"> <br/>
+        <input type="text" id="gfptar_src" value="./testdir"> <br/>
         <label for="gfptar_dest">Gfarm path (destination):</label>
-        <input type="text" id="gfptar_dest" value="gfarm:/tmp2">
+        <input type="text" id="gfptar_dest" value="gfarm:/tmp/testoutdir">
         <button onclick="gfptar()">gfptar</button><br/>
         <table><tr><td>Input data (JSON)</td></tr><tr><td><pre><div id="gfptar_input"></div></pre></td></tr></table>
         <div id="gfptar_output"></div>

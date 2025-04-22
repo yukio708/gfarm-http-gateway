@@ -620,6 +620,11 @@ async function gfptar() {
             "basedir": base,
             "source": src,
             "outdir": dest,
+            "exclude": null,
+            "jobs": null,
+            "size": null,
+            "type": null,
+            "compress": null
         }, null, 2);
         input.textContent = data;
 
