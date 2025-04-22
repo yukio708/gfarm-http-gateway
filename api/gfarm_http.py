@@ -1077,20 +1077,19 @@ def get_client_ip_from_request(request):
 async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
     tokenfile = filepath
     
-    access_token = await get_access_token(request)
-    if access_token is None:
-        return None, env, exp
-    
-    claims = jwt.get_unverified_claims(access_token)
-    exp = claims.get("exp")
-    logger.debug(f'expire: {expire} exp: {exp}')
     if expire is not None:
         current_time = int(time.time())
         logger.debug(f'expiretime: {expire-(current_time+TOKEN_MIN_VALID_TIME_REMAINING)}')
+        if (current_time + TOKEN_MIN_VALID_TIME_REMAINING) <= expire:
+            return tokenfile, env, expire
+        
+    access_token = await get_access_token(request)
+    if access_token is None:
+        return None, env, expire
     
-    if tokenfile is not None and expire == exp:
-        return tokenfile, env, exp
-
+    claims = jwt.get_unverified_claims(access_token)
+    exp = claims.get("exp")        
+    
     # Create token file
     if tokenfile is None:
         env.pop('GFARM_SASL_PASSWORD', None)
