@@ -2031,7 +2031,7 @@ async def compress_or_extract(request: Request,
                 stdout = buffer.decode("utf-8", errors="replace").strip()
                 raise gfarm_http_error(opname, code, message, stdout, elist)
         except asyncio.CancelledError:
-            p.kill()
+            p.terminate()
             logger.error(f"{ipaddr}:0 user={user}, cmd={opname}, Client disconnected")
         finally:
             try:
