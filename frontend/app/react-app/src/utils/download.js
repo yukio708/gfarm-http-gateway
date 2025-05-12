@@ -1,4 +1,3 @@
-import React from 'react';
 import { encodePath } from './func'
 import { API_URL } from '../utils/api_url';
 
