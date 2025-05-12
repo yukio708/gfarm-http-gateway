@@ -5,7 +5,7 @@ su:
 	docker exec -it react /bin/bash
 
 up:
-	docker compose up
+	docker compose up -d react
 
 down:
 	docker compose down -v --remove-orphans
