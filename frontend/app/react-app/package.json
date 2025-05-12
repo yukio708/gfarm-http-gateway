@@ -18,7 +18,7 @@
     "web-vitals": "^5.0.0"
   },
   "scripts": {
-    "start": "VITE_API_BASE_URL=http://localhost:8080 vite",
+    "start": "VITE_API_BASE_URL=http://localhost:8080 vite --no-open",
     "build": "VITE_API_BASE_URL=.. vite build"
   },
   "eslintConfig": {

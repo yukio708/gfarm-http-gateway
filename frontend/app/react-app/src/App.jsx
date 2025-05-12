@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './css/App.css';
+import Login from './Login';
 import FileListView from './components/FileListView';
 import CurrentDirView from './components/CurrentDirView';
 import DetailView from './components/DetailView';
@@ -14,6 +15,7 @@ import deleteFile from './utils/deleteFile';
 import moveFile from './utils/moveFile';
 import getAttribute from './utils/getAttribute';
 import setPermission from './utils/setPermission';
+import checkLoginStatus from './utils/checkLoginStatus';
 import { createDir, removeDir } from './utils/dircommon';
 import Container from 'react-bootstrap/Container';
 import Col from 'react-bootstrap/Col';
@@ -21,6 +23,7 @@ import Row from 'react-bootstrap/Row';
 import Navbar from 'react-bootstrap/Navbar';
 
 function App() {
+    const [user, setUser] = useState(null);
     const [currentDir, setCurrentDir] = useState("");
     const [refreshKey, setRefreshKey] = useState(false);
     const { files, error } = useFileList(currentDir, refreshKey);
@@ -28,6 +31,14 @@ function App() {
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
     const [isUploading, setIsUploading] = useState(false);
+
+    useEffect(() => {
+        checkLoginStatus().then(user => {
+            setUser(user);
+            console.log("user:", user);
+            // setAuthChecked(true);
+        });
+    }, []);
 
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
@@ -99,15 +110,13 @@ function App() {
         setDetailContent(null);
     };
 
+    if (user === null) {
+        return <Login onLogin={() => window.location.reload()} />;
+    }
 
     return (
         <div>
             <Container fluid className="App">
-                <Row>
-                    <header className="App-header">
-                        <h1>Hello!</h1>
-                    </header>
-                </Row>
                 <Row>
                     <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
                 </Row>
