@@ -14,5 +14,7 @@ services:
       - ${GFARMCERTDIR}:/etc/pki/tls/certs/gfarm:ro
       - ${CACERTDIR}:/etc/grid-security:ro
       - ${GLOBUSDIR}:/root/.globus
+    environment:
+      - GLOBUSDIR=/root/.globus
     env_file:
       - docker.env
