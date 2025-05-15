@@ -10,7 +10,7 @@ services:
       - 8000:8000
       - 8443:8443
     volumes:
-      - ${GFARM2CONF}:/app/conf:ro
+      - ${GFARM2CONF}:/usr/local/etc/gfarm2.conf:ro
       - ${GFARMCERTDIR}:/etc/pki/tls/certs/gfarm:ro
       - ${CACERTDIR}:/etc/grid-security:ro
       - ${GLOBUSDIR}:/root/.globus
