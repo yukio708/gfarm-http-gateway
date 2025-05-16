@@ -26,7 +26,8 @@ async function upload(currentDir, file, setTasks) {
             onCancel: () => {
                 xhr.abort();
                 console.log('cancel:', file);
-            }
+            },
+            startTime: startTime,
         };
         setTasks(prev => [...prev, newTask]);
 

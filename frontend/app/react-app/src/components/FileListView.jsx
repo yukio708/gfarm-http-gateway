@@ -17,9 +17,20 @@ import {
     BsThreeDots,
  } from 'react-icons/bs';
 
-function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, Delete, showDetail, Permission }) {
+function FileListView({ 
+    files, 
+    selectedFiles,
+    handleSelectFile,
+    handleSelectAll,
+    jumpDirectory, 
+    downloadFiles, 
+    displayFile, 
+    Move, 
+    Delete, 
+    showDetail, 
+    Permission 
+}) {
     const filteredFiles = files.filter(file => file.name !== '.' && file.name !== '..');
-    const [selectedFiles, setSelectedFiles] = useState([]);
     const [sortDirection, setSortDirection] = useState({ column: '', order: 'asc' });
     const headerCheckboxRef = useRef(null);
 
@@ -42,7 +53,7 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
         }
     };
 
-    const sortedFiles = [...filteredFiles].sort((a, b) => {
+    const sortedFiles = [...files].sort((a, b) => {
         if (sortDirection.column === 'name') {
             return sortFilesByName(a, b, sortDirection.order);
         } else if (sortDirection.column === 'size') {
@@ -116,23 +127,6 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
         });
     };
 
-    
-    const handleSelectAll = (event) => {
-        if (event.target.checked) {
-            setSelectedFiles(files.map(file => file.path));
-        } else {
-            setSelectedFiles([]);
-        }
-    };
-
-    const handleSelectFile = (event, filePath) => {
-        if (event.target.checked) {
-          setSelectedFiles([...selectedFiles, filePath]);
-        } else {
-          setSelectedFiles(selectedFiles.filter(path => path !== filePath));
-        }
-    };
-
     const handleNameCick = (filepath, isfile) => {
         if(isfile) {
             displayFile(filepath)
@@ -191,7 +185,7 @@ function FileListView({ files, jumpDirectory, downloadFile, displayFile, Move, D
                         <Dropdown.Item onClick={() => Move(file.path)}>Rename</Dropdown.Item>
                         <Dropdown.Item onClick={() => Move(file.path)}>Move</Dropdown.Item>
                         <Dropdown.Item onClick={() => Move(file.path)}>Copy</Dropdown.Item>
-                        <Dropdown.Item onClick={() => downloadFile(file.path)}>Download</Dropdown.Item>
+                        <Dropdown.Item onClick={() => downloadFiles([file.path])}>Download</Dropdown.Item>
                         <Dropdown.Item onClick={() => Delete(file.path)}>Delete</Dropdown.Item>
                         <Dropdown.Item onClick={() => Permission(file.path)}>Change Permissions</Dropdown.Item>
                         </Dropdown.Menu>

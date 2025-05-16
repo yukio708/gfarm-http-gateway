@@ -16,7 +16,7 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import Union, Optional
+from typing import List, Union, Optional
 import urllib
 import re
 import tempfile
@@ -44,6 +44,9 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 from cryptography.fernet import Fernet
+
+import zipfile
+import zipstream
 
 # https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py
 from jose import jwt
@@ -1676,7 +1679,6 @@ ASYNC_GFEXPORT = str2bool(conf.GFARM_HTTP_ASYNC_GFEXPORT)
 
 @app.get("/f/{gfarm_path:path}")
 @app.get("/file/{gfarm_path:path}")
-@app.get("/files/{gfarm_path:path}")
 async def file_export(gfarm_path: str,
                       request: Request,
                       action: str = 'view',
@@ -1764,6 +1766,71 @@ async def file_export(gfarm_path: str,
                              headers=headers,
                              )
 
+class FileList(BaseModel):
+    files: List[str]
+
+async def get_filelist(env, gfarm_path):
+    p = await gfls(env, gfarm_path, _all=1, _long=1)
+    data = await p.stdout.read()
+    stdout = data.decode()
+    return_code = await p.wait()
+    if return_code != 0:
+        return []
+
+    filelist = []
+    for line in stdout.splitlines():
+        logger.debug(f"line={line}")
+        m = PAT_ENTRY2.match(line)
+        if m is None:
+            continue
+        name = m.group(7)
+        filelist.append(os.path.join(gfarm_path, name))
+
+    return filelist
+
+@app.get("/files")
+@app.post("/download/zip_w_stream")
+async def download_zip(filelist: FileList, 
+                       request: Request, 
+                       authorization: Union[str, None] = Header(default=None)):
+    opname = "gfexport"
+    env = await set_env(request, authorization)
+    log_operation(env, opname, filelist.files)
+    logger.debug(f"filelist.files: {filelist.files}")
+    
+    async def generator(files):
+        zs = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_DEFLATED)
+        async def add_files(files, parent=''):
+            for path in files:
+                logger.debug(f"path: {path}")
+                full = fullpath(path)
+                logger.debug(f"full: {full}")
+                exists, is_file, size = await file_size(env, full)
+                if not exists:
+                    continue
+                if not is_file:
+                    sublist = await get_filelist(env, path)
+                    await add_files(sublist, os.path.join(parent, os.path.basename(path)))
+                if int(size) <= 0:
+                    continue
+                p = sync_gfexport(env, full)
+                def get_data():
+                    while True:
+                        chunk = p.stdout.read(BUFSIZE)
+                        if not chunk:
+                            break
+                        yield chunk
+                zs.write_iter(
+                    os.path.join(parent, os.path.basename(path)), 
+                    get_data(), zipstream.ZIP_DEFLATED)
+        await add_files(files)
+        for chunk in zs:
+            yield chunk
+    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}'
+    headers = {
+        "Content-Disposition": f'attachment; filename="{zipname}.zip"'
+    }
+    return StreamingResponse(generator(filelist.files), media_type="application/zip", headers=headers)
 
 @app.put("/f/{gfarm_path:path}")
 @app.put("/file/{gfarm_path:path}")

@@ -10,7 +10,7 @@ function useFileList(dirPath, reload) {
             setError(null);
             const data = await getList(dirPath);
             if (Array.isArray(data)) {
-                setFiles(data);
+                setFiles(data.filter(file => file.name !== '.' && file.name !== '..'));
             } else{
                 setError(data);
             }

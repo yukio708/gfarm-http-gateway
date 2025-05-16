@@ -7,6 +7,7 @@ import DetailView from './components/DetailView';
 import ProgressView from './components/ProgressView';
 import UploadDropZone from './components/UploadDropZone';
 import UploadButton from './components/UploadButton';
+import DownloadButton from './components/DownloadButton';
 import useFileList from './hooks/useFileList';
 import upload from './utils/upload';
 import download from './utils/download';
@@ -27,6 +28,7 @@ function App() {
     const [currentDir, setCurrentDir] = useState("");
     const [refreshKey, setRefreshKey] = useState(false);
     const { files, error } = useFileList(currentDir, refreshKey);
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
@@ -49,15 +51,31 @@ function App() {
         }
     };
 
-    const downloadFile = async (filepath) => {
-        console.log("downloadFile: filepath:", filepath);
+    const handleSelectAll = (event) => {
+        if (event.target.checked) {
+            setSelectedFiles(files.map(file => file.path));
+        } else {
+            setSelectedFiles([]);
+        }
+    };
+
+    const handleSelectFile = (event, filePath) => {
+        if (event.target.checked) {
+            setSelectedFiles([...selectedFiles, filePath]);
+        } else {
+            setSelectedFiles(selectedFiles.filter(path => path !== filePath));
+        }
+    };
+
+    const downloadFiles = async (filepathes) => {
+        console.log("downloadFiles: filepath:", filepathes);
         try {
-            await download(filepath, setTasks);
+            await download(filepathes, setTasks);
         } catch (err) {
             console.error('Download failed:', err);
         }
         setTimeout(()=>{
-            setTasks(prev => prev.filter(t => t.path !== filepath));
+            setTasks(prev => prev.filter(t => Date.now() - t.startTime < 10));
         }, 10000);
     };
 
@@ -79,7 +97,7 @@ function App() {
                 const fullpath = currentDir + '/' + file.dirPath + file.name; // 現在位置が変わると違う場所にアップロードされてしまう
                 await upload(currentDir, file, setTasks);
                 setTimeout(()=>{
-                    setTasks(prev => prev.filter(t => t.path !== fullpath));
+                    setTasks(prev => prev.filter(t => Date.now() - t.startTime < 10));
                 }, 10000);
             }
         };
@@ -124,6 +142,7 @@ function App() {
                     <Navbar bg="dark" data-bs-theme="dark">
                         <Navbar.Collapse>
                             <UploadButton onUpload={addFilesToUpload} />
+                            <DownloadButton onDownload={downloadFiles} selectedFiles={selectedFiles}/>
                         </Navbar.Collapse>
                     </Navbar>
                 </Row>
@@ -131,8 +150,11 @@ function App() {
                     <Col>
                         <FileListView 
                             files={files} 
+                            selectedFiles={selectedFiles}
+                            handleSelectFile={handleSelectFile}
+                            handleSelectAll={handleSelectAll}
                             jumpDirectory={jumpDirectory}
-                            downloadFile={downloadFile}
+                            downloadFiles={downloadFiles}
                             showDetail={showDetail}
                             displayFile={displayFile}
                         />
