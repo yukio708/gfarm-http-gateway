@@ -15,7 +15,7 @@ import deleteFile from './utils/deleteFile';
 import moveFile from './utils/moveFile';
 import getAttribute from './utils/getAttribute';
 import setPermission from './utils/setPermission';
-import checkLoginStatus from './utils/checkLoginStatus';
+import { checkLoginStatus } from './utils/login';
 import { createDir, removeDir } from './utils/dircommon';
 import Container from 'react-bootstrap/Container';
 import Col from 'react-bootstrap/Col';

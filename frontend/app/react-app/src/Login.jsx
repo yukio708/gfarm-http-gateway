@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { API_URL } from './utils/api_url';
+import { login_with_password } from './utils/login';
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -14,18 +15,11 @@ function Login({ onLogin }) {
     const formData = new URLSearchParams();
     formData.append("username", username);
     formData.append("password", password);
-
-    const res = await fetch(`${API_URL}/login_passwd`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-    });
-    if (res.ok) {
-        const data = await res.json();
-        console.log("data:", data)
-        onLogin?.();
-    } else {
+    const res = await login_with_password(formData);
+    if (res === null){
         setError("Login failed. Please try again.");
+    } else {
+        onLogin?.();
     }
   }
 
