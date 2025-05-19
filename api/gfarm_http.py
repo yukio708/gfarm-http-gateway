@@ -48,6 +48,9 @@ from cryptography.fernet import Fernet
 
 import zipfile
 import zipstream
+import redis.asyncio as redis
+import uuid
+import glob
 
 # https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py
 from jose import jwt
@@ -62,6 +65,7 @@ PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                         r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
 
 TMPDIR = "/tmp/gfarm-http"
+redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 #############################################################################
 # Configuration variables
@@ -1815,8 +1819,6 @@ async def download_zip_w_stream(filelist: FileList,
                 if not is_file:
                     sublist = await get_filelist(env, path)
                     await add_files(sublist, name)
-                if int(size) <= 0:
-                    continue
                 def get_data(fullpath):
                     p = sync_gfexport(env, fullpath)
                     while True:
@@ -1834,13 +1836,13 @@ async def download_zip_w_stream(filelist: FileList,
     }
     return StreamingResponse(generator(filelist.files), media_type="application/zip", headers=headers)
 
-ZIP_FOLDER = os.path.join(TMPDIR, "zips")
+ZIPDIR = os.path.join(TMPDIR, "zips")
 @app.post("/download/zip")
 async def download_zip(filelist: FileList, 
                        request: Request, 
                        authorization: Union[str, None] = Header(default=None)):
-    if not os.path.exists(ZIP_FOLDER):
-        os.makedirs(ZIP_FOLDER)
+    if not os.path.exists(ZIPDIR):
+        os.makedirs(ZIPDIR)
     opname = "gfexport"
     env = await set_env(request, authorization)
     log_operation(env, opname, filelist.files)
@@ -1848,7 +1850,7 @@ async def download_zip(filelist: FileList,
 
     zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}'
     async def create_zip(job_id: str, files_to_zip: list[str]):
-        tmp = tempfile.NamedTemporaryFile(dir=ZIP_FOLDER, delete=False, prefix=job_id, suffix=".zip")
+        tmp = tempfile.NamedTemporaryFile(dir=ZIPDIR, delete=False, prefix=job_id, suffix=".zip")
         with zipfile.ZipFile(tmp, mode="w", compression=zipfile.ZIP_DEFLATED) as zipf:
             # for file_path in files_to_zip:
             async def add_files(files, parent=''):
@@ -1867,8 +1869,6 @@ async def download_zip(filelist: FileList,
                         # await add_files(sublist, os.path.join(parent, os.path.basename(path)))
                         async for message in add_files(sublist, os.path.join(parent, os.path.basename(path))):
                             yield message
-                    if int(size) <= 0:
-                        continue
                     p = sync_gfexport(env, full)
                     with zipf.open(name, 'w') as dest:
                         while True:
@@ -1882,14 +1882,96 @@ async def download_zip(filelist: FileList,
         yield f"data: {{\"zip_path\": \"{tmp.name}\"}}\n\n"
     return StreamingResponse(create_zip(zipname, filelist.files), media_type="text/event-stream")
 
-def delete_file_later(path: str):
-    time.sleep(10)  # gives the browser a head start
-    os.remove(path)
-
 @app.get("/download/zip/{zip_path:path}")
 async def file_export(zip_path: str, background_tasks: BackgroundTasks):
-    background_tasks.add_task(delete_file_later, zip_path)
+    background_tasks.add_task(os.remove, zip_path)
     return FileResponse(path=zip_path, filename=os.path.basename(zip_path))
+
+ZIP_TTL = 3600 # 1 hr TTL
+async def create_zip_in_background(env, files_to_zip, zip_id):
+    user = get_user_from_env(env)
+    zipdir = os.path.join(ZIPDIR, user)
+    if not os.path.exists(zipdir):
+        os.makedirs(zipdir)
+    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}'
+    tmp = tempfile.NamedTemporaryFile(
+        dir=zipdir, delete=False, prefix=zipname, suffix=".zip")
+    zip_path = tmp.name
+
+    await redis_client.hset(zip_id, mapping={
+        "created_at": datetime.now().isoformat(),
+        "progress": "0",
+        "status": "started",
+        "file_count": str(len(files_to_zip)),
+        "zip_path": zip_path,
+    })
+    await redis_client.expire(zip_id, ZIP_TTL)
+
+    with zipfile.ZipFile(tmp, mode="w", compression=zipfile.ZIP_DEFLATED) as zipf:
+        async def add_files(files, parent='', done = 0, countup=True):
+            for path in files:
+                if path.endswith('.'):
+                    continue
+                full = fullpath(path)
+                name = os.path.join(parent, os.path.basename(path))
+                exists, is_file, _ = await file_size(env, full)
+                if not exists:
+                    continue
+                if not is_file:
+                    sublist = await get_filelist(env, path)
+                    await add_files(sublist, name, countup=False)
+                    if countup: done += 1
+                p = sync_gfexport(env, full)
+                with zipf.open(name, "w") as dest:
+                    while True:
+                        chunk = p.stdout.read(BUFSIZE)
+                        if not chunk:
+                            break
+                        dest.write(chunk)
+                if countup: done += 1
+                await redis_client.hset(zip_id, "progress", f"{done}")
+        await add_files(files_to_zip)
+
+    await redis_client.hset(zip_id, "status", "done")
+
+@app.post("/redis/zip")
+async def start_zip(filelist: FileList, request: Request, authorization: str = Header(None)):
+    zip_id = str(uuid.uuid4())
+    env = await set_env(request, authorization)
+    await cleanup_orphan_zips()
+    asyncio.create_task(create_zip_in_background(env, filelist.files, zip_id))
+    return {"zip_id": zip_id}
+
+@app.get("/redis/zip/{zip_id}/progress")
+async def check_progress(zip_id: str):
+    data = await redis_client.hgetall(zip_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Zip job not found")
+    return data
+
+@app.get("/redis/zip/{zip_id}/download")
+async def download_zip(zip_id: str, background_tasks: BackgroundTasks):
+    zip_path = await redis_client.hget(zip_id, "zip_path")
+    status = await redis_client.hget(zip_id, "status")
+
+    if not zip_path or status != "done":
+        raise HTTPException(status_code=404, detail="ZIP not ready yet")
+
+    background_tasks.add_task(os.remove, zip_path)
+    await redis_client.delete(zip_id)
+    return FileResponse(zip_path, filename=os.path.basename(zip_path))
+
+async def cleanup_orphan_zips():
+    for path in glob.glob(os.path.join(ZIPDIR, "*.zip")):
+        found = False
+        async for key in redis_client.scan_iter("*"):
+            zip_path = await redis_client.hget(key, "zip_path")
+            if zip_path and zip_path.decode() == path:
+                found = True
+                break
+        if not found:
+            os.remove(path)
+                    
 
 @app.put("/f/{gfarm_path:path}")
 @app.put("/file/{gfarm_path:path}")

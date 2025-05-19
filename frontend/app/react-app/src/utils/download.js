@@ -278,6 +278,66 @@ async function downloadFiles_w_stream(paths, setTasks) {
     }
 }
 
+async function startDownload(paths, setTasks) {
+
+    const startTime = Date.now();
+    const taskId = paths.join(",") + startTime;
+    const newTask = {
+        path: taskId,
+        name: taskId,
+        value: 0,
+        status: "zipping...",
+        onCancel: null,
+        startTime: startTime,
+    };
+    setTasks(prev => [...prev, newTask]);
+
+    const res = await fetch(`${API_URL}/redis/zip`, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ files: paths })
+    });
+
+    const { zip_id } = await res.json();
+    console.log("Zip ID:", zip_id);
+
+    const pollProgress = async () => {
+        const res = await fetch(`${API_URL}/redis/zip/${zip_id}/progress`);
+        const data = await res.json();
+
+        const total = parseInt(data.file_count || "1");
+        const done = parseInt(data.progress || "0");
+        const percent = getProgress(done, total);
+        const elapsed = Date.now() - startTime;
+        const speed = Math.round(done / elapsed * 1000);
+        const sec = Math.floor(elapsed / 1000);
+        const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+        setTasks(prev =>
+            prev.map(task =>
+                task.path === taskId ? { ...task, value: percent, status } : task
+            )
+        );
+
+        if (data.status === "done") {
+            setTasks(prev =>
+                prev.map(task =>
+                    task.path === taskId ? { ...task, 
+                        value: 100, 
+                        status: "Zipping done! Starting download..." } : task
+                )
+            );
+            window.location.href = `${API_URL}/redis/zip/${zip_id}/download`;  // triggers download
+        } else {
+            setTimeout(pollProgress, 1000);  // retry after 1s
+        }
+    };
+
+    pollProgress();
+}
+
+
 async function download(paths, setTasks) {
     if (!paths || paths.length === 0) {
         alert("No file selected for download");
@@ -289,7 +349,8 @@ async function download(paths, setTasks) {
     }
     else{
         // await downloadFiles(paths, setTasks);
-        await downloadFiles_w_stream(paths, setTasks);
+        // await downloadFiles_w_stream(paths, setTasks);
+        await startDownload(paths, setTasks);
     }
   
 }
