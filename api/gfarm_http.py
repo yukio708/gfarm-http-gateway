@@ -1803,27 +1803,28 @@ async def download_zip_w_stream(filelist: FileList,
         zs = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_DEFLATED)
         async def add_files(files, parent=''):
             for path in files:
+                if path.endswith('.'):
+                    continue
                 logger.debug(f"path: {path}")
                 full = fullpath(path)
+                name = os.path.join(parent, os.path.basename(path))
                 logger.debug(f"full: {full}")
                 exists, is_file, size = await file_size(env, full)
                 if not exists:
                     continue
                 if not is_file:
                     sublist = await get_filelist(env, path)
-                    await add_files(sublist, os.path.join(parent, os.path.basename(path)))
+                    await add_files(sublist, name)
                 if int(size) <= 0:
                     continue
-                p = sync_gfexport(env, full)
-                def get_data():
+                def get_data(fullpath):
+                    p = sync_gfexport(env, fullpath)
                     while True:
                         chunk = p.stdout.read(BUFSIZE)
                         if not chunk:
                             break
                         yield chunk
-                zs.write_iter(
-                    os.path.join(parent, os.path.basename(path)), 
-                    get_data(), zipstream.ZIP_DEFLATED)
+                zs.write_iter(name, get_data(full), zipstream.ZIP_DEFLATED)
         await add_files(files)
         for chunk in zs:
             yield chunk
