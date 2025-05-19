@@ -288,8 +288,8 @@ async function download(paths, setTasks) {
         await downloadFile(paths[0], setTasks);
     }
     else{
-        // await downloadFiles(paths, setTasks);
-        await downloadFiles_w_stream(paths, setTasks);
+        await downloadFiles(paths, setTasks);
+        // await downloadFiles_w_stream(paths, setTasks);
     }
   
 }

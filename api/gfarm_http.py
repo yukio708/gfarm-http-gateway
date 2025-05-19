@@ -31,14 +31,15 @@ from pydantic import BaseModel
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import (FastAPI, Query, Header, HTTPException, Request,
-                     Form, status)
+                     Form, status, BackgroundTasks)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (PlainTextResponse,
                                StreamingResponse,
                                Response,
                                HTMLResponse,
                                RedirectResponse,
-                               JSONResponse)
+                               JSONResponse,
+                               FileResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -1790,7 +1791,7 @@ async def get_filelist(env, gfarm_path):
 
 @app.get("/files")
 @app.post("/download/zip_w_stream")
-async def download_zip(filelist: FileList, 
+async def download_zip_w_stream(filelist: FileList, 
                        request: Request, 
                        authorization: Union[str, None] = Header(default=None)):
     opname = "gfexport"
@@ -1831,6 +1832,63 @@ async def download_zip(filelist: FileList,
         "Content-Disposition": f'attachment; filename="{zipname}.zip"'
     }
     return StreamingResponse(generator(filelist.files), media_type="application/zip", headers=headers)
+
+ZIP_FOLDER = os.path.join(TMPDIR, "zips")
+@app.post("/download/zip")
+async def download_zip(filelist: FileList, 
+                       request: Request, 
+                       authorization: Union[str, None] = Header(default=None)):
+    if not os.path.exists(ZIP_FOLDER):
+        os.makedirs(ZIP_FOLDER)
+    opname = "gfexport"
+    env = await set_env(request, authorization)
+    log_operation(env, opname, filelist.files)
+    logger.debug(f"filelist.files: {filelist.files}")
+
+    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}'
+    async def create_zip(job_id: str, files_to_zip: list[str]):
+        tmp = tempfile.NamedTemporaryFile(dir=ZIP_FOLDER, delete=False, prefix=job_id, suffix=".zip")
+        with zipfile.ZipFile(tmp, mode="w", compression=zipfile.ZIP_DEFLATED) as zipf:
+            # for file_path in files_to_zip:
+            async def add_files(files, parent=''):
+                for path in files:
+                    if path.endswith('.'):
+                        continue
+                    logger.debug(f"path: {path}")
+                    full = fullpath(path)
+                    name = os.path.join(parent, os.path.basename(path))
+                    logger.debug(f"full: {full}")
+                    exists, is_file, size = await file_size(env, full)
+                    if not exists:
+                        continue
+                    if not is_file:
+                        sublist = await get_filelist(env, path)
+                        # await add_files(sublist, os.path.join(parent, os.path.basename(path)))
+                        async for message in add_files(sublist, os.path.join(parent, os.path.basename(path))):
+                            yield message
+                    if int(size) <= 0:
+                        continue
+                    p = sync_gfexport(env, full)
+                    with zipf.open(name, 'w') as dest:
+                        while True:
+                            chunk = p.stdout.read(BUFSIZE)
+                            if not chunk:
+                                break
+                            dest.write(chunk)
+                    yield f"data: {{\"progress\": \"{full}\"}}\n\n"
+            async for message in add_files(files_to_zip):
+                yield message
+        yield f"data: {{\"zip_path\": \"{tmp.name}\"}}\n\n"
+    return StreamingResponse(create_zip(zipname, filelist.files), media_type="text/event-stream")
+
+def delete_file_later(path: str):
+    time.sleep(10)  # gives the browser a head start
+    os.remove(path)
+
+@app.get("/download/zip/{zip_path:path}")
+async def file_export(zip_path: str, background_tasks: BackgroundTasks):
+    background_tasks.add_task(delete_file_later, zip_path)
+    return FileResponse(path=zip_path, filename=os.path.basename(zip_path))
 
 @app.put("/f/{gfarm_path:path}")
 @app.put("/file/{gfarm_path:path}")
