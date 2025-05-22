@@ -1490,6 +1490,17 @@ async def gfptar(env,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
+async def gfzip(env, ziplist):
+    args = ['-']
+    args.extend(ziplist)
+
+    return await asyncio.create_subprocess_exec(
+        'gfzip', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
 #############################################################################
 async def log_stderr(command: str,
                      process: asyncio.subprocess.Process,
@@ -1774,204 +1785,54 @@ async def file_export(gfarm_path: str,
 class FileList(BaseModel):
     files: List[str]
 
-async def get_filelist(env, gfarm_path):
-    p = await gfls(env, gfarm_path, _all=1, _long=1)
-    data = await p.stdout.read()
-    stdout = data.decode()
-    return_code = await p.wait()
-    if return_code != 0:
-        return []
-
-    filelist = []
-    for line in stdout.splitlines():
-        logger.debug(f"line={line}")
-        m = PAT_ENTRY2.match(line)
-        if m is None:
-            continue
-        name = m.group(7)
-        filelist.append(os.path.join(gfarm_path, name))
-
-    return filelist
-
 @app.get("/files")
-@app.post("/download/zip_w_stream")
-async def download_zip_w_stream(filelist: FileList, 
-                       request: Request, 
-                       authorization: Union[str, None] = Header(default=None)):
-    opname = "gfexport"
-    env = await set_env(request, authorization)
-    log_operation(env, opname, filelist.files)
-    logger.debug(f"filelist.files: {filelist.files}")
-    
-    async def generator(files):
-        zs = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_DEFLATED)
-        async def add_files(files, parent=''):
-            for path in files:
-                if path.endswith('.'):
-                    continue
-                logger.debug(f"path: {path}")
-                full = fullpath(path)
-                name = os.path.join(parent, os.path.basename(path))
-                logger.debug(f"full: {full}")
-                exists, is_file, size = await file_size(env, full)
-                if not exists:
-                    continue
-                if not is_file:
-                    sublist = await get_filelist(env, path)
-                    await add_files(sublist, name)
-                def get_data(fullpath):
-                    p = sync_gfexport(env, fullpath)
-                    while True:
-                        chunk = p.stdout.read(BUFSIZE)
-                        if not chunk:
-                            break
-                        yield chunk
-                zs.write_iter(name, get_data(full), zipstream.ZIP_DEFLATED)
-        await add_files(files)
-        for chunk in zs:
-            yield chunk
-    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}'
-    headers = {
-        "Content-Disposition": f'attachment; filename="{zipname}.zip"'
-    }
-    return StreamingResponse(generator(filelist.files), media_type="application/zip", headers=headers)
-
-ZIPDIR = os.path.join(TMPDIR, "zips")
 @app.post("/download/zip")
 async def download_zip(filelist: FileList, 
                        request: Request, 
                        authorization: Union[str, None] = Header(default=None)):
-    if not os.path.exists(ZIPDIR):
-        os.makedirs(ZIPDIR)
-    opname = "gfexport"
+    opname = "gfzip"
     env = await set_env(request, authorization)
     log_operation(env, opname, filelist.files)
-    logger.debug(f"filelist.files: {filelist.files}")
-
-    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}'
-    async def create_zip(job_id: str, files_to_zip: list[str]):
-        tmp = tempfile.NamedTemporaryFile(dir=ZIPDIR, delete=False, prefix=job_id, suffix=".zip")
-        with zipfile.ZipFile(tmp, mode="w", compression=zipfile.ZIP_DEFLATED) as zipf:
-            # for file_path in files_to_zip:
-            async def add_files(files, parent=''):
-                for path in files:
-                    if path.endswith('.'):
-                        continue
-                    logger.debug(f"path: {path}")
-                    full = fullpath(path)
-                    name = os.path.join(parent, os.path.basename(path))
-                    logger.debug(f"full: {full}")
-                    exists, is_file, size = await file_size(env, full)
-                    if not exists:
-                        continue
-                    if not is_file:
-                        sublist = await get_filelist(env, path)
-                        # await add_files(sublist, os.path.join(parent, os.path.basename(path)))
-                        async for message in add_files(sublist, os.path.join(parent, os.path.basename(path))):
-                            yield message
-                    p = sync_gfexport(env, full)
-                    with zipf.open(name, 'w') as dest:
-                        while True:
-                            chunk = p.stdout.read(BUFSIZE)
-                            if not chunk:
-                                break
-                            dest.write(chunk)
-                    yield f"data: {{\"progress\": \"{full}\"}}\n\n"
-            async for message in add_files(files_to_zip):
-                yield message
-        yield f"data: {{\"zip_path\": \"{tmp.name}\"}}\n\n"
-    return StreamingResponse(create_zip(zipname, filelist.files), media_type="text/event-stream")
-
-@app.get("/download/zip/{zip_path:path}")
-async def file_export(zip_path: str, background_tasks: BackgroundTasks):
-    background_tasks.add_task(os.remove, zip_path)
-    return FileResponse(path=zip_path, filename=os.path.basename(zip_path))
-
-ZIP_TTL = 3600 # 1 hr TTL
-async def create_zip_in_background(env, files_to_zip, zip_id):
-    user = get_user_from_env(env)
-    zipdir = os.path.join(ZIPDIR, user)
-    if not os.path.exists(zipdir):
-        os.makedirs(zipdir)
-    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}'
-    tmp = tempfile.NamedTemporaryFile(
-        dir=zipdir, delete=False, prefix=zipname, suffix=".zip")
-    zip_path = tmp.name
-
-    await redis_client.hset(zip_id, mapping={
-        "created_at": datetime.now().isoformat(),
-        "progress": "0",
-        "status": "started",
-        "file_count": str(len(files_to_zip)),
-        "zip_path": zip_path,
-    })
-    await redis_client.expire(zip_id, ZIP_TTL)
-
-    with zipfile.ZipFile(tmp, mode="w", compression=zipfile.ZIP_DEFLATED) as zipf:
-        async def add_files(files, parent='', done = 0, countup=True):
-            for path in files:
-                if path.endswith('.'):
-                    continue
-                full = fullpath(path)
-                name = os.path.join(parent, os.path.basename(path))
-                exists, is_file, _ = await file_size(env, full)
-                if not exists:
-                    continue
-                if not is_file:
-                    sublist = await get_filelist(env, path)
-                    await add_files(sublist, name, countup=False)
-                    if countup: done += 1
-                p = sync_gfexport(env, full)
-                with zipf.open(name, "w") as dest:
-                    while True:
-                        chunk = p.stdout.read(BUFSIZE)
-                        if not chunk:
-                            break
-                        dest.write(chunk)
-                if countup: done += 1
-                await redis_client.hset(zip_id, "progress", f"{done}")
-        await add_files(files_to_zip)
-
-    await redis_client.hset(zip_id, "status", "done")
-
-@app.post("/redis/zip")
-async def start_zip(filelist: FileList, request: Request, authorization: str = Header(None)):
-    zip_id = str(uuid.uuid4())
-    env = await set_env(request, authorization)
-    await cleanup_orphan_zips()
-    asyncio.create_task(create_zip_in_background(env, filelist.files, zip_id))
-    return {"zip_id": zip_id}
-
-@app.get("/redis/zip/{zip_id}/progress")
-async def check_progress(zip_id: str):
-    data = await redis_client.hgetall(zip_id)
-    if not data:
-        raise HTTPException(status_code=404, detail="Zip job not found")
-    return data
-
-@app.get("/redis/zip/{zip_id}/download")
-async def download_zip(zip_id: str, background_tasks: BackgroundTasks):
-    zip_path = await redis_client.hget(zip_id, "zip_path")
-    status = await redis_client.hget(zip_id, "status")
-
-    if not zip_path or status != "done":
-        raise HTTPException(status_code=404, detail="ZIP not ready yet")
-
-    background_tasks.add_task(os.remove, zip_path)
-    await redis_client.delete(zip_id)
-    return FileResponse(zip_path, filename=os.path.basename(zip_path))
-
-async def cleanup_orphan_zips():
-    for path in glob.glob(os.path.join(ZIPDIR, "*.zip")):
-        found = False
-        async for key in redis_client.scan_iter("*"):
-            zip_path = await redis_client.hget(key, "zip_path")
-            if zip_path and zip_path.decode() == path:
-                found = True
-                break
-        if not found:
-            os.remove(path)
-                    
+    for filepath in filelist.files:
+        existing, _, _ = await file_size(env, filepath)
+        if not existing:
+            code = 404
+            message = "The requested URL does not exist."
+            stdout = ""
+            elist = []
+            raise gfarm_http_error(opname, code, message, stdout, elist)
+    
+    p = await gfzip(env, filelist.files)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
+    first_byte = await p.stdout.read(1)
+    if not first_byte:
+        await stderr_task
+        code = 403
+        message = f"Cannot read: path={filelist.files}"
+        stdout = ""
+        raise gfarm_http_error(opname, code, message, stdout, elist)
+    async def generate():
+        yield first_byte
+        try:
+            while True:
+                chunk = await p.stdout.read(BUFSIZE)
+                if not chunk:
+                    break
+                yield chunk
+        except asyncio.CancelledError:
+            p.kill()
+            code = 499
+            message = "Client disconnected during download"
+            stdout = ""
+            raise gfarm_http_error(opname, code, message, stdout, elist)
+    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip'
+    headers = {"Content-Disposition": f'attachment; filename="{zipname}"'}
+    return StreamingResponse(
+            content=generate(),
+            media_type="application/zip",
+            headers=headers,
+        )
 
 @app.put("/f/{gfarm_path:path}")
 @app.put("/file/{gfarm_path:path}")

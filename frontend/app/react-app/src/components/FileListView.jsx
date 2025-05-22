@@ -30,7 +30,6 @@ function FileListView({
     showDetail, 
     Permission 
 }) {
-    const filteredFiles = files.filter(file => file.name !== '.' && file.name !== '..');
     const [sortDirection, setSortDirection] = useState({ column: '', order: 'asc' });
     const headerCheckboxRef = useRef(null);
 
@@ -167,8 +166,8 @@ function FileListView({
                 <tr key={file.path}>
                     <td>
                         <Form.Check type='checkbox' 
-                                    onChange={(event) => handleSelectFile(event, file.path)}
-                                    checked={selectedFiles.includes(file.path)}/>
+                                    onChange={(event) => handleSelectFile(event, file)}
+                                    checked={selectedFiles.includes(file)}/>
                     </td>
                     <td>{getFileIcon(file)}</td>
                     <td onClick={() => handleNameCick(file.path, file.isfile)}>{file.name}</td>

@@ -92,94 +92,6 @@ async function downloadFile(path, setTasks, zip=false) {
     }
 }
 
-async function downloadFiles(paths, setTasks) {
-    if (!paths || paths.length === 0) {
-        alert("No file selected for download");
-        return;
-    }
-    // Multiple files — request a zip from the server
-    const url = `${API_URL}/download/zip`;
-    const startTime = Date.now();
-    const taskId = paths.join(",") + startTime;
-    try {
-        const newTask = {
-            path: taskId,
-            name: taskId,
-            value: 0,
-            status: "zipping...",
-            onCancel: null,
-            startTime: startTime,
-        };
-        setTasks(prev => [...prev, newTask]);
-        
-        const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ files: paths }),
-        });
-        if (!response.ok) {
-            throw new Error(`ZIP creation failed: ${response.status}`);
-        }
-        
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let zip_path = null;
-        let buffer = "";
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-
-            // Split by newline (SSE format)
-            const lines = buffer.split("\n\n");
-            buffer = lines.pop(); // Keep the unfinished chunk
-
-            for (const line of lines) {
-                if (line.startsWith("data:")) {
-                    try {
-                        const data = JSON.parse(line.replace("data: ", ""));
-                        if (data.progress) {
-                            setTasks(prev =>
-                                prev.map(task =>
-                                    task.path === taskId ? { ...task, value: 0, status: data.progress } : task
-                                )
-                            );
-                        }
-                        if (data.zip_path) {
-                            zip_path = data.zip_path;
-                            console.log("zip_path", zip_path);
-                            setTasks(prev =>
-                                prev.map(task =>
-                                    task.path === taskId ? { ...task, value: 100, status: 'zipped' } : task
-                                )
-                            );
-                        }
-                    } catch (err) {
-                        console.error("Invalid SSE data", err);
-                    }
-                }
-            }
-        }
-
-        if (zip_path === null) {
-            throw new Error(`ZIP path is unknown`);
-        }
-
-        downloadFile(zip_path, setTasks, true);
-
-    } catch (err) {
-        console.error("ZIP download failed", err);
-        setTasks(prev =>
-            prev.map(task =>
-                task.path === taskId
-                    ? { ...task, status: `Error: ${err.message}` }
-                    : task
-            )
-        );
-    }
-}
-
 function getFilenameFromHeader(header) {
     const match = /filename="(.+?)"/.exec(header);
     return match ? match[1] : 'files.zip';
@@ -190,13 +102,14 @@ function getProgress(received, total) {
   return Math.floor((received / total) * 100);
 }
 
-async function downloadFiles_w_stream(paths, setTasks) {
+async function downloadFiles(paths, setTasks) {
+        console.log("paths", paths);
     if (!paths || paths.length === 0) {
         alert("No file selected for download");
         return;
     }
     // Multiple files — request a zip from the server
-    const url = `${API_URL}/download/zip_w_stream`;
+    const url = `${API_URL}/download/zip`;
     const taskId = paths.join(",") + Date.now();
 
     try {
@@ -278,79 +191,17 @@ async function downloadFiles_w_stream(paths, setTasks) {
     }
 }
 
-async function startDownload(paths, setTasks) {
-
-    const startTime = Date.now();
-    const taskId = paths.join(",") + startTime;
-    const newTask = {
-        path: taskId,
-        name: taskId,
-        value: 0,
-        status: "zipping...",
-        onCancel: null,
-        startTime: startTime,
-    };
-    setTasks(prev => [...prev, newTask]);
-
-    const res = await fetch(`${API_URL}/redis/zip`, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ files: paths })
-    });
-
-    const { zip_id } = await res.json();
-    console.log("Zip ID:", zip_id);
-
-    const pollProgress = async () => {
-        const res = await fetch(`${API_URL}/redis/zip/${zip_id}/progress`);
-        const data = await res.json();
-
-        const total = parseInt(data.file_count || "1");
-        const done = parseInt(data.progress || "0");
-        const percent = getProgress(done, total);
-        const elapsed = Date.now() - startTime;
-        const speed = Math.round(done / elapsed * 1000);
-        const sec = Math.floor(elapsed / 1000);
-        const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
-        setTasks(prev =>
-            prev.map(task =>
-                task.path === taskId ? { ...task, value: percent, status } : task
-            )
-        );
-
-        if (data.status === "done") {
-            setTasks(prev =>
-                prev.map(task =>
-                    task.path === taskId ? { ...task, 
-                        value: 100, 
-                        status: "Zipping done! Starting download..." } : task
-                )
-            );
-            window.location.href = `${API_URL}/redis/zip/${zip_id}/download`;  // triggers download
-        } else {
-            setTimeout(pollProgress, 1000);  // retry after 1s
-        }
-    };
-
-    pollProgress();
-}
-
-
-async function download(paths, setTasks) {
-    if (!paths || paths.length === 0) {
+async function download(files, setTasks) {
+    if (!files || files.length === 0) {
         alert("No file selected for download");
         return;
     }
 
-    if (paths.length === 1) {
-        await downloadFile(paths[0], setTasks);
+    if (files.length === 1 && files[0].isfile) {
+        await downloadFile(files[0].path, setTasks);
     }
     else{
-        // await downloadFiles(paths, setTasks);
-        // await downloadFiles_w_stream(paths, setTasks);
-        await startDownload(paths, setTasks);
+        await downloadFiles(files.map(file => file.path), setTasks);
     }
   
 }

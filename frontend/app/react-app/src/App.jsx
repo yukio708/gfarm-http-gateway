@@ -53,24 +53,24 @@ function App() {
 
     const handleSelectAll = (event) => {
         if (event.target.checked) {
-            setSelectedFiles(files.map(file => file.path));
+            setSelectedFiles(files);
         } else {
             setSelectedFiles([]);
         }
     };
 
-    const handleSelectFile = (event, filePath) => {
+    const handleSelectFile = (event, file) => {
         if (event.target.checked) {
-            setSelectedFiles([...selectedFiles, filePath]);
+            setSelectedFiles([...selectedFiles, file]);
         } else {
-            setSelectedFiles(selectedFiles.filter(path => path !== filePath));
+            setSelectedFiles(selectedFiles.filter(path => path !== file));
         }
     };
 
-    const downloadFiles = async (filepathes) => {
-        console.log("downloadFiles: filepath:", filepathes);
+    const downloadFiles = async (files) => {
+        console.log("downloadFiles: filepath:", files);
         try {
-            await download(filepathes, setTasks);
+            await download(files, setTasks);
         } catch (err) {
             console.error('Download failed:', err);
         }
