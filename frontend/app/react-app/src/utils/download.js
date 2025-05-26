@@ -111,13 +111,13 @@ async function downloadFiles(paths, setTasks) {
     // Multiple files — request a zip from the server
     const url = `${API_URL}/download/zip`;
     const taskId = paths.join(",") + Date.now();
+    const gfarmpathes = paths.map(path => "gfarm:" + path)
 
     try {
-        console.log("paths", paths);
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ files: paths }),
+            body: JSON.stringify({ files: gfarmpathes }),
         });
 
         if (!response.ok) {
