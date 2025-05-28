@@ -19,7 +19,7 @@ function UploadButton({ onUpload }) {
     return (
         <div>
             <Dropdown as={ButtonGroup}>
-                <Dropdown.Toggle variant="primary" size="sm">
+                <Dropdown.Toggle variant="outline-secondary" size="sm">
                     Upload
                 </Dropdown.Toggle>
 

@@ -26,7 +26,7 @@ function FileListView({
     downloadFiles, 
     displayFile, 
     Move, 
-    Delete, 
+    deleteFile, 
     showDetail, 
     Permission 
 }) {
@@ -185,7 +185,7 @@ function FileListView({
                         <Dropdown.Item onClick={() => Move(file.path)}>Move</Dropdown.Item>
                         <Dropdown.Item onClick={() => Move(file.path)}>Copy</Dropdown.Item>
                         <Dropdown.Item onClick={() => downloadFiles([file.path])}>Download</Dropdown.Item>
-                        <Dropdown.Item onClick={() => Delete(file.path)}>Delete</Dropdown.Item>
+                        <Dropdown.Item onClick={() => deleteFile(file)}>Delete</Dropdown.Item>
                         <Dropdown.Item onClick={() => Permission(file.path)}>Change Permissions</Dropdown.Item>
                         </Dropdown.Menu>
                     </Dropdown>

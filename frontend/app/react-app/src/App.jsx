@@ -7,12 +7,12 @@ import DetailView from './components/DetailView';
 import ProgressView from './components/ProgressView';
 import UploadDropZone from './components/UploadDropZone';
 import UploadButton from './components/UploadButton';
-import DownloadButton from './components/DownloadButton';
+import MenuButton from './components/MenuButton';
 import useFileList from './hooks/useFileList';
 import upload from './utils/upload';
 import download from './utils/download';
 import displayFile from './utils/displayFile';
-import deleteFile from './utils/deleteFile';
+import deleteFiles from './utils/deleteFile';
 import moveFile from './utils/moveFile';
 import getAttribute from './utils/getAttribute';
 import setPermission from './utils/setPermission';
@@ -21,7 +21,6 @@ import { createDir, removeDir } from './utils/dircommon';
 import Container from 'react-bootstrap/Container';
 import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
-import Navbar from 'react-bootstrap/Navbar';
 
 function App() {
     const [user, setUser] = useState(null);
@@ -49,6 +48,7 @@ function App() {
         else {
             setCurrentDir(newdir);
         }
+        setSelectedFiles([]);
     };
 
     const handleSelectAll = (event) => {
@@ -127,6 +127,13 @@ function App() {
     const closeDetail = () => {
         setDetailContent(null);
     };
+    
+    const deleteFile = async(files) => {
+        // 複数の時削除するか聞く
+        await deleteFiles(
+            Array.isArray(files) ? files : [files], 
+            null, () => {setRefreshKey(prev => !prev)});
+    }
 
     if (user === null) {
         return <Login onLogin={() => window.location.reload()} />;
@@ -139,12 +146,15 @@ function App() {
                     <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
                 </Row>
                 <Row>
-                    <Navbar bg="dark" data-bs-theme="dark">
-                        <Navbar.Collapse>
-                            <UploadButton onUpload={addFilesToUpload} />
-                            <DownloadButton onDownload={downloadFiles} selectedFiles={selectedFiles}/>
-                        </Navbar.Collapse>
-                    </Navbar>
+                    <nav className="navbar bg-body-tertiary">
+                        <div className="container-fluid">
+                            <div className="d-flex gap-2">
+                                <UploadButton onUpload={addFilesToUpload} />
+                                <MenuButton text='Download' onClick={downloadFiles} selectedFiles={selectedFiles}/>
+                                <MenuButton text='Detele' onClick={deleteFile} selectedFiles={selectedFiles}/>
+                            </div>
+                        </div>
+                    </nav>
                 </Row>
                 <Row>
                     <Col>
@@ -157,6 +167,7 @@ function App() {
                             downloadFiles={downloadFiles}
                             showDetail={showDetail}
                             displayFile={displayFile}
+                            deleteFile={deleteFile}
                         />
                     </Col>
                     {detailContent &&
