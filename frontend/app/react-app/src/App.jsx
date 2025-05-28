@@ -5,6 +5,7 @@ import FileListView from './components/FileListView';
 import CurrentDirView from './components/CurrentDirView';
 import DetailView from './components/DetailView';
 import ProgressView from './components/ProgressView';
+import ModalWindow from './components/Modal';
 import UploadDropZone from './components/UploadDropZone';
 import UploadButton from './components/UploadButton';
 import MenuButton from './components/MenuButton';
@@ -32,6 +33,8 @@ function App() {
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
     const [isUploading, setIsUploading] = useState(false);
+    const [destPath, setDestPath] = useState("");
+    const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
         checkLoginStatus().then(user => {
@@ -83,7 +86,7 @@ function App() {
         for (let dirpath of uploaddirs) {
             await createDir(currentDir + '/' + dirpath);
         }
-        for ( let newfile of newFiles ) {
+        for (let newfile of newFiles ) {
             uploadQueueRef.current.push(newfile);
         }
         setIsUploading(true);
@@ -135,6 +138,18 @@ function App() {
             null, () => {setRefreshKey(prev => !prev)});
     }
 
+    const moveFiles = () => {
+        setShowModal(true);
+    }
+
+    const handleMove = (files) => {
+        console.log("files", files);
+        setShowModal(false);
+        moveFile(files, destPath);
+        setDestPath(""); // Reset after move
+        setRefreshKey(prev => !prev);
+    }
+
     if (user === null) {
         return <Login onLogin={() => window.location.reload()} />;
     }
@@ -152,6 +167,7 @@ function App() {
                                 <UploadButton onUpload={addFilesToUpload} />
                                 <MenuButton text='Download' onClick={downloadFiles} selectedFiles={selectedFiles}/>
                                 <MenuButton text='Detele' onClick={deleteFile} selectedFiles={selectedFiles}/>
+                                <MenuButton text='Move' onClick={moveFiles} selectedFiles={selectedFiles}/>
                             </div>
                         </div>
                     </nav>
@@ -180,7 +196,8 @@ function App() {
                     <UploadDropZone onUpload={addFilesToUpload}/>
                 </Row>
                 <ProgressView tasks={tasks} />
-
+                <ModalWindow show={showModal} onHide={() => setShowModal(false)}
+                       handleMove={handleMove} destPath={destPath} setDestPath={setDestPath} selectedFiles={selectedFiles} />
             </Container>
         </div>
         );
