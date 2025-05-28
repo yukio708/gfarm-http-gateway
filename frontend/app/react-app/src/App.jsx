@@ -75,7 +75,7 @@ function App() {
             console.error('Download failed:', err);
         }
         setTimeout(()=>{
-            setTasks(prev => prev.filter(t => Date.now() - t.startTime < 10));
+            setTasks(prev => prev.filter(t => !t.done && Date.now() - t.updateTime < 10));
         }, 10000);
     };
 
@@ -94,17 +94,17 @@ function App() {
         const worker = async () => {
             while (uploadQueueRef.current.length) {
                 const file = uploadQueueRef.current.shift();
-                const fullpath = currentDir + '/' + file.dirPath + file.name; // 現在位置が変わると違う場所にアップロードされてしまう
-                await upload(currentDir, file, setTasks);
+                // 現在位置が変わると違う場所にアップロードされてしまう
+                await upload(currentDir, file, setTasks, () => {setRefreshKey(prev => !prev)});
                 setTimeout(()=>{
-                    setTasks(prev => prev.filter(t => Date.now() - t.startTime < 10));
+                    setTasks(prev => prev.filter(t => !t.done && Date.now() - t.updateTime < 10));
                 }, 10000);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
         await Promise.all(workers);
+        
         setIsUploading(false);
-        setRefreshKey(prev => !prev);
     };
 
     useEffect(() => {

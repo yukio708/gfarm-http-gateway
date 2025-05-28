@@ -1,16 +1,14 @@
 import { encodePath } from './func'
 import { API_URL } from '../utils/api_url';
 
-async function downloadFile(path, setTasks, zip=false) {
+async function downloadFile(path, setTasks) {
     console.log("download: filepath:", path);
     if (!path) {
         alert('Please input Gfarm path');
         return;
     }
     const epath = encodePath(path)
-    const dlurl = zip 
-        ?`${API_URL}/download/zip/${path}`
-        : `${API_URL}/file${epath}?action=download`;
+    const dlurl = `${API_URL}/file${epath}?action=download`;
 
     try{
         const startTime = Date.now();
@@ -25,6 +23,7 @@ async function downloadFile(path, setTasks, zip=false) {
                 console.log('cancel:', path);
             },
             startTime: startTime,
+            updateTime: Date.now()
         };
         setTasks(prev => [...prev, newTask]);
 
@@ -58,7 +57,7 @@ async function downloadFile(path, setTasks, zip=false) {
 
             setTasks((prev) =>
                 prev.map((task) =>
-                    task.path === path ? { ...task, value: percent, status } : task
+                    task.path === path ? { ...task, value: percent, status, updateTime: Date.now() } : task
                 )
             );
         }
@@ -76,7 +75,7 @@ async function downloadFile(path, setTasks, zip=false) {
 
         setTasks((prev) =>
             prev.map((task) =>
-                task.path === path ? { ...task, status: "done", value: 100 } : task
+                task.path === path ? { ...task, status: "done", value: 100, done: true, updateTime: Date.now() } : task
             )
         );
 
@@ -85,7 +84,7 @@ async function downloadFile(path, setTasks, zip=false) {
         setTasks((prev) =>
             prev.map((task) =>
                 task.path === taskId
-                    ? { ...task, status: `Error: ${err.message}` }
+                    ? { ...task, status: `Error: ${err.message}`, done: true, updateTime: Date.now() }
                     : task
             )
         );
@@ -141,9 +140,11 @@ async function downloadFiles(paths, setTasks) {
             path: taskId,
             name: filename,
             value: 0,
+            done: false,
             status: "zipping...",
             onCancel: null,
             startTime: startTime,
+            updateTime: Date.now()
         };
         setTasks(prev => [...prev, newTask]);
 
@@ -161,7 +162,7 @@ async function downloadFiles(paths, setTasks) {
 
             setTasks(prev =>
                 prev.map(task =>
-                    task.path === taskId ? { ...task, value: percent, status } : task
+                    task.path === taskId ? { ...task, value: percent, status, updateTime: Date.now() } : task
                 )
             );
         }
@@ -176,7 +177,7 @@ async function downloadFiles(paths, setTasks) {
 
         setTasks(prev =>
             prev.map(task =>
-                task.path === taskId ? { ...task, status: "done", value: 100 } : task
+                task.path === taskId ? { ...task, status: "done", done: true, value: 100, updateTime: Date.now() } : task
             )
         );
     } catch (err) {
@@ -184,7 +185,7 @@ async function downloadFiles(paths, setTasks) {
         setTasks(prev =>
             prev.map(task =>
                 task.path === "zip:" + Date.now()
-                    ? { ...task, status: `Error: ${err.message}` }
+                    ? { ...task, status: `Error: ${err.message}`, done: true, updateTime: Date.now() }
                     : task
             )
         );
