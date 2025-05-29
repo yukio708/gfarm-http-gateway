@@ -34,31 +34,33 @@
 .file-table th:nth-child(1), /* Input column */
 .file-table td:nth-child(1) {
     width: 50px;
+    cursor: pointer; /* Change cursor to pointer */
 }
-  
-.file-table th:nth-child(2), /* Icon column */
-.file-table td:nth-child(2) {
+
+.file-table td:nth-child(2) { /* Icon column */
     width: 20px;
     cursor: pointer; /* Change cursor to pointer */
 }
 
-.file-table th:nth-child(3), /* Name column */
+.file-table th:nth-child(2), /* Name column */
 .file-table td:nth-child(3) {
     width: auto; /* Or a specific width */
     cursor: pointer; /* Change cursor to pointer */
 }
 
-.file-table th:nth-child(4), /* Size column */
+.file-table th:nth-child(3), /* Size column */
 .file-table td:nth-child(4) {
-    width: 100px;
+    width: 150px;
+    cursor: pointer; /* Change cursor to pointer */
 }
 
-.file-table th:nth-child(5), /* Date column */
+.file-table th:nth-child(4), /* Date column */
 .file-table td:nth-child(5) {
-    width: 200px;
+    width: 220px;
+    cursor: pointer; /* Change cursor to pointer */
 }
 
-.file-table th:nth-child(6), /* Menu column */
+.file-table th:nth-child(5), /* Menu column */
 .file-table td:nth-child(6) {
     width: 50px;
 }

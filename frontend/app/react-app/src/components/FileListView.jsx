@@ -30,12 +30,16 @@ function FileListView({
     showDetail, 
     Permission 
 }) {
-    const [sortDirection, setSortDirection] = useState({ column: '', order: 'asc' });
+    const [sortDirection, setSortDirection] = useState({ column: 'name', order: 'asc' });
     const headerCheckboxRef = useRef(null);
 
     const sortFilesByName = (a, b, sortDirection) => {
         const nameA = a.name.toLowerCase();
         const nameB = b.name.toLowerCase();
+
+        if (a.isfile !== b.isfile) {
+            return a.isfile ? 1 : -1;
+        }
     
         if (sortDirection === 'asc') {
             return nameA.localeCompare(nameB);
@@ -44,23 +48,41 @@ function FileListView({
         }
     };
 
-    const sortFilesBySize = (a, b, sortOrder) => {
-        if (sortOrder === 'asc') {
+    const sortFilesBySize = (a, b, sortDirection) => {
+        if (a.isfile !== b.isfile) {
+            return a.isfile ? 1 : -1;
+        }
+        if (sortDirection === 'asc') {
             return a.size - b.size;
         } else {
             return b.size - a.size;
         }
     };
 
+    const sortFilesByUpdateDate = (a, b, sortDirection) => {
+        if (a.isfile !== b.isfile) {
+            return a.isfile ? 1 : -1;
+        }
+        if (sortDirection === 'asc') {
+            return new Date(a.mtime_str) - new Date(b.mtime_str);
+        } else {
+            return new Date(b.mtime_str) - new Date(a.mtime_str);
+        }
+
+    }
+
     const sortedFiles = [...files].sort((a, b) => {
         if (sortDirection.column === 'name') {
             return sortFilesByName(a, b, sortDirection.order);
         } else if (sortDirection.column === 'size') {
             return sortFilesBySize(a, b, sortDirection.order);
+        } else if (sortDirection.column === 'updatedate') {
+            return sortFilesByUpdateDate(a, b, sortDirection.order);
         }
-        return 0; // Default: no sorting
+        return 0;
     });
 
+    //  別ファイルにする
     const getFileIcon = (file) => {
         const extension = file.name.split('.').pop().toLowerCase();
         
@@ -116,9 +138,9 @@ function FileListView({
 
     const toggleSortDirection = (column) => {
         setSortDirection((prevSort) => {
-            if (prevSort.column === column && prevSort.order === 'desc') {
-                return {column:'null', order:null};
-            }
+            // if (prevSort.column === column && prevSort.order === 'desc') {
+            //     return {column:'null', order:null};
+            // }
             return {
                 column,
                 order: prevSort.column === column && prevSort.order === 'asc' ? 'desc' : 'asc',
@@ -151,13 +173,16 @@ function FileListView({
                                 onChange={handleSelectAll} 
                                 checked={selectedFiles.length === files.length && files.length > 0} />
                 </th>
-                <th colSpan={2} onClick={() => toggleSortDirection('name')} style={{ cursor: 'pointer' }}>
+                {/* <th onClick={() => toggleSortDirection('name')}></th> */}
+                <th colSpan={2} onClick={() => toggleSortDirection('name')}>
                     Name {sortDirection.column === 'name' && getSortIcon()}
                 </th>
                 <th onClick={() => toggleSortDirection('size')}>
                     Size {sortDirection.column === 'size' && getSortIcon()}
                 </th>
-                <th>Updated Date</th>
+                <th onClick={() => toggleSortDirection('updatedate')}>
+                    Updated Date {sortDirection.column === 'updatedate' && getSortIcon()}
+                </th>
                 <th></th>
                 </tr>
             </thead>
