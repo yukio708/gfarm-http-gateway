@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from "react-router-dom";
 import './css/App.css';
 import Login from './Login';
 import FileListView from './components/FileListView';
@@ -24,6 +25,8 @@ import Col from 'react-bootstrap/Col';
 import Row from 'react-bootstrap/Row';
 
 function App() {
+    const location = useLocation();
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [currentDir, setCurrentDir] = useState("");
     const [refreshKey, setRefreshKey] = useState(false);
@@ -44,12 +47,19 @@ function App() {
         });
     }, []);
 
+    useEffect(() => {
+        // Sync the URL path to currentDir
+        const path = decodeURIComponent(location.pathname);
+        setCurrentDir(path === "/" ? "" : path);
+    }, [location]);
+
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
             setRefreshKey(prev => !prev);
         }
         else {
-            setCurrentDir(newdir);
+            // setCurrentDir(newdir);
+            navigate(newdir);
         }
         setSelectedFiles([]);
     };
