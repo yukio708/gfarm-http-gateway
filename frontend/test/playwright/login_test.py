@@ -7,7 +7,7 @@ import urllib.parse
 
 FRONTEND_URL = "http://react:3000"
 API_ENDPOINT = "http://localhost:8080"
-KEYCLOAK = "http://keycloak"
+KEYCLOAK = "http://keycloak.test/redirect"
 
 redirect_url = None
 
@@ -29,14 +29,13 @@ login = False
 def handle_route(route, request):
     global login
     if "/login_oidc" in request.url:
-        # ログインリダイレクトのURLに来たら、アクセストークン付きでリダイレクト返す
-        print("Intercepted OIDC Login Redirect:", request.url)
         login = True
         fake_token= "fake"
-        redirect_url = f"http://react:3000?code=fake-auth-code&access_token={fake_token}"
+        # redirect_url = f"http://react:3000?code=fake-auth-code&access_token={fake_token}"
+        redirect_url = FRONTEND_URL + '/redirect'
 
         route.fulfill(
-            status=301,
+            status=302,
             headers={"Location": redirect_url}
         )
     elif '/d/' in request.url:
@@ -71,6 +70,16 @@ def handle_route(route, request):
                 headers={"Content-Type": "application/json"},
                 body=json.dumps(response_data),
             )
+    elif "/redirect" in request.url:
+        login = True
+        fake_token= "fake"
+        redirect_url = f"{FRONTEND_URL}?code=fake-auth-code&access_token={fake_token}"
+        # redirect_url = KEYCLOAK
+
+        route.fulfill(
+            status=301,
+            headers={"Location": redirect_url}
+        )
     else:
         route.continue_()
 
