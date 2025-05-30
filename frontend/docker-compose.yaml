@@ -27,7 +27,7 @@ services:
       - ./test/data:/data
       - /tmp/.X11-unix:/tmp/.X11-unix
     # command: npm test
-    command: pytest test_playwright.py
+    command: pytest login_test.py
     devices:
       - /dev/dri
     depends_on:

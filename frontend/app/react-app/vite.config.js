@@ -6,7 +6,9 @@ export default defineConfig ({
   plugins: [react(), jsconfigPaths()],
   base: "./",
   server: {
+    host: '0.0.0.0',
     port: 3000,
+    allowedHosts: ['react'],
     open: '/'
   },
   preview: {
