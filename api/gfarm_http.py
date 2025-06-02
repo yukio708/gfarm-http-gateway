@@ -402,7 +402,7 @@ templates = Jinja2Templates(directory="templates")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.mount("/react", StaticFiles(directory="frontend/app/react-app/build", html=True), name="react")
+app.mount("/assets", StaticFiles(directory="frontend/app/react-app/dist/assets"), name="assets")
 
 app.add_middleware(
     CORSMiddleware,
@@ -719,6 +719,7 @@ async def oidc_auth_common(request):
     return RedirectResponse(url=url)
 
 
+@app.get("/debug", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request,
                 error: str = "",
@@ -764,6 +765,8 @@ async def index(request: Request,
             + logout_url + "&state=" + csrf_token
         claims = jwt.get_unverified_claims(access_token)
         exp = claims.get("exp")
+    if request.url.path == "/":
+        return FileResponse("frontend/app/react-app/dist/index.html")
     return templates.TemplateResponse("index.html",
                                       {"request": request,
                                        "error": error,

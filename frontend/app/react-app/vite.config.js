@@ -4,7 +4,6 @@ import jsconfigPaths from 'vite-jsconfig-paths'
 
 export default defineConfig ({
   plugins: [react(), jsconfigPaths()],
-  base: "./",
   server: {
     host: '0.0.0.0',
     port: 3000,
@@ -15,6 +14,6 @@ export default defineConfig ({
 	port: 3000
   },
   build: {
-    outDir: "build",
+    outDir: "dist",
   },
 });
