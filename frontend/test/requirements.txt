@@ -1,4 +1,2 @@
 pytest
-# selenium
-# requests-mock
 pytest-playwright
