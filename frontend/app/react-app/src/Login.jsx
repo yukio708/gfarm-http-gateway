@@ -15,6 +15,7 @@ function Login({ onLogin }) {
     const formData = new URLSearchParams();
     formData.append("username", username);
     formData.append("password", password);
+    formData.append("csrf_token", "")
     const res = await login_with_password(formData);
     if (res === null){
         setError("Login failed. Please try again.");

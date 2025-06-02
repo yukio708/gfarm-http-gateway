@@ -20,11 +20,10 @@ export async function login_with_password(formData) {
             credentials: "include",
         });
         if (!res.ok) throw new Error("login failed");
-        const data = await res.json();
-        return data;
+        return true;
 
     } catch (err) {
-        console.error("Error fetching /c/me:", err);
+        console.error("Error fetching /login_passwd:", err);
         return null;
     }
 }
