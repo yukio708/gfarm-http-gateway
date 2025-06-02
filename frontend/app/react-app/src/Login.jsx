@@ -26,7 +26,7 @@ function Login({ onLogin }) {
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100">
         <div className="card shadow-sm p-4" style={{ maxWidth: "400px", width: "100%" }}>
-            <h2 className="mb-4 text-center">Login</h2>
+            <h2 id='title' className="mb-4 text-center">Login</h2>
             {error && (
             <div className="alert alert-danger" role="alert">
                 {error}

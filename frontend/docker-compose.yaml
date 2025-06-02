@@ -27,25 +27,10 @@ services:
       - ./test/data:/data
       - /tmp/.X11-unix:/tmp/.X11-unix
     # command: npm test
-    command: pytest -s login_test.py
+    command: pytest -s frontend_test.py --browser chromium
     devices:
       - /dev/dri
     depends_on:
       - react
     stdin_open: true
     tty: true
-
-  # puppeteer:
-  #   container_name: react-test-puppeteer
-  #   build:
-  #     context: .
-  #     dockerfile: dockerfile.puppeteer
-  #   volumes:
-  #     - ./test/puppeteer:/test
-  #     - /test/node_modules
-  #     - ./test/data:/data
-  #   command: npm run start
-  #   depends_on:
-  #     - react
-  #   stdin_open: true
-  #   tty: true
