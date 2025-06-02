@@ -1,7 +1,5 @@
 import React, { useRef } from 'react';
 import { getDeepestDirs, CollectPathsFromFiles } from '../utils/func';
-import Dropdown from 'react-bootstrap/Dropdown';
-import ButtonGroup from 'react-bootstrap/ButtonGroup'
 
 function UploadButton({ onUpload }) {
     const fileInputRef = useRef(null);
@@ -17,39 +15,37 @@ function UploadButton({ onUpload }) {
     };
 
     return (
-        <div>
-            <Dropdown as={ButtonGroup}>
-                <Dropdown.Toggle variant="outline-secondary" size="sm">
-                    Upload
-                </Dropdown.Toggle>
+    <div className="btn-group">
+        <button type="button" className="btn btn-outline-secondary btn-sm dropdown-toggle"
+                data-bs-toggle="dropdown"
+                aria-expanded="false">
+        Upload
+        </button>
+        <ul className="dropdown-menu">
+        <li>
+            <button type="button" className="dropdown-item" 
+                    onClick={() => fileInputRef.current?.click()}>
+            Upload Files
+            </button>
+        </li>
+        <li>
+            <button type="button" className="dropdown-item" 
+                    onClick={() => folderInputRef.current?.click()}>
+            Upload a Folder
+            </button>
+        </li>
+        </ul>
 
-                <Dropdown.Menu>
-                    <Dropdown.Item onClick={() => fileInputRef.current?.click()}>
-                        Upload Files
-                    </Dropdown.Item>
-                    <Dropdown.Item onClick={() => folderInputRef.current?.click()}>
-                        Upload a Folder
-                    </Dropdown.Item>
-                </Dropdown.Menu>
-            </Dropdown>
-
-            <input
-                type="file"
-                multiple
+        <input type="file" multiple
                 style={{ display: 'none' }}
                 ref={fileInputRef}
-                onChange={handleFileChange}
-            />
-            <input
-                type="file"
-                webkitdirectory="true" 
-                multiple
+                onChange={handleFileChange} />
+        <input type="file" multiple
+                webkitdirectory="true"
                 style={{ display: 'none' }}
                 ref={folderInputRef}
-                onChange={handleFileChange}
-            />
-        </div>
-        
+                onChange={handleFileChange} />
+    </div>
     );
 }
 

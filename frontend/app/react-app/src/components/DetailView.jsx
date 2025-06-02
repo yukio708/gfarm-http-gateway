@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { formatFileSize } from '../utils/func';
-import Button from 'react-bootstrap/Button';
 import '../css/DetailView.css'
 
 function DetailView({detail, onClose}) {
@@ -12,7 +11,7 @@ function DetailView({detail, onClose}) {
 
     return (
         <div className="detail-view">
-            <Button variant="primary" className="close-button" onClick={onClose}>X</Button>
+            <button type="button" className="btn btn-primary close-button" onClick={onClose}>X</button>
             <h4>{detail.Name}</h4>
             <table className="detail-table">
                 <tbody>

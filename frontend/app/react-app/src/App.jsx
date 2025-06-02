@@ -20,9 +20,6 @@ import getAttribute from './utils/getAttribute';
 import setPermission from './utils/setPermission';
 import { checkLoginStatus } from './utils/login';
 import { createDir, removeDir } from './utils/dircommon';
-import Container from 'react-bootstrap/Container';
-import Col from 'react-bootstrap/Col';
-import Row from 'react-bootstrap/Row';
 
 function App() {
     const location = useLocation();
@@ -166,24 +163,33 @@ function App() {
 
     return (
         <div>
-            <Container fluid className="App">
-                <Row>
-                    <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
-                </Row>
-                <Row>
-                    <nav className="navbar bg-body-tertiary">
-                        <div className="container-fluid">
-                            <div className="d-flex gap-2">
-                                <UploadButton onUpload={addFilesToUpload} />
-                                <MenuButton text='Download' onClick={downloadFiles} selectedFiles={selectedFiles}/>
-                                <MenuButton text='Detele' onClick={deleteFile} selectedFiles={selectedFiles}/>
-                                <MenuButton text='Move' onClick={moveFiles} selectedFiles={selectedFiles}/>
+            <div className="container-fluid App">
+                <div className="row">
+                    <div className="col">
+                        <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className="col">
+                        <nav className="navbar bg-body-tertiary">
+                            <div className="container-fluid">
+                                <div className="d-flex gap-2">
+                                    <UploadButton onUpload={addFilesToUpload} />
+                                    <MenuButton text='Download' onClick={downloadFiles} selectedFiles={selectedFiles}/>
+                                    <MenuButton text='Detele' onClick={deleteFile} selectedFiles={selectedFiles}/>
+                                    <MenuButton text='Move' onClick={moveFiles} selectedFiles={selectedFiles}/>
+                                </div>
                             </div>
-                        </div>
-                    </nav>
-                </Row>
-                <Row>
-                    <Col>
+                        </nav>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className="col">
+                        <UploadDropZone onUpload={addFilesToUpload}/>
+                    </div>
+                </div>
+                <div className="row">
+                    <div className={detailContent ? "col-md-9" : "col"}>
                         <FileListView 
                             files={files} 
                             selectedFiles={selectedFiles}
@@ -195,20 +201,17 @@ function App() {
                             displayFile={displayFile}
                             deleteFile={deleteFile}
                         />
-                    </Col>
+                    </div>
                     {detailContent &&
-                    <Col md={3}>
+                    <div className="col-md-3">
                         <DetailView detail={detailContent} onClose={closeDetail}/>
-                    </Col>
+                    </div>
                     }
-                </Row>
-                <Row>
-                    <UploadDropZone onUpload={addFilesToUpload}/>
-                </Row>
+                </div>
                 <ProgressView tasks={tasks} />
                 <ModalWindow show={showModal} onHide={() => setShowModal(false)}
                        handleMove={handleMove} destPath={destPath} setDestPath={setDestPath} selectedFiles={selectedFiles} />
-            </Container>
+            </div>
         </div>
         );
 }

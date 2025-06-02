@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { formatFileSize } from '../utils/func';
-import Dropdown from 'react-bootstrap/Dropdown';
-import Form from 'react-bootstrap/Form';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import '../css/FileListView.css'
 import { 
     BsFolder, 
@@ -168,10 +165,11 @@ function FileListView({
             <thead>
                 <tr>
                 <th>
-                    <Form.Check type='checkbox' 
-                                ref={headerCheckboxRef}
-                                onChange={handleSelectAll} 
-                                checked={selectedFiles.length === files.length && files.length > 0} />
+                    <input type="checkbox"
+                           className="form-check-input"
+                           ref={headerCheckboxRef}
+                           onChange={handleSelectAll}
+                           checked={selectedFiles.length === files.length && files.length > 0} />
                 </th>
                 {/* <th onClick={() => toggleSortDirection('name')}></th> */}
                 <th colSpan={2} onClick={() => toggleSortDirection('name')}>
@@ -190,30 +188,34 @@ function FileListView({
                 {sortedFiles.map(file => (
                 <tr key={file.path}>
                     <td>
-                        <Form.Check type='checkbox' 
-                                    onChange={(event) => handleSelectFile(event, file)}
-                                    checked={selectedFiles.includes(file)}/>
+                        <input type="checkbox"
+                               className="form-check-input"
+                               onChange={(event) => handleSelectFile(event, file)}
+                               checked={selectedFiles.includes(file)} />
                     </td>
                     <td>{getFileIcon(file)}</td>
                     <td onClick={() => handleNameCick(file.path, file.isfile)}>{file.name}</td>
                     <td>{getSize(file.size)}</td>
                     <td>{file.mtime_str}</td>
                     <td>
-                    <Dropdown>
-                        <Dropdown.Toggle variant="success" id="dropdown-basic" as={BsThreeDots} />
-                        <Dropdown.Menu>
-                        <Dropdown.Item onClick={() => showDetail(file.name, file.path)}>Detail</Dropdown.Item>
-                        {file.type === 'file' &&
-                        <Dropdown.Item onClick={() => displayFile(file.path) }>View</Dropdown.Item>
-                        }
-                        <Dropdown.Item onClick={() => Move(file.path)}>Rename</Dropdown.Item>
-                        <Dropdown.Item onClick={() => Move(file.path)}>Move</Dropdown.Item>
-                        <Dropdown.Item onClick={() => Move(file.path)}>Copy</Dropdown.Item>
-                        <Dropdown.Item onClick={() => downloadFiles([file.path])}>Download</Dropdown.Item>
-                        <Dropdown.Item onClick={() => deleteFile(file)}>Delete</Dropdown.Item>
-                        <Dropdown.Item onClick={() => Permission(file.path)}>Change Permissions</Dropdown.Item>
-                        </Dropdown.Menu>
-                    </Dropdown>
+                        <div className="dropdown">
+                            <button type="button" className="btn p-0 border-0"
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <BsThreeDots />
+                            </button>
+                            <ul className="dropdown-menu">
+                                <li><button className="dropdown-item" onClick={() => showDetail(file.name, file.path)}>Detail</button></li>
+                                {file.type === 'file' &&
+                                    <li><button className="dropdown-item" onClick={() => displayFile(file.path)}>View</button></li>
+                                }
+                                <li><button className="dropdown-item" onClick={() => Move(file.path)}>Rename</button></li>
+                                <li><button className="dropdown-item" onClick={() => Move(file.path)}>Move</button></li>
+                                <li><button className="dropdown-item" onClick={() => Move(file.path)}>Copy</button></li>
+                                <li><button className="dropdown-item" onClick={() => downloadFiles([file.path])}>Download</button></li>
+                                <li><button className="dropdown-item" onClick={() => deleteFile(file)}>Delete</button></li>
+                                <li><button className="dropdown-item" onClick={() => Permission(file.path)}>Change Permissions</button></li>
+                            </ul>
+                        </div>
                     </td>
                 </tr>
                 ))}

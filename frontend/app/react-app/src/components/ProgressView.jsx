@@ -1,5 +1,4 @@
 import React from 'react';
-import Button from 'react-bootstrap/Button';
 import '../css/ProgressView.css'
 
 const ProgressPopup = ({ name, value, status, onCancel }) => {
@@ -8,7 +7,7 @@ const ProgressPopup = ({ name, value, status, onCancel }) => {
             <p><strong>{name}</strong></p>
             <progress value={value} max="100"></progress>
             <p>{status}</p>
-            {value < 100 && <Button variant="primary" size="sm" onClick={onCancel}>Cancel</Button>}
+            {value < 100 && <button className="btn btn-primary btn-sm" onClick={onCancel}>Cancel</button>}
         </div>
     );
 };
