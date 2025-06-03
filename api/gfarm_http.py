@@ -787,6 +787,20 @@ async def index(request: Request,
                                        "exp": exp,
                                        })
 
+
+@app.get("/user_info")
+async def user_info(request: Request):
+    access_token = await get_access_token(request)
+    user = None
+    if access_token:
+        user = get_user_from_access_token(access_token)
+    else:
+        user_passwd = get_user_passwd(request)
+        if user_passwd:
+            user, _ = user_passwd
+    return JSONResponse(content={"username": user})
+
+
 @app.get("/login")
 async def login_page(request: Request,
                      redirect: Union[str, None] = None):
@@ -798,6 +812,7 @@ async def login_page(request: Request,
                                       {"request": request, 
                                        "error": error,
                                        "csrf_token": csrf_token,})
+
 
 @app.get("/login_oidc")
 async def login_oidc(request: Request):
