@@ -12,14 +12,14 @@ export async function checkLoginStatus() {
     }
 }
 
-export async function login_with_password(formData) {
+export async function login_with_password(formData, current_path) {
     try {
-        const res = await fetch(`${API_URL}/login_passwd`, {
+        const res = await fetch(`${API_URL}/login_passwd?redirect=${encodeURIComponent(current_path)}`, {
             method: "POST",
             body: formData,
             credentials: "include",
         });
-        if (!res.ok) throw new Error("login failed");
+        // if (!res.ok) throw new Error("login failed");
         return true;
 
     } catch (err) {

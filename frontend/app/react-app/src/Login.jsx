@@ -6,7 +6,7 @@ function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const keycloakRedirectUrl = `${API_URL}/login_oidc`
+  const keycloakRedirectUrl = `${API_URL}/login_oidc?redirect=${encodeURIComponent(window.location.hash)}`
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -15,8 +15,8 @@ function Login({ onLogin }) {
     const formData = new URLSearchParams();
     formData.append("username", username);
     formData.append("password", password);
-    formData.append("csrf_token", "")
-    const res = await login_with_password(formData);
+    formData.append("csrf_token", "");
+    const res = await login_with_password(formData, window.location.hash);
     if (res === null){
         setError("Login failed. Please try again.");
     } else {

@@ -715,7 +715,9 @@ async def oidc_auth_common(request):
     user = get_user_from_access_token(access_token)
     log_login(request, user, "access_token")
     # return RedirectResponse(url="./")
-    url = request.url_for("index")
+    url = request.session["next_url"]
+    if url is None:
+        url = request.url_for("index")
     return RedirectResponse(url=url)
 
 
@@ -786,7 +788,9 @@ async def index(request: Request,
 
 
 @app.get("/login_oidc")
-async def login_oidc(request: Request):
+async def login_oidc(request: Request,
+                     redirect: Union[str, None] = None):
+    request.session["next_url"] = f"/{redirect}" if redirect else None
     """
     start OIDC login
     """
@@ -901,12 +905,14 @@ def delete_user_passwd(request: Request):
 async def login_passwd(request: Request,
                        username: str = Form(),
                        password: str = Form(),
-                       csrf_token: str = Form()):
+                       csrf_token: str = Form(),
+                       redirect: Union[str, None] = None):
     check_csrf(request, csrf_token)
     delete_token(request)
     set_user_passwd(request, username, password)
     env = await set_env(request, None)
     p = await gfwhoami(env)
+    url = redirect if redirect else request.url_for("index")
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
     except Exception as e:
@@ -915,13 +921,11 @@ async def login_passwd(request: Request,
         request.session["error"] = err
         # err = urllib.parse.quote(err)
         # url = str(request.url_for("index")) + f"?error={err}"
-        url = request.url_for("index")
         log_login_error(request, username, "password", err)
         return RedirectResponse(url=url, status_code=303)
     # OK
     log_login(request, username, "password")
     # return RedirectResponse(url="./", status_code=303)
-    url = request.url_for("index")
     return RedirectResponse(url=url, status_code=303)
 
 
