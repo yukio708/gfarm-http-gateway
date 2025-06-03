@@ -11,6 +11,7 @@ import UploadDropZone from './components/UploadDropZone';
 import UploadButton from './components/UploadButton';
 import MenuButton from './components/MenuButton';
 import useFileList from './hooks/useFileList';
+import { API_URL } from './utils/api_url';
 import upload from './utils/upload';
 import download from './utils/download';
 import displayFile from './utils/displayFile';
@@ -40,7 +41,10 @@ function App() {
         checkLoginStatus().then(user => {
             setUser(user);
             console.log("user:", user);
-            // setAuthChecked(true);
+            if (user === null) {
+                const redirectTo = encodeURIComponent(window.location.hash) || "";
+                window.location.href = `${API_URL}/login?redirect=${redirectTo}`;
+            }
         });
     }, []);
 
@@ -157,8 +161,8 @@ function App() {
         setRefreshKey(prev => !prev);
     }
 
-    if (user === null) {
-        return <Login onLogin={() => window.location.reload()} />;
+    const createDirectory = async(dirname) => {
+        await createDir(currentDir + '/' + dirname);
     }
 
     return (
@@ -178,6 +182,8 @@ function App() {
                                     <MenuButton text='Download' onClick={downloadFiles} selectedFiles={selectedFiles}/>
                                     <MenuButton text='Detele' onClick={deleteFile} selectedFiles={selectedFiles}/>
                                     <MenuButton text='Move' onClick={moveFiles} selectedFiles={selectedFiles}/>
+                                    <MenuButton text='New directory' onClick={moveFiles} selectedFiles={selectedFiles}/>
+                                    <MenuButton text='Logout' onClick={() => window.location.href = `${API_URL}/logout`} />
                                 </div>
                             </div>
                         </nav>

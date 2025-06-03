@@ -718,6 +718,7 @@ async def oidc_auth_common(request):
     url = request.session["next_url"]
     if url is None:
         url = request.url_for("index")
+    
     return RedirectResponse(url=url)
 
 
@@ -786,11 +787,20 @@ async def index(request: Request,
                                        "exp": exp,
                                        })
 
+@app.get("/login")
+async def login_page(request: Request,
+                     redirect: Union[str, None] = None):
+    csrf_token = gen_csrf(request)
+    error = request.session.get("error", "")
+    request.session.pop("error", None)
+    request.session['next_url'] = f"/{redirect}" if redirect else None
+    return templates.TemplateResponse("login.html",
+                                      {"request": request, 
+                                       "error": error,
+                                       "csrf_token": csrf_token,})
 
 @app.get("/login_oidc")
-async def login_oidc(request: Request,
-                     redirect: Union[str, None] = None):
-    request.session["next_url"] = f"/{redirect}" if redirect else None
+async def login_oidc(request: Request):
     """
     start OIDC login
     """
@@ -905,14 +915,15 @@ def delete_user_passwd(request: Request):
 async def login_passwd(request: Request,
                        username: str = Form(),
                        password: str = Form(),
-                       csrf_token: str = Form(),
-                       redirect: Union[str, None] = None):
+                       csrf_token: str = Form()):
     check_csrf(request, csrf_token)
     delete_token(request)
     set_user_passwd(request, username, password)
     env = await set_env(request, None)
     p = await gfwhoami(env)
-    url = redirect if redirect else request.url_for("index")
+    url = request.session["next_url"]
+    if url is None:
+        url = request.url_for("index")
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
     except Exception as e:
@@ -922,7 +933,8 @@ async def login_passwd(request: Request,
         # err = urllib.parse.quote(err)
         # url = str(request.url_for("index")) + f"?error={err}"
         log_login_error(request, username, "password", err)
-        return RedirectResponse(url=url, status_code=303)
+        url = urllib.parse.quote(url)
+        return RedirectResponse(url=f"/login?redirect={url}", status_code=303)
     # OK
     log_login(request, username, "password")
     # return RedirectResponse(url="./", status_code=303)
