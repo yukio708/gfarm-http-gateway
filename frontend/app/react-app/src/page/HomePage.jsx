@@ -17,7 +17,7 @@ import deleteFiles from "../utils/deleteFile";
 import moveFile from "../utils/moveFile";
 import getAttribute from "../utils/getAttribute";
 import setPermission from "../utils/setPermission";
-import { createDir, removeDir } from "../utils/dircommon";
+import { createDir } from "../utils/dircommon";
 import PropTypes from "prop-types";
 
 function HomePage({ user }) {
@@ -25,7 +25,7 @@ function HomePage({ user }) {
     const navigate = useNavigate();
     const [currentDir, setCurrentDir] = useState("");
     const [refreshKey, setRefreshKey] = useState(false);
-    const { files, error } = useFileList(currentDir, refreshKey);
+    const { files, listgeterror } = useFileList(currentDir, refreshKey);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
@@ -33,6 +33,10 @@ function HomePage({ user }) {
     const [isUploading, setIsUploading] = useState(false);
     const [destPath, setDestPath] = useState("");
     const [showModal, setShowModal] = useState(false);
+    const [modalTitle, setModalTitle] = useState("");
+    const [modalContent, setModalContent] = useState("");
+    const [modalConfirmAction, setModalConfirmAction] = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         // Sync the URL path to currentDir
@@ -40,9 +44,13 @@ function HomePage({ user }) {
         setCurrentDir(path === "/" ? "" : path);
     }, [location]);
 
-    const jumpDirectory = newdir => {
+    useEffect(() => {
+        setError(listgeterror);
+    }, [listgeterror]);
+
+    const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
-            setRefreshKey(prev => !prev);
+            setRefreshKey((prev) => !prev);
         } else {
             // setCurrentDir(newdir);
             navigate(newdir);
@@ -50,7 +58,7 @@ function HomePage({ user }) {
         setSelectedFiles([]);
     };
 
-    const handleSelectAll = event => {
+    const handleSelectAll = (event) => {
         if (event.target.checked) {
             setSelectedFiles(files);
         } else {
@@ -62,11 +70,11 @@ function HomePage({ user }) {
         if (event.target.checked) {
             setSelectedFiles([...selectedFiles, file]);
         } else {
-            setSelectedFiles(selectedFiles.filter(path => path !== file));
+            setSelectedFiles(selectedFiles.filter((path) => path !== file));
         }
     };
 
-    const downloadFiles = async files => {
+    const downloadFiles = async (files) => {
         console.log("downloadFiles: filepath:", files);
         try {
             await download(files, setTasks);
@@ -74,7 +82,7 @@ function HomePage({ user }) {
             console.error("Download failed:", err);
         }
         setTimeout(() => {
-            setTasks(prev => prev.filter(t => !t.done && Date.now() - t.updateTime < 10));
+            setTasks((prev) => prev.filter((t) => !t.done && Date.now() - t.updateTime < 10));
         }, 10000);
     };
 
@@ -95,10 +103,12 @@ function HomePage({ user }) {
                 const file = uploadQueueRef.current.shift();
                 // 現在位置が変わると違う場所にアップロードされてしまう
                 await upload(currentDir, file, setTasks, () => {
-                    setRefreshKey(prev => !prev);
+                    setRefreshKey((prev) => !prev);
                 });
                 setTimeout(() => {
-                    setTasks(prev => prev.filter(t => !t.done && Date.now() - t.updateTime < 10));
+                    setTasks((prev) =>
+                        prev.filter((t) => !t.done && Date.now() - t.updateTime < 10)
+                    );
                 }, 10000);
             }
         };
@@ -129,26 +139,42 @@ function HomePage({ user }) {
         setDetailContent(null);
     };
 
-    const deleteFile = async files => {
-        // 複数の時削除するか聞く
-        await deleteFiles(Array.isArray(files) ? files : [files], null, () => {
-            setRefreshKey(prev => !prev);
+    const deleteFile = async (files) => {
+        const deletefiles = Array.isArray(files) ? files : [files];
+        setModalTitle(
+            <p className="modal-title">Are you sure you want to delete the following file(s)?</p>
+        );
+        setModalContent(
+            <div>
+                <ul>
+                    {deletefiles.map((file, idx) => (
+                        <li key={idx}>{file.name}</li>
+                    ))}
+                </ul>
+            </div>
+        );
+        setModalConfirmAction(() => async () => {
+            const error = await deleteFiles(deletefiles, null, () => {
+                setRefreshKey((prev) => !prev);
+            });
+            setError(error);
         });
+        setShowModal(true);
     };
 
     const moveFiles = () => {
         setShowModal(true);
     };
 
-    const handleMove = files => {
+    const handleMove = (files) => {
         console.log("files", files);
         setShowModal(false);
         moveFile(files, destPath);
         setDestPath(""); // Reset after move
-        setRefreshKey(prev => !prev);
+        setRefreshKey((prev) => !prev);
     };
 
-    const createDirectory = async dirname => {
+    const createDirectory = async (dirname) => {
         await createDir(currentDir + "/" + dirname);
     };
 
@@ -167,7 +193,7 @@ function HomePage({ user }) {
                 </div>
             </div>
             <div className="row">
-                <div className="col">
+                <div className="col ms-2">
                     <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
                 </div>
             </div>
@@ -219,14 +245,17 @@ function HomePage({ user }) {
                 )}
             </div>
             <ProgressView tasks={tasks} />
-            <ModalWindow
-                show={showModal}
-                onHide={() => setShowModal(false)}
-                handleMove={handleMove}
-                destPath={destPath}
-                setDestPath={setDestPath}
-                selectedFiles={selectedFiles}
-            />
+            {showModal && (
+                <ModalWindow
+                    onHide={() => {
+                        setModalConfirmAction(null);
+                        setShowModal(false);
+                    }}
+                    onConfirm={modalConfirmAction}
+                    title={modalTitle}
+                    text={modalContent}
+                />
+            )}
         </div>
     );
 }

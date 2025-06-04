@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import UploadConfirmModal from './UploadConfirmModal';
-import { getDeepestDirs, CollectPathsFromItems } from '../utils/func';
-import '../css/DropZone.css'
-import PropTypes from 'prop-types';
+import React, { useState, useEffect } from "react";
+import ModalWindow from "../components/Modal";
+import { getDeepestDirs, CollectPathsFromItems, formatFileSize } from "../utils/func";
+import "../css/DropZone.css";
+import PropTypes from "prop-types";
 
 function UploadDropZone({ onUpload }) {
     const [isDragActive, setIsDragActive] = useState(false);
@@ -10,6 +10,7 @@ function UploadDropZone({ onUpload }) {
     const [showConfirm, setShowConfirm] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState(null);
     const [selectedDirs, setSelectedDirs] = useState(null);
+    const [modalText, setModalText] = useState(null);
 
     useEffect(() => {
         const handleDragEnter = (e) => {
@@ -30,19 +31,19 @@ function UploadDropZone({ onUpload }) {
         const handleDrop = (e) => {
             e.preventDefault();
             setIsDragActive(false);
-    };
+        };
 
-    window.addEventListener('dragenter', handleDragEnter);
-    window.addEventListener('dragover', handleDragOver);
-    window.addEventListener('dragleave', handleDragLeave);
-    window.addEventListener('drop', handleDrop);
+        window.addEventListener("dragenter", handleDragEnter);
+        window.addEventListener("dragover", handleDragOver);
+        window.addEventListener("dragleave", handleDragLeave);
+        window.addEventListener("drop", handleDrop);
 
-    return () => {
-        window.removeEventListener('dragenter', handleDragEnter);
-        window.removeEventListener('dragover', handleDragOver);
-        window.removeEventListener('dragleave', handleDragLeave);
-        window.removeEventListener('drop', handleDrop);
-    };
+        return () => {
+            window.removeEventListener("dragenter", handleDragEnter);
+            window.removeEventListener("dragover", handleDragOver);
+            window.removeEventListener("dragleave", handleDragLeave);
+            window.removeEventListener("drop", handleDrop);
+        };
     }, []); // Empty dependency array: run only once
 
     const handleDragOver = (e) => {
@@ -68,6 +69,17 @@ function UploadDropZone({ onUpload }) {
 
         setSelectedDirs(getDeepestDirs(data.dirSet));
         setSelectedFiles(data.files);
+        setModalText(
+            <ul className="modal-body">
+                {data.files !== null &&
+                    data.files.map((file, idx) => (
+                        <li key={idx}>
+                            <strong>{file.dirPath + file.name}</strong> —{" "}
+                            {formatFileSize(file.size)} KB
+                        </li>
+                    ))}
+            </ul>
+        );
         setShowConfirm(true);
     };
 
@@ -83,25 +95,34 @@ function UploadDropZone({ onUpload }) {
     const cancelUpload = () => {
         setIsDragActive(false);
         setShowConfirm(false);
-    }
+    };
 
-    return (isDragActive &&
-        <div className={`drop-zone ${dragging ? 'dragging' : ''}`}
-             onDragOver={handleDragOver}
-             onDragLeave={handleDragLeave}
-             onDrop={handleDrop} >
-            <p>Drag and drop files here to upload</p>
-            <UploadConfirmModal
-                show={showConfirm}
-                onHide={cancelUpload}
-                onConfirm={confirmUpload}
-                files={selectedFiles} />
-        </div>
+    return (
+        isDragActive && (
+            <div>
+                <div
+                    className={`drop-zone ${dragging ? "dragging" : ""}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                >
+                    <p>Drag and drop files here to upload</p>
+                </div>
+                {showConfirm && (
+                    <ModalWindow
+                        onHide={cancelUpload}
+                        onConfirm={confirmUpload}
+                        title={<p>Are you sure you want to upload the following file(s)?</p>}
+                        text={modalText}
+                    />
+                )}
+            </div>
+        )
     );
 }
 
 export default UploadDropZone;
 
 UploadDropZone.propTypes = {
-    onUpload: PropTypes.func
-}
+    onUpload: PropTypes.func,
+};

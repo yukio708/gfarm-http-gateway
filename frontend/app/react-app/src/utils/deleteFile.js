@@ -1,6 +1,6 @@
-import { encodePath } from './func';
-import { API_URL } from './api_url';
-import { removeDir } from './dircommon';
+import { encodePath } from "./func";
+import { API_URL } from "./api_url";
+import { removeDir } from "./dircommon";
 
 async function removeFile(path, params) {
     if (!path) {
@@ -8,30 +8,38 @@ async function removeFile(path, params) {
     }
     const epath = encodePath(path);
     try {
-        const url = `${API_URL}/file${epath}`
+        const url = `${API_URL}/file${epath}`;
         const response = await fetch(url, {
-            method: 'DELETE'
+            method: "DELETE",
         });
         if (!response.ok) {
             const text = await response.text();
             throw new Error(`HTTP ${response.status}: ${text}`);
         }
         console.log("Success (removed)");
+        return null;
     } catch (error) {
         console.error(error);
+        return error.message;
     }
 }
 
 export default async function deleteFiles(files, params, refresh) {
-    if (!files){
+    if (!files) {
         return;
     }
-    
-    for (const file of files ) {
+
+    for (const file of files) {
         if (file.isfile) {
-            await removeFile(file.path, params);
+            const error = await removeFile(file.path, params);
+            if (error) {
+                return error;
+            }
         } else {
-            await removeDir(file.path);
+            const error = await removeDir(file.path);
+            if (error) {
+                return error;
+            }
         }
     }
     refresh();

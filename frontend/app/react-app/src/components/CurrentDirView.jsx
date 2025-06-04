@@ -7,32 +7,32 @@ function CurrentDirView({ currentDir, onNavigate }) {
 
     return (
         <nav aria-label="breadcrumb">
-            <ol className="breadcrumb p-2">
+            <ol className="breadcrumb">
                 <li className="breadcrumb-item">
-                    <a
-                        href="#"
-                        onClick={e => {
-                            e.preventDefault();
+                    <button
+                        type="button"
+                        className="btn p-0"
+                        onClick={() => {
                             onNavigate("/");
                         }}
                     >
                         <BsHouse size="1.0rem" />
-                    </a>
+                    </button>
                 </li>
                 {parts.map((part, index) => {
                     const path = parts.slice(0, index + 1).join("/");
                     console.log("CurrentDirView: path:", path);
                     return (
                         <li key={index} className="breadcrumb-item">
-                            <a
-                                href="#"
-                                onClick={e => {
-                                    e.preventDefault();
+                            <button
+                                type="button"
+                                className="btn p-0"
+                                onClick={() => {
                                     onNavigate(path);
                                 }}
                             >
                                 {part}
-                            </a>
+                            </button>
                         </li>
                     );
                 })}
