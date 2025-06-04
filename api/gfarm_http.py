@@ -31,7 +31,7 @@ from pydantic import BaseModel
 
 from authlib.integrations.starlette_client import OAuth
 from fastapi import (FastAPI, Query, Header, HTTPException, Request,
-                     Form, status, BackgroundTasks)
+                     Form, status)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (PlainTextResponse,
                                StreamingResponse,
@@ -46,11 +46,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from cryptography.fernet import Fernet
 
-import zipfile
-import zipstream
 import redis.asyncio as redis
-import uuid
-import glob
 
 # https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py
 from jose import jwt
@@ -60,12 +56,15 @@ def exit_error():
     logger.error("Exit (error)")
     sys.exit(1)
 
+
 # Ex. -rw-rw-r-- 1 user1  gfarmadm     29 Jan  1 00:00:00 2022 fname
 PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                         r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
 
+
 TMPDIR = "/tmp/gfarm-http"
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
 
 #############################################################################
 # Configuration variables
@@ -379,9 +378,13 @@ if DEBUG:
 conf_check_not_recommended()
 conf_check_invalid()  # may exit
 
+
 #############################################################################
 def delete_tempfiles():
-    if os.path.exists(TMPDIR): shutil.rmtree(TMPDIR)
+    if os.path.exists(TMPDIR):
+        shutil.rmtree(TMPDIR)
+
+
 delete_tempfiles()
 
 #############################################################################
@@ -402,7 +405,9 @@ templates = Jinja2Templates(directory="templates")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.mount("/assets", StaticFiles(directory="frontend/app/react-app/dist/assets"), name="assets")
+app.mount("/assets",
+          StaticFiles(directory="frontend/app/react-app/dist/assets"),
+          name="assets")
 
 app.add_middleware(
     CORSMiddleware,
@@ -718,7 +723,6 @@ async def oidc_auth_common(request):
     url = request.session["next_url"]
     if url is None:
         url = request.url_for("index")
-    
     return RedirectResponse(url=url)
 
 
@@ -809,9 +813,9 @@ async def login_page(request: Request,
     request.session.pop("error", None)
     request.session['next_url'] = f"/{redirect}" if redirect else None
     return templates.TemplateResponse("login.html",
-                                      {"request": request, 
+                                      {"request": request,
                                        "error": error,
-                                       "csrf_token": csrf_token,})
+                                       "csrf_token": csrf_token})
 
 
 @app.get("/login_oidc")
@@ -1123,38 +1127,43 @@ def get_client_ip_from_env(env):
 def get_client_ip_from_request(request):
     return request.client.host
 
+
 async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
     tokenfile = filepath
-    
+
     if expire is not None:
         current_time = int(time.time())
-        logger.debug(f'expiretime: {expire-(current_time+TOKEN_MIN_VALID_TIME_REMAINING)}')
         if (current_time + TOKEN_MIN_VALID_TIME_REMAINING) <= expire:
             return tokenfile, env, expire
-        
+
     access_token = await get_access_token(request)
     if access_token is None:
         return None, env, expire
-    
+
     claims = jwt.get_unverified_claims(access_token)
-    exp = claims.get("exp", None)        
-    
+    exp = claims.get("exp", None)
+
     # Create token file
     if tokenfile is None:
         user = claims.get(TOKEN_USER_CLAIM, None)
         tmpdir = f"{TMPDIR}/{user}/" if user is not None else TMPDIR
         env.pop('GFARM_SASL_PASSWORD', None)
         os.makedirs(tmpdir, exist_ok=True)
-        with tempfile.NamedTemporaryFile(dir=tmpdir, delete_on_close=False) as fp:
+        with tempfile.NamedTemporaryFile(
+                dir=tmpdir,
+                delete_on_close=False) as fp:
             tokenfile = fp.name
             env['JWT_USER_PATH'] = tokenfile
-    
+
     # Write access_token in the token file
     with open(tokenfile, "w") as f:
         f.write(access_token)
     ipaddr = get_client_ip_from_request(request)
-    logger.debug(f"{ipaddr}:0 user={user}, access_token file:{tokenfile} updated")
+    logger.debug(
+        f"{ipaddr}:0 user={user}, access_token file:{tokenfile} updated"
+    )
     return tokenfile, env, exp
+
 
 #############################################################################
 def keyval(s):
@@ -1500,10 +1509,11 @@ async def file_size(env, path):
     logger.debug(f"file_size: {existing}, {is_file}, {size}")
     return existing, is_file, size
 
-async def gfptar(env, 
-                 cmd:str, 
-                 outdir, 
-                 basedir, 
+
+async def gfptar(env,
+                 cmd: str,
+                 outdir,
+                 basedir,
                  src,
                  options={}):
     args = []
@@ -1524,6 +1534,7 @@ async def gfptar(env,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
+
 async def gfzip(env, ziplist):
     args = ['-']
     args.extend(ziplist)
@@ -1534,6 +1545,7 @@ async def gfzip(env, ziplist):
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
+
 
 #############################################################################
 async def log_stderr(command: str,
@@ -1816,13 +1828,15 @@ async def file_export(gfarm_path: str,
                              headers=headers,
                              )
 
+
 class FileList(BaseModel):
     files: List[str]
 
+
 @app.get("/files")
 @app.post("/download/zip")
-async def download_zip(filelist: FileList, 
-                       request: Request, 
+async def download_zip(filelist: FileList,
+                       request: Request,
                        authorization: Union[str, None] = Header(default=None)):
     opname = "gfzip"
     env = await set_env(request, authorization)
@@ -1835,7 +1849,7 @@ async def download_zip(filelist: FileList,
             stdout = ""
             elist = []
             raise gfarm_http_error(opname, code, message, stdout, elist)
-    
+
     p = await gfzip(env, filelist.files)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
@@ -1846,6 +1860,7 @@ async def download_zip(filelist: FileList,
         message = f"Cannot read: path={filelist.files}"
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
+
     async def generate():
         yield first_byte
         try:
@@ -1867,6 +1882,7 @@ async def download_zip(filelist: FileList,
             media_type="application/zip",
             headers=headers,
         )
+
 
 @app.put("/f/{gfarm_path:path}")
 @app.put("/file/{gfarm_path:path}")
@@ -2055,6 +2071,7 @@ async def change_attr(gfarm_path: str,
         elist = None
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
+
 class Tar(BaseModel):
     command: str
     basedir: str
@@ -2085,10 +2102,12 @@ class Tar(BaseModel):
         }
     }
 
+
 @app.post("/gfptar")
-async def compress_or_extract(request: Request,
-                    tar_data: Tar,
-                    authorization: Union[str, None] = Header(default=None)):
+async def compress_or_extract(
+        request: Request,
+        tar_data: Tar,
+        authorization: Union[str, None] = Header(default=None)):
     opname = "gfptar"
     env = await set_env(request, authorization)
     # Set the token file path to env
@@ -2120,11 +2139,15 @@ async def compress_or_extract(request: Request,
                 if b"\r" in buffer or b"\n" in buffer:
                     msg = buffer.decode("utf-8", errors="replace").strip()
                     buffer = b""
-                    json_line = json.dumps({ "message": msg }) # TODO:msgを項目ごとに変換する
-                    yield json_line + '\n'
-                    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json_line}")
+                    j_line = json.dumps({"message": msg}) # TODO:msgを項目ごとに変換する
+                    yield j_line + '\n'
+                    logger.debug(
+                        f"{ipaddr}:0 user={user}, cmd={opname}, json={j_line}"
+                        )
                     # Update access_token
-                    _, _, exp = await set_tokenfilepath_to_env(request, env, tokenfilepath, exp)
+                    _, _, exp = await set_tokenfilepath_to_env(
+                        request, env, tokenfilepath, exp
+                        )
             await stderr_task
             return_code = await p.wait()
             if return_code != 0:
@@ -2135,12 +2158,16 @@ async def compress_or_extract(request: Request,
                 raise gfarm_http_error(opname, code, message, stdout, elist)
         except asyncio.CancelledError:
             p.terminate()
-            logger.error(f"{ipaddr}:0 user={user}, cmd={opname}, Client disconnected")
+            logger.error(
+                f"{ipaddr}:0 user={user}, cmd={opname}, Client disconnected"
+                )
         finally:
             try:
                 os.remove(tokenfilepath)
             except Exception as e:
-                logger.error(f"{ipaddr}:0 user={user}, cmd={opname}, os.remove({tokenfilepath}) error: {e}")
+                logger.error(
+                    f"{ipaddr}:0 user={user}, cmd={opname},"
+                    + f"os.remove({tokenfilepath}) error: {e}")
 
     return StreamingResponse(content=stream_response(),
                              media_type='application/json')
