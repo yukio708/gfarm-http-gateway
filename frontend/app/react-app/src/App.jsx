@@ -1,9 +1,8 @@
-import React from 'react';
+import React from "react";
 import { HashRouter } from "react-router-dom";
-import './css/App.css';
-import HomePage from './page/HomePage';
-import LoginPage from './page/LoginPage';
-import useUserInfo from './hooks/useUserInfo';
+import HomePage from "./page/HomePage";
+import LoginPage from "./page/LoginPage";
+import useUserInfo from "./hooks/useUserInfo";
 
 function App() {
     const { user, loading } = useUserInfo();
@@ -16,7 +15,7 @@ function App() {
     }
     return (
         <HashRouter>
-            <HomePage user={user}/>
+            <HomePage user={user} />
         </HashRouter>
     );
 }

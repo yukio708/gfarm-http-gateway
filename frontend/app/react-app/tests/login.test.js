@@ -200,7 +200,8 @@ test("Logout: should return to login screen", async ({ page }) => {
     login = true;
     await page.goto(FRONTEND_URL, { waitUntil: "domcontentloaded" });
 
-    await page.click('button:has-text("Logout")');
+    await page.click("#usermenu");
+    await page.click('a:has-text("Logout")');
 
     await expect(page).toHaveURL(/login/);
 });

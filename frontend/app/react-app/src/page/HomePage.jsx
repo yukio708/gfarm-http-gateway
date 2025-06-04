@@ -1,27 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import '../css/App.css';
-import FileListView from '../components/FileListView';
-import CurrentDirView from '../components/CurrentDirView';
-import DetailView from '../components/DetailView';
-import ProgressView from '../components/ProgressView';
-import ModalWindow from '../components/Modal';
-import UploadDropZone from '../components/UploadDropZone';
-import UploadButton from '../components/UploadButton';
-import MenuButton from '../components/MenuButton';
-import useFileList from '../hooks/useFileList';
-import { API_URL } from '../utils/api_url';
-import upload from '../utils/upload';
-import download from '../utils/download';
-import displayFile from '../utils/displayFile';
-import deleteFiles from '../utils/deleteFile';
-import moveFile from '../utils/moveFile';
-import getAttribute from '../utils/getAttribute';
-import setPermission from '../utils/setPermission';
-import { createDir, removeDir } from '../utils/dircommon';
-import PropTypes from 'prop-types';
+import FileListView from "../components/FileListView";
+import CurrentDirView from "../components/CurrentDirView";
+import DetailView from "../components/DetailView";
+import ProgressView from "../components/ProgressView";
+import ModalWindow from "../components/Modal";
+import UploadDropZone from "../components/UploadDropZone";
+import UploadMenu from "../components/UploadMenu";
+import FileActionMenu from "../components/FileActionMenu";
+import UserMenu from "../components/UserMenu";
+import useFileList from "../hooks/useFileList";
+import upload from "../utils/upload";
+import download from "../utils/download";
+import displayFile from "../utils/displayFile";
+import deleteFiles from "../utils/deleteFile";
+import moveFile from "../utils/moveFile";
+import getAttribute from "../utils/getAttribute";
+import setPermission from "../utils/setPermission";
+import { createDir, removeDir } from "../utils/dircommon";
+import PropTypes from "prop-types";
 
-function HomePage({user}) {
+function HomePage({ user }) {
     const location = useLocation();
     const navigate = useNavigate();
     const [currentDir, setCurrentDir] = useState("");
@@ -41,18 +40,17 @@ function HomePage({user}) {
         setCurrentDir(path === "/" ? "" : path);
     }, [location]);
 
-    const jumpDirectory = (newdir) => {
+    const jumpDirectory = newdir => {
         if (currentDir === newdir) {
             setRefreshKey(prev => !prev);
-        }
-        else {
+        } else {
             // setCurrentDir(newdir);
             navigate(newdir);
         }
         setSelectedFiles([]);
     };
 
-    const handleSelectAll = (event) => {
+    const handleSelectAll = event => {
         if (event.target.checked) {
             setSelectedFiles(files);
         } else {
@@ -68,23 +66,23 @@ function HomePage({user}) {
         }
     };
 
-    const downloadFiles = async (files) => {
+    const downloadFiles = async files => {
         console.log("downloadFiles: filepath:", files);
         try {
             await download(files, setTasks);
         } catch (err) {
-            console.error('Download failed:', err);
+            console.error("Download failed:", err);
         }
-        setTimeout(()=>{
+        setTimeout(() => {
             setTasks(prev => prev.filter(t => !t.done && Date.now() - t.updateTime < 10));
         }, 10000);
     };
 
-    const addFilesToUpload = async(newFiles, uploaddirs) => {
+    const addFilesToUpload = async (newFiles, uploaddirs) => {
         for (let dirpath of uploaddirs) {
-            await createDir(currentDir + '/' + dirpath);
+            await createDir(currentDir + "/" + dirpath);
         }
-        for (let newfile of newFiles ) {
+        for (let newfile of newFiles) {
             uploadQueueRef.current.push(newfile);
         }
         setIsUploading(true);
@@ -96,15 +94,17 @@ function HomePage({user}) {
             while (uploadQueueRef.current.length) {
                 const file = uploadQueueRef.current.shift();
                 // 現在位置が変わると違う場所にアップロードされてしまう
-                await upload(currentDir, file, setTasks, () => {setRefreshKey(prev => !prev)});
-                setTimeout(()=>{
+                await upload(currentDir, file, setTasks, () => {
+                    setRefreshKey(prev => !prev);
+                });
+                setTimeout(() => {
                     setTasks(prev => prev.filter(t => !t.done && Date.now() - t.updateTime < 10));
                 }, 10000);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
         await Promise.all(workers);
-        
+
         setIsUploading(false);
     };
 
@@ -121,96 +121,118 @@ function HomePage({user}) {
             detail.Name = name;
             setDetailContent(detail);
         } catch (err) {
-            console.error('getAttribute failed:', err);
+            console.error("getAttribute failed:", err);
         }
-    }
-    
+    };
+
     const closeDetail = () => {
         setDetailContent(null);
     };
-    
-    const deleteFile = async(files) => {
+
+    const deleteFile = async files => {
         // 複数の時削除するか聞く
-        await deleteFiles(
-            Array.isArray(files) ? files : [files], 
-            null, () => {setRefreshKey(prev => !prev)});
-    }
+        await deleteFiles(Array.isArray(files) ? files : [files], null, () => {
+            setRefreshKey(prev => !prev);
+        });
+    };
 
     const moveFiles = () => {
         setShowModal(true);
-    }
+    };
 
-    const handleMove = (files) => {
+    const handleMove = files => {
         console.log("files", files);
         setShowModal(false);
         moveFile(files, destPath);
         setDestPath(""); // Reset after move
         setRefreshKey(prev => !prev);
-    }
+    };
 
-    const createDirectory = async(dirname) => {
-        await createDir(currentDir + '/' + dirname);
-    }
+    const createDirectory = async dirname => {
+        await createDir(currentDir + "/" + dirname);
+    };
 
     return (
         <div>
-            <div className="container-fluid App">
-                <div className="row">
-                    <div className="col">
-                        <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory}/>
-                    </div>
-                </div>
-                <div className="row">
-                    <div className="col">
-                        <nav className="navbar bg-body-tertiary">
-                            <div className="container-fluid">
-                                <div className="d-flex gap-2">
-                                    <UploadButton onUpload={addFilesToUpload} />
-                                    <MenuButton text='Download' onClick={downloadFiles} selectedFiles={selectedFiles}/>
-                                    <MenuButton text='Detele' onClick={deleteFile} selectedFiles={selectedFiles}/>
-                                    <MenuButton text='Move' onClick={moveFiles} selectedFiles={selectedFiles}/>
-                                    <MenuButton text='New directory' onClick={moveFiles} selectedFiles={selectedFiles}/>
-                                    <MenuButton text='Logout' onClick={() => window.location.href = `${API_URL}/logout`} />
-                                </div>
+            <div className="row">
+                <div className="col">
+                    <nav className="navbar bg-body-tertiary">
+                        <div className="container-fluid">
+                            <span className="navbar-brand mb-0 h1">Title</span>
+                            <div className="ms-2">
+                                <UserMenu user={user} />
                             </div>
-                        </nav>
-                    </div>
+                        </div>
+                    </nav>
                 </div>
-                <div className="row">
-                    <div className="col">
-                        <UploadDropZone onUpload={addFilesToUpload}/>
-                    </div>
-                </div>
-                <div className="row">
-                    <div className={detailContent ? "col-md-9" : "col"}>
-                        <FileListView 
-                            files={files} 
-                            selectedFiles={selectedFiles}
-                            handleSelectFile={handleSelectFile}
-                            handleSelectAll={handleSelectAll}
-                            jumpDirectory={jumpDirectory}
-                            downloadFiles={downloadFiles}
-                            showDetail={showDetail}
-                            displayFile={displayFile}
-                            deleteFile={deleteFile}
-                        />
-                    </div>
-                    {detailContent &&
-                    <div className="col-md-3">
-                        <DetailView detail={detailContent} onClose={closeDetail}/>
-                    </div>
-                    }
-                </div>
-                <ProgressView tasks={tasks} />
-                <ModalWindow show={showModal} onHide={() => setShowModal(false)}
-                       handleMove={handleMove} destPath={destPath} setDestPath={setDestPath} selectedFiles={selectedFiles} />
             </div>
+            <div className="row">
+                <div className="col">
+                    <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
+                </div>
+            </div>
+
+            <div className="row">
+                <div className="col">
+                    <nav className="navbar bg-body-tertiary">
+                        <div className="container-fluid">
+                            <div className="d-flex gap-2">
+                                <UploadMenu
+                                    onUpload={addFilesToUpload}
+                                    onCreate={createDirectory}
+                                />
+                                <FileActionMenu
+                                    selectedFiles={selectedFiles}
+                                    deleteFile={deleteFile}
+                                    downloadFiles={downloadFiles}
+                                    moveFiles={moveFiles}
+                                />
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+            <div className="row">
+                <div className="col">
+                    <UploadDropZone onUpload={addFilesToUpload} />
+                </div>
+            </div>
+            <div className="row">
+                {error && <div className="alert alert-danger">{error}</div>}
+                <div className={detailContent ? "col-md-9" : "col"}>
+                    <FileListView
+                        files={files}
+                        selectedFiles={selectedFiles}
+                        handleSelectFile={handleSelectFile}
+                        handleSelectAll={handleSelectAll}
+                        jumpDirectory={jumpDirectory}
+                        downloadFiles={downloadFiles}
+                        showDetail={showDetail}
+                        displayFile={displayFile}
+                        deleteFile={deleteFile}
+                    />
+                </div>
+                {detailContent && (
+                    <div className="col-md-3">
+                        <DetailView detail={detailContent} onClose={closeDetail} />
+                    </div>
+                )}
+            </div>
+            <ProgressView tasks={tasks} />
+            <ModalWindow
+                show={showModal}
+                onHide={() => setShowModal(false)}
+                handleMove={handleMove}
+                destPath={destPath}
+                setDestPath={setDestPath}
+                selectedFiles={selectedFiles}
+            />
         </div>
-        );
+    );
 }
 
 export default HomePage;
 
 HomePage.propTypes = {
-    user: PropTypes.string
-}
+    user: PropTypes.string,
+};
