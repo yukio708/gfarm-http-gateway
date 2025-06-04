@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { API_URL } from './utils/api_url';
 import { login_with_password } from './utils/login';
 
@@ -79,3 +80,7 @@ function Login({ onLogin }) {
 }
 
 export default Login;
+
+Login.propTypes = {
+    onLogin: PropTypes.func
+};

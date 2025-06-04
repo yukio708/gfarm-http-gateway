@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import UploadConfirmModal from './UploadConfirmModal';
 import { getDeepestDirs, CollectPathsFromItems } from '../utils/func';
 import '../css/DropZone.css'
+import PropTypes from 'prop-types';
 
 function UploadDropZone({ onUpload }) {
     const [isDragActive, setIsDragActive] = useState(false);
@@ -100,3 +101,7 @@ function UploadDropZone({ onUpload }) {
 }
 
 export default UploadDropZone;
+
+UploadDropZone.propTypes = {
+    onUpload: PropTypes.func
+}

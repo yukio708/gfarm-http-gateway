@@ -1,5 +1,6 @@
 import React from 'react';
 import { BsHouse } from "react-icons/bs";
+import PropTypes from 'prop-types';
 
 function CurrentDirView({currentDir, onNavigate}) {
     const parts = currentDir.split('/').filter(Boolean); // remove empty strings
@@ -29,3 +30,8 @@ function CurrentDirView({currentDir, onNavigate}) {
 }
 
 export default CurrentDirView;
+
+CurrentDirView.propTypes = {
+    currentDir: PropTypes.string,
+    onNavigate: PropTypes.func,
+}

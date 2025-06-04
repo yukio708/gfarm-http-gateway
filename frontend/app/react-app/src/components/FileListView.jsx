@@ -13,6 +13,7 @@ import {
     BsArrowDownShort,
     BsThreeDots,
  } from 'react-icons/bs';
+import PropTypes from 'prop-types';
 
 function FileListView({ 
     files, 
@@ -226,3 +227,17 @@ function FileListView({
 }
 
 export default FileListView;
+
+FileListView.propTypes = {
+    files: PropTypes.array, 
+    selectedFiles: PropTypes.array,
+    handleSelectFile: PropTypes.func,
+    handleSelectAll: PropTypes.func,
+    jumpDirectory: PropTypes.func, 
+    downloadFiles: PropTypes.func, 
+    displayFile: PropTypes.func, 
+    Move: PropTypes.func, 
+    deleteFile: PropTypes.func, 
+    showDetail: PropTypes.func, 
+    Permission: PropTypes.func,
+}

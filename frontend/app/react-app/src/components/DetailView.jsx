@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { formatFileSize } from '../utils/func';
 import '../css/DetailView.css'
+import PropTypes from 'prop-types';
 
 function DetailView({detail, onClose}) {
     if (!detail) return null;
@@ -70,3 +71,8 @@ function DetailView({detail, onClose}) {
 };
 
 export default DetailView;
+
+DetailView.propTypes = {
+    detail: PropTypes.object, 
+    onClose: PropTypes.func,
+};

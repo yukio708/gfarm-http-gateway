@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 
 function MenuButton({ text, onClick, selectedFiles }) {
     return (
@@ -11,3 +12,9 @@ function MenuButton({ text, onClick, selectedFiles }) {
 }
 
 export default MenuButton;
+
+MenuButton.propTypes = {
+    text: PropTypes.string,
+    onClick: PropTypes.func,
+    selectedFiles: PropTypes.array,
+}

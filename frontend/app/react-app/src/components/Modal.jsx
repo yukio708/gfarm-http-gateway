@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 
 function ModalWindow({show, onHide, handleMove, destPath, setDestPath, selectedFiles}) {
@@ -36,3 +37,12 @@ function ModalWindow({show, onHide, handleMove, destPath, setDestPath, selectedF
 }
 
 export default ModalWindow;
+
+ModalWindow.propTypes = {
+    show: PropTypes.bool, 
+    onHide: PropTypes.func, 
+    handleMove: PropTypes.func,
+    destPath: PropTypes.string, 
+    setDestPath: PropTypes.func, 
+    selectedFiles: PropTypes.array,
+}

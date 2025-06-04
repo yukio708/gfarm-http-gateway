@@ -9,6 +9,8 @@ async function downloadFile(path, setTasks) {
     }
     const epath = encodePath(path)
     const dlurl = `${API_URL}/file${epath}?action=download`;
+    const controller = new AbortController();
+    const signal = controller.signal;
 
     try{
         const startTime = Date.now();
@@ -19,7 +21,7 @@ async function downloadFile(path, setTasks) {
             value: 0,
             status: 'downloading',
             onCancel: () => {
-                xhr.abort();
+                controller.abort();
                 console.log('cancel:', path);
             },
             startTime: startTime,
@@ -27,7 +29,7 @@ async function downloadFile(path, setTasks) {
         };
         setTasks(prev => [...prev, newTask]);
 
-        const response = await fetch(dlurl);
+        const response = await fetch(dlurl, { signal });
 
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -83,7 +85,7 @@ async function downloadFile(path, setTasks) {
         console.error("Download failed", err);
         setTasks((prev) =>
             prev.map((task) =>
-                task.path === taskId
+                task.path === path
                     ? { ...task, status: `Error: ${err.message}`, done: true, updateTime: Date.now() }
                     : task
             )
@@ -111,12 +113,15 @@ async function downloadFiles(paths, setTasks) {
     const url = `${API_URL}/download/zip`;
     const taskId = paths.join(",") + Date.now();
     const gfarmpathes = paths.map(path => "gfarm:" + path)
+    const controller = new AbortController();
+    const signal = controller.signal;
 
     try {
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ files: gfarmpathes }),
+            signal
         });
 
         if (!response.ok) {
@@ -142,7 +147,10 @@ async function downloadFiles(paths, setTasks) {
             value: 0,
             done: false,
             status: "zipping...",
-            onCancel: null,
+            onCancel: () => {
+                controller.abort();
+                console.log('cancel:', taskId);
+            },
             startTime: startTime,
             updateTime: Date.now()
         };

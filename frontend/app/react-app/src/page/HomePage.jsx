@@ -19,6 +19,7 @@ import moveFile from '../utils/moveFile';
 import getAttribute from '../utils/getAttribute';
 import setPermission from '../utils/setPermission';
 import { createDir, removeDir } from '../utils/dircommon';
+import PropTypes from 'prop-types';
 
 function HomePage({user}) {
     const location = useLocation();
@@ -209,3 +210,7 @@ function HomePage({user}) {
 }
 
 export default HomePage;
+
+HomePage.propTypes = {
+    user: PropTypes.string
+}

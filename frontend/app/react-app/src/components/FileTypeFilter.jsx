@@ -1,3 +1,6 @@
+import PropTypes from 'prop-types';
+import React from 'react';
+
 function FileTypeFilter({ selectedType, onSelect }) {
     const types = ['all', 'docs', 'images', 'videos', 'others'];
   
@@ -23,3 +26,8 @@ function FileTypeFilter({ selectedType, onSelect }) {
 }
 
 export default FileTypeFilter;
+
+FileTypeFilter.propTypes = {
+    selectedType: PropTypes.string,
+    onSelect: PropTypes.func,
+}

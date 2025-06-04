@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatFileSize } from '../utils/func';
+import PropTypes from 'prop-types';
 
 function UploadConfirmModal({ show, onHide, onConfirm, files }) {
     if (!show) return null;
@@ -35,3 +36,10 @@ function UploadConfirmModal({ show, onHide, onConfirm, files }) {
 }
 
 export default UploadConfirmModal;
+
+UploadConfirmModal.propTypes = {
+    show: PropTypes.bool, 
+    onHide: PropTypes.func, 
+    onConfirm: PropTypes.func, 
+    files: PropTypes.array
+}

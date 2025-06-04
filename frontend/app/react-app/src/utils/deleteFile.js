@@ -3,7 +3,6 @@ import { API_URL } from './api_url';
 import { removeDir } from './dircommon';
 
 async function removeFile(path, params) {
-    const output = document.getElementById('rm_output');
     if (!path) {
         alert("Please input Gfarm path");
     }

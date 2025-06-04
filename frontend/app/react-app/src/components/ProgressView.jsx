@@ -1,7 +1,8 @@
 import React from 'react';
 import '../css/ProgressView.css'
+import PropTypes from 'prop-types';
 
-const ProgressPopup = ({ name, value, status, onCancel }) => {
+function ProgressPopup({ name, value, status, onCancel }) {
     return (
         <div className="progress-popup" key={name}>
             <p><strong>{name}</strong></p>
@@ -12,7 +13,7 @@ const ProgressPopup = ({ name, value, status, onCancel }) => {
     );
 };
 
-const ProgressView = ({tasks}) => { 
+function ProgressView({tasks}) { 
     if (tasks.length < 1) {
         return (<></>);
     }
@@ -27,3 +28,14 @@ const ProgressView = ({tasks}) => {
 };
   
 export default ProgressView;
+
+ProgressPopup.propTypes = {
+    name: PropTypes.string, 
+    value: PropTypes.string, 
+    status: PropTypes.string,
+    onCancel: PropTypes.func
+};
+
+ProgressView.propTypes = {
+    tasks: PropTypes.array
+};

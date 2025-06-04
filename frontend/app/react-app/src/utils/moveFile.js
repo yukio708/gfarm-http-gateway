@@ -1,4 +1,3 @@
-import { encodePath } from './func'
 import { API_URL } from './api_url';
 
 async function moveFile(files, dest) {

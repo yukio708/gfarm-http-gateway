@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { getDeepestDirs, CollectPathsFromFiles } from '../utils/func';
+import PropTypes from 'prop-types';
 
 function UploadButton({ onUpload }) {
     const fileInputRef = useRef(null);
@@ -50,3 +51,7 @@ function UploadButton({ onUpload }) {
 }
 
 export default UploadButton;
+
+UploadButton.propTypes = {
+    onUpload: PropTypes.func
+}
