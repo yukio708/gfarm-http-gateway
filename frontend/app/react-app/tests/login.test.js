@@ -1,6 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 
 const FRONTEND_URL = "http://localhost:3000";
 const LOGIN_HTML = path.resolve(__dirname, "../../../../templates/login.html");
@@ -10,22 +11,22 @@ console.log(LOGIN_HTML);
 let login = false;
 
 // Wait for React frontend to start
-// async function waitForReact() {
-//     for (let i = 0; i < 10; i++) {
-//         try {
-//             await new Promise((resolve, reject) => {
-//                 const req = http.get(FRONTEND_URL, res => {
-//                     res.statusCode === 200 ? resolve() : reject();
-//                 });
-//                 req.on("error", reject);
-//             });
-//             return;
-//         } catch {
-//             await new Promise(res => setTimeout(res, 1000));
-//         }
-//     }
-//     throw new Error("React app is not up!");
-// }
+async function waitForReact() {
+    for (let i = 0; i < 10; i++) {
+        try {
+            await new Promise((resolve, reject) => {
+                const req = http.get(FRONTEND_URL, res => {
+                    res.statusCode === 200 ? resolve() : reject();
+                });
+                req.on("error", reject);
+            });
+            return;
+        } catch {
+            await new Promise(res => setTimeout(res, 1000));
+        }
+    }
+    throw new Error("React app is not up!");
+}
 
 // Read login.html once at the start
 const htmlContent = fs.readFileSync(LOGIN_HTML, "utf-8");
@@ -40,6 +41,27 @@ async function handleRoute(route, request) {
             status: 302,
             headers: { Location: FRONTEND_URL },
         });
+    } else if (url.includes("/login_passwd")) {
+        console.log("/login_passwd", url);
+        const postData = await request.postDataJSON?.();
+        const formData = new URLSearchParams(postData || request.postData());
+
+        if (formData.get("username") === "user1" && formData.get("password") === "pass1") {
+            login = true;
+            // Simulate successful login
+            route.fulfill({
+                status: 302,
+                headers: {
+                    location: FRONTEND_URL, // Redirect to some post-login page
+                },
+            });
+        } else {
+            await route.fulfill({
+                status: 200,
+                contentType: "text/html",
+                body: htmlContent,
+            });
+        }
     } else if (url.includes("/d/")) {
         console.log("/d/", url);
         const jsonData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
@@ -71,20 +93,23 @@ async function handleRoute(route, request) {
                 body: JSON.stringify(responseData),
             });
         }
-    } else if (url.includes("/redirect")) {
-        login = true;
-        const fakeToken = "fake";
-        const redirectUrl = `${FRONTEND_URL}?code=fake-auth-code&access_token=${fakeToken}`;
-        await route.fulfill({
-            status: 301,
-            headers: { Location: redirectUrl },
-        });
     } else if (url.includes("/login")) {
         console.log("/login", url);
         await route.fulfill({
             status: 200,
             contentType: "text/html",
             body: htmlContent,
+        });
+    } else if (url.includes("/logout")) {
+        console.log("/logout", url);
+        login = false;
+        // Simulate redirect to index page "/"
+        route.fulfill({
+            status: 303, // HTTP See Other for redirect after POST/GET
+            headers: {
+                location: FRONTEND_URL, // Redirect to some post-login page
+            },
+            body: "",
         });
     } else {
         await route.continue();
@@ -93,30 +118,32 @@ async function handleRoute(route, request) {
 
 // === Tests ===
 
-// test.beforeAll(async () => {
-//     await waitForReact();
-// });
+test.beforeAll(async () => {
+    await waitForReact();
+});
 
 test("Login title should be visible", async ({ page }) => {
     await page.route("**/*", handleRoute);
-    await page.goto(FRONTEND_URL, { waitUntil: "domcontentloaded" });
-    await page.locator("#title").waitFor({ state: "visible" });
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
+
     await expect(page.locator("#title")).toBeVisible();
 });
 
 test("Login button should be visible", async ({ page }) => {
     await page.route("**/*", handleRoute);
-    await page.goto(FRONTEND_URL, { waitUntil: "domcontentloaded" });
-    await page.locator("#title").waitFor({ state: "visible" });
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
+
     await expect(page.locator("#oidc-btn")).toBeVisible();
 });
 
 test("OIDC login with valid token should show file table", async ({ page }) => {
     await page.route("**/*", handleRoute);
-    await page.goto(FRONTEND_URL, { waitUntil: "domcontentloaded" });
-    await page.locator("#title").waitFor({ state: "visible" });
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
 
-    await Promise.all([page.waitForNavigation(), page.click("text=Login with OpenID provider")]);
+    await page.click("text=Login with OpenID provider");
 
     const fileTable = await page.waitForSelector(".file-table", {
         timeout: 10000,
@@ -127,40 +154,53 @@ test("OIDC login with valid token should show file table", async ({ page }) => {
     expect(fileText).toContain("dir1");
 });
 
-test("OIDC: refresh token after access token expiry", async ({ page }) => {
-    // TODO: Mock expired access token → refresh token auto-login behavior
-    // TODO: Check if user session remains active
-    // Confirm via FastAPI
-});
-
-test("OIDC: redirect when both tokens are expired", async ({ page }) => {
-    // TODO: Mock both access & refresh tokens as expired
-    // TODO: Check if user is redirected to login screen automatically
-    // Confirm via FastAPI
-});
-
-test("OIDC: invalid access token", async ({ page }) => {
-    // TODO: Mock a state with an invalid access token
-    // TODO: Ensure login fails appropriately
-    // Confirm via FastAPI
-});
-
 test("SASL login: valid user credentials", async ({ page }) => {
-    await page.goto("http://react:3000");
-    // TODO: Fill in correct username and password
-    // TODO: Check post-login screen
+    await page.route("**/*", handleRoute);
+    login = false;
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
+
+    await page.fill("#username", "user1");
+    await page.fill("#password", "pass1");
+
+    // Submit the form
+    await Promise.all([
+        page.click('button[type="submit"]'),
+        page.waitForResponse("**/login_passwd"),
+    ]);
+
+    // Check for login success indicator
+    // Replace this selector with what your app shows after login
+    await expect(page.locator(".file-table")).toBeVisible();
 });
 
 test("SASL login: invalid user credentials", async ({ page }) => {
-    await page.goto("http://react:3000");
-    // TODO: Fill in wrong username/password
-    // TODO: Confirm login failure
+    await page.route("**/*", handleRoute);
+    login = false;
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
+
+    await page.fill("#username", "wronguser");
+    await page.fill("#password", "wrongpass");
+
+    await Promise.all([
+        page.click('button[type="submit"]'),
+        page.waitForResponse("**/login_passwd"),
+    ]);
+
+    // Check for an error message (update selector to match your app)
+    // If no error message, just check if it didn't redirect
+    await expect(page).toHaveURL(/login/);
 });
 
 // Logout Process Test
 
 test("Logout: should return to login screen", async ({ page }) => {
-    // TODO: Pre-authenticate the user
-    // TODO: Click logout button
-    // TODO: Verify redirection to login screen
+    await page.route("**/*", handleRoute);
+    login = true;
+    await page.goto(FRONTEND_URL, { waitUntil: "domcontentloaded" });
+
+    await page.click('button:has-text("Logout")');
+
+    await expect(page).toHaveURL(/login/);
 });
