@@ -1,7 +1,7 @@
 services:
   react:
     container_name: react
-    build: 
+    build:
       context: .
       dockerfile: dockerfile
     volumes:
@@ -11,26 +11,5 @@ services:
     command: npm run start
     ports:
       - 3000:3000
-    stdin_open: true
-    tty: true
-
-  playwright:
-    container_name: react-test-playwright
-    build:
-      context: .
-      # dockerfile: dockerfile.js.playwright
-      dockerfile: dockerfile.py.playwright
-    environment:
-      - DISPLAY=${DISPLAY}
-    volumes:
-      - ./test/playwright:/test
-      - ./test/data:/data
-      - /tmp/.X11-unix:/tmp/.X11-unix
-    # command: npm test
-    command: pytest -s frontend_test.py --browser chromium
-    devices:
-      - /dev/dri
-    depends_on:
-      - react
     stdin_open: true
     tty: true
