@@ -517,6 +517,34 @@ async def test_change_attr(mock_claims, mock_exec):
     assert response.text == no_stdout
 
 
+@pytest.mark.asyncio
+async def test_user_info_with_access_token(mock_claims, mock_access_token):
+    response = client.get("/user_info",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    json = response.json()
+    assert json["username"] == user_claim
+
+
+@pytest.mark.asyncio
+async def test_user_info_with_password(mock_claims, mock_user_passwd):
+    response = client.get("/user_info",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    json = response.json()
+    userpass = tuple(userpass_str.split(":", 1))
+    assert json["username"] == userpass[0]
+
+
+@pytest.mark.asyncio
+async def test_user_info_None(mock_claims):
+    response = client.get("/user_info",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    json = response.json()
+    assert json["username"] is None
+
+
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
 # class patch_exec(object):
 #     def __init__(self, stdout=None, stderr=None):
