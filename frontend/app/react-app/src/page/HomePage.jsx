@@ -88,7 +88,7 @@ function HomePage({ user }) {
 
     const addFilesToUpload = async (newFiles, uploaddirs) => {
         for (let dirpath of uploaddirs) {
-            await createDir(currentDir + "/" + dirpath);
+            await createDir(currentDir + "/" + dirpath, "p=on");
         }
         for (let newfile of newFiles) {
             uploadQueueRef.current.push(newfile);

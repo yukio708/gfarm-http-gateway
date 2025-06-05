@@ -1408,9 +1408,9 @@ async def gfls(env,
         stderr=asyncio.subprocess.STDOUT)
 
 
-async def gfmkdir(env, path, p=0):
+async def gfmkdir(env, path, p=False):
     args = []
-    if p == 1:
+    if p:
         args.append('-p')
     args.append(path)
     return await asyncio.create_subprocess_exec(
@@ -1662,7 +1662,7 @@ async def dir_list(gfarm_path: str,
     data = await p.stdout.read()
     stdout = data.decode()
     return_code = await p.wait()
-    if ign_err == False and return_code != 0:
+    if not ign_err and return_code != 0:
         logger.debug(
             f"{ipaddr}:0 user={user}, cmd={opname}, return={return_code},"
             f" message={stdout}")
@@ -1721,6 +1721,7 @@ async def dir_list(gfarm_path: str,
 @app.put("/directories/{gfarm_path:path}")
 async def dir_create(gfarm_path: str,
                      request: Request,
+                     p: bool = False,
                      authorization: Union[str, None] = Header(default=None),
                      x_csrf_token: Union[str, None] = Header(default=None)):
     check_csrf(request, x_csrf_token)
@@ -1728,8 +1729,8 @@ async def dir_create(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
-    p = await gfmkdir(env, gfarm_path, p=1) # TODO: p should be passed as a parameter
-    return await gfarm_command_standard_response(env, p, opname)
+    proc = await gfmkdir(env, gfarm_path, p)
+    return await gfarm_command_standard_response(env, proc, opname)
 
 
 @app.delete("/d/{gfarm_path:path}")

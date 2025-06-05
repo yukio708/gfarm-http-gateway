@@ -1,11 +1,11 @@
 import { encodePath } from "./func";
 import { API_URL } from "./api_url";
 
-async function dirCommon(path, method, message) {
+async function dirCommon(path, method, message, params = null) {
     if (path) {
         const epath = encodePath(path);
         try {
-            const url = `${API_URL}/dir${epath}`;
+            const url = `${API_URL}/dir${epath}?${params || ""}`;
             const response = await fetch(url, {
                 method: method,
             });
@@ -25,8 +25,8 @@ async function dirCommon(path, method, message) {
     }
 }
 
-export async function createDir(path) {
-    return await dirCommon(path, "PUT", "created");
+export async function createDir(path, params) {
+    return await dirCommon(path, "PUT", "created", params);
 }
 
 export async function removeDir(path) {
