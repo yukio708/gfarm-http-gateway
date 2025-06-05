@@ -16,17 +16,11 @@ function UploadDropZone({ onUpload }) {
         const handleDragEnter = async (e) => {
             e.preventDefault();
 
-            // const items = e.dataTransfer.items;
-            // console.log(items);
-            // const data = await CollectPathsFromItems(items);
-            // console.log("data", data);
-            // console.log("data", data.files.length);
-            // console.log("data", data.dirSet.size);
-            // if (data.files.length === 0 && data.dirSet.size === 0) {
-            //     return;
-            // }
+            const isFileDrag = Array.from(e.dataTransfer.types).includes("Files");
 
-            setIsDragActive(true);
+            if (isFileDrag) {
+                setIsDragActive(true);
+            }
         };
 
         const handleDragOver = (e) => {
