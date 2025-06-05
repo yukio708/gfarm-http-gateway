@@ -338,6 +338,17 @@ async def test_dir_list_e(mock_claims, mock_exec):
     assert response.text == expect_gfls_stdout
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
+async def test_dir_list_format_type(mock_claims, mock_exec):
+    response = client.get("/dir/testdir?format_type=json",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfls', '-T', '/testdir')
+    assert response.json() == [expect_gfls_stdout]
+
+
 expect_gfls_err_msg = "test gfls (error)"
 expect_gfls_err = (expect_gfls_err_msg.encode(), b"error", 1)
 

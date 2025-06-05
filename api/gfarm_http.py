@@ -1388,6 +1388,7 @@ async def gfls(env,
                _all=False,
                recursive=False,
                _long=False,
+               _T=False,
                effperm=False):
     args = []
     if _all:
@@ -1396,9 +1397,10 @@ async def gfls(env,
         args.append('-R')
     if _long:
         args.append('-l')
+    if _T:
+        args.append('-T')
     if effperm:
         args.append('-e')
-    args.append('-T')
     args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfls', *args,
@@ -1649,7 +1651,7 @@ async def dir_list(gfarm_path: str,
                    e: bool = False,
                    R: bool = False,
                    l: bool = False,  # noqa: E741
-                   format_type: str = 'json',
+                   format_type: str = 'plain',
                    ign_err: bool = False,
                    authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
@@ -1658,7 +1660,9 @@ async def dir_list(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    p = await gfls(env, gfarm_path, _all=a, recursive=R, _long=l, effperm=e)
+    T = format_type == 'json'
+    p = await gfls(env, gfarm_path,
+                   _all=a, recursive=R, _long=l, _T=T, effperm=e)
     data = await p.stdout.read()
     stdout = data.decode()
     return_code = await p.wait()
