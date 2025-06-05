@@ -1,26 +1,59 @@
-import PropTypes from 'prop-types';
 import React from 'react';
+import PropTypes from 'prop-types';
 
-function FileTypeFilter({ selectedType, onSelect }) {
-    const types = ['all', 'docs', 'images', 'videos', 'others'];
-  
+function FileTypeFilter({ fileTypes, filterTypes, setFilterTypes }) {
+
+    const toggleType = (type) => {
+        setFilterTypes((prev) =>
+          prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+        );
+    };
+
+    const clearAllTypes = () => {
+        setFilterTypes([]);
+    };
+
+    const filterLabel = filterTypes.length > 0
+        ? `Types: ${filterTypes.map(t => t === 'folder' ? 'Folder' : t.toUpperCase()).join(', ')}`
+        : 'Filter by type';
+
     return (
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-            {types.map(type => (
-                <button
-                    key={type}
-                    onClick={() => onSelect(type)}
-                    style={{
-                        backgroundColor: selectedType === type ? '#007bff' : '#e0e0e0',
-                        color: selectedType === type ? 'white' : 'black',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                    }} >
-                    {type}
-                </button>
-            ))}
+        <div className="dropdown">
+            <button
+                className="btn btn-outline-secondary dropdown-toggle btn-sm"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                {filterLabel}
+            </button>
+            <ul className="dropdown-menu p-2" style={{ minWidth: '200px' }}>
+                <li>
+                    <button
+                        className="btn btn-sm btn-link text-danger d-flex w-100"
+                        onClick={clearAllTypes}
+                        type="button"
+                    >
+                        Clear filter
+                    </button>
+                </li>
+                <hr className="dropdown-divider" />
+                {fileTypes && fileTypes.map((type) => (
+                <li key={type} htmlFor={`dropdown-filter-${type}`}>
+                    <label className="form-check-label d-flex w-100" htmlFor={`dropdown-filter-${type}`}>
+                        <input
+                            className="form-check-input"
+                            type="checkbox"
+                            value={type}
+                            id={`dropdown-filter-${type}`}
+                            checked={filterTypes.includes(type)}
+                            onChange={() => toggleType(type)}
+                        />
+                        {type.toUpperCase()}
+                    </label>
+                </li>
+                ))}
+            </ul>
         </div>
     );
 }
@@ -28,6 +61,7 @@ function FileTypeFilter({ selectedType, onSelect }) {
 export default FileTypeFilter;
 
 FileTypeFilter.propTypes = {
-    selectedType: PropTypes.string,
-    onSelect: PropTypes.func,
+    fileTypes: PropTypes.array,
+    filterTypes: PropTypes.array,
+    setFilterTypes: PropTypes.func,
 }

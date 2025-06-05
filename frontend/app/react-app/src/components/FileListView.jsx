@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import FileTypeFilter from "../components/FileTypeFilter";
 import { formatFileSize } from "../utils/func";
 import "../css/FileListView.css";
 import {
@@ -29,7 +30,27 @@ function FileListView({
     Permission,
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
+    const [filterTypes, setFilterTypes] = useState('');
     const headerCheckboxRef = useRef(null);
+
+    const getFileTypes = (files) => {
+        const types = new Set();
+
+        files.forEach(file => {
+          if (file.type === 'directory') {
+            types.add('folder');
+          } else {
+            const parts = file.name.split('.');
+            if (parts.length > 1) {
+              types.add(parts.pop().toLowerCase());
+            }
+          }
+        });
+
+        return Array.from(types);
+    };
+
+    const fileTypes = getFileTypes(files)
 
     const sortFilesByName = (a, b, sortDirection) => {
         const nameA = a.name.toLowerCase();
@@ -68,7 +89,17 @@ function FileListView({
         }
     };
 
-    const sortedFiles = [...files].sort((a, b) => {
+
+    const filteredFiles = files.filter(file => {
+        if (filterTypes.length === 0) return true;
+
+        if (filterTypes.includes('folder') && file.type === 'directory') return true;
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        return filterTypes.includes(ext);
+    });
+
+    const sortedFiles = [...filteredFiles].sort((a, b) => {
         if (sortDirection.column === "name") {
             return sortFilesByName(a, b, sortDirection.order);
         } else if (sortDirection.column === "size") {
@@ -78,6 +109,7 @@ function FileListView({
         }
         return 0;
     });
+
 
     //  別ファイルにする
     const getFileIcon = (file) => {
@@ -113,9 +145,9 @@ function FileListView({
 
     const getSortIcon = () => {
         if (sortDirection.order === "asc") {
-            return <BsArrowUpShort style={{ marginLeft: "5px" }} />;
+            return <BsArrowUpShort size="1.1rem" style={{ marginLeft: "5px" }} />;
         } else {
-            return <BsArrowDownShort style={{ marginLeft: "5px" }} />;
+            return <BsArrowDownShort size="1.1rem" style={{ marginLeft: "5px" }} />;
         }
     };
 
@@ -124,7 +156,7 @@ function FileListView({
             if (selectedFiles.length === 0) {
                 headerCheckboxRef.current.indeterminate = false;
                 headerCheckboxRef.current.checked = false;
-            } else if (selectedFiles.length === files.length) {
+            } else if (selectedFiles.length === filteredFiles.length) {
                 headerCheckboxRef.current.indeterminate = false;
                 headerCheckboxRef.current.checked = true;
             } else {
@@ -163,6 +195,7 @@ function FileListView({
 
     return (
         <div>
+            <FileTypeFilter fileTypes={fileTypes} filterTypes={filterTypes} setFilterTypes={setFilterTypes} />
             <table className="file-table">
                 <thead>
                     <tr>
