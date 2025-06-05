@@ -1,19 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import FileTypeFilter from "../components/FileTypeFilter";
+import FileIcon from "../components/FileIcon";
+import { loadFileTypes } from "../utils/getFileCategory";
 import { formatFileSize } from "../utils/func";
 import "../css/FileListView.css";
-import {
-    BsFolder,
-    BsFileEarmark,
-    BsFileEarmarkPdf,
-    BsFileEarmarkImage,
-    BsFileEarmarkPlay,
-    BsFileEarmarkMusic,
-    BsFileEarmarkCode,
-    BsArrowUpShort,
-    BsArrowDownShort,
-    BsThreeDots,
-} from "react-icons/bs";
+import { BsArrowUpShort, BsArrowDownShort, BsThreeDots } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function FileListView({
@@ -30,27 +21,32 @@ function FileListView({
     Permission,
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
-    const [filterTypes, setFilterTypes] = useState('');
+    const [filterTypes, setFilterTypes] = useState("");
+    const [fileTypeMap, setFileTypeMap] = useState(null);
     const headerCheckboxRef = useRef(null);
+
+    useEffect(() => {
+        loadFileTypes().then(setFileTypeMap).catch(console.error);
+    }, []);
 
     const getFileTypes = (files) => {
         const types = new Set();
 
-        files.forEach(file => {
-          if (file.type === 'directory') {
-            types.add('folder');
-          } else {
-            const parts = file.name.split('.');
-            if (parts.length > 1) {
-              types.add(parts.pop().toLowerCase());
+        files.forEach((file) => {
+            if (file.type === "directory") {
+                types.add("folder");
+            } else {
+                const parts = file.name.split(".");
+                if (parts.length > 1) {
+                    types.add(parts.pop().toLowerCase());
+                }
             }
-          }
         });
 
         return Array.from(types);
     };
 
-    const fileTypes = getFileTypes(files)
+    const fileTypes = getFileTypes(files);
 
     const sortFilesByName = (a, b, sortDirection) => {
         const nameA = a.name.toLowerCase();
@@ -89,13 +85,12 @@ function FileListView({
         }
     };
 
-
-    const filteredFiles = files.filter(file => {
+    const filteredFiles = files.filter((file) => {
         if (filterTypes.length === 0) return true;
 
-        if (filterTypes.includes('folder') && file.type === 'directory') return true;
+        if (filterTypes.includes("folder") && file.type === "directory") return true;
 
-        const ext = file.name.split('.').pop().toLowerCase();
+        const ext = file.name.split(".").pop().toLowerCase();
         return filterTypes.includes(ext);
     });
 
@@ -109,39 +104,6 @@ function FileListView({
         }
         return 0;
     });
-
-
-    //  別ファイルにする
-    const getFileIcon = (file) => {
-        const extension = file.name.split(".").pop().toLowerCase();
-
-        if (!file.is_file) {
-            return <BsFolder />;
-        }
-
-        switch (extension) {
-            case "pdf":
-                return <BsFileEarmarkPdf />;
-            case "jpg":
-            case "jpeg":
-            case "png":
-            case "gif":
-                return <BsFileEarmarkImage />;
-            case "mp4":
-            case "webm":
-                return <BsFileEarmarkPlay />;
-            case "mp3":
-            case "wav":
-                return <BsFileEarmarkMusic />;
-            case "js":
-            case "py":
-            case "html":
-            case "css":
-                return <BsFileEarmarkCode />;
-            default:
-                return <BsFileEarmark />; // Default file icon
-        }
-    };
 
     const getSortIcon = () => {
         if (sortDirection.order === "asc") {
@@ -195,7 +157,11 @@ function FileListView({
 
     return (
         <div>
-            <FileTypeFilter fileTypes={fileTypes} filterTypes={filterTypes} setFilterTypes={setFilterTypes} />
+            <FileTypeFilter
+                fileTypes={fileTypes}
+                filterTypes={filterTypes}
+                setFilterTypes={setFilterTypes}
+            />
             <table className="file-table">
                 <thead>
                     <tr>
@@ -232,7 +198,7 @@ function FileListView({
                                     checked={selectedFiles.includes(file)}
                                 />
                             </td>
-                            <td>{getFileIcon(file)}</td>
+                            <td>{FileIcon(file.name, file.is_file, fileTypeMap)}</td>
                             <td
                                 onClick={() =>
                                     handleNameCick(file.path, file.is_file, file.symlink)

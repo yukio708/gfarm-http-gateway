@@ -1,15 +1,17 @@
-const fileTypeMap = {
-    docs: ['.pdf', '.docx', '.txt', '.md'],
-    images: ['.jpg', '.jpeg', '.png', '.gif'],
-    videos: ['.mp4', '.mov', '.avi'],
-    others: []
-};
-  
-function getFileCategory(filename) {
-    const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
-    for (const [type, extensions] of Object.entries(fileTypeMap)) {
-        if (extensions.includes(ext)) return type;
+export async function loadFileTypes() {
+    const response = await fetch("/assets/file_category.json");
+    if (!response.ok) {
+        throw new Error("Failed to load file type config");
     }
-    return 'others';
+    const data = await response.json();
+    return data;
 }
-  
+
+export const getCategoryFromExt = (ext, fileTypeMap) => {
+    for (const [category, exts] of Object.entries(fileTypeMap)) {
+        if (exts.includes(ext.toLowerCase())) {
+            return category;
+        }
+    }
+    return "other";
+};
