@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import FileTypeFilter from "../components/FileTypeFilter";
 import FileIcon from "../components/FileIcon";
-import { loadFileTypes } from "../utils/getFileCategory";
-import { formatFileSize } from "../utils/func";
+import { getIconCSS } from "../utils/getFileCategory";
+import { formatFileSize, loadExternalCss } from "../utils/func";
 import "../css/FileListView.css";
 import { BsArrowUpShort, BsArrowDownShort, BsThreeDots } from "react-icons/bs";
 import PropTypes from "prop-types";
@@ -22,11 +22,14 @@ function FileListView({
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
-    const [fileTypeMap, setFileTypeMap] = useState(null);
     const headerCheckboxRef = useRef(null);
 
     useEffect(() => {
-        loadFileTypes().then(setFileTypeMap).catch(console.error);
+        const loadCSS = async () => {
+            const css = await getIconCSS();
+            loadExternalCss(css);
+        };
+        loadCSS();
     }, []);
 
     const getFileTypes = (files) => {
@@ -198,7 +201,13 @@ function FileListView({
                                     checked={selectedFiles.includes(file)}
                                 />
                             </td>
-                            <td>{FileIcon(file.name, file.is_file, fileTypeMap)}</td>
+                            <td>
+                                <FileIcon
+                                    filename={file.name}
+                                    is_file={file.is_file}
+                                    size={"1.8rem"}
+                                />
+                            </td>
                             <td
                                 onClick={() =>
                                     handleNameCick(file.path, file.is_file, file.symlink)

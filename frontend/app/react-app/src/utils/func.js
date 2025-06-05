@@ -93,3 +93,13 @@ export const formatFileSize = (filesize) => {
     const sizestr = parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
     return sizestr;
 };
+
+export const loadExternalCss = (url) => {
+    if (document.querySelector(`link[href="${url}"]`)) {
+        return;
+    }
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = url;
+    document.head.appendChild(link);
+};
