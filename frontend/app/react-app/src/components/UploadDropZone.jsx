@@ -13,8 +13,19 @@ function UploadDropZone({ onUpload }) {
     const [modalText, setModalText] = useState(null);
 
     useEffect(() => {
-        const handleDragEnter = (e) => {
+        const handleDragEnter = async (e) => {
             e.preventDefault();
+
+            // const items = e.dataTransfer.items;
+            // console.log(items);
+            // const data = await CollectPathsFromItems(items);
+            // console.log("data", data);
+            // console.log("data", data.files.length);
+            // console.log("data", data.dirSet.size);
+            // if (data.files.length === 0 && data.dirSet.size === 0) {
+            //     return;
+            // }
+
             setIsDragActive(true);
         };
 
@@ -44,7 +55,7 @@ function UploadDropZone({ onUpload }) {
             window.removeEventListener("dragleave", handleDragLeave);
             window.removeEventListener("drop", handleDrop);
         };
-    }, []); // Empty dependency array: run only once
+    }, []);
 
     const handleDragOver = (e) => {
         e.preventDefault();
@@ -62,10 +73,14 @@ function UploadDropZone({ onUpload }) {
         e.preventDefault();
         e.stopPropagation();
         setDragging(false);
+        setIsDragActive(false);
         // const files = Array.from(e.dataTransfer.files);
         const items = e.dataTransfer.items;
         const data = await CollectPathsFromItems(items);
         console.log("Collected files:", data.files);
+        if (data.files.length === 0 && data.dirSet.size === 0) {
+            return;
+        }
 
         setSelectedDirs(getDeepestDirs(data.dirSet));
         setSelectedFiles(data.files);
@@ -98,8 +113,8 @@ function UploadDropZone({ onUpload }) {
     };
 
     return (
-        isDragActive && (
-            <div>
+        <div>
+            {isDragActive && (
                 <div
                     className={`drop-zone ${dragging ? "dragging" : ""}`}
                     onDragOver={handleDragOver}
@@ -108,16 +123,16 @@ function UploadDropZone({ onUpload }) {
                 >
                     <p>Drag and drop files here to upload</p>
                 </div>
-                {showConfirm && (
-                    <ModalWindow
-                        onHide={cancelUpload}
-                        onConfirm={confirmUpload}
-                        title={<p>Are you sure you want to upload the following file(s)?</p>}
-                        text={modalText}
-                    />
-                )}
-            </div>
-        )
+            )}
+            {showConfirm && (
+                <ModalWindow
+                    onHide={cancelUpload}
+                    onConfirm={confirmUpload}
+                    title={<p>Are you sure you want to upload the following file(s)?</p>}
+                    text={modalText}
+                />
+            )}
+        </div>
     );
 }
 

@@ -27,7 +27,7 @@ export const CollectPathsFromItems = async (items) => {
 
     const traverseFileTree = async (item, path = "") => {
         return new Promise((resolve) => {
-            if (item.is_file) {
+            if (item.isFile) {
                 item.file((file) => {
                     file.dirPath = path;
                     files.push(file);
