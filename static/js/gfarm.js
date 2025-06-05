@@ -184,6 +184,7 @@ async function list() {
         if (lsIgnoreError.checked) {
             params.append("ign_err", 1);
         }
+        params.append("format_type", "plain");
         let params_str = params.toString();
         if (params_str) {
             fullpath = `${fullpath}?${params_str}`;
@@ -636,22 +637,22 @@ async function gfptar() {
                 },
                 body: data
               });
-            
+
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
             let buffer = "";
-            
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-            
+
                 text = decoder.decode(value, { stream: true });
                 console.log("Received:", text);
                 output.textContent = text;
                 buffer += text;
             }
             console.log("result:", buffer);
-            
+
         } catch(error) {
             alert("Error: " + error.message);
             console.error(error);

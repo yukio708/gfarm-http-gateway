@@ -1,40 +1,40 @@
-import { encodePath } from './func'
-import { API_URL } from '../utils/api_url';
+import { encodePath } from "./func";
+import { API_URL } from "../utils/api_url";
 
 async function downloadFile(path, setTasks) {
     console.log("download: filepath:", path);
     if (!path) {
-        alert('Please input Gfarm path');
+        alert("Please input Gfarm path");
         return;
     }
-    const epath = encodePath(path)
+    const epath = encodePath(path);
     const dlurl = `${API_URL}/file${epath}?action=download`;
     const controller = new AbortController();
     const signal = controller.signal;
 
-    try{
+    try {
         const startTime = Date.now();
         let filename = path.split("/").pop();
         const newTask = {
             path: path,
             name: filename,
             value: 0,
-            status: 'downloading',
+            status: "downloading",
             onCancel: () => {
                 controller.abort();
-                console.log('cancel:', path);
+                console.log("cancel:", path);
             },
             startTime: startTime,
-            updateTime: Date.now()
+            updateTime: Date.now(),
         };
-        setTasks(prev => [...prev, newTask]);
+        setTasks((prev) => [...prev, newTask]);
 
         const response = await fetch(dlurl, { signal });
 
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        
+
         const contentLength = response.headers.get("Content-Length");
         if (!contentLength) {
             console.log("Missing Content-Length header");
@@ -53,13 +53,15 @@ async function downloadFile(path, setTasks) {
 
             const percent = Math.floor((received / total) * 100);
             const elapsed = Date.now() - startTime;
-            const speed = Math.round(received / elapsed * 1000);
+            const speed = Math.round((received / elapsed) * 1000);
             const sec = Math.floor(elapsed / 1000);
             const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
 
             setTasks((prev) =>
                 prev.map((task) =>
-                    task.path === path ? { ...task, value: percent, status, updateTime: Date.now() } : task
+                    task.path === path
+                        ? { ...task, value: percent, status, updateTime: Date.now() }
+                        : task
                 )
             );
         }
@@ -77,16 +79,22 @@ async function downloadFile(path, setTasks) {
 
         setTasks((prev) =>
             prev.map((task) =>
-                task.path === path ? { ...task, status: "done", value: 100, done: true, updateTime: Date.now() } : task
+                task.path === path
+                    ? { ...task, status: "done", value: 100, done: true, updateTime: Date.now() }
+                    : task
             )
         );
-
-    } catch(err) {
+    } catch (err) {
         console.error("Download failed", err);
         setTasks((prev) =>
             prev.map((task) =>
                 task.path === path
-                    ? { ...task, status: `Error: ${err.message}`, done: true, updateTime: Date.now() }
+                    ? {
+                          ...task,
+                          status: `Error: ${err.message}`,
+                          done: true,
+                          updateTime: Date.now(),
+                      }
                     : task
             )
         );
@@ -95,16 +103,16 @@ async function downloadFile(path, setTasks) {
 
 function getFilenameFromHeader(header) {
     const match = /filename="(.+?)"/.exec(header);
-    return match ? match[1] : 'files.zip';
+    return match ? match[1] : "files.zip";
 }
 
 function getProgress(received, total) {
-  if (!total || total === 0) return undefined;
-  return Math.floor((received / total) * 100);
+    if (!total || total === 0) return undefined;
+    return Math.floor((received / total) * 100);
 }
 
 async function downloadFiles(paths, setTasks) {
-        console.log("paths", paths);
+    console.log("paths", paths);
     if (!paths || paths.length === 0) {
         alert("No file selected for download");
         return;
@@ -112,7 +120,7 @@ async function downloadFiles(paths, setTasks) {
     // Multiple files — request a zip from the server
     const url = `${API_URL}/download/zip`;
     const taskId = paths.join(",") + Date.now();
-    const gfarmpathes = paths.map(path => "gfarm:" + path)
+    const gfarmpathes = paths.map((path) => "gfarm:" + path);
     const controller = new AbortController();
     const signal = controller.signal;
 
@@ -121,7 +129,7 @@ async function downloadFiles(paths, setTasks) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ files: gfarmpathes }),
-            signal
+            signal,
         });
 
         if (!response.ok) {
@@ -138,7 +146,7 @@ async function downloadFiles(paths, setTasks) {
         const chunks = [];
         let received = 0;
         const startTime = Date.now();
-        const contentDisposition = response.headers.get('Content-Disposition');
+        const contentDisposition = response.headers.get("Content-Disposition");
         const filename = getFilenameFromHeader(contentDisposition);
 
         const newTask = {
@@ -149,12 +157,12 @@ async function downloadFiles(paths, setTasks) {
             status: "zipping...",
             onCancel: () => {
                 controller.abort();
-                console.log('cancel:', taskId);
+                console.log("cancel:", taskId);
             },
             startTime: startTime,
-            updateTime: Date.now()
+            updateTime: Date.now(),
         };
-        setTasks(prev => [...prev, newTask]);
+        setTasks((prev) => [...prev, newTask]);
 
         while (true) {
             const { done, value } = await reader.read();
@@ -164,13 +172,15 @@ async function downloadFiles(paths, setTasks) {
 
             const percent = getProgress(received, total);
             const elapsed = Date.now() - startTime;
-            const speed = Math.round(received / elapsed * 1000);
+            const speed = Math.round((received / elapsed) * 1000);
             const sec = Math.floor(elapsed / 1000);
             const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
 
-            setTasks(prev =>
-                prev.map(task =>
-                    task.path === taskId ? { ...task, value: percent, status, updateTime: Date.now() } : task
+            setTasks((prev) =>
+                prev.map((task) =>
+                    task.path === taskId
+                        ? { ...task, value: percent, status, updateTime: Date.now() }
+                        : task
                 )
             );
         }
@@ -183,17 +193,24 @@ async function downloadFiles(paths, setTasks) {
         a.click();
         URL.revokeObjectURL(blobUrl);
 
-        setTasks(prev =>
-            prev.map(task =>
-                task.path === taskId ? { ...task, status: "done", done: true, value: 100, updateTime: Date.now() } : task
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.path === taskId
+                    ? { ...task, status: "done", done: true, value: 100, updateTime: Date.now() }
+                    : task
             )
         );
     } catch (err) {
         console.error("ZIP download failed", err);
-        setTasks(prev =>
-            prev.map(task =>
+        setTasks((prev) =>
+            prev.map((task) =>
                 task.path === "zip:" + Date.now()
-                    ? { ...task, status: `Error: ${err.message}`, done: true, updateTime: Date.now() }
+                    ? {
+                          ...task,
+                          status: `Error: ${err.message}`,
+                          done: true,
+                          updateTime: Date.now(),
+                      }
                     : task
             )
         );
@@ -206,13 +223,14 @@ async function download(files, setTasks) {
         return;
     }
 
-    if (files.length === 1 && files[0].isfile) {
+    if (files.length === 1 && files[0].is_file) {
         await downloadFile(files[0].path, setTasks);
+    } else {
+        await downloadFiles(
+            files.map((file) => file.path),
+            setTasks
+        );
     }
-    else{
-        await downloadFiles(files.map(file => file.path), setTasks);
-    }
-  
 }
 
 export default download;

@@ -1,7 +1,7 @@
 [
     {
         "mode_str": "drwxrwxrwt",
-        "isfile": false,
+        "is_file": false,
         "nlink": 2,
         "uname": "node",
         "gname": "gfarmadm",
@@ -12,7 +12,7 @@
     },
     {
         "mode_str": "-rwxrwxrwt",
-        "isfile": true,
+        "is_file": true,
         "nlink": 2,
         "uname": "node",
         "gname": "gfarmadm",
@@ -23,7 +23,7 @@
     },
     {
         "mode_str": "-rwxrwxrwt",
-        "isfile": true,
+        "is_file": true,
         "nlink": 2,
         "uname": "node",
         "gname": "gfarmadm",
@@ -34,7 +34,7 @@
     },
     {
         "mode_str": "-rwxrwxrwt",
-        "isfile": true,
+        "is_file": true,
         "nlink": 2,
         "uname": "node",
         "gname": "gfarmadm",
@@ -45,7 +45,7 @@
     },
     {
         "mode_str": "drwxrwxrwt",
-        "isfile": false,
+        "is_file": false,
         "nlink": 2,
         "uname": "node",
         "gname": "gfarmadm",

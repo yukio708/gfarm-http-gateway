@@ -30,7 +30,7 @@ export default async function deleteFiles(files, params, refresh) {
     }
 
     for (const file of files) {
-        if (file.isfile) {
+        if (file.is_file) {
             const error = await removeFile(file.path, params);
             if (error) {
                 return error;

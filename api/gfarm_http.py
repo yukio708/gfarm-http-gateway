@@ -1383,15 +1383,20 @@ async def gfreg(env, path, mtime):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def gfls(env, path, _all=0, recursive=0, _long=0, effperm=0):
+async def gfls(env,
+               path,
+               _all=False,
+               recursive=False,
+               _long=False,
+               effperm=False):
     args = []
-    if _all == 1:
+    if _all:
         args.append('-a')
-    if recursive == 1:
+    if recursive:
         args.append('-R')
-    if _long == 1:
+    if _long:
         args.append('-l')
-    if effperm == 1:
+    if effperm:
         args.append('-e')
     args.append('-T')
     args.append(path)
@@ -1640,12 +1645,12 @@ async def whoami(request: Request,
 @app.get("/directories/{gfarm_path:path}")
 async def dir_list(gfarm_path: str,
                    request: Request,
-                   a: int = 0,
-                   e: int = 0,
-                   R: int = 0,
-                   l: int = 0,  # noqa: E741
-                   format: str = 'json',
-                   ign_err: int = 0,
+                   a: bool = False,
+                   e: bool = False,
+                   R: bool = False,
+                   l: bool = False,  # noqa: E741
+                   format_type: str = 'json',
+                   ign_err: bool = False,
                    authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
     gfarm_path = fullpath(gfarm_path)
@@ -1657,7 +1662,7 @@ async def dir_list(gfarm_path: str,
     data = await p.stdout.read()
     stdout = data.decode()
     return_code = await p.wait()
-    if ign_err == 0 and return_code != 0:
+    if ign_err == False and return_code != 0:
         logger.debug(
             f"{ipaddr}:0 user={user}, cmd={opname}, return={return_code},"
             f" message={stdout}")
@@ -1666,25 +1671,36 @@ async def dir_list(gfarm_path: str,
         elist = []
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
-    if format == 'json':
+    if format_type == 'json':
         json = []
         for line in stdout.splitlines():
-            logger.debug(f"line={line}")
-            m = PAT_ENTRY2.match(line) # -alが指定されていないと空のJSONが返る
-            if m is None:
+            parts = line.strip().split(None, 9)
+            if len(parts) < 10:
+                json.append(line)
                 continue
-            logger.debug(f"m={m}")
-            mode_str = m.group(1)
-            isfile = mode_str[0] != 'd'
-            nlink = int(m.group(2))
-            uname = m.group(3)
-            gname = m.group(4)
-            size = int(m.group(5))
-            mtime_str = m.group(6)
-            name = m.group(7)
+            mode_str = parts[0]
+            nlink = int(parts[1])
+            uname = parts[2]
+            gname = parts[3]
+            size = int(parts[4])
+            mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
+            name = parts[9]
+
+            is_dir = mode_str.startswith('d')
+            is_sym = mode_str.startswith('l')
+            if is_sym:
+                pair = name.split(' -> ')
+                name = pair[0]
+                symlink = pair[1].replace("gfarm:/", "")
+                existing, is_file, size = await file_size(env, symlink)
+                if existing:
+                    is_dir = not is_file
+            else:
+                symlink = None
             json.append({
                 "mode_str": mode_str,
-                "isfile": isfile,
+                "is_file": not is_dir,
+                "symlink": symlink,
                 "nlink": nlink,
                 "uname": uname,
                 "gname": gname,

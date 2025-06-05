@@ -1,5 +1,5 @@
 export function encodePath(path) {
-    let p = '/' + path.replace(/^\/+/, "").replace(/\/+$/, "");
+    let p = "/" + path.replace(/^\/+/, "").replace(/\/+$/, "");
     // URL encode without slash
     return p.replace(/[^/]/g, encodeURIComponent);
 }
@@ -9,9 +9,9 @@ export const getDeepestDirs = (dirSet) => {
 
     for (const dirpath of dirSet) {
         // If no other dir starts with this one + "/" => it's a deepest dir
-        const isDeepest = [...dirSet].every(other => (
-            other === dirpath || !other.startsWith(dirpath)
-        ));
+        const isDeepest = [...dirSet].every(
+            (other) => other === dirpath || !other.startsWith(dirpath)
+        );
         console.log("getDeepestDirs: isDeepest:", isDeepest, dirpath);
         if (isDeepest) {
             result.push(dirpath);
@@ -21,13 +21,13 @@ export const getDeepestDirs = (dirSet) => {
     return result;
 };
 
-export const CollectPathsFromItems = async(items) => {
+export const CollectPathsFromItems = async (items) => {
     const files = [];
     const dirSet = new Set();
 
     const traverseFileTree = async (item, path = "") => {
         return new Promise((resolve) => {
-            if (item.isFile) {
+            if (item.is_file) {
                 item.file((file) => {
                     file.dirPath = path;
                     files.push(file);
@@ -57,29 +57,29 @@ export const CollectPathsFromItems = async(items) => {
         }
     }
     await Promise.all(promises);
-    return {files, dirSet};
-}
+    return { files, dirSet };
+};
 
 export const CollectPathsFromFiles = (files) => {
     const dirSet = new Set();
     console.log("CollectPathsFromFiles:", files);
 
-    const uploadFiles = files.map(file => {
+    const uploadFiles = files.map((file) => {
         const dirPath = file.webkitRelativePath
-            ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + '/'
+            ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + "/"
             : "";
         file.dirPath = dirPath;
         console.log("file.webkitRelativePath:", file.webkitRelativePath);
         console.log("file.dirPath:", file.dirPath);
-        if (dirPath !== ""){
+        if (dirPath !== "") {
             dirSet.add(dirPath);
         }
         return file;
     });
     console.log("uploadFiles:", uploadFiles);
 
-    return {files:uploadFiles, dirSet};
-}
+    return { files: uploadFiles, dirSet };
+};
 
 export const formatFileSize = (filesize) => {
     if (filesize === 0) {
@@ -87,9 +87,9 @@ export const formatFileSize = (filesize) => {
     }
 
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
     const i = Math.floor(Math.log(filesize) / Math.log(k));
 
-    const sizestr =  parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const sizestr = parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
     return sizestr;
-}
+};
