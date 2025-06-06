@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 
 function FileIcon({ filename, is_file, size }) {
     const [iconClass, setIconClass] = useState("bi bi-file-earmark");
-    const extension = filename.split(".").pop().toLowerCase();
+    const extension = filename.split(".").pop();
 
     useEffect(() => {
         const loadIcons = async () => {

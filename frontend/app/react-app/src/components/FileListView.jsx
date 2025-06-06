@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import FileTypeFilter from "../components/FileTypeFilter";
 import FileIcon from "../components/FileIcon";
-import { getIconCSS } from "../utils/getFileCategory";
-import { formatFileSize, loadExternalCss } from "../utils/func";
+import { formatFileSize } from "../utils/func";
 import "../css/FileListView.css";
 import { BsArrowUpShort, BsArrowDownShort, BsThreeDots } from "react-icons/bs";
 import PropTypes from "prop-types";
@@ -23,14 +22,6 @@ function FileListView({
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
     const headerCheckboxRef = useRef(null);
-
-    useEffect(() => {
-        const loadCSS = async () => {
-            const css = await getIconCSS();
-            loadExternalCss(css);
-        };
-        loadCSS();
-    }, []);
 
     const getFileTypes = (files) => {
         const types = new Set();

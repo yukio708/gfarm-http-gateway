@@ -1,13 +1,25 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { HashRouter } from "react-router-dom";
 import HomePage from "./page/HomePage";
 import LoginPage from "./page/LoginPage";
 import useUserInfo from "./hooks/useUserInfo";
+import { getIconCSS } from "./utils/getFileCategory";
+import { loadExternalCss } from "./utils/func";
 
 function App() {
-    const { user, loading } = useUserInfo();
+    const [cssLoading, setCssLoading] = useState(true);
+    const { user, userLoading } = useUserInfo();
 
-    if (loading) {
+    useEffect(() => {
+        const loadCSS = async () => {
+            const css = await getIconCSS();
+            loadExternalCss(css);
+            setCssLoading(false);
+        };
+        loadCSS();
+    }, []);
+
+    if (cssLoading || userLoading) {
         return <p>...</p>;
     }
     if (!user) {
