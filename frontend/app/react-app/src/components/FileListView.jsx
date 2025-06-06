@@ -145,7 +145,7 @@ function FileListView({
                             onClick={() => toggleSortDirection("updatedate")}
                             data-testid="header-date"
                         >
-                            Updated Date {sortDirection.column === "updatedate" && getSortIcon()}
+                            Modified {sortDirection.column === "updatedate" && getSortIcon()}
                         </th>
                         <th></th>
                     </tr>
@@ -196,7 +196,7 @@ function FileListView({
                                                 Detail
                                             </button>
                                         </li>
-                                        {file.type === "file" && (
+                                        {file.is_file && (
                                             <li>
                                                 <button
                                                     className="dropdown-item"
