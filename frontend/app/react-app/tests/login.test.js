@@ -119,6 +119,7 @@ async function handleRoute(route, request) {
 
 test.beforeAll(async () => {
     await waitForReact();
+    login = false;
 });
 
 test("Login title should be visible", async ({ page }) => {
@@ -155,7 +156,6 @@ test("OIDC login with valid token should show file table", async ({ page }) => {
 
 test("SASL login: valid user credentials", async ({ page }) => {
     await page.route("**/*", handleRoute);
-    login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
 
@@ -175,7 +175,6 @@ test("SASL login: valid user credentials", async ({ page }) => {
 
 test("SASL login: invalid user credentials", async ({ page }) => {
     await page.route("**/*", handleRoute);
-    login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
 
