@@ -103,3 +103,84 @@ export const loadExternalCss = (url) => {
     link.href = url;
     document.head.appendChild(link);
 };
+
+export const getFileTypes = (files) => {
+    const types = new Set();
+
+    files.forEach((file) => {
+        if (file.type === "directory") {
+            types.add("folder");
+        } else {
+            const parts = file.name.split(".");
+            if (parts.length > 1) {
+                types.add(parts.pop().toLowerCase());
+            }
+        }
+    });
+
+    return Array.from(types);
+};
+
+export const filterFiles = (files, filterTypes, dateFilter) => {
+    const now = new Date();
+    return files.filter((file) => {
+        let isTypeMatch = true;
+        let isDateMatch = true;
+        if (filterTypes.length !== 0) {
+            isTypeMatch = filterTypes.includes("folder") && file.type === "directory";
+            const ext = file.name.split(".").pop().toLowerCase();
+            isTypeMatch = filterTypes.includes(ext);
+        }
+
+        const updated = new Date(file.mtime_str);
+        if (dateFilter === "today") {
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            isDateMatch = updated >= start;
+        } else if (dateFilter === "week") {
+            const start = new Date(now - 7 * 24 * 60 * 60 * 1000);
+            isDateMatch = updated >= start;
+        } else if (dateFilter === "month") {
+            const start = new Date(now.getFullYear(), now.getMonth(), 1);
+            isDateMatch = updated >= start;
+        }
+
+        return isDateMatch && isTypeMatch;
+    });
+};
+
+export const sortFilesByName = (a, b, sortDirection) => {
+    const nameA = a.name.toLowerCase();
+    const nameB = b.name.toLowerCase();
+
+    if (a.is_file !== b.is_file) {
+        return a.is_file ? 1 : -1;
+    }
+
+    if (sortDirection === "asc") {
+        return nameA.localeCompare(nameB);
+    } else {
+        return nameB.localeCompare(nameA);
+    }
+};
+
+export const sortFilesBySize = (a, b, sortDirection) => {
+    if (a.is_file !== b.is_file) {
+        return a.is_file ? 1 : -1;
+    }
+    if (sortDirection === "asc") {
+        return a.size - b.size;
+    } else {
+        return b.size - a.size;
+    }
+};
+
+export const sortFilesByUpdateDate = (a, b, sortDirection) => {
+    if (a.is_file !== b.is_file) {
+        return a.is_file ? 1 : -1;
+    }
+    if (sortDirection === "asc") {
+        return new Date(a.mtime_str) - new Date(b.mtime_str);
+    } else {
+        return new Date(b.mtime_str) - new Date(a.mtime_str);
+    }
+};

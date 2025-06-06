@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
-import FileTypeFilter from "../components/FileTypeFilter";
 import FileIcon from "../components/FileIcon";
-import { formatFileSize } from "../utils/func";
+import FileTypeFilter from "../components/FileTypeFilter";
+import DateFilter from "../components/DateFilter";
+import {
+    filterFiles,
+    getFileTypes,
+    sortFilesByName,
+    sortFilesBySize,
+    sortFilesByUpdateDate,
+    formatFileSize,
+} from "../utils/func";
 import "../css/FileListView.css";
 import { BsArrowUpShort, BsArrowDownShort, BsThreeDots } from "react-icons/bs";
 import PropTypes from "prop-types";
@@ -21,72 +29,10 @@ function FileListView({
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
+    const [dateFilter, setDateFilter] = useState("all");
     const headerCheckboxRef = useRef(null);
-
-    const getFileTypes = (files) => {
-        const types = new Set();
-
-        files.forEach((file) => {
-            if (file.type === "directory") {
-                types.add("folder");
-            } else {
-                const parts = file.name.split(".");
-                if (parts.length > 1) {
-                    types.add(parts.pop().toLowerCase());
-                }
-            }
-        });
-
-        return Array.from(types);
-    };
-
     const fileTypes = getFileTypes(files);
-
-    const sortFilesByName = (a, b, sortDirection) => {
-        const nameA = a.name.toLowerCase();
-        const nameB = b.name.toLowerCase();
-
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
-        }
-
-        if (sortDirection === "asc") {
-            return nameA.localeCompare(nameB);
-        } else {
-            return nameB.localeCompare(nameA);
-        }
-    };
-
-    const sortFilesBySize = (a, b, sortDirection) => {
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
-        }
-        if (sortDirection === "asc") {
-            return a.size - b.size;
-        } else {
-            return b.size - a.size;
-        }
-    };
-
-    const sortFilesByUpdateDate = (a, b, sortDirection) => {
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
-        }
-        if (sortDirection === "asc") {
-            return new Date(a.mtime_str) - new Date(b.mtime_str);
-        } else {
-            return new Date(b.mtime_str) - new Date(a.mtime_str);
-        }
-    };
-
-    const filteredFiles = files.filter((file) => {
-        if (filterTypes.length === 0) return true;
-
-        if (filterTypes.includes("folder") && file.type === "directory") return true;
-
-        const ext = file.name.split(".").pop().toLowerCase();
-        return filterTypes.includes(ext);
-    });
+    const filteredFiles = filterFiles(files, filterTypes, dateFilter);
 
     const sortedFiles = [...filteredFiles].sort((a, b) => {
         if (sortDirection.column === "name") {
@@ -101,9 +47,21 @@ function FileListView({
 
     const getSortIcon = () => {
         if (sortDirection.order === "asc") {
-            return <BsArrowUpShort size="1.1rem" style={{ marginLeft: "5px" }} />;
+            return (
+                <BsArrowUpShort
+                    size="1.1rem"
+                    style={{ marginLeft: "5px" }}
+                    data-testid="sort-icon-asc"
+                />
+            );
         } else {
-            return <BsArrowDownShort size="1.1rem" style={{ marginLeft: "5px" }} />;
+            return (
+                <BsArrowDownShort
+                    size="1.1rem"
+                    style={{ marginLeft: "5px" }}
+                    data-testid="sort-icon-desc"
+                />
+            );
         }
     };
 
@@ -151,11 +109,14 @@ function FileListView({
 
     return (
         <div>
-            <FileTypeFilter
-                fileTypes={fileTypes}
-                filterTypes={filterTypes}
-                setFilterTypes={setFilterTypes}
-            />
+            <div className="d-flex flex-wrap align-items-center gap-2 m-2">
+                <FileTypeFilter
+                    fileTypes={fileTypes}
+                    filterTypes={filterTypes}
+                    setFilterTypes={setFilterTypes}
+                />
+                <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
+            </div>
             <table className="file-table">
                 <thead>
                     <tr>
@@ -166,16 +127,24 @@ function FileListView({
                                 ref={headerCheckboxRef}
                                 onChange={handleSelectAll}
                                 checked={selectedFiles.length === files.length && files.length > 0}
+                                data-testid="header-checkbox"
                             />
                         </th>
                         {/* <th onClick={() => toggleSortDirection('name')}></th> */}
-                        <th colSpan={2} onClick={() => toggleSortDirection("name")}>
+                        <th
+                            colSpan={2}
+                            onClick={() => toggleSortDirection("name")}
+                            data-testid="header-name"
+                        >
                             Name {sortDirection.column === "name" && getSortIcon()}
                         </th>
-                        <th onClick={() => toggleSortDirection("size")}>
+                        <th onClick={() => toggleSortDirection("size")} data-testid="header-size">
                             Size {sortDirection.column === "size" && getSortIcon()}
                         </th>
-                        <th onClick={() => toggleSortDirection("updatedate")}>
+                        <th
+                            onClick={() => toggleSortDirection("updatedate")}
+                            data-testid="header-date"
+                        >
                             Updated Date {sortDirection.column === "updatedate" && getSortIcon()}
                         </th>
                         <th></th>
