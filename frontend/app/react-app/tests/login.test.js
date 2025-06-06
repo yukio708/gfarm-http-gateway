@@ -6,7 +6,6 @@ const http = require("http");
 const FRONTEND_URL = "http://localhost:3000";
 const LOGIN_HTML = path.resolve(__dirname, "../../../../templates/login.html");
 const DIR_LIST = path.resolve(__dirname, "data/datalist.json");
-console.log(LOGIN_HTML);
 
 let login = false;
 
@@ -15,14 +14,14 @@ async function waitForReact() {
     for (let i = 0; i < 10; i++) {
         try {
             await new Promise((resolve, reject) => {
-                const req = http.get(FRONTEND_URL, res => {
+                const req = http.get(FRONTEND_URL, (res) => {
                     res.statusCode === 200 ? resolve() : reject();
                 });
                 req.on("error", reject);
             });
             return;
         } catch {
-            await new Promise(res => setTimeout(res, 1000));
+            await new Promise((res) => setTimeout(res, 1000));
         }
     }
     throw new Error("React app is not up!");
@@ -81,7 +80,7 @@ async function handleRoute(route, request) {
         } else {
             const responseData = {
                 detail: {
-                    command: "whoami",
+                    command: "user_info",
                     message: "Authentication error",
                     stdout: "",
                     stderr: "",
@@ -151,7 +150,7 @@ test("OIDC login with valid token should show file table", async ({ page }) => {
     const fileText = await fileTable.textContent();
 
     console.log(`File text: ${fileText}`);
-    expect(fileText).toContain("dir1");
+    await expect(fileText).toContain("tmp");
 });
 
 test("SASL login: valid user credentials", async ({ page }) => {
