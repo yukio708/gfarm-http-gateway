@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { HashRouter } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./page/HomePage";
 import LoginPage from "./page/LoginPage";
 import useUserInfo from "./hooks/useUserInfo";
@@ -27,7 +27,9 @@ function App() {
     }
     return (
         <HashRouter>
-            <HomePage user={user} />
+            <Routes>
+                <Route path="/*" element={<HomePage user={user} />} />
+            </Routes>
         </HashRouter>
     );
 }

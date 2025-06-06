@@ -18,14 +18,17 @@ import moveFile from "../utils/moveFile";
 import getAttribute from "../utils/getAttribute";
 import setPermission from "../utils/setPermission";
 import { createDir } from "../utils/dircommon";
+import ErrorPage from "./ErrorPage";
+
 import PropTypes from "prop-types";
 
 function HomePage({ user }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const [currentDir, setCurrentDir] = useState("");
+    const currentDir = decodeURIComponent(location.pathname);
+    const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(false);
-    const { files, listgeterror } = useFileList(currentDir, refreshKey);
+    const { files, listGetError } = useFileList(currentDir, refreshKey);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
@@ -36,23 +39,11 @@ function HomePage({ user }) {
     const [modalTitle, setModalTitle] = useState("");
     const [modalContent, setModalContent] = useState("");
     const [modalConfirmAction, setModalConfirmAction] = useState(null);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        // Sync the URL path to currentDir
-        const path = decodeURIComponent(location.pathname);
-        setCurrentDir(path === "/" ? "" : path);
-    }, [location]);
-
-    useEffect(() => {
-        setError(listgeterror);
-    }, [listgeterror]);
 
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
             setRefreshKey((prev) => !prev);
         } else {
-            // setCurrentDir(newdir);
             navigate(newdir);
         }
         setSelectedFiles([]);
@@ -177,6 +168,10 @@ function HomePage({ user }) {
     const createDirectory = async (dirname) => {
         await createDir(currentDir + "/" + dirname);
     };
+
+    if (listGetError) {
+        return <ErrorPage error={listGetError} />;
+    }
 
     return (
         <div>

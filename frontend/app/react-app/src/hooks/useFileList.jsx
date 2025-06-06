@@ -1,25 +1,27 @@
-import { useState, useEffect } from 'react';
-import getList from '../utils/getList';
+import { useState, useEffect } from "react";
+import getList from "../utils/getList";
 
 function useFileList(dirPath, reload) {
     const [files, setFiles] = useState([]);
-    const [error, setError] = useState(null);
-  
+    const [listGetError, setListGetError] = useState(null);
+
     useEffect(() => {
         const fetchFiles = async () => {
-            setError(null);
+            setListGetError(null);
             const data = await getList(dirPath);
             if (Array.isArray(data)) {
-                setFiles(data.filter(file => file.name !== '.' && file.name !== '..'));
-            } else{
-                setError(data);
+                setFiles(data.filter((file) => file.name !== "." && file.name !== ".."));
+                setListGetError(null);
+            } else {
+                console.error("listGetError", data);
+                setListGetError(data);
             }
         };
-  
+
         fetchFiles();
     }, [dirPath, reload]);
-  
-    return { files, error };
+
+    return { files, listGetError };
 }
 
 export default useFileList;

@@ -1,5 +1,5 @@
-import { encodePath } from './func';
-import { API_URL } from './api_url';
+import { encodePath } from "./func";
+import { API_URL } from "./api_url";
 
 async function getList(dirPath) {
     const epath = encodePath(dirPath);
@@ -12,8 +12,8 @@ async function getList(dirPath) {
         const data = await response.json();
         return data;
     } catch (err) {
-        return err.message;
+        return "Failed to fetch " + dirPath + " : " + err.message;
     }
-};
+}
 
 export default getList;

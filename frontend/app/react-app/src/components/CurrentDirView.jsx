@@ -20,8 +20,7 @@ function CurrentDirView({ currentDir, onNavigate }) {
                     </button>
                 </li>
                 {parts.map((part, index) => {
-                    const path = parts.slice(0, index + 1).join("/");
-                    console.log("CurrentDirView: path:", path);
+                    const path = "/" + parts.slice(0, index + 1).join("/");
                     return (
                         <li key={index} className="breadcrumb-item">
                             <button

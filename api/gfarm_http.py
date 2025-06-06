@@ -1660,6 +1660,12 @@ async def dir_list(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
+    existing, _, _ = await file_size(env, gfarm_path)
+    if not existing:
+        code = 404
+        message = f"gfls error: path={gfarm_path}"
+        elist = []
+        raise gfarm_http_error(opname, code, message, "", elist)
     T = format_type == 'json'
     p = await gfls(env, gfarm_path,
                    _all=a, recursive=R, _long=l, _T=T, effperm=e)
@@ -1696,7 +1702,7 @@ async def dir_list(gfarm_path: str,
                 pair = name.split(' -> ')
                 name = pair[0]
                 symlink = pair[1].replace("gfarm:/", "")
-                existing, is_file, size = await file_size(env, symlink)
+                existing, is_file, _ = await file_size(env, symlink)
                 if existing:
                     is_dir = not is_file
             else:
