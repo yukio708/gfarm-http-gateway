@@ -121,6 +121,15 @@ export const getFileTypes = (files) => {
     return Array.from(types);
 };
 
+export const options = [
+    { label: "Today", value: "today", start: 0 },
+    { label: "Last 7 Days", value: "week", start: -7 },
+    { label: "Last 30 days", value: "month", start: -30 },
+    { label: "Last 1 year", value: "year", start: -365 },
+    { label: "This Month", value: "this_month", start: 0 },
+    { label: "This Year", value: "this_year", start: 0 },
+];
+
 export const filterFiles = (files, filterTypes, dateFilter) => {
     const now = new Date();
     return files.filter((file) => {
@@ -133,15 +142,36 @@ export const filterFiles = (files, filterTypes, dateFilter) => {
         }
 
         const updated = new Date(file.mtime_str);
-        if (dateFilter === "today") {
+        if (dateFilter == "today") {
             const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            isDateMatch = updated >= start;
-        } else if (dateFilter === "week") {
-            const start = new Date(now - 7 * 24 * 60 * 60 * 1000);
-            isDateMatch = updated >= start;
-        } else if (dateFilter === "month") {
+            // console.log("updated", updated);
+            console.log("today: start", start);
+            isDateMatch =
+                updated.getFullYear() === start.getFullYear() &&
+                updated.getMonth() === start.getMonth() &&
+                updated.getDate() === start.getDate();
+        } else if (dateFilter === "this_month") {
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
+            console.log("this_month: start", start);
             isDateMatch = updated >= start;
+        } else if (dateFilter === "this_year") {
+            const start = new Date(now.getFullYear(), 0, 1);
+            console.log("this_year: start", start);
+            isDateMatch = updated >= start;
+        } else {
+            const getOptionByValue = (value) => {
+                return options.find((option) => option.value === value);
+            };
+            const selected = getOptionByValue(dateFilter);
+            if (selected) {
+                const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                start.setDate(start.getDate() + selected.start);
+                console.log(dateFilter, "start", start);
+                console.log("updated", updated);
+                console.log("updated >= start", updated >= start);
+
+                isDateMatch = updated >= start;
+            }
         }
 
         return isDateMatch && isTypeMatch;

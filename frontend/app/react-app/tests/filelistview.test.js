@@ -32,29 +32,24 @@ const findChildrenByPath = (nodes, targetPath) => {
     const normalizedTargetPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
 
     for (const node of nodes) {
-        // パスが一致する場合
         if (node.path === normalizedTargetPath) {
-            // "childlen" プロパティが存在し、かつ配列である場合はそれを返す
-            // そうでなければ、空の配列を返す（ファイルの場合など）
             return node.childlen && Array.isArray(node.childlen) ? node.childlen : [];
         }
 
-        // 現在のノードがディレクトリであり、かつ子要素を持っている場合
+        // If the current node is a directory and has child elements
         if (!node.is_file && node.childlen && Array.isArray(node.childlen)) {
-            // targetPathが現在のノードのパスで始まる場合、さらに深く探索する
-            // 例: targetPathが "/documents/presentations" で、現在のnode.pathが "/documents" の場合
             if (
                 normalizedTargetPath.startsWith(node.path + "/") ||
                 (node.path === "/" && normalizedTargetPath !== "/")
             ) {
                 const foundChildren = findChildrenByPath(node.childlen, targetPath);
                 if (foundChildren !== null) {
-                    return foundChildren; // 子要素が見つかった場合はそのまま返す
+                    return foundChildren;
                 }
             }
         }
     }
-    // パスが見つからない場合はnullを返す
+    // Return null if path is not found
     return null;
 };
 
@@ -156,7 +151,7 @@ test.beforeAll(async () => {
     fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
 });
 
-// --- File/Directory Display Test ---
+// File/Directory Display Test
 
 test("display file list existing path", async ({ page }) => {
     const targetPath = "/";
@@ -171,7 +166,7 @@ test("display file list existing path", async ({ page }) => {
 
     console.log(`File text: ${fileText}`);
 
-    // テーブルヘッダーが表示されているか確認
+    // Check if the table header is displayed
     const checkboxHeader = page.locator('[data-testid="header-checkbox"]');
     await expect(checkboxHeader).toBeVisible();
     await expect(checkboxHeader).not.toBeChecked();
@@ -187,20 +182,20 @@ test("display file list existing path", async ({ page }) => {
 
     await expect(page.locator("tbody tr")).toHaveCount(expectedChildren.length);
 
-    // 各ファイル/フォルダの行と内容を検証
+    // Validate the row and contents of each file/folder
     for (const expectedFile of expectedChildren) {
         const rowLocator = page.locator("tbody tr", { hasText: expectedFile.name });
 
-        // 行自体が表示されていることを確認
+        // Check if the row itself is visible
         await expect(rowLocator).toBeVisible();
 
-        // アイコンの確認 (getFileIconDefault のロジックも考慮に入れる)
+        // Check the icon
         const ext = expectedFile.name.split(".").pop();
         const iconClassString = getFileIconDefault(ext, expectedFile.is_file);
         const iconCssSelector = "." + iconClassString.replace(/ /g, ".");
         await expect(rowLocator.locator(iconCssSelector)).toBeVisible();
 
-        // ファイル名が正しく表示されていることを確認
+        // Check if the file name is displayed correctly
         const fileCheckbox = rowLocator.locator('input[type="checkbox"][class="form-check-input"]');
         await expect(fileCheckbox).toBeVisible();
         await expect(fileCheckbox).not.toBeChecked();
@@ -214,30 +209,27 @@ test("display file list existing path", async ({ page }) => {
 });
 
 test("display error on nonexistent path", async ({ page }) => {
-    // TODO: 存在しないディレクトリに移動して、エラーメッセージを確認
     await page.route("**/*", handleRoute);
     const nonexistentPath = "/nonexistent-directory-12345";
     await page.goto(`${FRONTEND_URL}/#${nonexistentPath}`);
 
-    // 1. "Error!" という見出しが表示されていること
+    // The heading "Error!" is displayed
     await expect(page.getByRole("heading", { name: "Error!" })).toBeVisible();
 
-    // 2. 正しいエラーメッセージが表示されていること
-    // handleRoute が body: JSON.stringify({ error: "Path not found" }) を返すと仮定
+    // The correct error message is displayed
     await expect(page.getByText(`Failed to fetch ${nonexistentPath} : Error: 404`)).toBeVisible();
 
-    // 3. "Return to home" リンクが表示されていること
+    // "Return to home" link is visible
     await expect(page.getByRole("link", { name: "Return to home" })).toBeVisible();
 
-    // （オプション）リンクの 'to' 属性（href）が正しいか確認
+    // Check if the link's 'to' attribute (href) is valid
     const homeLink = page.getByRole("link", { name: "Return to home" });
     await expect(homeLink).toHaveAttribute("href", "#/");
 });
 
 test("display long file list", async ({ page }) => {
-    const numberOfFiles = 1000; // テストしたいファイルの数
+    const numberOfFiles = 1000;
 
-    // /d/ エンドポイントのレスポンスをモックし、大量のファイルを返す
     await page.route("**/d/*", async (route) => {
         const url = new URL(route.request().url());
         let requestedPath = url.pathname.substring(3);
@@ -247,7 +239,6 @@ test("display long file list", async ({ page }) => {
             requestedPath = "/" + decodeURIComponent(requestedPath);
         }
 
-        // 大量のダミーファイルを生成
         const largeFileList = [];
         for (let i = 0; i < numberOfFiles; i++) {
             largeFileList.push({
@@ -256,7 +247,7 @@ test("display long file list", async ({ page }) => {
                 nlink: 1,
                 uname: `user${i % 5}`,
                 gname: "users",
-                size: Math.floor(Math.random() * 1000000) + 1000, // ランダムなサイズ
+                size: Math.floor(Math.random() * 1000000) + 1000,
                 mtime_str: `Jun ${(i % 30) + 1} 10:00:00 2025`,
                 name: `large_file_${i}.txt`,
                 path: `${requestedPath}/large_file_${i}.txt`,
@@ -272,69 +263,60 @@ test("display long file list", async ({ page }) => {
 
     await page.route("**/user_info*", handleRoute);
 
-    // 大量のファイルが表示されるパスにアクセス
-    // （ここではルートにダミーデータを表示するようにモックしているので /d/ にアクセス）
+    // Access the path where a large number of files are displayed
     await page.goto(FRONTEND_URL);
 
     await page.waitForSelector(".file-table", {
         timeout: 10000,
     });
 
-    // --- テストの検証 ---
     const tableHeader = page.locator("table.file-table thead tr");
 
-    // 1. 指定した数のファイルが全て表示されていることを確認
-    // .file-item は各ファイル行に付与されているクラス名と仮定
+    // Check if all the specified number of files are displayed
     const fileItems = page.locator("tbody tr");
     await expect(fileItems).toHaveCount(numberOfFiles);
 
-    // 最後のファイルが表示されていることを確認
     const lastFileName = `large_file_${numberOfFiles - 1}.txt`;
+    await page.waitForSelector(`text=${lastFileName}`);
 
-    // 要素が見つかるまでスクロール
-    await page.waitForSelector(`text=${lastFileName}`); // まず要素がDOMに存在することを確認
-
-    // 要素がビューポートに入るまでスクロール
-    // PlaywrightのtoBeVisible()は自動的にスクロールを試みますが、明示的なスクロールも可能
+    // Scroll until the element is found
     await page.getByText(lastFileName).scrollIntoViewIfNeeded();
 
-    // 最後のファイルが表示されていることを確認
+    // Check if the last file is displayed
     await expect(page.getByText(lastFileName)).toBeVisible();
 
-    // （オプション）スクロール後に、表示領域に収まっているはずのヘッダ見えるか確認
+    // After scrolling, make sure the header is visible, even if it should fit in the viewport
 
-    // テーブルヘッダーが表示されているか確認
+    // Check if the table header is visible
     await expect(tableHeader).toBeVisible();
 
-    // 3. パフォーマンスに関する検証（オプションだが高度なテスト）
-    // 大量レンダリング時のパフォーマンスを測定したい場合
+    // Performance verification (optional but advanced test)
+
     // const startTime = performance.now();
     // await page.goto(FRONTEND_URL + "/d/");
-    // await page.waitForLoadState('networkidle'); // ネットワークが落ち着くまで待つ
-    // await expect(fileItems).toHaveCount(numberOfFiles); // UIがレンダリングされるまで待つ
+    // // Wait until the network settles down
+    // await page.waitForLoadState('networkidle');
+
+    // await expect(fileItems).toHaveCount(numberOfFiles);
     // const endTime = performance.now();
     // console.log(`Rendering ${numberOfFiles} files took ${endTime - startTime} ms`);
-    // expect(endTime - startTime).toBeLessThan(5000); // 例えば5秒以内にレンダリングされることを期待
+    // // Expect rendering within 5 seconds
+    // expect(endTime - startTime).toBeLessThan(5000);
 });
 
 test("sort by filename", async ({ page }) => {
     await page.route("**/*", handleRoute);
 
-    const targetPath = "/"; // テスト対象のパス
+    const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
-    // findChildrenByPath を使って期待される子要素のデータを取得
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
-    // ソートボタンのセレクタを特定
     const nameHeader = page.locator('[data-testid="header-name"]');
-    // 各ファイルの「名前」が表示されるtd要素のセレクタ
     const fileNamesLocator = page.locator("tbody tr td:nth-child(3)");
 
-    // --- 昇順ソートの確認 ---
-
+    // arc
     console.log(`expectedChildren: ${initialFiles}`);
-    // JavaScriptで期待される昇順のファイル名リストを生成
     const expectedAscendingNames = [...initialFiles].sort((a, b) => {
         const nameA = a.name.toLowerCase();
         const nameB = b.name.toLowerCase();
@@ -344,21 +326,16 @@ test("sort by filename", async ({ page }) => {
         }
         return nameA.localeCompare(nameB);
     });
-    // `sensitivity: 'base'` は大文字小文字を区別せずにソートするため、より自然なファイル名ソートに合致しやすいです。
 
     // default : name asc
 
-    // ソートアイコン（昇順）が表示されていることを確認（あなたのgetSortIconの実装に依存）
     await expect(nameHeader.locator('[data-testid="sort-icon-asc"]')).toBeVisible();
 
-    // UI上のファイル名が期待される昇順になっていることを検証
     for (let i = 0; i < expectedAscendingNames.length; i++) {
         await expect(fileNamesLocator.nth(i)).toHaveText(expectedAscendingNames[i].name);
     }
 
-    // --- 降順ソートの確認 ---
-
-    // JavaScriptで期待される降順のファイル名リストを生成
+    // desc
     const expectedDescendingNames = [...initialFiles].sort((a, b) => {
         const nameA = a.name.toLowerCase();
         const nameB = b.name.toLowerCase();
@@ -369,12 +346,10 @@ test("sort by filename", async ({ page }) => {
         return nameB.localeCompare(nameA);
     });
 
-    await nameHeader.click(); // 名前ヘッダーをもう一度クリックして降順ソート
+    await nameHeader.click();
 
-    // ソートアイコン（降順）が表示されていることを確認
     await expect(nameHeader.locator('[data-testid="sort-icon-desc"]')).toBeVisible();
 
-    // UI上のファイル名が期待される降順になっていることを検証
     for (let i = 0; i < expectedDescendingNames.length; i++) {
         await expect(fileNamesLocator.nth(i)).toHaveText(expectedDescendingNames[i].name);
     }
@@ -383,33 +358,31 @@ test("sort by filename", async ({ page }) => {
 test("sort by filesize", async ({ page }) => {
     await page.route("**/*", handleRoute);
 
-    const targetPath = "/"; // テスト対象のパス
+    const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
     const sizeHeader = page.locator('[data-testid="header-size"]');
-    // 各ファイルの「名前」が表示されるtd要素のセレクタ
     const fileNamesLocator = page.locator("tbody tr td:nth-child(3)");
 
-    // --- 昇順ソートの確認 ---
+    // arc
     const expectedAscendingSizes = [...initialFiles].sort((a, b) => {
         if (a.is_file !== b.is_file) {
             return a.is_file ? 1 : -1;
         }
         return a.size - b.size;
-    }); // ソート後の生のサイズ値
+    });
 
-    await sizeHeader.click(); // サイズヘッダーをクリックして昇順ソート
+    await sizeHeader.click();
 
-    // ソートアイコン（昇順）が表示されていることを確認（例: '.bi-sort-amount-down' など）
     await expect(sizeHeader.locator('[data-testid="sort-icon-asc"]')).toBeVisible();
 
     for (let i = 0; i < expectedAscendingSizes.length; i++) {
         await expect(fileNamesLocator.nth(i)).toHaveText(expectedAscendingSizes[i].name);
     }
 
-    // --- 降順ソートの確認 ---
+    // desc
     const expectedDescendingSizes = [...initialFiles].sort((a, b) => {
         if (a.is_file !== b.is_file) {
             return a.is_file ? 1 : -1;
@@ -417,7 +390,7 @@ test("sort by filesize", async ({ page }) => {
         return b.size - a.size;
     });
 
-    await sizeHeader.click(); // サイズヘッダーをもう一度クリックして降順ソート
+    await sizeHeader.click();
     await expect(sizeHeader.locator('[data-testid="sort-icon-desc"]')).toBeVisible();
 
     for (let i = 0; i < expectedDescendingSizes.length; i++) {
@@ -428,16 +401,15 @@ test("sort by filesize", async ({ page }) => {
 test("sort by update date", async ({ page }) => {
     await page.route("**/*", handleRoute);
 
-    const targetPath = "/"; // テスト対象のパス
+    const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
     const updatedDateHeader = page.locator('[data-testid="header-date"]');
-    // 各ファイルの「名前」が表示されるtd要素のセレクタ
     const fileNamesLocator = page.locator("tbody tr td:nth-child(3)");
 
-    // --- 昇順ソートの確認 ---
+    // arc
     const expectedAscendingTimes = [...initialFiles].sort((a, b) => {
         if (a.is_file !== b.is_file) {
             return a.is_file ? 1 : -1;
@@ -445,17 +417,15 @@ test("sort by update date", async ({ page }) => {
         return new Date(a.mtime_str) - new Date(b.mtime_str);
     });
 
-    await updatedDateHeader.click(); // 更新日時ヘッダーをクリックして昇順ソート
+    await updatedDateHeader.click();
 
-    // ソートアイコン（昇順）が表示されていることを確認（例: '.bi-sort-down' など）
     await expect(updatedDateHeader.locator('[data-testid="sort-icon-asc"]')).toBeVisible();
 
-    // UI上のファイルの並び順で検証 (ファイル名で順序を確認)
     for (let i = 0; i < expectedAscendingTimes.length; i++) {
         await expect(fileNamesLocator.nth(i)).toHaveText(expectedAscendingTimes[i].name);
     }
 
-    // --- 降順ソートの確認 ---
+    // desc
     const expectedDescendingTimes = [...initialFiles].sort((a, b) => {
         if (a.is_file !== b.is_file) {
             return a.is_file ? 1 : -1;
@@ -463,7 +433,7 @@ test("sort by update date", async ({ page }) => {
         return new Date(b.mtime_str) - new Date(a.mtime_str);
     });
 
-    await updatedDateHeader.click(); // もう一度クリックして降順ソート
+    await updatedDateHeader.click();
     await expect(updatedDateHeader.locator('[data-testid="sort-icon-desc"]')).toBeVisible();
 
     for (let i = 0; i < expectedDescendingTimes.length; i++) {
@@ -472,13 +442,11 @@ test("sort by update date", async ({ page }) => {
 });
 
 test("filter by extension", async ({ page }) => {
-    // 適切なモックデータを設定
     await page.route("**/*", handleRoute);
 
-    const targetPath = "/documents"; // テスト対象のパス
+    const targetPath = "/documents";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
-    // /documents の初期データ: report.docx (pdf), meeting_notes.txt (txt), presentations (folder)
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
     const expectedTxtFiles = initialFiles.filter(
         (file) => file.is_file && file.name.endsWith(".txt")
@@ -488,52 +456,42 @@ test("filter by extension", async ({ page }) => {
     );
     const folder = initialFiles.find((file) => !file.is_file);
 
-    // --- 1. ドロップダウンを開く ---
-    // ドロップダウンのトグルボタンを見つける
+    // Find the dropdown toggle button
     const filterToggleButton = page.locator('[data-testid="file-filter-dropdown"]');
     await expect(filterToggleButton).toBeVisible();
 
-    await filterToggleButton.click(); // クリックしてドロップダウンを開く
+    await filterToggleButton.click();
 
-    // ドロップダウンメニューが表示されたことを確認
     const clearButton = page.locator('[data-testid="file-filter-clear-button"]');
     await expect(clearButton).toBeVisible();
 
-    // --- 2. ".txt" フィルタを適用する ---
-    // ".txt" のチェックボックスを見つけてクリック
-    // `id` 属性が `dropdown-filter-txt` なので、それを使うのが最も堅牢
     const txtFilterCheckbox = page.locator("#dropdown-filter-txt");
-    await expect(txtFilterCheckbox).toBeVisible(); // チェックボックスが表示されていること
-    await txtFilterCheckbox.check(); // チェックボックスをONにする
+    await expect(txtFilterCheckbox).toBeVisible();
+    await txtFilterCheckbox.check();
 
-    await filterToggleButton.click(); // クリックしてドロップダウンを閉じる
+    await filterToggleButton.click();
 
-    // フィルタ適用後、リストが更新されるまで待つ
+    // Wait for the list to update after applying a filter
     await page.waitForLoadState("networkidle");
 
-    // --- 3. フィルタリング結果の検証 ---
-    // 期待されるファイル（.txt）が表示されていること
+    // Check display files
     for (const expectedFile of expectedTxtFiles) {
         await expect(page.locator("tbody tr", { hasText: expectedFile.name })).toBeVisible();
     }
-    // 期待されないファイル（.pdf, folderなど）が表示されていないこと
     if (unexpectedPdfFile) {
         await expect(
             page.locator("tbody tr", { hasText: unexpectedPdfFile.name })
         ).not.toBeVisible();
     }
     if (folder) {
-        // フォルダもフィルター対象外なら
+        // folders should be hidden
         await expect(page.locator("tbody tr", { hasText: folder.name })).not.toBeVisible();
     }
-    // 表示されているファイルの数が期待通りか確認
     await expect(page.locator("tbody tr")).toHaveCount(expectedTxtFiles.length);
 
-    // --- 4. フィルタラベルの更新確認 ---
-    // フィルタリングされた後にボタンのラベルが 'Types: TXT' に変わることを確認
     await expect(filterToggleButton).toHaveText("Types: txt");
 
-    await filterToggleButton.click(); // クリックしてドロップダウンを開く
+    await filterToggleButton.click();
     await clearButton.click();
 
     // show all
@@ -542,155 +500,146 @@ test("filter by extension", async ({ page }) => {
     }
 });
 
-// mtime_str を Date オブジェクトにパースするヘルパー関数
-// mtime_str が "May 30 18:00:00 2025" のような形式なので、Date コンストラクタでパース可能
-const parseMtimeStr = (mtimeStr) => {
-    return new Date(mtimeStr);
-};
-
-// 特定の dateFilter 値に基づいて、期待されるファイルリストを返すヘルパー関数
+// return the expected list of files based on a given dateFilter value
 const getExpectedFilesForDateFilter = (allFiles, filterType) => {
-    // const now = new Date("2025-06-06T17:55:46+09:00"); // テスト実行時の現在日時を固定（東京時間）
-    const now = new Date(); // テスト実行時の現在日時を固定（東京時間）
+    const now = new Date("2025-06-01T12:00:00Z"); // freeze time
 
     return allFiles.filter((file) => {
-        const fileDate = parseMtimeStr(file.mtime_str);
-        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+        const fileDate = new Date(file.mtime_str);
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const oneYearAgo = new Date(now);
+        oneYearAgo.setDate(oneYearAgo.getDate() - 365);
 
         switch (filterType) {
             case "all":
-                return true; // 全て表示
+                return true;
             case "today":
-                // fileDate が today の日付と同じか
                 return (
                     fileDate.getFullYear() === now.getFullYear() &&
                     fileDate.getMonth() === now.getMonth() &&
                     fileDate.getDate() === now.getDate()
                 );
             case "week":
-                // 過去7日間の範囲内か
-                return fileDate >= sevenDaysAgo && fileDate <= now;
+                return fileDate >= sevenDaysAgo;
             case "month":
-                // 今月の範囲内か
+                return fileDate >= thirtyDaysAgo;
+            case "year":
+                return fileDate >= oneYearAgo;
+            case "this_month":
                 return (
                     fileDate.getFullYear() === now.getFullYear() &&
                     fileDate.getMonth() === now.getMonth()
                 );
+            case "this_year":
+                return fileDate.getFullYear() === now.getFullYear();
             default:
-                return true; // デフォルトでは全て表示
+                return true;
         }
     });
 };
 
-test("filter by modified date", async ({ page }) => {
+test("filter by modified date (all options)", async ({ page }) => {
     await page.route("**/*", handleRoute);
 
-    const targetPath = "/"; // ルートパスをテスト対象とする（多様なファイルがあるため）
+    await page.addInitScript((isoDate) => {
+        const fixed = new Date(isoDate);
+        const OriginalDate = Date;
+
+        class MockDate extends OriginalDate {
+            constructor(...args) {
+                if (args.length === 0) {
+                    return new OriginalDate(fixed);
+                }
+                return new OriginalDate(...args);
+            }
+
+            static now() {
+                return fixed.getTime();
+            }
+
+            static parse = OriginalDate.parse;
+            static UTC = OriginalDate.UTC;
+            static [Symbol.hasInstance](instance) {
+                return instance instanceof OriginalDate;
+            }
+        }
+
+        window.Date = MockDate;
+    }, "2025-06-01T12:00:00Z"); // freeze time
+
+    const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
-    // fileStructureData からすべてのファイルをフラットに取得（テストヘルパーとして追加）
-    // ルートの子要素だけでなく、テスト対象となるファイルすべて
     const allFilesAtRoot = findChildrenByPath(fileStructureData, targetPath);
-
-    // ドロップダウンのトグルボタンを見つける
     const dateFilterToggleButton = page.locator('[data-testid="date-filter-dropdown"]');
     await expect(dateFilterToggleButton).toBeVisible();
 
-    // --- 1. ドロップダウンを開く ---
+    const filtersToTest = [
+        { label: "Today", value: "today" },
+        { label: "Last 7 Days", value: "week" },
+        { label: "Last 30 days", value: "month" },
+        { label: "Last 1 year", value: "year" },
+        { label: "This Month", value: "this_month" },
+        { label: "This Year", value: "this_year" },
+    ];
+
+    for (const { label, value } of filtersToTest) {
+        await dateFilterToggleButton.click(); // open dropdown again
+        const option = page.locator(`#dropdown-filter-${value}`);
+        await expect(option).toBeVisible();
+        await option.click();
+
+        await page.waitForLoadState("networkidle");
+        await expect(dateFilterToggleButton).toHaveText(label);
+
+        const expectedFiles = getExpectedFilesForDateFilter(allFilesAtRoot, value);
+        await expect(page.locator("tbody tr")).toHaveCount(expectedFiles.length);
+
+        for (const expectedFile of expectedFiles) {
+            await expect(page.locator("tbody tr", { hasText: expectedFile.name })).toBeVisible();
+        }
+
+        const unexpectedFiles = allFilesAtRoot.filter((file) => !expectedFiles.includes(file));
+        for (const unexpectedFile of unexpectedFiles) {
+            await expect(
+                page.locator("tbody tr", { hasText: unexpectedFile.name })
+            ).not.toBeVisible();
+        }
+    }
+
+    // Clear filter
     await dateFilterToggleButton.click();
-    // ドロップダウンメニューが表示されたことを確認
-    const clearButton = page.locator('[data-testid="date-filter-clear-button"]');
-    await expect(clearButton).toBeVisible();
-
-    // --- 2. "Last 7 Days" フィルタを適用する ---
-    const last7DaysButton = page.locator("#dropdown-filter-week");
-    await expect(last7DaysButton).toBeVisible(); // ボタンが表示されていること
-    await last7DaysButton.click();
-
-    // フィルタ適用後、リストが更新されるまで待つ
-    await page.waitForLoadState("networkidle");
-
-    // フィルタラベルが更新されたことを確認
-    await expect(dateFilterToggleButton).toHaveText("Last 7 Days");
-
-    // --- 3. フィルタリング結果の検証（"Last 7 Days"） ---
-    const expectedFilesLast7Days = getExpectedFilesForDateFilter(allFilesAtRoot, "week");
-    await expect(page.locator("tbody tr")).toHaveCount(expectedFilesLast7Days.length);
-    for (const expectedFile of expectedFilesLast7Days) {
-        await expect(page.locator("tbody tr", { hasText: expectedFile.name })).toBeVisible();
-    }
-    // 期待されないファイル（日付範囲外のファイル）が表示されていないこと
-    const filesOutsideLast7Days = allFilesAtRoot.filter(
-        (file) => !getExpectedFilesForDateFilter(allFilesAtRoot, "week").includes(file)
-    );
-    for (const unexpectedFile of filesOutsideLast7Days) {
-        await expect(page.locator("tbody tr", { hasText: unexpectedFile.name })).not.toBeVisible();
-    }
-
-    // --- 4. "This Month" フィルタを適用する ---
-    await dateFilterToggleButton.click(); // ドロップダウンを再度開く
-    const thisMonthButton = page.locator("#dropdown-filter-month");
-    await thisMonthButton.click();
-
-    await page.waitForLoadState("networkidle");
-    await expect(dateFilterToggleButton).toHaveText("This Month");
-
-    // --- 5. フィルタリング結果の検証（"This Month"） ---
-    const expectedFilesThisMonth = getExpectedFilesForDateFilter(allFilesAtRoot, "month");
-    await expect(page.locator("tbody tr")).toHaveCount(expectedFilesThisMonth.length);
-    for (const expectedFile of expectedFilesThisMonth) {
-        await expect(page.locator("tbody tr", { hasText: expectedFile.name })).toBeVisible();
-    }
-    const filesOutsideThisMonth = allFilesAtRoot.filter(
-        (file) => !getExpectedFilesForDateFilter(allFilesAtRoot, "month").includes(file)
-    );
-    for (const unexpectedFile of filesOutsideThisMonth) {
-        await expect(page.locator("tbody tr", { hasText: unexpectedFile.name })).not.toBeVisible();
-    }
-
-    // --- 6. 「Clear filter」ボタンをクリック ---
-    await dateFilterToggleButton.click(); // ドロップダウンを再度開く
     const clearFilterButton = page.locator('[data-testid="date-filter-clear-button"]');
-    await expect(clearFilterButton).toBeVisible();
     await clearFilterButton.click();
 
     await page.waitForLoadState("networkidle");
-
-    // フィルタが解除されたことを検証
-    await expect(dateFilterToggleButton).toHaveText("Filter by Modified"); // 初期ラベルに戻る
-    await expect(page.locator("tbody tr")).toHaveCount(allFilesAtRoot.length); // 全てのファイルが再び表示される
-    for (const file of allFilesAtRoot) {
-        await expect(page.locator("tbody tr", { hasText: file.name })).toBeVisible();
-    }
+    await expect(dateFilterToggleButton).toHaveText("Filter by Modified");
+    await expect(page.locator("tbody tr")).toHaveCount(allFilesAtRoot.length);
 });
 
 test("display current directory path", async ({ page }) => {
-    // APIリクエストをモック
     await page.route("**/*", handleRoute);
 
-    // --- 1. ルートパスの表示確認 ---
-    // ルートパスに移動
     await page.goto(`${FRONTEND_URL}/#/`);
 
-    // ホームアイコンボタンが表示されていることを確認
-    const homeButton = page.locator("ol.breadcrumb button.btn.p-0").first(); // 最初のパンくず項目がホームボタン
+    const homeButton = page.locator("ol.breadcrumb button.btn.p-0").first();
     await expect(homeButton).toBeVisible();
-    await expect(homeButton.locator("svg")).toBeVisible(); // BsHouse SVGアイコンが存在することを確認 (または特定のクラス名)
+    await expect(homeButton.locator("svg")).toBeVisible();
 
-    // ルートパスの場合、ホームアイコン以外にテキストのパンくずがないことを確認
-    await expect(page.locator("ol.breadcrumb li")).toHaveCount(1); // ホームアイコンの li のみ
+    // home = 1
+    await expect(page.locator("ol.breadcrumb li")).toHaveCount(1);
     await expect(
         page.locator("ol.breadcrumb li").filter({ hasText: "documents" })
     ).not.toBeVisible();
 
-    // --- 2. 複数階層パスの表示確認 ---
     const testPath = "/documents/presentations";
     await page.goto(`${FRONTEND_URL}/#${testPath}`);
 
-    // ホームアイコンボタンが引き続き表示されていることを確認
     await expect(homeButton).toBeVisible();
 
-    // パンくずリストの各部分が表示されていることを確認
     // "documents"
     const documentsBreadcrumb = page.locator("ol.breadcrumb li button", { hasText: "documents" });
     await expect(documentsBreadcrumb).toBeVisible();
@@ -700,36 +649,34 @@ test("display current directory path", async ({ page }) => {
     });
     await expect(presentationsBreadcrumb).toBeVisible();
 
-    // パンくずリストの項目の総数が正しいか確認
-    // ホームアイコン + "documents" + "presentations" = 3
+    // home + "documents" + "presentations" = 3
     await expect(page.locator("ol.breadcrumb li")).toHaveCount(3);
 
-    // --- 3. 各パス部分のリンク（ボタン）の動作確認 ---
-
-    // "documents" パンくずをクリック
+    // go to "documents"
     await documentsBreadcrumb.click();
-    // URLが "/d/documents" に遷移したことを確認
+
     await expect(page).toHaveURL(`${FRONTEND_URL}/#/documents`);
 
-    // (オプション) 再度、パンくずが更新されたことを確認
-    await expect(page.locator("ol.breadcrumb li")).toHaveCount(2); // ホーム + documents
+    // home + "documents" = 2
+    await expect(page.locator("ol.breadcrumb li")).toHaveCount(2);
     await expect(page.locator("ol.breadcrumb li button", { hasText: "documents" })).toBeVisible();
 
-    // ホームアイコンをクリック
+    // go home
     await homeButton.click();
-    // URLが "/" に遷移したことを確認
+
     await expect(page).toHaveURL(`${FRONTEND_URL}/#/`);
-    // (オプション) パンくずが更新されたことを確認
+
+    // home = 1
     await expect(page.locator("ol.breadcrumb li")).toHaveCount(1);
 
-    // --- 4. パスの正規化テスト（例: 末尾のスラッシュ、連続スラッシュ） ---
-    // 例えば、/documents/presentations/ にアクセスした場合
+    // access /documents/presentations/
     await page.goto(`${FRONTEND_URL}/#/documents/presentations/`);
-    // パス表示が /documents/presentations と同じであることを確認
+    // /documents/presentations
     await expect(
         page.locator("ol.breadcrumb li button", { hasText: "presentations" })
     ).toBeVisible();
-    await expect(page.locator("ol.breadcrumb li")).toHaveCount(3); // 末尾のスラッシュは無視される
+    // Trailing slashes are ignored
+    await expect(page.locator("ol.breadcrumb li")).toHaveCount(3);
 });
 
 test("display operation menu for a file", async ({ page }) => {
@@ -738,26 +685,23 @@ test("display operation menu for a file", async ({ page }) => {
     const targetPath = "/documents";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
-    // テスト対象のファイル（例: report.docx）の行を見つける
+    // Find the line in the file to be tested
     const reportDocxRow = page.locator("tbody tr", { hasText: "report.docx" });
-    // その行にある三点リーダーボタンを見つける
     const threeDotsButton = reportDocxRow.locator("button.btn.p-0.border-0");
 
-    // --- 検証 ---
-
-    // 1. 三点リーダーボタンが表示されていることを確認
+    // Check if the three-point leader button is displayed
     await expect(threeDotsButton).toBeVisible();
 
-    // 2. ボタンをクリックしてドロップダウンメニューを開く
+    // Click the button to open the drop-down menu
     await threeDotsButton.click();
 
-    // 3. ドロップダウンメニューが表示されたことを確認
-    const dropdownMenu = reportDocxRow.locator(".dropdown-menu"); // その行の子孫としてメニューを探す
+    // Check if the dropdown menu appears
+    const dropdownMenu = reportDocxRow.locator(".dropdown-menu");
     await expect(dropdownMenu).toBeVisible();
 
-    // 4. 各メニュー項目が表示されていることを確認
+    // Check if each menu item is displayed
     await expect(dropdownMenu.getByRole("button", { name: "Detail" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "View" })).toBeVisible(); // report.docx はファイルなので 'View' があるはず
+    await expect(dropdownMenu.getByRole("button", { name: "View" })).toBeVisible();
     await expect(dropdownMenu.getByRole("button", { name: "Rename" })).toBeVisible();
     await expect(dropdownMenu.getByRole("button", { name: "Move" })).toBeVisible();
     await expect(dropdownMenu.getByRole("button", { name: "Copy" })).toBeVisible();
@@ -765,58 +709,49 @@ test("display operation menu for a file", async ({ page }) => {
     await expect(dropdownMenu.getByRole("button", { name: "Delete" })).toBeVisible();
     await expect(dropdownMenu.getByRole("button", { name: "Change Permissions" })).toBeVisible();
 
-    // 5. フォルダのメニューで 'View' が表示されないことを確認
+    // Check if 'View' does not appear in the folder menu
     const presentationsRow = page.locator("tbody tr", { hasText: "presentations" });
     const presentationsThreeDotsButton = presentationsRow.locator("button.btn.p-0.border-0");
-    await presentationsThreeDotsButton.click(); // フォルダのメニューを開く
+    await presentationsThreeDotsButton.click();
     const presentationsDropdownMenu = presentationsRow.locator(".dropdown-menu");
     await expect(presentationsDropdownMenu).toBeVisible();
     await expect(presentationsDropdownMenu.getByRole("button", { name: "View" })).not.toBeVisible();
 });
 
 test("display action buttons", async ({ page }) => {
-    // APIリクエストをモック
     await page.route("**/*", handleRoute);
 
     const targetPath = "/documents";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
-    // --- 1. 初期状態: ファイルが選択されていない場合に非表示であること ---
-    // 「Actions」ボタンを特定
     const actionsToggleButton = page.getByRole("button", { name: "Actions" });
 
-    // selectedFiles.length === 0 のため、ボタンが表示されていないことを確認
+    // Check that the button is not displayed
     await expect(actionsToggleButton).not.toBeVisible();
 
-    // --- 2. ファイルを選択してコンポーネントが表示されることを確認 ---
-    // 最初のファイルのチェックボックスを選択
     const firstFileCheckbox = page.locator("tbody tr").first().locator('input[type="checkbox"]');
     await firstFileCheckbox.check();
 
-    // ファイル選択後、「Actions」ボタンが表示されたことを確認
+    // Check if the "Actions" button is displayed
     await expect(actionsToggleButton).toBeVisible();
 
-    // --- 3. ドロップダウンを開く ---
     await actionsToggleButton.click();
 
-    // ドロップダウンメニューが表示されたことを確認
+    // Check if the dropdown menu appears
     const dropdownMenu = page.locator('ul.dropdown-menu[aria-labelledby="fileActionsDropdown"]');
     await expect(dropdownMenu).toBeVisible();
 
-    // --- 4. メニュー項目が表示されていることを確認 ---
     await expect(dropdownMenu.getByRole("button", { name: "Download" })).toBeVisible();
     await expect(dropdownMenu.getByRole("button", { name: "Delete" })).toBeVisible();
     await expect(dropdownMenu.getByRole("button", { name: "Move" })).toBeVisible();
 
-    // --- 5. ドロップダウンが閉じることを確認（例: 他の場所をクリック） ---
-    // ドロップダウンの外側をクリックして閉じる
-    await page.click("body", { position: { x: 10, y: 10 } }); // 適当な場所をクリック
+    // Click outside the dropdown to close
+    await page.click("body", { position: { x: 10, y: 10 } });
 
     await expect(dropdownMenu).not.toBeVisible();
 
-    // --- 6. 全てのファイルの選択を解除してコンポーネントが非表示になることを確認 ---
-    await firstFileCheckbox.uncheck(); // 選択解除
+    await firstFileCheckbox.uncheck();
 
-    // コンポーネントが再び非表示になったことを確認
+    // Check if the component is hidden again
     await expect(actionsToggleButton).not.toBeVisible();
 });

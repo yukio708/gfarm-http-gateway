@@ -1,13 +1,8 @@
 import React from "react";
+import { options } from "../utils/func";
 import PropTypes from "prop-types";
 
 function DateFilter({ dateFilter, setDateFilter }) {
-    const options = [
-        { label: "Today", value: "today" },
-        { label: "Last 7 Days", value: "week" },
-        { label: "This Month", value: "month" },
-    ];
-
     const handleSelect = (val) => {
         setDateFilter(val);
     };
