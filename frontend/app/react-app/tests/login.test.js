@@ -119,11 +119,11 @@ async function handleRoute(route, request) {
 
 test.beforeAll(async () => {
     await waitForReact();
-    login = false;
 });
 
 test("Login title should be visible", async ({ page }) => {
     await page.route("**/*", handleRoute);
+    login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
 
@@ -132,6 +132,7 @@ test("Login title should be visible", async ({ page }) => {
 
 test("Login button should be visible", async ({ page }) => {
     await page.route("**/*", handleRoute);
+    login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
 
@@ -140,6 +141,7 @@ test("Login button should be visible", async ({ page }) => {
 
 test("OIDC login with valid token should show file table", async ({ page }) => {
     await page.route("**/*", handleRoute);
+    login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
 
@@ -156,6 +158,7 @@ test("OIDC login with valid token should show file table", async ({ page }) => {
 
 test("SASL login: valid user credentials", async ({ page }) => {
     await page.route("**/*", handleRoute);
+    login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
 
@@ -175,6 +178,7 @@ test("SASL login: valid user credentials", async ({ page }) => {
 
 test("SASL login: invalid user credentials", async ({ page }) => {
     await page.route("**/*", handleRoute);
+    login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
 
@@ -202,4 +206,82 @@ test("Logout: should return to login screen", async ({ page }) => {
     await page.click('a:has-text("Logout")');
 
     await expect(page).toHaveURL(/login/);
+});
+
+// A2HS Test
+
+test("Android: A2HS button click should trigger installprompt", async ({ browser }) => {
+    const context = await browser.newContext({
+        userAgent:
+            "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Mobile Safari/537.36",
+        viewport: { width: 412, height: 915 },
+    });
+    const page = await context.newPage();
+    await page.route("**/*", handleRoute);
+    login = false;
+
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
+
+    await page.evaluate(() => {
+        // Create a fake deferredPrompt object
+        const event = new Event("beforeinstallprompt");
+        event.preventDefault = () => {};
+        event.prompt = () => {
+            window.promptCalled = true;
+            return Promise.resolve();
+        };
+        window.deferredPrompt = event;
+        window.promptCalled = false;
+
+        // Manually dispatch the event
+        window.dispatchEvent(event);
+    });
+
+    const installBtn = await page.locator("#installBtn");
+    await expect(installBtn).toBeVisible();
+
+    await installBtn.click();
+
+    const promptCalled = await page.evaluate(() => window.promptCalled);
+    expect(promptCalled).toBe(true);
+
+    await context.close();
+});
+
+test("iOS: A2HS button click should trigger instructions", async ({ browser }) => {
+    const context = await browser.newContext({
+        userAgent:
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
+        viewport: { width: 375, height: 812 },
+    });
+
+    const page = await context.newPage();
+    await page.route("**/*", handleRoute);
+    login = false;
+
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
+
+    const installBtn = page.locator("#installBtn");
+    await expect(installBtn).toBeVisible();
+
+    await installBtn.click();
+
+    const modal = page.locator("#iosModal");
+    await modal.count();
+    await expect(modal).toBeVisible();
+
+    await context.close();
+});
+
+test("Desktop: A2HS button should be hidden", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    login = false;
+
+    await page.goto(FRONTEND_URL);
+    await page.waitForFunction(() => window.location.href.includes("/login"));
+
+    const installBtn = await page.locator("#installBtn");
+    await expect(installBtn).toBeHidden();
 });

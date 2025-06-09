@@ -89,16 +89,13 @@
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      if (platform === "android") {
-        installBtn.style.display = "inline-block";
-      }
     });
 
     window.addEventListener("appinstalled", () => {
       installBtn.style.display = "none";
     });
 
-    if (platform === "ios" && window.navigator.standalone !== true) {
+    if (platform === "ios" || platform === "android") {
       installBtn.style.display = "inline-block";
     }
 
