@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import ModalWindow from "../components/Modal";
+import ModalWindow from "./Modal";
 import { getDeepestDirs, CollectPathsFromItems, formatFileSize } from "../utils/func";
 import "../css/DropZone.css";
 import PropTypes from "prop-types";

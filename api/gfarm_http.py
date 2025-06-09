@@ -46,8 +46,6 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from cryptography.fernet import Fernet
 
-import redis.asyncio as redis
-
 # https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py
 from jose import jwt
 
@@ -63,7 +61,6 @@ PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
 
 
 TMPDIR = "/tmp/gfarm-http"
-redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 
 #############################################################################
@@ -720,9 +717,7 @@ async def oidc_auth_common(request):
     user = get_user_from_access_token(access_token)
     log_login(request, user, "access_token")
     # return RedirectResponse(url="./")
-    url = request.session["next_url"]
-    if url is None:
-        url = request.url_for("index")
+    url = request.session.get("next_url", "/")
     return RedirectResponse(url=url)
 
 
@@ -811,7 +806,7 @@ async def login_page(request: Request,
     csrf_token = gen_csrf(request)
     error = request.session.get("error", "")
     request.session.pop("error", None)
-    request.session['next_url'] = f"/{redirect}" if redirect else None
+    request.session['next_url'] = f"/{redirect}" if redirect else "/"
     return templates.TemplateResponse("login.html",
                                       {"request": request,
                                        "error": error,
@@ -940,9 +935,7 @@ async def login_passwd(request: Request,
     set_user_passwd(request, username, password)
     env = await set_env(request, None)
     p = await gfwhoami(env)
-    url = request.session["next_url"]
-    if url is None:
-        url = request.url_for("index")
+    url = request.session.get("next_url", "/")
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
     except Exception as e:
