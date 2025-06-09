@@ -184,3 +184,11 @@ export const sortFilesByUpdateDate = (a, b, sortDirection) => {
         return new Date(b.mtime_str) - new Date(a.mtime_str);
     }
 };
+
+export const getPlatform = () => {
+    const ua = window.navigator.userAgent;
+
+    if (/android/i.test(ua)) return "android";
+    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "ios";
+    return "desktop";
+};
