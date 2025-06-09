@@ -188,29 +188,25 @@ function HomePage({ user }) {
                 </div>
             </div>
             <div className="row">
-                <div className="col ms-2">
-                    <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
-                </div>
+                <div className="col ms-2"></div>
             </div>
 
             <div className="row">
                 <div className="col">
-                    <nav className="navbar bg-body-tertiary">
-                        <div className="container-fluid">
-                            <div className="d-flex gap-2">
-                                <UploadMenu
-                                    onUpload={addFilesToUpload}
-                                    onCreate={createDirectory}
-                                />
-                                <FileActionMenu
-                                    selectedFiles={selectedFiles}
-                                    deleteFile={deleteFile}
-                                    downloadFiles={downloadFiles}
-                                    moveFiles={moveFiles}
-                                />
-                            </div>
+                    <div className="d-flex">
+                        <div className="mx-3">
+                            <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
                         </div>
-                    </nav>
+                        <div className="d-flex gap-2">
+                            <UploadMenu onUpload={addFilesToUpload} onCreate={createDirectory} />
+                            <FileActionMenu
+                                selectedFiles={selectedFiles}
+                                deleteFile={deleteFile}
+                                downloadFiles={downloadFiles}
+                                moveFiles={moveFiles}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
             <div className="row">

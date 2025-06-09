@@ -6,7 +6,7 @@ function UploadMenu({ onUpload, createDirectory }) {
     const fileInputRef = useRef(null);
     const folderInputRef = useRef(null);
 
-    const handleFileChange = e => {
+    const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         const data = CollectPathsFromFiles(files);
         if (data.files) {
@@ -16,16 +16,17 @@ function UploadMenu({ onUpload, createDirectory }) {
     };
 
     return (
-        <div className="btn-group">
+        <div className="dropdown">
             <button
                 type="button"
-                className="btn btn-outline-secondary btn-sm dropdown-toggle"
+                className="btn btn-secondary btn-sm dropdown-toggle"
+                id="uploadDropdown"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
             >
                 Upload
             </button>
-            <ul className="dropdown-menu">
+            <ul className="dropdown-menu" aria-labelledby="uploadDropdown">
                 <li>
                     <h1 className="dropdown-header">Upload</h1>
                 </li>

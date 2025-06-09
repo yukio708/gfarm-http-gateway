@@ -130,7 +130,7 @@ function FileListView({
                                 data-testid="header-checkbox"
                             />
                         </th>
-                        {/* <th onClick={() => toggleSortDirection('name')}></th> */}
+                        {/* <th onClick={() => toggleSortDirection("name")}></th> */}
                         <th
                             colSpan={2}
                             onClick={() => toggleSortDirection("name")}
@@ -157,6 +157,7 @@ function FileListView({
                                 <input
                                     type="checkbox"
                                     className="form-check-input"
+                                    id={"checkbox-" + file.name}
                                     onChange={(event) => handleSelectFile(event, file)}
                                     checked={selectedFiles.includes(file)}
                                 />
@@ -166,10 +167,29 @@ function FileListView({
                                     filename={file.name}
                                     is_file={file.is_file}
                                     size={"1.8rem"}
+                                    onClick={() =>
+                                        handleSelectFile(
+                                            {
+                                                target: { checked: !selectedFiles.includes(file) },
+                                            },
+                                            file
+                                        )
+                                    }
+                                    onDoubleClick={() =>
+                                        handleNameCick(file.path, file.is_file, file.symlink)
+                                    }
                                 />
                             </td>
                             <td
                                 onClick={() =>
+                                    handleSelectFile(
+                                        {
+                                            target: { checked: !selectedFiles.includes(file) },
+                                        },
+                                        file
+                                    )
+                                }
+                                onDoubleClick={() =>
                                     handleNameCick(file.path, file.is_file, file.symlink)
                                 }
                             >
