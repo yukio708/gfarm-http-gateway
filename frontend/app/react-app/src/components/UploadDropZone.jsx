@@ -107,9 +107,10 @@ function UploadDropZone({ onUpload }) {
     };
 
     return (
-        <div style={{ position: "fixed", top: 0, left: 0, zIndex: 1000, width: "100%" }}>
+        <div>
             {isDragActive && (
                 <div
+                    style={{ position: "fixed", top: 0, left: 0, zIndex: 1000, width: "100%" }}
                     className={`drop-zone ${dragging ? "dragging" : ""}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -120,7 +121,7 @@ function UploadDropZone({ onUpload }) {
             )}
             {showConfirm && (
                 <ModalWindow
-                    onHide={cancelUpload}
+                    onCancel={cancelUpload}
                     onConfirm={confirmUpload}
                     title={<p>Are you sure you want to upload the following file(s)?</p>}
                     text={modalText}

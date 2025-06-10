@@ -1,33 +1,58 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import Modal from "bootstrap/js/dist/modal";
 import PropTypes from "prop-types";
 
-function ModalWindow({ onHide, onConfirm, title, text, cancelText, comfirmText }) {
+function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText }) {
+    const modalRef = useRef(null);
+    const modalInstance = useRef(null);
+
+    useEffect(() => {
+        if (!modalRef.current) return;
+        if (!modalInstance.current) {
+            modalInstance.current = new Modal(modalRef.current, {
+                backdrop: "static",
+                keyboard: false,
+            });
+            modalInstance.current.show();
+        }
+    }, []);
+
     const handleConfirm = () => {
         if (onConfirm) {
             onConfirm();
         }
-        onHide();
+        onCancel();
     };
 
     return (
-        <div
-            className="modal fade show d-block"
-            tabIndex="-1"
-            role="dialog"
-            style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
+        <div className="modal fade" ref={modalRef} tabIndex="-1">
             <div className="modal-dialog" role="document">
                 <div className="modal-content">
                     <div className="modal-header">
                         {title}
-                        <button type="button" className="btn-close" onClick={onHide}></button>
+                        <button
+                            type="button"
+                            className="btn-close"
+                            onClick={onCancel}
+                            data-bs-dismiss="modal"
+                        ></button>
                     </div>
                     <div className="modal-body">{text}</div>
                     <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={onHide}>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={onCancel}
+                            data-bs-dismiss="modal"
+                        >
                             {cancelText || "Cancel"}
                         </button>
-                        <button type="button" className="btn btn-primary" onClick={handleConfirm}>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleConfirm}
+                            data-bs-dismiss="modal"
+                        >
                             {comfirmText || "Confirm"}
                         </button>
                     </div>
@@ -40,7 +65,7 @@ function ModalWindow({ onHide, onConfirm, title, text, cancelText, comfirmText }
 export default ModalWindow;
 
 ModalWindow.propTypes = {
-    onHide: PropTypes.func,
+    onCancel: PropTypes.func,
     onConfirm: PropTypes.func,
     title: PropTypes.string,
     text: PropTypes.string,

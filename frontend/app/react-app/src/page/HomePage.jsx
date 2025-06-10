@@ -187,7 +187,7 @@ function HomePage({ user }) {
                     </nav>
                 </div>
             </div>
-            <div className="row" style={{ position: "sticky", top: 0 }}>
+            <div className="row">
                 <div className="col">
                     <div className="d-flex">
                         <div className="mx-3">
@@ -205,9 +205,9 @@ function HomePage({ user }) {
                     </div>
                 </div>
             </div>
-            <div className="row" style={{ position: "sticky", top: 1 }}>
+            <div className="row">
                 {error && <div className="alert alert-danger">{error}</div>}
-                <div className={detailContent ? "col-md-9" : "col"}>
+                <div className="col">
                     <FileListView
                         files={files}
                         selectedFiles={selectedFiles}
@@ -220,17 +220,13 @@ function HomePage({ user }) {
                         deleteFile={deleteFile}
                     />
                 </div>
-                {detailContent && (
-                    <div className="col-md-3">
-                        <DetailView detail={detailContent} onClose={closeDetail} />
-                    </div>
-                )}
             </div>
+            {detailContent && <DetailView detail={detailContent} onHide={closeDetail} />}
             <ProgressView tasks={tasks} />
             <UploadDropZone onUpload={addFilesToUpload} />
             {showModal && (
                 <ModalWindow
-                    onHide={() => {
+                    onCancel={() => {
                         setModalConfirmAction(null);
                         setShowModal(false);
                     }}
