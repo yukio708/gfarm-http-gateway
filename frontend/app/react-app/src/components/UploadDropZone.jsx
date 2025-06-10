@@ -107,7 +107,7 @@ function UploadDropZone({ onUpload }) {
     };
 
     return (
-        <div>
+        <div style={{ position: "fixed", top: 0, left: 0, zIndex: 1000, width: "100%" }}>
             {isDragActive && (
                 <div
                     className={`drop-zone ${dragging ? "dragging" : ""}`}

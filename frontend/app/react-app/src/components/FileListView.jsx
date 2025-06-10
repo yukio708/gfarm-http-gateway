@@ -118,7 +118,7 @@ function FileListView({
                 <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
             </div>
             <table className="file-table">
-                <thead>
+                <thead style={{ position: "sticky", top: 0 }}>
                     <tr>
                         <th>
                             <input

@@ -16,8 +16,6 @@
 .file-table th {
     background-color: #f0f0f0;
     font-weight: bold;
-    position: sticky;
-    top:50;
 }
 
 .file-table tbody tr:hover {

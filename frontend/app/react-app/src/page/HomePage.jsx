@@ -205,13 +205,7 @@ function HomePage({ user }) {
                     </div>
                 </div>
             </div>
-            <div className="row" style={{ position: "sticky", top: 50 }}>
-                <div className="col">
-                    <UploadDropZone onUpload={addFilesToUpload} />
-                    <p>test</p>
-                </div>
-            </div>
-            <div className="row" style={{ position: "sticky", top: 50 }}>
+            <div className="row" style={{ position: "sticky", top: 1 }}>
                 {error && <div className="alert alert-danger">{error}</div>}
                 <div className={detailContent ? "col-md-9" : "col"}>
                     <FileListView
@@ -233,6 +227,7 @@ function HomePage({ user }) {
                 )}
             </div>
             <ProgressView tasks={tasks} />
+            <UploadDropZone onUpload={addFilesToUpload} />
             {showModal && (
                 <ModalWindow
                     onHide={() => {
