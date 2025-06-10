@@ -187,11 +187,7 @@ function HomePage({ user }) {
                     </nav>
                 </div>
             </div>
-            <div className="row">
-                <div className="col ms-2"></div>
-            </div>
-
-            <div className="row">
+            <div className="row" style={{ position: "sticky", top: 0 }}>
                 <div className="col">
                     <div className="d-flex">
                         <div className="mx-3">
@@ -209,12 +205,13 @@ function HomePage({ user }) {
                     </div>
                 </div>
             </div>
-            <div className="row">
+            <div className="row" style={{ position: "sticky", top: 50 }}>
                 <div className="col">
                     <UploadDropZone onUpload={addFilesToUpload} />
+                    <p>test</p>
                 </div>
             </div>
-            <div className="row">
+            <div className="row" style={{ position: "sticky", top: 50 }}>
                 {error && <div className="alert alert-danger">{error}</div>}
                 <div className={detailContent ? "col-md-9" : "col"}>
                     <FileListView

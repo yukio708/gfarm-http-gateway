@@ -2,15 +2,11 @@
     cursor: pointer; /* Change cursor to pointer */
 }
 
-.dropdown-toggle svg {
-    font-size: 1.5rem; /* Adjust icon size */
-}
-
 .file-table {
     width: 100%;
     border-collapse: collapse;
 }
-  
+
 .file-table th,
 .file-table td {
     padding: 8px 12px;
@@ -20,15 +16,12 @@
 .file-table th {
     background-color: #f0f0f0;
     font-weight: bold;
+    position: sticky;
+    top:50;
 }
 
 .file-table tbody tr:hover {
     background-color: #f0f0f0;
-}
-
-.file-table svg {
-    font-size: 1.5rem;
-    margin-right: 5px;
 }
 
 .file-table th:nth-child(1), /* Input column */

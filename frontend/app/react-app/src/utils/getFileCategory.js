@@ -5,7 +5,7 @@ export const loadFileMeta = async () => {
         return fileMeta;
     }
     try {
-        const res = await fetch("/assets/file_meta.json");
+        const res = await fetch("./assets/file_meta.json");
         if (!res.ok) throw new Error("Failed to load file_meta.json");
 
         fileMeta = await res.json();

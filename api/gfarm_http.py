@@ -717,7 +717,7 @@ async def oidc_auth_common(request):
     user = get_user_from_access_token(access_token)
     log_login(request, user, "access_token")
     # return RedirectResponse(url="./")
-    url = request.session.get("next_url", "/")
+    url = request.session.get("next_url", request.url_for("index").path)
     return RedirectResponse(url=url)
 
 
@@ -767,7 +767,7 @@ async def index(request: Request,
             + logout_url + "&state=" + csrf_token
         claims = jwt.get_unverified_claims(access_token)
         exp = claims.get("exp")
-    if request.url.path == "/":
+    if "debug" not in request.url.path:
         return FileResponse("frontend/app/react-app/dist/index.html")
     return templates.TemplateResponse("index.html",
                                       {"request": request,
@@ -806,7 +806,7 @@ async def login_page(request: Request,
     csrf_token = gen_csrf(request)
     error = request.session.get("error", "")
     request.session.pop("error", None)
-    request.session['next_url'] = f"/{redirect}" if redirect else "/"
+    request.session['next_url'] = redirect if redirect else request.url_for("index").path
     return templates.TemplateResponse("login.html",
                                       {"request": request,
                                        "error": error,
@@ -868,7 +868,6 @@ async def logout(request: Request,
     check_csrf(request, state)
     delete_token(request)
     delete_user_passwd(request)
-    # return RedirectResponse(url="./")
     url = request.url_for("index")
     return RedirectResponse(url=url)
 
@@ -935,7 +934,7 @@ async def login_passwd(request: Request,
     set_user_passwd(request, username, password)
     env = await set_env(request, None)
     p = await gfwhoami(env)
-    url = request.session.get("next_url", "/")
+    url = request.session.get("next_url", request.url_for("index").path)
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
     except Exception as e:
