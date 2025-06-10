@@ -1,0 +1,402 @@
+const { test, expect } = require("@playwright/test");
+const fs = require("fs");
+const path = require("path");
+const http = require("http");
+
+const FRONTEND_URL = "http://localhost:3000";
+const DIR_LIST = path.resolve(__dirname, "data/filelist.json");
+
+let fileStructureData = null;
+
+// Wait for React frontend to start
+async function waitForReact() {
+    for (let i = 0; i < 10; i++) {
+        try {
+            await new Promise((resolve, reject) => {
+                const req = http.get(FRONTEND_URL, (res) => {
+                    res.statusCode === 200 ? resolve() : reject();
+                });
+                req.on("error", reject);
+            });
+            return;
+        } catch {
+            await new Promise((res) => setTimeout(res, 1000));
+        }
+    }
+    throw new Error("React app is not up!");
+}
+
+const findChildrenByPath = (nodes, targetPath) => {
+    if (targetPath === null) return null;
+    console.log("targetPath", targetPath);
+    const normalizedTargetPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
+
+    for (const node of nodes) {
+        if (node.path === normalizedTargetPath) {
+            return node.childlen && Array.isArray(node.childlen) ? node.childlen : [];
+        }
+
+        // If the current node is a directory and has child elements
+        if (!node.is_file && node.childlen && Array.isArray(node.childlen)) {
+            if (
+                normalizedTargetPath.startsWith(node.path + "/") ||
+                (node.path === "/" && normalizedTargetPath !== "/")
+            ) {
+                const foundChildren = findChildrenByPath(node.childlen, targetPath);
+                if (foundChildren !== null) {
+                    return foundChildren;
+                }
+            }
+        }
+    }
+    // Return null if path is not found
+    return null;
+};
+
+const findNodeByPath = (nodes, targetPath) => {
+    if (targetPath === null) return null;
+    const normalizedTargetPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
+
+    for (const node of nodes) {
+        if (node.path === normalizedTargetPath) {
+            return node;
+        }
+
+        if (!node.is_file && node.childlen && Array.isArray(node.childlen)) {
+            if (
+                normalizedTargetPath.startsWith(node.path + "/") ||
+                (node.path === "/" && normalizedTargetPath !== "/")
+            ) {
+                const foundNode = findNodeByPath(node.childlen, targetPath);
+                if (foundNode !== null) {
+                    return foundNode;
+                }
+            }
+        }
+    }
+    return null;
+};
+
+const getSize = (filesize) => {
+    if (filesize === 0) {
+        return "";
+    }
+
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const i = Math.floor(Math.log(filesize) / Math.log(k));
+
+    const sizestr = parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return sizestr;
+};
+
+// Route handler
+async function handleRoute(route, request) {
+    const url = request.url();
+    if (url.includes("/attr/")) {
+        console.log("/attr/", url);
+        const filePath = decodeURIComponent(url.split("/attr/")[1]);
+        const fileNode = findNodeByPath(fileStructureData, filePath);
+
+        if (fileNode) {
+            // Construct a detail object using information from the fileNode
+            const detailResponse = {
+                File: fileNode.name,
+                Filetype: fileNode.name.includes(".")
+                    ? fileNode.name.split(".").pop()
+                    : fileNode.is_file
+                      ? "regular file"
+                      : "directory",
+                Size: fileNode.size,
+                Mode: fileNode.mode_str,
+                Access: fileNode.mtime_str, // Use 'mtime_str'
+                Modify: fileNode.mtime_str, // Use 'mtime_str'
+                Change: fileNode.mtime_str, // Use 'mtime_str'
+                Uid: fileNode.uname, // Use 'uname'
+                Gid: fileNode.gname, // Use 'gname'
+                MetadataHost: "test-host.local",
+                MetadataPort: 8080,
+                MetadataUser: "testuser",
+            };
+
+            await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify(detailResponse),
+            });
+        } else {
+            await route.fulfill({
+                status: 404,
+                contentType: "application/json",
+                body: JSON.stringify({ error: "File not found" }),
+            });
+        }
+    } else if (url.includes("/d/")) {
+        console.log("/d/", url);
+        if (fileStructureData === null) {
+            fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
+        }
+        const path = url.split("/d/", 2)[1].split("?")[0];
+        const jsonData = findChildrenByPath(fileStructureData, path);
+        if (jsonData !== null) {
+            await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify(jsonData),
+            });
+        } else {
+            const responseData = {
+                detail: {
+                    command: "gfls",
+                    message: "no such file or directory",
+                    stdout: "",
+                    stderr: "",
+                },
+            };
+            await route.fulfill({
+                status: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(responseData),
+            });
+        }
+    } else if (url.includes("/user_info")) {
+        console.log("/user_info", url);
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ username: "user1" }),
+        });
+    } else {
+        await route.continue();
+    }
+}
+
+// Helper function to click a file's detail button and wait for the modal to open
+async function openDetailModal(page, fileName) {
+    const fileRow = page.locator("tbody tr", { hasText: fileName });
+    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
+    await expect(threeDotsButton).toBeVisible();
+    await threeDotsButton.click();
+
+    const detailButton = page.locator(".dropdown-menu").getByRole("button", { name: "Detail" });
+    await expect(detailButton).toBeVisible();
+
+    await detailButton.click();
+
+    await expect(page.locator(".offcanvas.offcanvas-end.show")).toBeVisible();
+}
+
+// Helper function to close the detail modal
+async function closeDetailModal(page) {
+    const closeButton = page.locator(".offcanvas.offcanvas-end.show .btn-close");
+    await expect(closeButton).toBeVisible();
+    await closeButton.click();
+    await expect(page.locator(".offcanvas.offcanvas-end.show")).not.toBeVisible();
+}
+
+test.beforeAll(async () => {
+    await waitForReact();
+    fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
+});
+
+// === Tests ===
+
+test.beforeAll(async () => {
+    await waitForReact();
+    fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
+});
+// --- Detail View Test ---
+const getExpectedDetailData = (filePath) => {
+    const fileNode = findNodeByPath(fileStructureData, filePath);
+    if (!fileNode) return null;
+
+    return {
+        File: fileNode.name,
+        Filetype: fileNode.name.includes(".")
+            ? fileNode.name.split(".").pop()
+            : fileNode.is_file
+              ? "regular file"
+              : "directory",
+        Size: fileNode.size,
+        Mode: fileNode.mode_str,
+        Access: fileNode.mtime_str, // Use 'mtime_str'
+        Modify: fileNode.mtime_str, // Use 'mtime_str'
+        Change: fileNode.mtime_str, // Use 'mtime_str'
+        Uid: fileNode.uname, // Use 'uname'
+        Gid: fileNode.gname, // Use 'gname'
+        MetadataHost: "test-host.local",
+        MetadataPort: 8080,
+        MetadataUser: "testuser",
+    };
+};
+
+test("display file name in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "File:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.File);
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display file type in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "File Type:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.Filetype);
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display file size in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "Size:" }).locator("td").nth(1)
+        ).toHaveText(getSize(expectedDetail.Size));
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display permissions in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "Permissions:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.Mode);
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display access time in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "Accessed:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.Access);
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display modified time in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "Last Modified:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.Modify);
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display change time in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "Change:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.Change);
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display owner uid in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "Owner UID:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.Uid);
+
+        await closeDetailModal(page);
+    }
+});
+
+test("display owner gid in details", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await openDetailModal(page, expectedFile.name);
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator(".table tbody tr", { hasText: "Owner GID:" }).locator("td").nth(1)
+        ).toHaveText(expectedDetail.Gid);
+
+        await closeDetailModal(page);
+    }
+});

@@ -101,6 +101,12 @@ function DetailView({ detail, onHide }) {
                             </td>
                             <td>{detail.Uid}</td>
                         </tr>
+                        <tr>
+                            <td>
+                                <strong>Owner GID:</strong>
+                            </td>
+                            <td>{detail.Gid}</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

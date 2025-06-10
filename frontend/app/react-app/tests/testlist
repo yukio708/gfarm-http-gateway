@@ -1,51 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-// --- File/Directory Display Test ---
-
-test('display file list existing path', async ({ page }) => {
-  // TODO: 実際のパスにアクセスして、ファイル一覧を確認する
-});
-
-test('display error on nonexistent path', async ({ page }) => {
-  // TODO: 存在しないディレクトリに移動して、エラーメッセージを確認
-});
-
-test('display large file list', async ({ page }) => {
-  // TODO: たくさんのファイルが表示されるパスでスクロール・表示の確認
-});
-
-test('sort by filename', async ({ page }) => {
-  // TODO: ソートボタンを押して、昇順・降順の順番を確認
-});
-
-test('sort by filesize', async ({ page }) => {
-  // TODO: サイズソートを押して、サイズ順になっているか確認
-});
-
-test('sort by modified time', async ({ page }) => {
-  // TODO: 更新日時ソートで正しく並び替えられているか
-});
-
-test('filter by extension', async ({ page }) => {
-  // TODO: 例えば `.txt` だけフィルターして確認
-});
-
-test('filter by date range', async ({ page }) => {
-  // TODO: 日付フィルターを使って、範囲内のファイルのみが表示されるか
-});
-
-test('display current directory path', async ({ page }) => {
-  // TODO: ナビゲーションバーなどに現在のパスが表示されているか確認
-});
-
-test('display operation menu', async ({ page }) => {
-  // TODO: ファイルやフォルダを右クリック（またはメニューアイコン）して操作メニューを確認
-});
-
-test('display action buttons', async ({ page }) => {
-  // TODO: コピー、削除、アップロードなどのボタンが正しく表示されるか
-});
 
 ---
 
