@@ -1,20 +1,19 @@
-import { encodePath } from './func'
-import { API_URL } from './api_url';
+import { encodePath } from "./func";
+import { API_URL } from "./api_url";
 
 async function getAttribute(filepath) {
     const epath = encodePath(filepath);
     const fullpath = `${API_URL}/attr${epath}`;
     try {
         const response = await fetch(fullpath);
-        const text = await response.text();
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${text}`);
+            throw new Error(`HTTP ${response.status}: ${response.text()}`);
         }
-        const json = JSON.parse(text);
-        return json;  // assuming the data is in the correct format
+        const json = await response.json();
+        return json;
     } catch (error) {
-        console.error('Fetch error: ', error);
-        return null;  // Return null in case of error
+        console.error("Fetch error: ", error);
+        return null;
     }
 }
 

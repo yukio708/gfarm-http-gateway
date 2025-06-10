@@ -2060,7 +2060,7 @@ async def get_attr(gfarm_path: str,
             raise gfarm_http_error(opname, code, message, stdout, elist)
     st = parse_gfstat(stdout)
     logger.debug("Stat=\n" + pf(st.model_dump()))
-    return st
+    return JSONResponse(content=st.model_dump())
 
 
 @app.post("/a/{gfarm_path:path}")
