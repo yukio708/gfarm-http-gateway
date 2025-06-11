@@ -13,6 +13,7 @@ function UploadMenu({ onUpload, createDirectory }) {
             console.log("Collected files:", data.files);
             onUpload(data.files, getDeepestDirs(data.dirSet));
         }
+        e.target.value = null;
     };
 
     return (

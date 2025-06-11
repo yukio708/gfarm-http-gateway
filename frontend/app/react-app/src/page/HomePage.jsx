@@ -34,6 +34,9 @@ function HomePage({ user }) {
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
     const [isUploading, setIsUploading] = useState(false);
+    const downloadQueueRef = useRef([]);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [showPogressView, setShowPogressView] = useState(false);
     const [destPath, setDestPath] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [modalTitle, setModalTitle] = useState("");
@@ -65,16 +68,10 @@ function HomePage({ user }) {
         }
     };
 
-    const downloadFiles = async (files) => {
-        console.log("downloadFiles: filepath:", files);
-        try {
-            await download(files, setTasks);
-        } catch (err) {
-            console.error("Download failed:", err);
-        }
-        setTimeout(() => {
-            setTasks((prev) => prev.filter((t) => !t.done && Date.now() - t.updateTime < 10));
-        }, 10000);
+    const addFilesToDownload = async (files) => {
+        console.log("addFilesToDownload: filepath:", files);
+        downloadQueueRef.current.push(files);
+        setIsDownloading(true);
     };
 
     const addFilesToUpload = async (newFiles, uploaddirs) => {
@@ -114,6 +111,37 @@ function HomePage({ user }) {
             uploadFiles();
         }
     }, [isUploading]);
+
+    const downloadFiles = async () => {
+        const concurrency = 3;
+        const worker = async () => {
+            while (downloadQueueRef.current.length) {
+                const files = downloadQueueRef.current.shift();
+                await download(files, setTasks);
+                setTimeout(() => {
+                    setTasks((prev) =>
+                        prev.filter((t) => !t.done && Date.now() - t.updateTime < 10)
+                    );
+                }, 10000);
+            }
+        };
+        const workers = Array(concurrency).fill().map(worker);
+        await Promise.all(workers);
+
+        setIsDownloading(false);
+    };
+
+    useEffect(() => {
+        if (isDownloading) {
+            downloadFiles();
+        }
+    }, [isDownloading]);
+
+    useEffect(() => {
+        if (tasks.length > 0) {
+            setShowPogressView(true);
+        }
+    }, [tasks]);
 
     const showDetail = async (name, filepath) => {
         try {
@@ -180,7 +208,7 @@ function HomePage({ user }) {
                     <nav className="navbar bg-body-tertiary">
                         <div className="container-fluid">
                             <span className="navbar-brand mb-0 h1">Title</span>
-                            <div className="ms-2">
+                            <div className="ms-2 d-flex gap-2">
                                 <UserMenu user={user} />
                             </div>
                         </div>
@@ -198,7 +226,7 @@ function HomePage({ user }) {
                             <FileActionMenu
                                 selectedFiles={selectedFiles}
                                 deleteFile={deleteFile}
-                                downloadFiles={downloadFiles}
+                                downloadFiles={addFilesToDownload}
                                 moveFiles={moveFiles}
                             />
                         </div>
@@ -214,7 +242,7 @@ function HomePage({ user }) {
                         handleSelectFile={handleSelectFile}
                         handleSelectAll={handleSelectAll}
                         jumpDirectory={jumpDirectory}
-                        downloadFiles={downloadFiles}
+                        downloadFiles={addFilesToDownload}
                         showDetail={showDetail}
                         displayFile={displayFile}
                         deleteFile={deleteFile}
@@ -222,7 +250,23 @@ function HomePage({ user }) {
                 </div>
             </div>
             {detailContent && <DetailView detail={detailContent} onHide={closeDetail} />}
-            <ProgressView tasks={tasks} />
+            <ProgressView
+                show={showPogressView}
+                onHide={() => {
+                    setShowPogressView(false);
+                }}
+                tasks={tasks}
+            />
+            {!showPogressView && tasks.length > 0 && (
+                <button
+                    className="btn btn-primary position-fixed end-0 bottom-0 m-3"
+                    onClick={() => {
+                        setShowPogressView(true);
+                    }}
+                >
+                    <i className="bi bi-arrow-repeat me-2"></i> Show Progress
+                </button>
+            )}
             <UploadDropZone onUpload={addFilesToUpload} />
             {showModal && (
                 <ModalWindow

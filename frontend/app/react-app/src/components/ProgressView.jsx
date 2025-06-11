@@ -1,41 +1,110 @@
-import React from 'react';
-import '../css/ProgressView.css'
-import PropTypes from 'prop-types';
+import React, { useEffect, useRef } from "react";
+import Offcanvas from "bootstrap/js/dist/offcanvas";
+import PropTypes from "prop-types";
 
-function ProgressPopup({ name, value, status, onCancel }) {
+function ProgressView({ show, onHide, tasks }) {
+    const canvasRef = useRef(null);
+    const instanceRef = useRef(null);
+
+    useEffect(() => {
+        if (!canvasRef.current) return;
+        const handleHide = () => {
+            onHide();
+        };
+        if (!instanceRef.current) {
+            instanceRef.current = Offcanvas.getOrCreateInstance(canvasRef.current);
+            canvasRef.current.addEventListener("hidden.bs.offcanvas", handleHide);
+        }
+
+        if (show) {
+            instanceRef.current.show();
+        } else {
+            instanceRef.current.hide();
+        }
+
+        return () => {
+            if (canvasRef.current) {
+                canvasRef.current.removeEventListener("hidden.bs.offcanvas", handleHide);
+            }
+        };
+    }, [show, onHide]);
+
     return (
-        <div className="progress-popup" key={name}>
-            <p><strong>{name}</strong></p>
-            <progress value={value} max="100"></progress>
-            <p>{status}</p>
-            {value < 100 && <button className="btn btn-primary btn-sm" onClick={onCancel}>Cancel</button>}
+        <div
+            className="offcanvas offcanvas-end"
+            tabIndex="-1"
+            ref={canvasRef}
+            aria-labelledby="transferProgressLabel"
+            onClick={onHide}
+        >
+            <div className="offcanvas-header">
+                <h5 className="offcanvas-title" id="transferProgressLabel">
+                    Transfers
+                </h5>
+                <button
+                    type="button"
+                    className="btn-close"
+                    data-bs-dismiss="offcanvas"
+                    aria-label="Close"
+                    onClick={onHide}
+                ></button>
+            </div>
+            <div className="offcanvas-body">
+                {tasks.length === 0 ? (
+                    <p className="text-muted">No active transfers.</p>
+                ) : (
+                    <div className="d-flex flex-column gap-3">
+                        {tasks.map((task, index) => (
+                            <div className="card shadow-sm" key={`${task.name}-${index}`}>
+                                <div className="card-body">
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 className="mb-0">
+                                            {task.type === "upload" ? "⬆️" : "⬇️"} {task.name}
+                                        </h6>
+                                        <small
+                                            className={`badge rounded-pill ${
+                                                task.status === "completed"
+                                                    ? "bg-success"
+                                                    : task.status === "error"
+                                                      ? "bg-danger"
+                                                      : "bg-secondary"
+                                            }`}
+                                        >
+                                            {task.status}
+                                        </small>
+                                    </div>
+                                    <div className="progress" style={{ height: "8px" }}>
+                                        <div
+                                            className={`progress-bar ${
+                                                task.status === "completed"
+                                                    ? "bg-success"
+                                                    : "bg-info"
+                                            }`}
+                                            role="progressbar"
+                                            style={{ width: `${task.value}%` }}
+                                            aria-valuenow={task.value}
+                                            aria-valuemin="0"
+                                            aria-valuemax="100"
+                                        ></div>
+                                    </div>
+                                    <div className="d-flex justify-content-between mt-2">
+                                        <small>{task.value}%</small>
+                                        <small className="text-muted">{task.speed || "-"}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
-};
+}
 
-function ProgressView({tasks}) { 
-    if (tasks.length < 1) {
-        return (<></>);
-    }
-
-    return (
-        <div className="progress-popup-container">
-            {tasks.map(task => (
-            <ProgressPopup key={task.name} name={task.name} value={task.value} status={task.status} onCancel={task.onCancel} />
-            ))}
-        </div>
-    );
-};
-  
 export default ProgressView;
 
-ProgressPopup.propTypes = {
-    name: PropTypes.string, 
-    value: PropTypes.string, 
-    status: PropTypes.string,
-    onCancel: PropTypes.func
-};
-
 ProgressView.propTypes = {
-    tasks: PropTypes.array
+    show: PropTypes.bool.isRequired,
+    onHide: PropTypes.func.isRequired,
+    tasks: PropTypes.array,
 };
