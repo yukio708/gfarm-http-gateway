@@ -118,7 +118,7 @@ async function downloadFiles(paths, setTasks) {
         return;
     }
     // Multiple files — request a zip from the server
-    const url = `${API_URL}/download/zip`;
+    const url = `${API_URL}/files/zip`;
     const taskId = paths.join(",") + Date.now();
     const gfarmpathes = paths.map((path) => "gfarm:" + path);
     const controller = new AbortController();

@@ -16,11 +16,13 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import List, Union, Optional
+from typing import List, Union, Optional, AsyncGenerator
 import urllib
 import re
 import tempfile
 import shutil
+import zipfile
+from collections import deque
 
 from loguru import logger
 
@@ -806,7 +808,10 @@ async def login_page(request: Request,
     csrf_token = gen_csrf(request)
     error = request.session.get("error", "")
     request.session.pop("error", None)
-    request.session['next_url'] = redirect if redirect else request.url_for("index").path
+    if redirect:
+        request.session['next_url'] = redirect
+    else:
+        request.session['next_url'] = request.url_for("index").path
     return templates.TemplateResponse("login.html",
                                       {"request": request,
                                        "error": error,
@@ -1848,52 +1853,215 @@ async def file_export(gfarm_path: str,
                              )
 
 
+def from_rwx(rwx, highchar):
+    perm = 0
+    highbit = 0
+    r = rwx[0]
+    w = rwx[1]
+    x = rwx[2]
+    if r == 'r':
+        perm |= 0o4
+    if w == 'w':
+        perm |= 0o2
+    if x == 'x':
+        perm |= 0o1
+    elif x == highchar:
+        perm |= 0o1
+        highbit = 0o1
+    elif x == highchar.upper():
+        highbit = 0o1
+    return perm, highbit
+
+
+class ZipStreamWriter:
+    """
+    yields data for zipfile.ZipFile to write
+    """
+    def __init__(self, chunk_size: int = BUFSIZE):
+        self._buffer = deque()  # A queue for storing byte chunks
+        self._closed = False
+        self._chunk_size = chunk_size
+        self._current_chunk = bytearray()
+
+    def write(self, data: bytes) -> int:
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+
+        self._current_chunk.extend(data)
+        while len(self._current_chunk) >= self._chunk_size:
+            self._buffer.append(bytes(self._current_chunk[:self._chunk_size]))
+            del self._current_chunk[:self._chunk_size]
+        return len(data)
+
+    async def get_chunks(self) -> AsyncGenerator[bytes, None]:
+        while not self._closed or self._buffer:
+            if self._buffer:
+                yield self._buffer.popleft()
+            else:
+                # If the buffer is empty, wait a bit
+                await asyncio.sleep(0.001)
+        # Flush remaining data on exit
+        if self._current_chunk:
+            yield bytes(self._current_chunk)
+
+    def close(self):
+        self._closed = True
+
+    def flush(self):
+        pass
+
+
+class Entry:
+    def __init__(
+            self,
+            fullpath,
+            dirname,
+            name,
+            linkname,
+            mtime,
+            mode,
+            is_dir,
+            is_sym):
+        self.fullpath = fullpath
+        self.dirname = dirname
+        self.name = name
+        self.linkname = linkname
+        self.mtime = mtime
+        self.mode = mode
+        self.is_dir = is_dir
+        self.is_sym = is_sym
+
+
 class FileList(BaseModel):
     files: List[str]
 
 
-@app.get("/files")
-@app.post("/download/zip")
+@app.post("/files/zip")
 async def download_zip(filelist: FileList,
                        request: Request,
                        authorization: Union[str, None] = Header(default=None)):
     opname = "gfzip"
     env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, filelist.files)
-    for filepath in filelist.files:
-        existing, _, _ = await file_size(env, filepath)
-        if not existing:
-            code = 404
-            message = "The requested URL does not exist."
-            stdout = ""
-            elist = []
-            raise gfarm_http_error(opname, code, message, stdout, elist)
 
-    p = await gfzip(env, filelist.files)
-    elist = []
-    stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
-    first_byte = await p.stdout.read(1)
-    if not first_byte:
-        await stderr_task
-        code = 403
-        message = f"Cannot read: path={filelist.files}"
-        stdout = ""
-        raise gfarm_http_error(opname, code, message, stdout, elist)
+    async def gather_all_entries() -> AsyncGenerator[Entry, None]:
+        for filepath in filelist.files:
+            dirname = ""
+            existing, is_file, _ = await file_size(env, filepath)
+            if not existing:
+                code = 404
+                message = f"The requested URL does not exist: {filepath}"
+                stdout = ""
+                elist = []
+                raise gfarm_http_error(opname, code, message, stdout, elist)
+            p = await gfls(env, filepath,
+                           _all=True, recursive=True, _long=True, _T=True)
+            data = await p.stdout.read()
+            stdout = data.decode()
+            return_code = await p.wait()
+            if return_code != 0:
+                logger.debug(
+                    f"{ipaddr}:0 user={user}, cmd={opname}, " +
+                    f"return={return_code}," +
+                    f" message={stdout}")
+                code = 500
+                message = f"gfls error: path={filepath}"
+                elist = []
+                raise gfarm_http_error(opname, code, message, stdout, elist)
+
+            for line in stdout.splitlines():
+                parts = line.strip().split(None, 9)
+                if len(parts) < 10:
+                    dirname = line[:-1].lstrip(filepath)
+                    continue
+                name = parts[9]
+                mode_str = parts[0]
+                is_dir = mode_str.startswith('d')
+                is_sym = mode_str.startswith('l')
+                linkname = ''
+                if is_sym:
+                    pair = name.split(' -> ')
+                    name = pair[0]
+                    linkname = pair[1]
+                mode = 0
+                perm, highbit = from_rwx(mode_str[1:4], 's')
+                mode |= (perm << 6)
+                mode |= (highbit << 11)
+                perm, highbit = from_rwx(mode_str[4:7], 's')
+                mode |= (perm << 3)
+                mode |= (highbit << 10)
+                perm, highbit = from_rwx(mode_str[7:10], 't')
+                mode |= perm
+                mode |= (highbit << 9)
+                mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
+                mtime = time.mktime(
+                    time.strptime(mtime_str, '%b %d %H:%M:%S %Y'))
+                if name == "." or name == "..":
+                    continue
+                fullpath = filepath
+                if not is_file:
+                    fullpath = os.path.join(fullpath, dirname, name)
+                yield Entry(fullpath, dirname, name, linkname,
+                            mtime, mode, is_dir, is_sym)
+
+    async def add_entry_to_zip(zipf: zipfile.ZipFile, entry):
+        loop = asyncio.get_event_loop()
+        rel_path = os.path.join(entry.dirname, entry.name)
+
+        zipinfo = zipfile.ZipInfo(filename=rel_path)
+        zipinfo.date_time = time.localtime(entry.mtime)[:6]
+        zipinfo.compress_type = zipfile.ZIP_DEFLATED
+        zipinfo.external_attr = (entry.mode & 0xFFFF) << 16
+
+        if entry.is_sym:
+            zipinfo.create_system = 3  # Unix
+            zipinfo.external_attr |= 0xA000 << 16  # symlink bit
+            zipf.writestr(zipinfo, entry.linkname.encode())
+        elif entry.is_dir:
+            zipinfo.external_attr |= 0x4000 << 16  # directory bit
+            if not rel_path.endswith('/'):
+                zipinfo.filename += '/'
+            zipf.writestr(zipinfo, b'')
+        else:
+            try:
+                env = await set_env(request, authorization)
+                proc = await gfexport(env, entry.fullpath)
+                elist = []
+                stderr_task = asyncio.create_task(
+                        log_stderr(opname, proc, elist)
+                    )
+                with zipf.open(zipinfo, 'w') as dest:
+                    while True:
+                        chunk = await proc.stdout.read(BUFSIZE)
+                        if not chunk:
+                            break
+                        await loop.run_in_executor(None, dest.write, chunk)
+                await stderr_task
+                return_code = await proc.wait()
+                if return_code != 0:
+                    raise
+            except Exception as e:
+                code = 500
+                message = f"zip create error: path={entry.fullpath}: {e}"
+                raise gfarm_http_error(opname, code, message, "", elist)
+
+    async def create_zip(zip_writer):
+        try:
+            with zipfile.ZipFile(zip_writer, "w",
+                                 compression=zipfile.ZIP_DEFLATED) as zf:
+                async for entry in gather_all_entries():
+                    await add_entry_to_zip(zf, entry)
+        finally:
+            zip_writer.close()
 
     async def generate():
-        yield first_byte
-        try:
-            while True:
-                chunk = await p.stdout.read(BUFSIZE)
-                if not chunk:
-                    break
-                yield chunk
-        except asyncio.CancelledError:
-            p.kill()
-            code = 499
-            message = "Client disconnected during download"
-            stdout = ""
-            raise gfarm_http_error(opname, code, message, stdout, elist)
+        zip_writer = ZipStreamWriter(chunk_size=BUFSIZE)
+        asyncio.create_task(create_zip(zip_writer))
+        async for chunk in zip_writer.get_chunks():
+            yield chunk
+
     zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip'
     headers = {"Content-Disposition": f'attachment; filename="{zipname}"'}
     return StreamingResponse(
