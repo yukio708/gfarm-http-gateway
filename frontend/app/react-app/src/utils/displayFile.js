@@ -1,15 +1,15 @@
-import { encodePath } from './func'
-import { API_URL } from './api_url';
+import { encodePath } from "./func";
+import { API_URL } from "./api_url";
 
 function displayFile(path) {
-    console.log("displayFile: filepath:", path);
     if (!path) {
-        alert('Please input Gfarm path');
+        alert("Please input Gfarm path");
         return;
     }
     const epath = encodePath(path);
     const url = `${API_URL}/file${epath}`;
-    window.open(url, '_blank');
+    window.open(url, "_blank");
+    console.log("displayFile: url:", url);
 }
 
 export default displayFile;

@@ -1,148 +1,18 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
-const path = require("path");
-const http = require("http");
 
-const FRONTEND_URL = "http://localhost:3000";
-const DIR_LIST = path.resolve(__dirname, "data/filelist.json");
+const {
+    waitForReact,
+    findChildrenByPath,
+    getSize,
+    getFileIconDefault,
+    handleRoute,
+    API_URL,
+    FRONTEND_URL,
+    DIR_LIST,
+} = require("./func");
 
 let fileStructureData = null;
-
-// Wait for React frontend to start
-async function waitForReact() {
-    for (let i = 0; i < 10; i++) {
-        try {
-            await new Promise((resolve, reject) => {
-                const req = http.get(FRONTEND_URL, (res) => {
-                    res.statusCode === 200 ? resolve() : reject();
-                });
-                req.on("error", reject);
-            });
-            return;
-        } catch {
-            await new Promise((res) => setTimeout(res, 1000));
-        }
-    }
-    throw new Error("React app is not up!");
-}
-
-const findChildrenByPath = (nodes, targetPath) => {
-    if (targetPath === null) return null;
-    console.log("targetPath", targetPath);
-    const normalizedTargetPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
-
-    for (const node of nodes) {
-        if (node.path === normalizedTargetPath) {
-            return node.childlen && Array.isArray(node.childlen) ? node.childlen : [];
-        }
-
-        // If the current node is a directory and has child elements
-        if (!node.is_file && node.childlen && Array.isArray(node.childlen)) {
-            if (
-                normalizedTargetPath.startsWith(node.path + "/") ||
-                (node.path === "/" && normalizedTargetPath !== "/")
-            ) {
-                const foundChildren = findChildrenByPath(node.childlen, targetPath);
-                if (foundChildren !== null) {
-                    return foundChildren;
-                }
-            }
-        }
-    }
-    // Return null if path is not found
-    return null;
-};
-
-const getSize = (filesize) => {
-    if (filesize === 0) {
-        return "";
-    }
-
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-    const i = Math.floor(Math.log(filesize) / Math.log(k));
-
-    const sizestr = parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-    return sizestr;
-};
-
-const getFileIconDefault = (ext, is_file) => {
-    ext = ext.toLowerCase();
-    if (!is_file) {
-        return "bi bi-folder";
-    }
-
-    switch (ext) {
-        case "pdf":
-            return "bi bi-file-earmark-pdf";
-        case "jpg":
-        case "jpeg":
-        case "png":
-        case "gif":
-            return "bi bi-file-earmark-image";
-        case "mp4":
-        case "webm":
-            return "bi bi-file-earmark-play";
-        case "mp3":
-        case "wav":
-            return "bi bi-file-earmark-music";
-        case "js":
-        case "py":
-        case "html":
-        case "css":
-            return "bi bi-file-earmark-code";
-        case "zip":
-        case "rar":
-        case "tar":
-        case "gz":
-            return "bi bi-file-earmark-zip";
-        default:
-            return "bi bi-file-earmark-text"; // Default file icon
-    }
-};
-
-// Route handler
-async function handleRoute(route, request) {
-    const url = request.url();
-    if (url.includes("/d/")) {
-        console.log("/d/", url);
-        if (fileStructureData === null) {
-            fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
-        }
-        const path = url.split("/d/", 2)[1].split("?")[0];
-        const jsonData = findChildrenByPath(fileStructureData, path);
-        if (jsonData !== null) {
-            await route.fulfill({
-                status: 200,
-                contentType: "application/json",
-                body: JSON.stringify(jsonData),
-            });
-        } else {
-            const responseData = {
-                detail: {
-                    command: "gfls",
-                    message: "no such file or directory",
-                    stdout: "",
-                    stderr: "",
-                },
-            };
-            await route.fulfill({
-                status: 404,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(responseData),
-            });
-        }
-    } else if (url.includes("/user_info")) {
-        console.log("/user_info", url);
-        await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ username: "user1" }),
-        });
-    } else {
-        await route.continue();
-    }
-}
 
 // === Tests ===
 
@@ -754,4 +624,60 @@ test("display action buttons", async ({ page }) => {
 
     // Check if the component is hidden again
     await expect(actionsToggleButton).not.toBeVisible();
+});
+
+test("double-clicking a file opens in new tab", async ({ page, context }) => {
+    await page.route("**/*", handleRoute);
+    await context.route("**/*", handleRoute);
+    context.on("page", (page) => {
+        console.log("[DEBUG] New tab opened:", page.url());
+    });
+
+    const currentDirectory = "/documents";
+    const testFileName = "report.docx";
+    const testFilePath = `${currentDirectory}/${testFileName}`;
+
+    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+
+    const fileRow = page.locator("tbody tr", { hasText: testFileName });
+    await expect(fileRow).toBeVisible();
+
+    const newPagePromise = context.waitForEvent("page");
+    await fileRow.dblclick();
+    const newPage = await newPagePromise;
+
+    await newPage.waitForLoadState("load");
+
+    const expectedFileUrl = `${API_URL}/file${testFilePath}`;
+    await expect(newPage).toHaveURL(expectedFileUrl);
+    await expect(newPage.locator("body")).toContainText(`This is the content of ${testFilePath}.`);
+
+    await newPage.close();
+});
+
+test("double-clicking a directory navigates to it", async ({ page }) => {
+    await page.route("**/*", handleRoute);
+
+    const currentDirectory = "/documents";
+    const testDirectoryName = "presentations";
+    const expectedNewPath = `${currentDirectory}/${testDirectoryName}`;
+
+    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+
+    await expect(page.locator("tbody tr", { hasText: testDirectoryName })).toBeVisible();
+
+    const directoryRow = page.locator("tbody tr", { hasText: testDirectoryName });
+    await expect(directoryRow).toBeVisible();
+
+    await directoryRow.dblclick();
+
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${expectedNewPath}`);
+
+    const expectedChildrenInNewDir = findChildrenByPath(fileStructureData, expectedNewPath);
+    await expect(page.locator("tbody tr")).toHaveCount(expectedChildrenInNewDir.length);
+    await expect(page.locator("tbody tr", { hasText: "q1_review.pptx" })).toBeVisible();
+
+    await expect(
+        page.locator("ol.breadcrumb li button", { hasText: testDirectoryName })
+    ).toBeVisible();
 });

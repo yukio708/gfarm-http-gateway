@@ -1,37 +1,19 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
-const http = require("http");
 
-const FRONTEND_URL = "http://localhost:3000";
-const LOGIN_HTML = path.resolve(__dirname, "../../../../templates/login.html");
+const { waitForReact, FRONTEND_URL } = require("./func");
+
 const DIR_LIST = path.resolve(__dirname, "data/datalist.json");
 
 let login = false;
 
-// Wait for React frontend to start
-async function waitForReact() {
-    for (let i = 0; i < 10; i++) {
-        try {
-            await new Promise((resolve, reject) => {
-                const req = http.get(FRONTEND_URL, (res) => {
-                    res.statusCode === 200 ? resolve() : reject();
-                });
-                req.on("error", reject);
-            });
-            return;
-        } catch {
-            await new Promise((res) => setTimeout(res, 1000));
-        }
-    }
-    throw new Error("React app is not up!");
-}
-
 // Read login.html once at the start
+const LOGIN_HTML = path.resolve(__dirname, "../../../../templates/login.html");
 const htmlContent = fs.readFileSync(LOGIN_HTML, "utf-8");
 
 // Route handler
-async function handleRoute(route, request) {
+async function login_handleRoute(route, request) {
     const url = request.url();
     if (url.includes("/login_oidc")) {
         console.log("/login_oidc", url);
@@ -124,7 +106,7 @@ test.beforeAll(async () => {
 // Login Process Test
 
 test("Login title should be visible", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -133,7 +115,7 @@ test("Login title should be visible", async ({ page }) => {
 });
 
 test("Login button should be visible", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -142,7 +124,7 @@ test("Login button should be visible", async ({ page }) => {
 });
 
 test("OIDC login with valid token should show file table", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -159,7 +141,7 @@ test("OIDC login with valid token should show file table", async ({ page }) => {
 });
 
 test("SASL login: valid user credentials", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -179,7 +161,7 @@ test("SASL login: valid user credentials", async ({ page }) => {
 });
 
 test("SASL login: invalid user credentials", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -200,7 +182,7 @@ test("SASL login: invalid user credentials", async ({ page }) => {
 // Logout Process Test
 
 test("Logout: should return to login screen", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = true;
     await page.goto(FRONTEND_URL, { waitUntil: "domcontentloaded" });
 
@@ -219,7 +201,7 @@ test("Android: A2HS button click should trigger installprompt", async ({ browser
         viewport: { width: 412, height: 915 },
     });
     const page = await context.newPage();
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
 
     await page.goto(FRONTEND_URL);
@@ -259,7 +241,7 @@ test("iOS: A2HS button click should trigger instructions", async ({ browser }) =
     });
 
     const page = await context.newPage();
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
 
     await page.goto(FRONTEND_URL);
@@ -278,7 +260,7 @@ test("iOS: A2HS button click should trigger instructions", async ({ browser }) =
 });
 
 test("Desktop: A2HS button should be hidden", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+    await page.route("**/*", login_handleRoute);
     login = false;
 
     await page.goto(FRONTEND_URL);
