@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import FileIcon from "../components/FileIcon";
 import FileTypeFilter from "../components/FileTypeFilter";
 import DateFilter from "../components/DateFilter";
+import { FileMenu } from "../components/FileActionMenu";
 import {
     filterFiles,
     getFileTypes,
@@ -11,7 +12,7 @@ import {
     formatFileSize,
 } from "../utils/func";
 import "../css/FileListView.css";
-import { BsArrowUpShort, BsArrowDownShort, BsThreeDots } from "react-icons/bs";
+import { BsArrowUpShort, BsArrowDownShort } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function FileListView({
@@ -20,12 +21,12 @@ function FileListView({
     handleSelectFile,
     handleSelectAll,
     jumpDirectory,
-    downloadFiles,
-    displayFile,
-    Move,
-    deleteFile,
+    download,
+    display,
+    move,
+    remove,
     showDetail,
-    Permission,
+    permission,
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
@@ -93,7 +94,7 @@ function FileListView({
 
     const handleNameCick = (filepath, is_file, symlink) => {
         if (is_file) {
-            displayFile(filepath);
+            display(filepath);
         } else {
             if (symlink) {
                 jumpDirectory(symlink);
@@ -198,84 +199,15 @@ function FileListView({
                             <td>{getSize(file.size)}</td>
                             <td>{file.mtime_str}</td>
                             <td>
-                                <div className="dropdown">
-                                    <button
-                                        type="button"
-                                        className="btn p-0 border-0"
-                                        data-bs-toggle="dropdown"
-                                        aria-expanded="false"
-                                    >
-                                        <BsThreeDots />
-                                    </button>
-                                    <ul className="dropdown-menu">
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => showDetail(file.name, file.path)}
-                                            >
-                                                Detail
-                                            </button>
-                                        </li>
-                                        {file.is_file && (
-                                            <li>
-                                                <button
-                                                    className="dropdown-item"
-                                                    onClick={() => displayFile(file.path)}
-                                                >
-                                                    View
-                                                </button>
-                                            </li>
-                                        )}
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => Move(file.path)}
-                                            >
-                                                Rename
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => Move(file.path)}
-                                            >
-                                                Move
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => Move(file.path)}
-                                            >
-                                                Copy
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => downloadFiles([file.path])}
-                                            >
-                                                Download
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => deleteFile(file)}
-                                            >
-                                                Delete
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button
-                                                className="dropdown-item"
-                                                onClick={() => Permission(file.path)}
-                                            >
-                                                Change Permissions
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
+                                <FileMenu
+                                    file={file}
+                                    download={download}
+                                    display={display}
+                                    move={move}
+                                    remove={remove}
+                                    showDetail={showDetail}
+                                    permission={permission}
+                                />
                             </td>
                         </tr>
                     ))}
@@ -293,10 +225,10 @@ FileListView.propTypes = {
     handleSelectFile: PropTypes.func,
     handleSelectAll: PropTypes.func,
     jumpDirectory: PropTypes.func,
-    downloadFiles: PropTypes.func,
-    displayFile: PropTypes.func,
-    Move: PropTypes.func,
-    deleteFile: PropTypes.func,
+    download: PropTypes.func,
+    display: PropTypes.func,
+    move: PropTypes.func,
+    remove: PropTypes.func,
     showDetail: PropTypes.func,
-    Permission: PropTypes.func,
+    permission: PropTypes.func,
 };

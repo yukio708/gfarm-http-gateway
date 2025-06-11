@@ -7,7 +7,7 @@ import ProgressView from "../components/ProgressView";
 import ModalWindow from "../components/Modal";
 import UploadDropZone from "../components/UploadDropZone";
 import UploadMenu from "../components/UploadMenu";
-import FileActionMenu from "../components/FileActionMenu";
+import { FileActionMenu } from "../components/FileActionMenu";
 import UserMenu from "../components/UserMenu";
 import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
@@ -202,7 +202,7 @@ function HomePage({ user }) {
     }
 
     return (
-        <div>
+        <div className="container-fluid">
             <div className="row">
                 <div className="col">
                     <nav className="navbar bg-body-tertiary">
@@ -242,10 +242,10 @@ function HomePage({ user }) {
                         handleSelectFile={handleSelectFile}
                         handleSelectAll={handleSelectAll}
                         jumpDirectory={jumpDirectory}
-                        downloadFiles={addFilesToDownload}
+                        download={addFilesToDownload}
                         showDetail={showDetail}
-                        displayFile={displayFile}
-                        deleteFile={deleteFile}
+                        display={displayFile}
+                        remove={deleteFile}
                     />
                 </div>
             </div>

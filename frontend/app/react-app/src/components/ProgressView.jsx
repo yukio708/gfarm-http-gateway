@@ -7,24 +7,26 @@ function ProgressView({ show, onHide, tasks }) {
     const instanceRef = useRef(null);
 
     useEffect(() => {
-        if (!canvasRef.current) return;
         const handleHide = () => {
+            console.log("debug handleHide");
             onHide();
         };
+
+        if (!canvasRef.current) return;
         if (!instanceRef.current) {
             instanceRef.current = Offcanvas.getOrCreateInstance(canvasRef.current);
-            canvasRef.current.addEventListener("hidden.bs.offcanvas", handleHide);
+            canvasRef.current.addEventListener("hide.bs.offcanvas", handleHide);
         }
 
         if (show) {
             instanceRef.current.show();
         } else {
-            instanceRef.current.hide();
+            // instanceRef.current.hide();
         }
 
         return () => {
             if (canvasRef.current) {
-                canvasRef.current.removeEventListener("hidden.bs.offcanvas", handleHide);
+                canvasRef.current.removeEventListener("hide.bs.offcanvas", handleHide);
             }
         };
     }, [show, onHide]);
@@ -35,7 +37,6 @@ function ProgressView({ show, onHide, tasks }) {
             tabIndex="-1"
             ref={canvasRef}
             aria-labelledby="transferProgressLabel"
-            onClick={onHide}
         >
             <div className="offcanvas-header">
                 <h5 className="offcanvas-title" id="transferProgressLabel">
@@ -46,7 +47,6 @@ function ProgressView({ show, onHide, tasks }) {
                     className="btn-close"
                     data-bs-dismiss="offcanvas"
                     aria-label="Close"
-                    onClick={onHide}
                 ></button>
             </div>
             <div className="offcanvas-body">
