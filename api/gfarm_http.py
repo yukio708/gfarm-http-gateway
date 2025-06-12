@@ -1875,7 +1875,7 @@ def from_rwx(rwx, highchar):
 
 class ZipStreamWriter:
     """
-    yields data for zipfile.ZipFile to write
+    Yield data chunks for zipfile.ZipFile.write()
     """
     def __init__(self, chunk_size: int = BUFSIZE):
         self._buffer = deque()  # A queue for storing byte chunks
@@ -1936,7 +1936,7 @@ class FileList(BaseModel):
     files: List[str]
 
 
-@app.post("/files/zip")
+@app.post("/zip")
 async def download_zip(filelist: FileList,
                        request: Request,
                        authorization: Union[str, None] = Header(default=None)):
