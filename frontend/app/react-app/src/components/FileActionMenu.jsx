@@ -90,7 +90,7 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => download([file.path])}>
+                    <button className="dropdown-item" onClick={() => download([file])}>
                         <BsDownload className="me-2" /> Download
                     </button>
                 </li>

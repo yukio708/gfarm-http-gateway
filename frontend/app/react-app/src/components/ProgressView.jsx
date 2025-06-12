@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import Offcanvas from "bootstrap/js/dist/offcanvas";
+import { BsArrowUpSquare, BsArrowDownSquare } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function ProgressView({ show, onHide, tasks }) {
@@ -59,7 +60,12 @@ function ProgressView({ show, onHide, tasks }) {
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <h6 className="mb-0">
-                                            {task.type === "upload" ? "⬆️" : "⬇️"} {task.name}
+                                            {task.type === "upload" ? (
+                                                <BsArrowUpSquare className="me-2" />
+                                            ) : (
+                                                <BsArrowDownSquare className="me-2" />
+                                            )}{" "}
+                                            {task.name}
                                         </h6>
                                         <small
                                             className={`badge rounded-pill ${
@@ -81,9 +87,18 @@ function ProgressView({ show, onHide, tasks }) {
                                                     : task.status === "error"
                                                       ? "bg-danger"
                                                       : "bg-info"
+                                            } ${
+                                                task.value === undefined
+                                                    ? "progress-bar-striped progress-bar-animated"
+                                                    : ""
                                             }`}
                                             role="progressbar"
-                                            style={{ width: `${task.value}%` }}
+                                            style={{
+                                                width:
+                                                    task.value === undefined
+                                                        ? "100%"
+                                                        : `${task.value}%`,
+                                            }}
                                             aria-valuenow={task.value}
                                             aria-valuemin="0"
                                             aria-valuemax="100"

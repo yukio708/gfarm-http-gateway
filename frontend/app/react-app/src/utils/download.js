@@ -13,24 +13,25 @@ async function downloadFile(path, setTasks) {
     const signal = controller.signal;
     const taskId = path + Date.now();
 
-    try {
-        const startTime = Date.now();
-        let filename = path.split("/").pop();
-        const newTask = {
-            taskId,
-            name: filename,
-            value: 0,
-            status: "downloading",
-            message: "",
-            onCancel: () => {
-                controller.abort();
-                console.log("cancel:", path);
-            },
-            startTime: startTime,
-            updateTime: Date.now(),
-        };
-        setTasks((prev) => [...prev, newTask]);
+    const startTime = Date.now();
+    let filename = path.split("/").pop();
+    const newTask = {
+        taskId,
+        name: filename,
+        value: 0,
+        type: "download",
+        status: "downloading",
+        message: "",
+        onCancel: () => {
+            controller.abort();
+            console.log("cancel:", path);
+        },
+        startTime: startTime,
+        updateTime: Date.now(),
+    };
+    setTasks((prev) => [...prev, newTask]);
 
+    try {
         const response = await fetch(dlurl, { signal });
 
         if (!response.ok) {
@@ -94,23 +95,26 @@ async function downloadFile(path, setTasks) {
             )
         );
     } catch (err) {
-        console.error("Download failed", err);
+        const isAbort = err.name === "AbortError";
+        const message = isAbort ? "Download cancelled" : `${err.name}: ${err.message}`;
         setTasks((prev) =>
             prev.map((task) =>
                 task.taskId === taskId
                     ? {
                           ...task,
-                          status: err.name === "AbortError" ? "cancel" : "error",
-                          message:
-                              err.name === "AbortError"
-                                  ? "Download cancelled"
-                                  : `${err.name}: ${err.message}`,
+                          status: isAbort ? "canceled" : "error",
+                          message,
                           done: true,
                           updateTime: Date.now(),
                       }
                     : task
             )
         );
+        if (isAbort) {
+            console.warn("Download cancelled", err);
+        } else {
+            console.error("Download failed", err);
+        }
     }
 }
 
@@ -133,6 +137,7 @@ async function downloadFiles(paths, setTasks) {
     // Multiple files — request a zip from the server
     const url = `${API_URL}/zip`;
     const taskId = paths.join(",") + Date.now();
+    console.log("taskId", taskId);
     const gfarmpathes = paths.map((path) => "gfarm:" + path);
     const controller = new AbortController();
     const signal = controller.signal;
@@ -165,6 +170,7 @@ async function downloadFiles(paths, setTasks) {
         const newTask = {
             taskId,
             name: filename,
+            type: "download",
             value: 0,
             done: false,
             status: "zipping",
@@ -187,7 +193,7 @@ async function downloadFiles(paths, setTasks) {
             const elapsed = Date.now() - startTime;
             const speed = Math.round((received / elapsed) * 1000);
             const sec = Math.floor(elapsed / 1000);
-            const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+            const message = `${sec} sec | ${speed} bytes/sec`;
 
             setTasks((prev) =>
                 prev.map((task) =>
@@ -221,24 +227,26 @@ async function downloadFiles(paths, setTasks) {
             )
         );
     } catch (err) {
-        console.error("ZIP download failed", err);
-
+        const isAbort = err.name === "AbortError";
+        const message = isAbort ? "Download cancelled" : `${err.name}: ${err.message}`;
         setTasks((prev) =>
             prev.map((task) =>
                 task.taskId === taskId
                     ? {
                           ...task,
-                          status: err.name === "AbortError" ? "cancel" : "error",
-                          message:
-                              err.name === "AbortError"
-                                  ? "Download cancelled"
-                                  : `${err.name}: ${err.message}`,
+                          status: isAbort ? "canceled" : "error",
+                          message,
                           done: true,
                           updateTime: Date.now(),
                       }
                     : task
             )
         );
+        if (isAbort) {
+            console.warn("ZIP download cancelled", err);
+        } else {
+            console.error("ZIP download failed", err);
+        }
     }
 }
 

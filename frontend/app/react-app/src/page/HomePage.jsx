@@ -69,7 +69,7 @@ function HomePage({ user }) {
     };
 
     const addFilesToDownload = async (files) => {
-        console.log("addFilesToDownload: filepath:", files);
+        console.log("addFilesToDownload: files:", files);
         downloadQueueRef.current.push(files);
         setIsDownloading(true);
     };
@@ -97,7 +97,7 @@ function HomePage({ user }) {
                     setTasks((prev) =>
                         prev.filter((t) => !t.done && Date.now() - t.updateTime < 10)
                     );
-                }, 10000);
+                }, 30000);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
@@ -117,12 +117,13 @@ function HomePage({ user }) {
         const worker = async () => {
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
+                console.log("files", files);
                 await download(files, setTasks);
                 setTimeout(() => {
                     setTasks((prev) =>
                         prev.filter((t) => !t.done && Date.now() - t.updateTime < 10)
                     );
-                }, 10000);
+                }, 30000);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
