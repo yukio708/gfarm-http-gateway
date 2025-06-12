@@ -11,25 +11,23 @@ function DetailView({ detail, onHide }) {
         if (!offcanvasRef.current) return;
         if (!offcanvasInstance.current) {
             offcanvasInstance.current = Offcanvas.getOrCreateInstance(offcanvasRef.current);
-
-            // When offcanvas fully hides, call onHide
             offcanvasRef.current.addEventListener("hidden.bs.offcanvas", onHide);
         }
 
-        // Show or hide offcanvas based on 'detail' prop
-        if (detail) {
-            offcanvasInstance.current.show();
-        } else {
-            offcanvasInstance.current.hide();
-        }
-
-        // Cleanup listener
         return () => {
             if (offcanvasRef.current) {
                 offcanvasRef.current.removeEventListener("hidden.bs.offcanvas", onHide);
             }
         };
-    }, [detail, onHide]);
+    }, []);
+
+    useEffect(() => {
+        if (!offcanvasInstance.current) return;
+
+        if (detail) {
+            offcanvasInstance.current.show();
+        }
+    }, [detail]);
 
     return (
         <div

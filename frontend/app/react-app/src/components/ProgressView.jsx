@@ -5,31 +5,31 @@ import PropTypes from "prop-types";
 function ProgressView({ show, onHide, tasks }) {
     const canvasRef = useRef(null);
     const instanceRef = useRef(null);
-
+    const handleHide = () => {
+        console.log("debug handleHide");
+        onHide();
+    };
     useEffect(() => {
-        const handleHide = () => {
-            console.log("debug handleHide");
-            onHide();
-        };
-
         if (!canvasRef.current) return;
         if (!instanceRef.current) {
             instanceRef.current = Offcanvas.getOrCreateInstance(canvasRef.current);
-            canvasRef.current.addEventListener("hide.bs.offcanvas", handleHide);
-        }
-
-        if (show) {
-            instanceRef.current.show();
-        } else {
-            // instanceRef.current.hide();
+            canvasRef.current.addEventListener("hidden.bs.offcanvas", handleHide);
         }
 
         return () => {
             if (canvasRef.current) {
-                canvasRef.current.removeEventListener("hide.bs.offcanvas", handleHide);
+                canvasRef.current.removeEventListener("hidden.bs.offcanvas", handleHide);
             }
         };
-    }, [show, onHide]);
+    }, []);
+
+    useEffect(() => {
+        if (!instanceRef.current) return;
+
+        if (show) {
+            instanceRef.current.show();
+        }
+    }, [show]);
 
     return (
         <div
