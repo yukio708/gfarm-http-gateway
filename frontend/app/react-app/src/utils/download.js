@@ -11,15 +11,17 @@ async function downloadFile(path, setTasks) {
     const dlurl = `${API_URL}/file${epath}?action=download`;
     const controller = new AbortController();
     const signal = controller.signal;
+    const taskId = path + Date.now();
 
     try {
         const startTime = Date.now();
         let filename = path.split("/").pop();
         const newTask = {
-            path: path,
+            taskId,
             name: filename,
             value: 0,
             status: "downloading",
+            message: "",
             onCancel: () => {
                 controller.abort();
                 console.log("cancel:", path);
@@ -55,12 +57,12 @@ async function downloadFile(path, setTasks) {
             const elapsed = Date.now() - startTime;
             const speed = Math.round((received / elapsed) * 1000);
             const sec = Math.floor(elapsed / 1000);
-            const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+            const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
 
             setTasks((prev) =>
                 prev.map((task) =>
-                    task.path === path
-                        ? { ...task, value: percent, status, updateTime: Date.now() }
+                    task.taskId === taskId
+                        ? { ...task, value: percent, message, updateTime: Date.now() }
                         : task
                 )
             );
@@ -79,8 +81,15 @@ async function downloadFile(path, setTasks) {
 
         setTasks((prev) =>
             prev.map((task) =>
-                task.path === path
-                    ? { ...task, status: "done", value: 100, done: true, updateTime: Date.now() }
+                task.taskId === taskId
+                    ? {
+                          ...task,
+                          status: "completed",
+                          message: "",
+                          value: 100,
+                          done: true,
+                          updateTime: Date.now(),
+                      }
                     : task
             )
         );
@@ -88,10 +97,14 @@ async function downloadFile(path, setTasks) {
         console.error("Download failed", err);
         setTasks((prev) =>
             prev.map((task) =>
-                task.path === path
+                task.taskId === taskId
                     ? {
                           ...task,
-                          status: `Error: ${err.message}`,
+                          status: err.name === "AbortError" ? "cancel" : "error",
+                          message:
+                              err.name === "AbortError"
+                                  ? "Download cancelled"
+                                  : `${err.name}: ${err.message}`,
                           done: true,
                           updateTime: Date.now(),
                       }
@@ -150,11 +163,11 @@ async function downloadFiles(paths, setTasks) {
         const filename = getFilenameFromHeader(contentDisposition);
 
         const newTask = {
-            path: taskId,
+            taskId,
             name: filename,
             value: 0,
             done: false,
-            status: "zipping...",
+            status: "zipping",
             onCancel: () => {
                 controller.abort();
                 console.log("cancel:", taskId);
@@ -174,12 +187,12 @@ async function downloadFiles(paths, setTasks) {
             const elapsed = Date.now() - startTime;
             const speed = Math.round((received / elapsed) * 1000);
             const sec = Math.floor(elapsed / 1000);
-            const status = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+            const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
 
             setTasks((prev) =>
                 prev.map((task) =>
-                    task.path === taskId
-                        ? { ...task, value: percent, status, updateTime: Date.now() }
+                    task.taskId === taskId
+                        ? { ...task, value: percent, message, updateTime: Date.now() }
                         : task
                 )
             );
@@ -195,19 +208,31 @@ async function downloadFiles(paths, setTasks) {
 
         setTasks((prev) =>
             prev.map((task) =>
-                task.path === taskId
-                    ? { ...task, status: "done", done: true, value: 100, updateTime: Date.now() }
+                task.taskId === taskId
+                    ? {
+                          ...task,
+                          status: "completed",
+                          message: "",
+                          done: true,
+                          value: 100,
+                          updateTime: Date.now(),
+                      }
                     : task
             )
         );
     } catch (err) {
         console.error("ZIP download failed", err);
+
         setTasks((prev) =>
             prev.map((task) =>
-                task.path === "zip:" + Date.now()
+                task.taskId === taskId
                     ? {
                           ...task,
-                          status: `Error: ${err.message}`,
+                          status: err.name === "AbortError" ? "cancel" : "error",
+                          message:
+                              err.name === "AbortError"
+                                  ? "Download cancelled"
+                                  : `${err.name}: ${err.message}`,
                           done: true,
                           updateTime: Date.now(),
                       }

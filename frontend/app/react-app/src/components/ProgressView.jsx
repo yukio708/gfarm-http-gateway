@@ -78,7 +78,9 @@ function ProgressView({ show, onHide, tasks }) {
                                             className={`progress-bar ${
                                                 task.status === "completed"
                                                     ? "bg-success"
-                                                    : "bg-info"
+                                                    : task.status === "error"
+                                                      ? "bg-danger"
+                                                      : "bg-info"
                                             }`}
                                             role="progressbar"
                                             style={{ width: `${task.value}%` }}
@@ -88,8 +90,15 @@ function ProgressView({ show, onHide, tasks }) {
                                         ></div>
                                     </div>
                                     <div className="d-flex justify-content-between mt-2">
-                                        <small>{task.value}%</small>
-                                        <small className="text-muted">{task.speed || "-"}</small>
+                                        <small>{task.message}</small>
+                                        {!task.done && (
+                                            <button
+                                                className="btn btn-primary btn-sm"
+                                                onClick={task.onCancel}
+                                            >
+                                                Cancel
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
