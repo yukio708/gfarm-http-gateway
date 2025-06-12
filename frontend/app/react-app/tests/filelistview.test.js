@@ -16,17 +16,16 @@ let fileStructureData = null;
 
 // === Tests ===
 
-test.beforeAll(async () => {
+test.beforeEach(async ({ context }) => {
     await waitForReact();
     fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
+    await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
-
 // File/Directory Display Test
 
 test("display file list existing path", async ({ page }) => {
     const targetPath = "/";
     const expectedChildren = findChildrenByPath(fileStructureData, targetPath);
-    await page.route("**/*", handleRoute);
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
     const fileTable = await page.waitForSelector(".file-table", {
@@ -79,7 +78,6 @@ test("display file list existing path", async ({ page }) => {
 });
 
 test("display error on nonexistent path", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const nonexistentPath = "/nonexistent-directory-12345";
     await page.goto(`${FRONTEND_URL}/#${nonexistentPath}`);
 
@@ -131,8 +129,6 @@ test("display long file list", async ({ page }) => {
         });
     });
 
-    await page.route("**/user_info*", handleRoute);
-
     // Access the path where a large number of files are displayed
     await page.goto(FRONTEND_URL);
 
@@ -175,8 +171,6 @@ test("display long file list", async ({ page }) => {
 });
 
 test("sort by filename", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
@@ -226,8 +220,6 @@ test("sort by filename", async ({ page }) => {
 });
 
 test("sort by filesize", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
@@ -269,8 +261,6 @@ test("sort by filesize", async ({ page }) => {
 });
 
 test("sort by update date", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
@@ -312,8 +302,6 @@ test("sort by update date", async ({ page }) => {
 });
 
 test("filter by extension", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     const targetPath = "/documents";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
@@ -412,8 +400,6 @@ const getExpectedFilesForDateFilter = (allFiles, filterType) => {
 };
 
 test("filter by modified date (all options)", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     await page.addInitScript((isoDate) => {
         const fixed = new Date(isoDate);
         const OriginalDate = Date;
@@ -491,8 +477,6 @@ test("filter by modified date (all options)", async ({ page }) => {
 });
 
 test("display current directory path", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     await page.goto(`${FRONTEND_URL}/#/`);
 
     const homeButton = page.locator("ol.breadcrumb button.btn.p-0").first();
@@ -550,8 +534,6 @@ test("display current directory path", async ({ page }) => {
 });
 
 test("display operation menu for a file", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     const targetPath = "/documents";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
@@ -589,8 +571,6 @@ test("display operation menu for a file", async ({ page }) => {
 });
 
 test("display action buttons", async ({ page }) => {
-    await page.route("**/*", handleRoute);
-
     const targetPath = "/documents";
     await page.goto(`${FRONTEND_URL}/#${targetPath}`);
 
@@ -627,8 +607,6 @@ test("display action buttons", async ({ page }) => {
 });
 
 test("double-clicking a file opens in new tab", async ({ page, context }) => {
-    await page.route("**/*", handleRoute);
-    await context.route("**/*", handleRoute);
     context.on("page", (page) => {
         console.log("[DEBUG] New tab opened:", page.url());
     });
@@ -655,9 +633,9 @@ test("double-clicking a file opens in new tab", async ({ page, context }) => {
     await newPage.close();
 });
 
-test("double-clicking a directory navigates to it", async ({ page }) => {
-    await page.route("**/*", handleRoute);
+// Path Navigation Test
 
+test("double-clicking a directory navigates to it", async ({ page }) => {
     const currentDirectory = "/documents";
     const testDirectoryName = "presentations";
     const expectedNewPath = `${currentDirectory}/${testDirectoryName}`;
@@ -680,4 +658,14 @@ test("double-clicking a directory navigates to it", async ({ page }) => {
     await expect(
         page.locator("ol.breadcrumb li button", { hasText: testDirectoryName })
     ).toBeVisible();
+});
+
+test("navigate back and forward", async ({ page }) => {
+    // TODO: 戻る・進むボタンを押して履歴移動確認
+    await page.route("**/*", handleRoute);
+});
+
+test("direct path access", async ({ page }) => {
+    // TODO: 入力ボックスにパスを入力してEnter → 該当ディレクトリに遷移するか
+    await page.route("**/*", handleRoute);
 });

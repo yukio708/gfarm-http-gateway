@@ -6,6 +6,8 @@ export const FRONTEND_URL = "http://localhost:3000";
 export const API_URL = "http://localhost:8080";
 export const DIR_LIST = path.resolve(__dirname, "data/filelist.json");
 
+export const ZIPNAME = "files.zip";
+
 let fileStructureData = null;
 
 // Wait for React frontend to start
@@ -203,33 +205,133 @@ export async function handleRoute(route, request) {
                 body: JSON.stringify({ error: "File not found" }),
             });
         }
-    } else if (url.includes("/file/")) {
-        console.log(`[ROUTE MOCK] >>> Matched /file/ for ${url}. Fulfilling...`);
+    } else if (url.includes("/file/") && method === "GET") {
         console.log("/file/", url);
-        const filePath = decodeURIComponent(url.split("/file/")[1]);
+        const filePath = decodeURIComponent(url.split("/file/")[1].split("?")[0]);
+        const filename = filePath.split("/").pop();
+        const ext = filename.split(".").pop();
+        const request_url = new URL(url);
+        const action = request_url.searchParams.get("action") || "view";
 
-        // 例: テキストファイルをモック
+        console.log("filename", filename);
+        if (filename === "deleted_file.txt") {
+            await route.fulfill({
+                status: 404,
+                contentType: "application/json",
+                body: JSON.stringify({ error: `File not found: ${filePath}` }),
+            });
+            return;
+        }
+        if (filePath.endsWith("backend_disconnect.txt")) {
+            // await route.fulfill({
+            //     status: 500,
+            //     contentType: "application/json",
+            //     body: JSON.stringify({
+            //         error: "Simulated server disconnect: Internal Server Error",
+            //     }),
+            // });
+
+            await route.continue();
+            return;
+        }
+        if (filePath.endsWith("cancellable_file.txt")) {
+            return;
+        }
+
+        const mockContent = `This is the content of /${filePath}.`;
+        const mockContent_html = `<!DOCTYPE html><html><body><h1>${filePath} Content</h1><p>This file was displayed in a new tab.</p></body></html>`;
+        const mockContent_pdf = Buffer.from(
+            "JVBERi0xLjQKJdDUxdgKMSAwIG9iagogIDw8L1BhZ2VzIDIgMCBSD4u (a very short PDF string) ...",
+            "base64"
+        );
+        const headers = {};
+        if (ext === "html") {
+            headers["content-type"] = "text/html";
+            headers["content-length"] = mockContent_html.length.toString();
+        } else if (ext === "pdf") {
+            headers["content-type"] = "application/pdf";
+            headers["content-length"] = mockContent_pdf.length.toString();
+        } else {
+            headers["content-type"] = "text/plain";
+            headers["content-length"] = mockContent.length.toString();
+        }
+
+        if (action === "download") {
+            const encoded = encodeURIComponent(filename);
+            headers["content-disposition"] = `attachment; filename*=UTF-8''"${encoded}"`;
+        }
+
+        if (filename.includes("empty")) {
+            await route.fulfill({
+                status: 200,
+                body: "",
+                headers,
+            });
+        } else {
+            await route.fulfill({
+                status: 200,
+                body: mockContent,
+                headers,
+            });
+        }
+    } else if (url.includes("/zip") && method === "POST") {
+        if (fileStructureData === null) {
+            fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
+        }
+        console.log("/zip/", url);
+        const json = JSON.parse(request.postData());
+        const files = json["files"];
+
+        const AdmZip = require("adm-zip");
+        const zip = new AdmZip();
+        for (const item of files) {
+            const itemPath = decodeURIComponent(item.split(":")[1]);
+            const node = findNodeByPath(fileStructureData, itemPath);
+
+            if (node) {
+                const entryPath = node.name;
+
+                if (node.is_file) {
+                    let fileContent = `Dummy content for ${node.path}. Size: ${getSize(node.size)}`;
+                    if (node.size === 0) {
+                        fileContent = "";
+                    }
+                    zip.addFile(entryPath, fileContent);
+                    console.log(`[ROUTE MOCK] Added file to ZIP: ${entryPath}`);
+                } else {
+                    zip.addFile(entryPath + "/", Buffer.from(""));
+                    console.log(`[ROUTE MOCK] Added directory to ZIP: ${entryPath}`);
+                }
+            } else {
+                console.warn(`[ROUTE MOCK] Path not found in mock data: ${itemPath}`);
+                // 存在しないパスはZIPに含めない
+            }
+        }
+        // const zipContent = await zip.generateAsync({ type: "uint8array" });
+        // const zipContentBuffer = Buffer.from(zipContent); // 明示的にBufferに変換
+        const zipContentBuffer = zip.toBuffer();
+        const headers = {
+            "Content-Type": "application/zip",
+            "Content-Disposition": `attachment; filename=${ZIPNAME}`,
+            "Content-Length": zipContentBuffer.length.toString(),
+        };
         await route.fulfill({
             status: 200,
-            contentType: "text/plain", // テキストファイルとして
-            body: `This is the content of /${filePath}.`,
+            body: zipContentBuffer,
+            headers,
         });
+    } else if (url.includes("/file/") && method === "PUT") {
+        console.log("/file/", url);
+        const request = route.request();
+        const body = await request.body();
+        console.log("body:", body);
 
-        // 例: HTMLページをモック
-        // await route.fulfill({
-        //     status: 200,
-        //     contentType: "text/html",
-        //     body: `<!DOCTYPE html><html><body><h1>${filePath} Content</h1><p>This file was displayed in a new tab.</p></body></html>`,
-        // });
-
-        // 例: PDFをモック
-        // return a simple, valid PDF content if you have one
-        // await route.fulfill({
-        //     status: 200,
-        //     contentType: "application/pdf",
-        //     body: Buffer.from("JVBERi0xLjQKJdDUxdgKMSAwIG9iagogIDw8L1BhZ2VzIDIgMCBSD
-        //         4u (a very short PDF string) ...", 'base64'),
-        // });
+        // Return mocked JSON response
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ result: "ok" }),
+        });
     } else {
         await route.continue();
     }

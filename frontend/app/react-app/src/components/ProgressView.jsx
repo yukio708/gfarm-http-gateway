@@ -104,7 +104,10 @@ function ProgressView({ show, onHide, tasks }) {
                                             aria-valuemax="100"
                                         ></div>
                                     </div>
-                                    <div className="d-flex justify-content-between mt-2">
+                                    <div
+                                        className="d-flex justify-content-between mt-2"
+                                        data-testid={`task-message-${index}`}
+                                    >
                                         <small>{task.message}</small>
                                         {!task.done && (
                                             <button

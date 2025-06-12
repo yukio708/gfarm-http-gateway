@@ -2,64 +2,6 @@
 import { test, expect } from '@playwright/test';
 
 
----
-
-// --- Path Navigation Test ---
-
-test('navigate by clicking directory', async ({ page }) => {
-  // TODO: ディレクトリをクリック → 移動先のパス確認
-});
-
-test('navigate back and forward', async ({ page }) => {
-  // TODO: 戻る・進むボタンを押して履歴移動確認
-});
-
-test('direct path access', async ({ page }) => {
-  // TODO: 入力ボックスにパスを入力してEnter → 該当ディレクトリに遷移するか
-});
-
----
-
-// --- Detail View Test ---
-
-test('display file name in details', async ({ page }) => {
-  // TODO: 詳細表示でファイル名が正しく出るか
-});
-
-test('display file type in details', async ({ page }) => {
-  // TODO: .txt/.zip/.jpg などの種類が正しく表示されるか
-});
-
-test('display file size in details', async ({ page }) => {
-  // TODO: ファイルサイズ（KB/MB）が正しく表示されるか
-});
-
-test('display permissions in details', async ({ page }) => {
-  // TODO: 例: rwxr-xr-- のような表示を確認
-});
-
-test('display access time in details', async ({ page }) => {
-  // TODO: アクセス日時（最終アクセス）が正しいか
-});
-
-test('display creation time in details', async ({ page }) => {
-  // TODO: 作成日時が正しく表示されているか
-});
-
-test('display modified time in details', async ({ page }) => {
-  // TODO: 最終更新日が正しく出ているか
-});
-
-test('display owner uid in details', async ({ page }) => {
-  // TODO: 所有者 UID が表示されているか
-});
-
-test('display owner gid in details', async ({ page }) => {
-  // TODO: 所有者 GID が表示されているか
-});
-
----
-
 // --- File Content View Test ---
 
 test('display text file content', async ({ page }) => {

@@ -160,6 +160,75 @@
                 "mtime_str": "Apr  8 05:48:28 2025",
                 "name": "python_code.py",
                 "path": "/python_code.py"
+            },
+            {
+                "mode_str": "drwxr-xr-x",
+                "is_file": false,
+                "nlink": 3,
+                "uname": "user4",
+                "gname": "users",
+                "size": 4096,
+                "mtime_str": "May 30 18:00:00 2025",
+                "name": "error_test",
+                "path": "/error_test",
+                "childlen" : [
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 0,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "empty_file.txt",
+                        "path": "/empty_file.txt"
+                    },
+                    {
+                        "mode_str": "drwxr-xr-x",
+                        "is_file": false,
+                        "nlink": 3,
+                        "uname": "user4",
+                        "gname": "users",
+                        "size": 0,
+                        "mtime_str": "May 30 18:00:00 2025",
+                        "name": "empty_dir",
+                        "path": "/empty_dir",
+                        "childlen" : []
+                    },
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 100,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "deleted_file.txt",
+                        "path": "/deleted_file.txt"
+                    },
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 100,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "backend_disconnect.txt",
+                        "path": "/backend_disconnect.txt"
+                    },
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 100,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "cancellable_file.txt",
+                        "path": "/cancellable_file.txt"
+                    }
+                ]
             }
         ]
     }

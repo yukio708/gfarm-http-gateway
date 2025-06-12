@@ -102,7 +102,7 @@ async function downloadFile(path, setTasks) {
                 task.taskId === taskId
                     ? {
                           ...task,
-                          status: isAbort ? "canceled" : "error",
+                          status: isAbort ? "cancelled" : "error",
                           message,
                           done: true,
                           updateTime: Date.now(),
@@ -119,7 +119,9 @@ async function downloadFile(path, setTasks) {
 }
 
 function getFilenameFromHeader(header) {
+    console.log("header", header);
     const match = /filename="(.+?)"/.exec(header);
+    console.log("match", match);
     return match ? match[1] : "files.zip";
 }
 
@@ -141,6 +143,24 @@ async function downloadFiles(paths, setTasks) {
     const gfarmpathes = paths.map((path) => "gfarm:" + path);
     const controller = new AbortController();
     const signal = controller.signal;
+    const startTime = Date.now();
+    const tmpname = taskId > 10 ? taskId.slice(0, 10) + "..." : taskId;
+
+    const newTask = {
+        taskId,
+        name: tmpname,
+        type: "download",
+        value: 0,
+        done: false,
+        status: "zipping",
+        onCancel: () => {
+            controller.abort();
+            console.log("cancel:", taskId);
+        },
+        startTime: startTime,
+        updateTime: Date.now(),
+    };
+    setTasks((prev) => [...prev, newTask]);
 
     try {
         const response = await fetch(url, {
@@ -163,25 +183,15 @@ async function downloadFiles(paths, setTasks) {
         const reader = response.body.getReader();
         const chunks = [];
         let received = 0;
-        const startTime = Date.now();
         const contentDisposition = response.headers.get("Content-Disposition");
         const filename = getFilenameFromHeader(contentDisposition);
+        console.log("filename", filename);
 
-        const newTask = {
-            taskId,
-            name: filename,
-            type: "download",
-            value: 0,
-            done: false,
-            status: "zipping",
-            onCancel: () => {
-                controller.abort();
-                console.log("cancel:", taskId);
-            },
-            startTime: startTime,
-            updateTime: Date.now(),
-        };
-        setTasks((prev) => [...prev, newTask]);
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.taskId === taskId ? { ...task, name: filename, updateTime: Date.now() } : task
+            )
+        );
 
         while (true) {
             const { done, value } = await reader.read();
@@ -234,7 +244,7 @@ async function downloadFiles(paths, setTasks) {
                 task.taskId === taskId
                     ? {
                           ...task,
-                          status: isAbort ? "canceled" : "error",
+                          status: isAbort ? "cancelled" : "error",
                           message,
                           done: true,
                           updateTime: Date.now(),
