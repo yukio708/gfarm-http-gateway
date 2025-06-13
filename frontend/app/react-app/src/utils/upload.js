@@ -1,54 +1,117 @@
 import { encodePath } from "./func";
+import { createDir } from "./dircommon";
 import { API_URL } from "./api_url";
 
-async function upload(currentDir, file, setTasks, refresh) {
+// file:
+// File + dirPath, isDirectory
+//   - dirPath
+//   - isDirectory
+//   - lastModified
+//   - lastModifiedDate
+//   - name
+//   - size
+//   - type
+//   - webkitRelativePath
+// or, DirectoryEntry + dirPath
+//   - dirPath
+//   - filesystem
+//   - fullPath
+//   - isDirectory
+//   - isFile
+//   - name
+
+async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
     if (!file) {
         alert("Please select a file");
         return;
     }
-    const fullpath = currentDir + "/" + file.dirPath + file.name;
+    const uploaddirpath = currentDir.replace(/\/$/, "") + "/" + file.dirPath;
+    const fullpath = file.isDirectory
+        ? uploaddirpath
+        : currentDir.replace(/\/$/, "") + "/" + file.dirPath + file.name;
+
+    console.log("uploaddirpath", uploaddirpath);
+    console.log("fullpath", fullpath);
+
+    const taskId = fullpath + Date.now();
+    const startTime = Date.now();
+
+    const newTask = {
+        taskId,
+        name: file.name,
+        value: 0,
+        done: false,
+        type: "upload",
+        status: "uploading",
+        message: "",
+        onCancel: () => {},
+        startTime: startTime,
+        updateTime: Date.now(),
+    };
+    setTasks((prev) => [...prev, newTask]);
+
+    // createdir
+    if (!dirSet.has(uploaddirpath)) {
+        createDir(uploaddirpath, "p=on");
+        dirSet.add(uploaddirpath);
+        console.log("dirSet", dirSet);
+    }
+
+    if (file.isDirectory) {
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.taskId === taskId
+                    ? {
+                          ...task,
+                          status: "completed",
+                          value: 100,
+                          message: "",
+                          done: true,
+                          updateTime: Date.now(),
+                      }
+                    : task
+            )
+        );
+        return;
+    }
+
     const epath = encodePath(fullpath);
     const uploadUrl = `${API_URL}/file` + epath;
-    const taskId = fullpath + Date.now();
     console.log("uploadUrl:", uploadUrl);
-
     const mtime = Math.floor(file.lastModified / 1000); // msec. -> sec.
-    const startTime = Date.now();
 
     try {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl);
         xhr.responseType = "json";
 
-        const newTask = {
-            taskId,
-            name: file.name,
-            value: 0,
-            done: false,
-            type: "upload",
-            status: "uploading",
-            message: "",
-            onCancel: () => {
-                xhr.abort();
-                setTasks((prev) =>
-                    prev.map((task) =>
-                        task.taskId === taskId
-                            ? {
-                                  ...task,
-                                  status: "cancelled",
-                                  message: "Upload cancelled",
-                                  done: true,
-                                  updateTime: Date.now(),
-                              }
-                            : task
-                    )
-                );
-                console.warn("cancel:", file);
-            },
-            startTime: startTime,
-            updateTime: Date.now(),
-        };
-        setTasks((prev) => [...prev, newTask]);
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.taskId === taskId
+                    ? {
+                          ...task,
+                          onCancel: () => {
+                              xhr.abort();
+                              setTasks((prev) =>
+                                  prev.map((task) =>
+                                      task.taskId === taskId
+                                          ? {
+                                                ...task,
+                                                status: "cancelled",
+                                                message: "Upload cancelled",
+                                                done: true,
+                                                updateTime: Date.now(),
+                                            }
+                                          : task
+                                  )
+                              );
+                              console.warn("cancel:", file);
+                          },
+                          updateTime: Date.now(),
+                      }
+                    : task
+            )
+        );
 
         xhr.setRequestHeader("Content-Type", file.type);
         xhr.setRequestHeader("X-File-Timestamp", mtime);
@@ -257,6 +320,14 @@ async function upload(currentDir, file, setTasks, refresh) {
     //     console.error(message);
     //     refresh();
     // }
+}
+
+async function upload(currentDir, files, setTasks, refresh) {
+    const dirSet = new Set();
+    dirSet.add("/");
+    for (const file of files) {
+        await uploadFile(currentDir, file, dirSet, setTasks, refresh);
+    }
 }
 
 export default upload;

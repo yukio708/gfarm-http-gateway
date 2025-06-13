@@ -30,16 +30,25 @@ export const CollectPathsFromItems = async (items) => {
             if (item.isFile) {
                 item.file((file) => {
                     file.dirPath = path;
+                    file.isDirectory = false;
                     files.push(file);
                     resolve();
+                    console.log("file", file);
                 });
             } else if (item.isDirectory) {
                 const currentPath = path + item.name + "/";
+                item.dirPath = currentPath;
+                console.log("item", item);
+
                 dirSet.add(currentPath); // collect directory
                 const dirReader = item.createReader();
                 dirReader.readEntries(async (entries) => {
-                    for (const entry of entries) {
-                        await traverseFileTree(entry, path + item.name + "/");
+                    if (entries.length > 0) {
+                        for (const entry of entries) {
+                            await traverseFileTree(entry, path + item.name + "/");
+                        }
+                    } else {
+                        files.push(item);
                     }
                     resolve();
                 });

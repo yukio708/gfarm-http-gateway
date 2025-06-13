@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
-import { getDeepestDirs, CollectPathsFromItems, formatFileSize } from "../utils/func";
+import { CollectPathsFromItems, formatFileSize } from "../utils/func";
 import "../css/DropZone.css";
 import PropTypes from "prop-types";
 
@@ -9,7 +9,6 @@ function UploadDropZone({ onUpload }) {
     const [dragging, setDragging] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState(null);
-    const [selectedDirs, setSelectedDirs] = useState(null);
     const [modalText, setModalText] = useState(null);
 
     useEffect(() => {
@@ -72,11 +71,10 @@ function UploadDropZone({ onUpload }) {
         const items = e.dataTransfer.items;
         const data = await CollectPathsFromItems(items);
         console.log("Collected files:", data.files);
-        if (data.files.length === 0 && data.dirSet.size === 0) {
+        if (data.files.length === 0) {
             return;
         }
 
-        setSelectedDirs(getDeepestDirs(data.dirSet));
         setSelectedFiles(data.files);
         setModalText(
             <ul className="modal-body">
@@ -97,7 +95,7 @@ function UploadDropZone({ onUpload }) {
         setShowConfirm(false);
         if (selectedFiles.length > 0) {
             console.log("selectedFiles:", selectedFiles);
-            onUpload(selectedFiles, selectedDirs); // pass to upload function
+            onUpload(selectedFiles); // pass to upload function
         }
     };
 

@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { getDeepestDirs, CollectPathsFromFiles } from "../utils/func";
+import { CollectPathsFromFiles } from "../utils/func";
 import { BsFileEarmarkArrowUp, BsFolder, BsFolderPlus } from "react-icons/bs";
 import PropTypes from "prop-types";
 
@@ -12,7 +12,7 @@ function UploadMenu({ onUpload, createDirectory }) {
         const data = CollectPathsFromFiles(files);
         if (data.files) {
             console.log("Collected files:", data.files);
-            onUpload(data.files, getDeepestDirs(data.dirSet));
+            onUpload(data.files);
         }
         e.target.value = null;
     };

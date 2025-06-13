@@ -74,13 +74,8 @@ function HomePage({ user }) {
         setIsDownloading(true);
     };
 
-    const addFilesToUpload = async (newFiles, uploaddirs) => {
-        for (let dirpath of uploaddirs) {
-            await createDir(currentDir + "/" + dirpath, "p=on");
-        }
-        for (let newfile of newFiles) {
-            uploadQueueRef.current.push(newfile);
-        }
+    const addFilesToUpload = async (newFiles) => {
+        uploadQueueRef.current.push(newFiles);
         setIsUploading(true);
     };
 
@@ -88,9 +83,9 @@ function HomePage({ user }) {
         const concurrency = 3;
         const worker = async () => {
             while (uploadQueueRef.current.length) {
-                const file = uploadQueueRef.current.shift();
+                const files = uploadQueueRef.current.shift();
                 // 現在位置が変わると違う場所にアップロードされてしまう
-                await upload(currentDir, file, setTasks, () => {
+                await upload(currentDir, files, setTasks, () => {
                     setRefreshKey((prev) => !prev);
                 });
                 setTimeout(() => {
