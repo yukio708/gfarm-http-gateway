@@ -1877,35 +1877,49 @@ class ZipStreamWriter:
     """
     Yield data chunks for zipfile.ZipFile.write()
     """
-    def __init__(self, chunk_size: int = BUFSIZE):
+    def __init__(self, chunk_size: int = BUFSIZE,
+                 loop: Optional[asyncio.AbstractEventLoop] = None):
         self._buffer = deque()  # A queue for storing byte chunks
         self._closed = False
         self._chunk_size = chunk_size
         self._current_chunk = bytearray()
+        self._condition = asyncio.Condition()
+        self._loop = loop or asyncio.get_running_loop()
 
     def write(self, data: bytes) -> int:
         if self._closed:
             raise ValueError("I/O operation on closed file.")
 
         self._current_chunk.extend(data)
-        while len(self._current_chunk) >= self._chunk_size:
-            self._buffer.append(bytes(self._current_chunk[:self._chunk_size]))
-            del self._current_chunk[:self._chunk_size]
+        if len(self._current_chunk) >= self._chunk_size:
+            async def _buffer_append():
+                async with self._condition:
+                    while len(self._current_chunk) >= self._chunk_size:
+                        self._buffer.append(bytes(self._current_chunk[:self._chunk_size]))
+                        del self._current_chunk[:self._chunk_size]
+                    self._condition.notify_all()
+            self._loop.create_task(_buffer_append())
+
         return len(data)
+
+    async def _notify(self):
+        async with self._condition:
+            self._condition.notify_all()
 
     async def get_chunks(self) -> AsyncGenerator[bytes, None]:
         while not self._closed or self._buffer:
-            if self._buffer:
-                yield self._buffer.popleft()
-            else:
-                # If the buffer is empty, wait a bit
-                await asyncio.sleep(0.001)
+            async with self._condition:
+                if not self._buffer:
+                    await self._condition.wait()
+                while self._buffer:
+                    yield self._buffer.popleft()
         # Flush remaining data on exit
         if self._current_chunk:
             yield bytes(self._current_chunk)
 
     def close(self):
         self._closed = True
+        self._loop.create_task(self._notify())
 
     def flush(self):
         pass
@@ -1974,7 +1988,7 @@ async def download_zip(filelist: FileList,
             for line in stdout.splitlines():
                 parts = line.strip().split(None, 9)
                 if len(parts) < 10:
-                    dirname = line[:-1].lstrip(filepath)
+                    dirname = line[:-1].replace(filepath, "", 1)
                     continue
                 name = parts[9]
                 mode_str = parts[0]
@@ -2002,12 +2016,13 @@ async def download_zip(filelist: FileList,
                     continue
                 fullpath = filepath
                 if not is_file:
-                    fullpath = os.path.join(fullpath, dirname, name)
+                    fullpath = os.path.normpath(
+                            filepath + "/" + os.path.join(dirname, name)
+                        )
                 yield Entry(fullpath, dirname, name, linkname,
                             mtime, mode, is_dir, is_sym)
 
     async def add_entry_to_zip(zipf: zipfile.ZipFile, entry):
-        loop = asyncio.get_event_loop()
         rel_path = os.path.join(entry.dirname, entry.name)
 
         zipinfo = zipfile.ZipInfo(filename=rel_path)
@@ -2037,6 +2052,7 @@ async def download_zip(filelist: FileList,
                         chunk = await proc.stdout.read(BUFSIZE)
                         if not chunk:
                             break
+                        loop = asyncio.get_running_loop()
                         await loop.run_in_executor(None, dest.write, chunk)
                 await stderr_task
                 return_code = await proc.wait()
@@ -2057,7 +2073,7 @@ async def download_zip(filelist: FileList,
             zip_writer.close()
 
     async def generate():
-        zip_writer = ZipStreamWriter(chunk_size=BUFSIZE)
+        zip_writer = ZipStreamWriter(chunk_size=BUFSIZE, loop=asyncio.get_running_loop())
         asyncio.create_task(create_zip(zip_writer))
         async for chunk in zip_writer.get_chunks():
             yield chunk
