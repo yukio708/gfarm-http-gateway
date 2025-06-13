@@ -1540,18 +1540,6 @@ async def gfptar(env,
         stderr=asyncio.subprocess.PIPE)
 
 
-async def gfzip(env, ziplist):
-    args = ['-']
-    args.extend(ziplist)
-
-    return await asyncio.create_subprocess_exec(
-        'gfzip', *args,
-        env=env,
-        stdin=asyncio.subprocess.DEVNULL,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
-
-
 #############################################################################
 async def log_stderr(command: str,
                      process: asyncio.subprocess.Process,
