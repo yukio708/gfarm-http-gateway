@@ -2074,7 +2074,7 @@ async def download_zip(filelist: FileList,
                 logger.debug(
                     f"{ipaddr}:0 user={user}, cmd={opname}, " +
                     f" message={message}")
-                raise gfarm_http_error(opname, code, message, "", elist)
+                return
 
     async def create_zip(zip_writer):
         try:
