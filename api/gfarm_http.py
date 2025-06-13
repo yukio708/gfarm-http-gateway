@@ -23,6 +23,7 @@ import tempfile
 import shutil
 import zipfile
 from collections import deque
+import threading
 
 from loguru import logger
 
@@ -1875,7 +1876,7 @@ def from_rwx(rwx, highchar):
 
 class ZipStreamWriter:
     """
-    Yield data chunks for zipfile.ZipFile.write()
+    Stream-like writer for ZipFile that supports async chunk consumption.
     """
     def __init__(self, chunk_size: int = BUFSIZE,
                  loop: Optional[asyncio.AbstractEventLoop] = None):
@@ -1884,6 +1885,7 @@ class ZipStreamWriter:
         self._chunk_size = chunk_size
         self._current_chunk = bytearray()
         self._condition = asyncio.Condition()
+        self._lock = threading.Lock()
         self._loop = loop or asyncio.get_running_loop()
 
     def write(self, data: bytes) -> int:
@@ -1892,13 +1894,11 @@ class ZipStreamWriter:
 
         self._current_chunk.extend(data)
         if len(self._current_chunk) >= self._chunk_size:
-            async def _buffer_append():
-                async with self._condition:
-                    while len(self._current_chunk) >= self._chunk_size:
-                        self._buffer.append(bytes(self._current_chunk[:self._chunk_size]))
-                        del self._current_chunk[:self._chunk_size]
-                    self._condition.notify_all()
-            self._loop.create_task(_buffer_append())
+            with self._lock:
+                while len(self._current_chunk) >= self._chunk_size:
+                    self._buffer.append(bytes(self._current_chunk[:self._chunk_size]))
+                    del self._current_chunk[:self._chunk_size]
+            self._loop.create_task(self._notify())
 
         return len(data)
 
@@ -1911,8 +1911,9 @@ class ZipStreamWriter:
             async with self._condition:
                 if not self._buffer:
                     await self._condition.wait()
-                while self._buffer:
-                    yield self._buffer.popleft()
+                with self._lock:
+                    while self._buffer:
+                        yield self._buffer.popleft()
         # Flush remaining data on exit
         if self._current_chunk:
             yield bytes(self._current_chunk)
@@ -2052,8 +2053,7 @@ async def download_zip(filelist: FileList,
                         chunk = await proc.stdout.read(BUFSIZE)
                         if not chunk:
                             break
-                        loop = asyncio.get_running_loop()
-                        await loop.run_in_executor(None, dest.write, chunk)
+                        dest.write(chunk)
                 await stderr_task
                 return_code = await proc.wait()
                 if return_code != 0:
@@ -2073,7 +2073,7 @@ async def download_zip(filelist: FileList,
             zip_writer.close()
 
     async def generate():
-        zip_writer = ZipStreamWriter(chunk_size=BUFSIZE, loop=asyncio.get_running_loop())
+        zip_writer = ZipStreamWriter(chunk_size=1024, loop=asyncio.get_running_loop())
         asyncio.create_task(create_zip(zip_writer))
         async for chunk in zip_writer.get_chunks():
             yield chunk
