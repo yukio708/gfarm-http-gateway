@@ -145,7 +145,7 @@ async def mock_size_not_found(request):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def mock_gfls_for_zip(request):
+async def mock_gfls(request):
     stdout, stderr, result = request.param
     with patch('gfarm_http.gfls') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
@@ -337,7 +337,7 @@ expect_gfls = (expect_gfls_stdout.encode(), b"error", 0)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list(mock_claims, mock_exec):
+async def test_dir_list(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
@@ -347,7 +347,7 @@ async def test_dir_list(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_a(mock_claims, mock_exec):
+async def test_dir_list_a(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir?a=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     # NOT WORK: mock_exec.assert_called_with(args=['gfls', '-a', 'testdir'])
@@ -358,7 +358,7 @@ async def test_dir_list_a(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_l(mock_claims, mock_exec):
+async def test_dir_list_l(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir?l=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
@@ -368,7 +368,7 @@ async def test_dir_list_l(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_R(mock_claims, mock_exec):
+async def test_dir_list_R(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir?R=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
@@ -378,7 +378,7 @@ async def test_dir_list_R(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_e(mock_claims, mock_exec):
+async def test_dir_list_e(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir?e=1", headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
@@ -388,7 +388,7 @@ async def test_dir_list_e(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_format_type(mock_claims, mock_exec):
+async def test_dir_list_format_type(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir?format_type=json",
                           headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -403,7 +403,7 @@ expect_gfls_err = (expect_gfls_err_msg.encode(), b"error", 1)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
-async def test_dir_list_err(mock_claims, mock_exec):
+async def test_dir_list_err(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
     assert_gfarm_http_error(response, 500, "gfls", None, expect_gfls_err_msg)
     args, kwargs = mock_exec.call_args
@@ -412,7 +412,7 @@ async def test_dir_list_err(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
-async def test_dir_list_ign_err(mock_claims, mock_exec):
+async def test_dir_list_ign_err(mock_claims, mock_size, mock_exec):
     response = client.get("/dir/testdir?ign_err=1",
                           headers=req_headers_oidc_auth)
     assert response.status_code == 200
@@ -654,13 +654,13 @@ async def download_zip_check(paths, expect_contents):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfls_for_zip",
+@pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
 async def test_download_zip_file_and_directory(
         mock_claims,
         mock_size_not_file,
-        mock_gfls_for_zip,
+        mock_gfls,
         mock_gfexport_for_zip):
     expected_zip_paths = [
         "testdir/file_a.txt",
@@ -695,13 +695,13 @@ gfls_success_param2 = (expect_gfls_stdout_data2, b"", 0)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfls_for_zip",
+@pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param2], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
 async def test_download_zip_nest_directory(
         mock_claims,
         mock_size_not_file,
-        mock_gfls_for_zip,
+        mock_gfls,
         mock_gfexport_for_zip):
     expected_zip_paths = [
         "testdir/test/",
@@ -722,13 +722,13 @@ gfls_success_param3 = (expect_gfls_stdout_data3, b"", 0)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfls_for_zip",
+@pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param3], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
 async def test_download_zip_file(
         mock_claims,
         mock_size,
-        mock_gfls_for_zip,
+        mock_gfls,
         mock_gfexport_for_zip):
     expected_zip_paths = [
         "testfile1.txt",
@@ -740,13 +740,13 @@ async def test_download_zip_file(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfls_for_zip",
+@pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
 async def test_download_zip_file_not_found(
         mock_claims,
         mock_size_not_found,
-        mock_gfls_for_zip,
+        mock_gfls,
         mock_gfexport_for_zip):
     test_files = {"files": ["gfarm:/testdir"]}
 
@@ -764,13 +764,13 @@ gfls_error_param = (expect_gfls_stdout_data4, b"", 1)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfls_for_zip",
+@pytest.mark.parametrize("mock_gfls",
                          [gfls_error_param], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
 async def test_download_zip_gfls_error(
         mock_claims,
         mock_size,
-        mock_gfls_for_zip,
+        mock_gfls,
         mock_gfexport_for_zip):
     test_files = {"files": ["gfarm:/tmp/testdir/testfile1.txt"]}
     response = client.post("/zip",
@@ -795,13 +795,13 @@ async def test_download_zip_gfls_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_gfls_for_zip",
+@pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param3], indirect=True)
 @pytest.mark.parametrize("mock_exec", [(b"", b"error", 1)], indirect=True)
 async def test_download_zip_gfexport_error(
         mock_claims,
         mock_size,
-        mock_gfls_for_zip,
+        mock_gfls,
         mock_exec):
     test_files = {"files": ["gfarm:/tmp/testdir/testfile1.txt"]}
     response = client.post("/zip",
