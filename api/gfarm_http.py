@@ -1896,7 +1896,9 @@ class ZipStreamWriter:
         if len(self._current_chunk) >= self._chunk_size:
             with self._lock:
                 while len(self._current_chunk) >= self._chunk_size:
-                    self._buffer.append(bytes(self._current_chunk[:self._chunk_size]))
+                    self._buffer.append(
+                            bytes(self._current_chunk[:self._chunk_size])
+                        )
                     del self._current_chunk[:self._chunk_size]
             self._loop.create_task(self._notify())
 
@@ -1960,17 +1962,21 @@ async def download_zip(filelist: FileList,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, filelist.files)
+    filedatas = []
+    for filepath in filelist.files:
+        existing, is_file, _ = await file_size(env, filepath)
+        if not existing:
+            code = 404
+            message = f"The requested URL does not exist: {filepath}"
+            stdout = ""
+            elist = []
+            raise gfarm_http_error(opname, code, message, stdout, elist)
+        filedatas.append((filepath, is_file))
 
     async def gather_all_entries() -> AsyncGenerator[Entry, None]:
-        for filepath in filelist.files:
-            dirname = ""
-            existing, is_file, _ = await file_size(env, filepath)
-            if not existing:
-                code = 404
-                message = f"The requested URL does not exist: {filepath}"
-                stdout = ""
-                elist = []
-                raise gfarm_http_error(opname, code, message, stdout, elist)
+        for filepath, is_file in filedatas:
+            parent = os.path.dirname(filepath)
+            dirname = "" if is_file else os.path.basename(filepath)
             p = await gfls(env, filepath,
                            _all=True, recursive=True, _long=True, _T=True)
             data = await p.stdout.read()
@@ -1981,17 +1987,15 @@ async def download_zip(filelist: FileList,
                     f"{ipaddr}:0 user={user}, cmd={opname}, " +
                     f"return={return_code}," +
                     f" message={stdout}")
-                code = 500
-                message = f"gfls error: path={filepath}"
-                elist = []
-                raise gfarm_http_error(opname, code, message, stdout, elist)
+                return
 
             for line in stdout.splitlines():
                 parts = line.strip().split(None, 9)
                 if len(parts) < 10:
-                    dirname = line[:-1].replace(filepath, "", 1)
+                    dirname = line[:-1].replace(parent + "/", "", 1)
+                    dirname = os.path.normpath(dirname)
                     continue
-                name = parts[9]
+                name = os.path.basename(filepath) if is_file else parts[9]
                 mode_str = parts[0]
                 is_dir = mode_str.startswith('d')
                 is_sym = mode_str.startswith('l')
@@ -2017,14 +2021,20 @@ async def download_zip(filelist: FileList,
                     continue
                 fullpath = filepath
                 if not is_file:
+                    logger.debug(f"parent {parent}")
+
                     fullpath = os.path.normpath(
-                            filepath + "/" + os.path.join(dirname, name)
+                            parent + "/" + os.path.join(dirname, name)
                         )
+                logger.debug(f"filepath {filepath}")
+                logger.debug(f"fullpath {fullpath}")
+                logger.debug(f"dirname {dirname}")
                 yield Entry(fullpath, dirname, name, linkname,
                             mtime, mode, is_dir, is_sym)
 
     async def add_entry_to_zip(zipf: zipfile.ZipFile, entry):
         rel_path = os.path.join(entry.dirname, entry.name)
+        logger.debug(f"rel_path {rel_path}")
 
         zipinfo = zipfile.ZipInfo(filename=rel_path)
         zipinfo.date_time = time.localtime(entry.mtime)[:6]
@@ -2061,6 +2071,9 @@ async def download_zip(filelist: FileList,
             except Exception as e:
                 code = 500
                 message = f"zip create error: path={entry.fullpath}: {e}"
+                logger.debug(
+                    f"{ipaddr}:0 user={user}, cmd={opname}, " +
+                    f" message={message}")
                 raise gfarm_http_error(opname, code, message, "", elist)
 
     async def create_zip(zip_writer):
@@ -2073,7 +2086,8 @@ async def download_zip(filelist: FileList,
             zip_writer.close()
 
     async def generate():
-        zip_writer = ZipStreamWriter(chunk_size=1024, loop=asyncio.get_running_loop())
+        zip_writer = ZipStreamWriter(chunk_size=1024,
+                                     loop=asyncio.get_running_loop())
         asyncio.create_task(create_zip(zip_writer))
         async for chunk in zip_writer.get_chunks():
             yield chunk

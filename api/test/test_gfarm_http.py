@@ -4,7 +4,10 @@ import asyncio
 from fastapi.testclient import TestClient
 import pytest
 import pytest_asyncio
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
+
+import zipfile
+import io
 
 import gfarm_http
 
@@ -119,6 +122,51 @@ async def mock_gfrm(request):
     stdout, stderr, result = request.param
     with patch('gfarm_http.gfrm') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_size_not_file(request):
+    with patch("gfarm_http.file_size") as mock:
+        existing = True
+        is_file = False
+        size = 1
+        mock.return_value = (existing, is_file, size)
+        yield mock
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_size_not_found(request):
+    with patch("gfarm_http.file_size") as mock:
+        existing = False
+        is_file = False
+        size = 0
+        mock.return_value = (existing, is_file, size)
+        yield mock
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_gfls_for_zip(request):
+    stdout, stderr, result = request.param
+    with patch('gfarm_http.gfls') as mock:
+        yield mock_exec_common(mock, stdout, stderr, result)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_gfexport_for_zip(request):
+    stderr, result = request.param
+    with patch('gfarm_http.gfexport') as mock:
+        def _gfexport_dynamic_side_effect(env_arg, filepath_arg):
+            stdout_data = filepath_arg.encode()
+            print("stdout", stdout_data)
+            return mock_exec_common(
+                MagicMock(),
+                stdout=stdout_data,
+                stderr=stderr,
+                result=result
+            ).return_value
+
+        mock.side_effect = _gfexport_dynamic_side_effect
+        yield mock
 
 
 def assert_is_oidc_auth(kwargs):
@@ -554,6 +602,231 @@ async def test_user_info_None(mock_claims):
     assert response.status_code == 200
     json = response.json()
     assert json["username"] is None
+
+
+expect_gfls_stdout_data = (
+    b"-rw-r--r-- 1 user group 6686 Mar 31 17:20:10 2025 file_a.txt\n"
+    b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 file_b.txt\n"
+    b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test\n"
+    b"\n"
+    b"gfarm:/testdir/test:\n"
+    b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test2\n"
+    b"lrw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024\
+    symlink -> gfarm:/test\n"
+    b"\n"
+    b"gfarm:/testdir/test/test2:\n"
+    b"-rw-r--r-- 1 user group 1234 May 20 15:30:00 2024 file_c.txt\n"
+)
+gfls_success_param = (expect_gfls_stdout_data, b"", 0)
+
+
+async def download_zip_check(paths, expect_contents):
+    test_files = {"files": paths}
+
+    response = client.post("/zip",
+                           headers=req_headers_oidc_auth,
+                           json=test_files)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert "attachment; filename=" in response.headers["content-disposition"]
+    assert response.headers["content-disposition"].endswith(".zip\"")
+
+    zip_content = b""
+    async for chunk in response.aiter_bytes():
+        zip_content += chunk
+
+    zip_buffer = io.BytesIO(zip_content)
+
+    with zipfile.ZipFile(zip_buffer, 'r') as zf:
+        namelist = zf.namelist()
+        print(f"Zip file contains: {namelist}")
+
+        for path_in_zip in expect_contents:
+            assert path_in_zip in namelist
+
+            if not path_in_zip.endswith('.txt'):
+                continue
+
+            with zf.open(path_in_zip, 'r') as f:
+                content = f.read().decode()
+                assert path_in_zip in content
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfls_for_zip",
+                         [gfls_success_param], indirect=True)
+@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+async def test_download_zip_file_and_directory(
+        mock_claims,
+        mock_size_not_file,
+        mock_gfls_for_zip,
+        mock_gfexport_for_zip):
+    expected_zip_paths = [
+        "testdir/file_a.txt",
+        "testdir/file_b.txt",
+        "testdir/test/",
+        "testdir/test/test2/",
+        "testdir/test/symlink",
+        "testdir/test/test2/file_c.txt"
+    ]
+    await download_zip_check(["gfarm:/testdir"], expected_zip_paths)
+
+
+expect_gfls_stdout_data2 = (
+    b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test\n"
+    b"\n"
+    b"gfarm:/testdir/test:\n"
+    b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test2\n"
+    b"\n"
+    b"gfarm:/testdir/test/test2:\n"
+    b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test3\n"
+    b"\n"
+    b"gfarm:/testdir/test/test2/test3:\n"
+    b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test4\n"
+    b"\n"
+    b"gfarm:/testdir/test/test2/test3/test4:\n"
+    b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test5\n"
+    b"\n"
+    b"gfarm:/testdir/test/test2/test3/test4/test5:\n"
+    b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test6.txt\n"
+)
+gfls_success_param2 = (expect_gfls_stdout_data2, b"", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfls_for_zip",
+                         [gfls_success_param2], indirect=True)
+@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+async def test_download_zip_nest_directory(
+        mock_claims,
+        mock_size_not_file,
+        mock_gfls_for_zip,
+        mock_gfexport_for_zip):
+    expected_zip_paths = [
+        "testdir/test/",
+        "testdir/test/test2/",
+        "testdir/test/test2/test3/",
+        "testdir/test/test2/test3/test4/",
+        "testdir/test/test2/test3/test4/test5/",
+        "testdir/test/test2/test3/test4/test5/test6.txt",
+    ]
+    await download_zip_check(["gfarm:/testdir"], expected_zip_paths)
+
+
+expect_gfls_stdout_data3 = (
+    b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 \
+    gfarm:/tmp/testdir/testfile1.txt\n"
+)
+gfls_success_param3 = (expect_gfls_stdout_data3, b"", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfls_for_zip",
+                         [gfls_success_param3], indirect=True)
+@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+async def test_download_zip_file(
+        mock_claims,
+        mock_size,
+        mock_gfls_for_zip,
+        mock_gfexport_for_zip):
+    expected_zip_paths = [
+        "testfile1.txt",
+    ]
+    await download_zip_check(
+            ["gfarm:/tmp/testdir/testfile1.txt"],
+            expected_zip_paths
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfls_for_zip",
+                         [gfls_success_param], indirect=True)
+@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+async def test_download_zip_file_not_found(
+        mock_claims,
+        mock_size_not_found,
+        mock_gfls_for_zip,
+        mock_gfexport_for_zip):
+    test_files = {"files": ["gfarm:/testdir"]}
+
+    response = client.post("/zip",
+                           headers=req_headers_oidc_auth,
+                           json=test_files)
+
+    assert response.status_code == 404
+
+
+expect_gfls_stdout_data4 = (
+    b"no such file or directory\n"
+)
+gfls_error_param = (expect_gfls_stdout_data4, b"", 1)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfls_for_zip",
+                         [gfls_error_param], indirect=True)
+@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+async def test_download_zip_gfls_error(
+        mock_claims,
+        mock_size,
+        mock_gfls_for_zip,
+        mock_gfexport_for_zip):
+    test_files = {"files": ["gfarm:/tmp/testdir/testfile1.txt"]}
+    response = client.post("/zip",
+                           headers=req_headers_oidc_auth,
+                           json=test_files)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert "attachment; filename=" in response.headers["content-disposition"]
+    assert response.headers["content-disposition"].endswith(".zip\"")
+
+    zip_content = b""
+    async for chunk in response.aiter_bytes():
+        zip_content += chunk
+
+    zip_buffer = io.BytesIO(zip_content)
+
+    with zipfile.ZipFile(zip_buffer, 'r') as zf:
+        namelist = zf.namelist()
+        print(f"Zip file contains: {namelist}")
+        assert "testfile1.txt" not in namelist
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfls_for_zip",
+                         [gfls_success_param3], indirect=True)
+@pytest.mark.parametrize("mock_exec", [(b"", b"error", 1)], indirect=True)
+async def test_download_zip_gfexport_error(
+        mock_claims,
+        mock_size,
+        mock_gfls_for_zip,
+        mock_exec):
+    test_files = {"files": ["gfarm:/tmp/testdir/testfile1.txt"]}
+    response = client.post("/zip",
+                           headers=req_headers_oidc_auth,
+                           json=test_files)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert "attachment; filename=" in response.headers["content-disposition"]
+    assert response.headers["content-disposition"].endswith(".zip\"")
+
+    zip_content = b""
+    async for chunk in response.aiter_bytes():
+        zip_content += chunk
+
+    zip_buffer = io.BytesIO(zip_content)
+
+    with zipfile.ZipFile(zip_buffer, 'r') as zf:
+        namelist = zf.namelist()
+        print(f"Zip file contains: {namelist}")
+        assert "testfile1.txt" in namelist
+        with zf.open("testfile1.txt", 'r') as f:
+            content = f.read().decode()
+            print(f"Zip file content: {content}")
+            assert "testfile1.txt" not in content
 
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
