@@ -82,17 +82,14 @@ function HomePage({ user }) {
     const uploadFiles = async () => {
         const concurrency = 3;
         const worker = async () => {
+            setTasks((prev) => prev.filter((t) => !t.done));
             while (uploadQueueRef.current.length) {
                 const files = uploadQueueRef.current.shift();
                 // 現在位置が変わると違う場所にアップロードされてしまう
                 await upload(currentDir, files, setTasks, () => {
                     setRefreshKey((prev) => !prev);
                 });
-                setTimeout(() => {
-                    setTasks((prev) =>
-                        prev.filter((t) => !t.done && Date.now() - t.updateTime < 10)
-                    );
-                }, 30000);
+                setShowPogressView(true);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
@@ -110,15 +107,12 @@ function HomePage({ user }) {
     const downloadFiles = async () => {
         const concurrency = 3;
         const worker = async () => {
+            setTasks((prev) => prev.filter((t) => !t.done));
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
                 console.log("files", files);
                 await download(files, setTasks);
-                setTimeout(() => {
-                    setTasks((prev) =>
-                        prev.filter((t) => !t.done && Date.now() - t.updateTime < 10)
-                    );
-                }, 30000);
+                setShowPogressView(true);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
@@ -132,12 +126,6 @@ function HomePage({ user }) {
             downloadFiles();
         }
     }, [isDownloading]);
-
-    useEffect(() => {
-        if (tasks.length > 0) {
-            setShowPogressView(true);
-        }
-    }, [tasks]);
 
     const showDetail = async (name, filepath) => {
         try {
