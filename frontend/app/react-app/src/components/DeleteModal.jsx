@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
-import deleteFiles from "../utils/deleteFile";
+import removeFiles from "../utils/removeFile";
 import PropTypes from "prop-types";
 
 function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
@@ -13,7 +13,7 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
     }, [deletefiles]);
 
     const deleteFile = async () => {
-        const error = await deleteFiles(deletefiles, null, refrech);
+        const error = await removeFiles(deletefiles, refrech);
         setError(error);
     };
 
@@ -26,15 +26,19 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
                 }}
                 onConfirm={deleteFile}
                 title={
-                    <p className="modal-title">
-                        Are you sure you want to delete the following file(s)?
-                    </p>
+                    <div>
+                        <p className="modal-title">
+                            Are you sure you want to permanently delete the following file(s)?
+                        </p>
+                    </div>
                 }
                 text={
                     <div>
                         <ul>
                             {deletefiles.map((file, idx) => (
-                                <li key={idx}>{file.name}</li>
+                                <li key={idx}>
+                                    &quot;{file.name}&quot; {!file.is_file && "and its contents"}
+                                </li>
                             ))}
                         </ul>
                     </div>

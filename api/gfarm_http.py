@@ -1324,11 +1324,13 @@ async def gfwhoami(env):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def gfrm(env, path, force=False):
+async def gfrm(env, path, force=False, recursive=False):
+    args = []
     if force:
-        args = ["-f", path]
-    else:
-        args = [path]
+        args.append("-f")
+    if recursive:
+        args.append("-r")
+    args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfrm', *args,
         env=env,
@@ -2172,6 +2174,8 @@ async def file_import(gfarm_path: str,
 @app.delete("/files/{gfarm_path:path}")
 async def file_remove(gfarm_path: str,
                       request: Request,
+                      force: bool = False,
+                      recursive: bool = False,
                       authorization: Union[str, None] = Header(default=None),
                       x_csrf_token: Union[str, None] = Header(default=None)):
     check_csrf(request, x_csrf_token)
@@ -2179,7 +2183,7 @@ async def file_remove(gfarm_path: str,
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     log_operation(env, opname, gfarm_path)
-    p = await gfrm(env, gfarm_path)
+    p = await gfrm(env, gfarm_path, force, recursive)
     return await gfarm_command_standard_response(env, p, opname)
 
 

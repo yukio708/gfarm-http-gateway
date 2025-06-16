@@ -1,14 +1,16 @@
 import { encodePath } from "./func";
 import { API_URL } from "./api_url";
-import { removeDir } from "./dircommon";
 
-async function removeFile(path, params) {
+async function removeFile(path, isFile = true) {
     if (!path) {
         alert("Please input Gfarm path");
     }
     const epath = encodePath(path);
     try {
-        const url = `${API_URL}/file${epath}`;
+        const url = isFile
+            ? `${API_URL}/file${epath}`
+            : `${API_URL}/file${epath}?force=on&recursive=on`;
+        console.debug("delete url", url);
         const response = await fetch(url, {
             method: "DELETE",
         });
@@ -24,22 +26,15 @@ async function removeFile(path, params) {
     }
 }
 
-export default async function deleteFiles(files, params, refresh) {
+export default async function removeFiles(files, refresh) {
     if (!files) {
         return;
     }
 
     for (const file of files) {
-        if (file.is_file) {
-            const error = await removeFile(file.path, params);
-            if (error) {
-                return error;
-            }
-        } else {
-            const error = await removeDir(file.path);
-            if (error) {
-                return error;
-            }
+        const error = await removeFile(file.path, file.is_file);
+        if (error) {
+            return error;
         }
     }
     refresh();
