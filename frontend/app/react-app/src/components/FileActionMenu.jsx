@@ -12,7 +12,7 @@ import {
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function FileActionMenu({ downloadFiles, deleteFile, moveFiles, selectedFiles }) {
+function FileActionMenu({ downloadFiles, removeFiles, moveFiles, selectedFiles }) {
     if (selectedFiles.length === 0) return null;
 
     return (
@@ -33,7 +33,7 @@ function FileActionMenu({ downloadFiles, deleteFile, moveFiles, selectedFiles })
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => deleteFile(selectedFiles)}>
+                    <button className="dropdown-item" onClick={() => removeFiles(selectedFiles)}>
                         <BsTrash className="me-2" /> Delete
                     </button>
                 </li>
@@ -95,7 +95,7 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => remove(file)}>
+                    <button className="dropdown-item" onClick={() => remove([file])}>
                         <BsTrash className="me-2" /> Delete
                     </button>
                 </li>
@@ -113,7 +113,7 @@ export { FileActionMenu, FileMenu };
 
 FileActionMenu.propTypes = {
     downloadFiles: PropTypes.func,
-    deleteFile: PropTypes.func,
+    removeFiles: PropTypes.func,
     moveFiles: PropTypes.func,
     selectedFiles: PropTypes.array,
 };
