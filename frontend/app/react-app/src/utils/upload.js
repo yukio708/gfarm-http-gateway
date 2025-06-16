@@ -25,6 +25,22 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
         alert("Please select a file");
         return;
     }
+    const taskId = fullpath + Date.now();
+    const displayname = file.name.length > 20 ? file.name.slice(0, 10) + "..." : file.name;
+
+    const newTask = {
+        taskId,
+        name: displayname,
+        value: 0,
+        done: false,
+        type: "upload",
+        status: "uploading",
+        message: "",
+        onCancel: () => {},
+    };
+    setTasks((prev) => [...prev, newTask]);
+
+    const startTime = Date.now();
     const uploaddirpath = currentDir.replace(/\/$/, "") + "/" + file.dirPath;
     const fullpath = file.isDirectory
         ? uploaddirpath
@@ -32,23 +48,6 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
 
     console.debug("uploaddirpath", uploaddirpath);
     console.debug("fullpath", fullpath);
-
-    const taskId = fullpath + Date.now();
-    const startTime = Date.now();
-
-    const newTask = {
-        taskId,
-        name: file.name,
-        value: 0,
-        done: false,
-        type: "upload",
-        status: "uploading",
-        message: "",
-        onCancel: () => {},
-        startTime: startTime,
-        updateTime: Date.now(),
-    };
-    setTasks((prev) => [...prev, newTask]);
 
     // createdir
     if (!dirSet.has(uploaddirpath)) {
@@ -67,7 +66,6 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                           value: 100,
                           message: "",
                           done: true,
-                          updateTime: Date.now(),
                       }
                     : task
             )
@@ -100,14 +98,12 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                                                 status: "cancelled",
                                                 message: "Upload cancelled",
                                                 done: true,
-                                                updateTime: Date.now(),
                                             }
                                           : task
                                   )
                               );
                               console.warn("cancel:", file);
                           },
-                          updateTime: Date.now(),
                       }
                     : task
             )
@@ -125,9 +121,7 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                 const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
                 setTasks((prev) =>
                     prev.map((task) =>
-                        task.taskId === taskId
-                            ? { ...task, value, message, updateTime: Date.now() }
-                            : task
+                        task.taskId === taskId ? { ...task, value, message } : task
                     )
                 );
                 console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
@@ -144,7 +138,6 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                                   value: 100,
                                   message: "",
                                   done: true,
-                                  updateTime: Date.now(),
                               }
                             : task
                     )
@@ -158,9 +151,7 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                     : `Error: HTTP ${xhr.status}: ${xhr.statusText}, detail=${JSON.stringify(detail)}`;
                 setTasks((prev) =>
                     prev.map((task) =>
-                        task.taskId === taskId
-                            ? { ...task, status: "error", message, updateTime: Date.now() }
-                            : task
+                        task.taskId === taskId ? { ...task, status: "error", message } : task
                     )
                 );
                 console.error(message);
@@ -176,7 +167,6 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                               status: "error",
                               message: "Network error",
                               done: true,
-                              updateTime: Date.now(),
                           }
                         : task
                 )
@@ -196,7 +186,6 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                           status: "error",
                           message: error,
                           done: true,
-                          updateTime: Date.now(),
                       }
                     : task
             )
@@ -208,9 +197,7 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
 async function upload(currentDir, files, setTasks, refresh) {
     const dirSet = new Set();
     dirSet.add("/");
-    for (const file of files) {
-        await uploadFile(currentDir, file, dirSet, setTasks, refresh);
-    }
+    await Promise.all(files.map((file) => uploadFile(currentDir, file, dirSet, setTasks, refresh)));
 }
 
 export default upload;

@@ -12,6 +12,7 @@ function ProgressView({ show, onHide, tasks, setTasks }) {
 
         const handleHide = () => {
             console.debug("debug handleHide");
+            setTasks((prev) => prev.filter((t) => !t.done));
             onHide();
         };
 
@@ -128,14 +129,23 @@ function ProgressView({ show, onHide, tasks, setTasks }) {
                                         className="d-flex justify-content-between mt-2"
                                         data-testid={`task-message-${index}`}
                                     >
-                                        <small>{task.message}</small>
+                                        <small
+                                            style={{
+                                                whiteSpace: "pre-wrap",
+                                                wordBreak: "break-word",
+                                            }}
+                                        >
+                                            {task.message}
+                                        </small>
                                         {!task.done && (
-                                            <button
-                                                className="btn btn-primary btn-sm"
-                                                onClick={task.onCancel}
-                                            >
-                                                Cancel
-                                            </button>
+                                            <div style={{ alignSelf: "start" }}>
+                                                <button
+                                                    className="btn btn-primary btn-sm"
+                                                    onClick={task.onCancel}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

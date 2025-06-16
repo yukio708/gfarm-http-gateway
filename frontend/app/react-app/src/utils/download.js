@@ -15,7 +15,7 @@ function getProgress(received, total) {
 async function downloadFile(dlurl, defaultFilename, controller, request, setTasks) {
     let filename = defaultFilename;
     const taskId = filename + Date.now();
-    const displayname = filename > 10 ? filename.slice(0, 10) + "..." : filename;
+    const displayname = filename.length > 20 ? filename.slice(0, 10) + "..." : filename;
 
     const startTime = Date.now();
     const newTask = {
