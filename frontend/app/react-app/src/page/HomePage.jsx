@@ -69,13 +69,13 @@ function HomePage({ user }) {
     };
 
     const addFilesToDownload = async (files) => {
-        console.log("addFilesToDownload: files:", files);
+        console.debug("addFilesToDownload: files:", files);
         downloadQueueRef.current.push(files);
         setIsDownloading(true);
     };
 
     const addFilesToUpload = async (newFiles) => {
-        uploadQueueRef.current.push(newFiles);
+        uploadQueueRef.current.push({ uploadDir: currentDir, newFiles });
         setIsUploading(true);
     };
 
@@ -84,9 +84,8 @@ function HomePage({ user }) {
         const worker = async () => {
             setTasks((prev) => prev.filter((t) => !t.done));
             while (uploadQueueRef.current.length) {
-                const files = uploadQueueRef.current.shift();
-                // 現在位置が変わると違う場所にアップロードされてしまう
-                await upload(currentDir, files, setTasks, () => {
+                const uploadFiles = uploadQueueRef.current.shift();
+                await upload(uploadFiles.uploadDir, uploadFiles.newFiles, setTasks, () => {
                     setRefreshKey((prev) => !prev);
                 });
                 setShowPogressView(true);
@@ -110,7 +109,7 @@ function HomePage({ user }) {
             setTasks((prev) => prev.filter((t) => !t.done));
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
-                console.log("files", files);
+                console.debug("files", files);
                 await download(files, setTasks);
                 setShowPogressView(true);
             }
@@ -130,7 +129,7 @@ function HomePage({ user }) {
     const showDetail = async (name, filepath) => {
         try {
             const detail = await getAttribute(filepath);
-            console.log("detail:", detail);
+            console.debug("detail:", detail);
             detail.Name = name;
             setDetailContent(detail);
         } catch (err) {
@@ -170,7 +169,7 @@ function HomePage({ user }) {
     };
 
     const handleMove = (files) => {
-        console.log("files", files);
+        console.debug("files", files);
         setShowModal(false);
         moveFile(files, destPath);
         setDestPath(""); // Reset after move
