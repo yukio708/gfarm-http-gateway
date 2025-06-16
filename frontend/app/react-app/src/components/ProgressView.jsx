@@ -3,15 +3,18 @@ import Offcanvas from "bootstrap/js/dist/offcanvas";
 import { BsArrowUpSquare, BsArrowDownSquare } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function ProgressView({ show, onHide, tasks }) {
+function ProgressView({ show, onHide, tasks, setTasks }) {
     const canvasRef = useRef(null);
     const instanceRef = useRef(null);
-    const handleHide = () => {
-        console.debug("debug handleHide");
-        onHide();
-    };
+
     useEffect(() => {
         if (!canvasRef.current) return;
+
+        const handleHide = () => {
+            console.debug("debug handleHide");
+            onHide();
+        };
+
         if (!instanceRef.current) {
             instanceRef.current = Offcanvas.getOrCreateInstance(canvasRef.current);
             canvasRef.current.addEventListener("hidden.bs.offcanvas", handleHide);
@@ -31,6 +34,11 @@ function ProgressView({ show, onHide, tasks }) {
             instanceRef.current.show();
         }
     }, [show]);
+
+    const removeTask = (taskId) => {
+        console.debug(taskId + " deleted");
+        setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+    };
 
     return (
         <div
@@ -67,17 +75,29 @@ function ProgressView({ show, onHide, tasks }) {
                                             )}{" "}
                                             {task.name}
                                         </h6>
-                                        <small
-                                            className={`badge rounded-pill ${
-                                                task.status === "completed"
-                                                    ? "bg-success"
-                                                    : task.status === "error"
-                                                      ? "bg-danger"
-                                                      : "bg-secondary"
-                                            }`}
-                                        >
-                                            {task.status}
-                                        </small>
+                                        <div className="d-flex justify-content-end mb-2">
+                                            <small
+                                                className={`badge rounded-pill ${
+                                                    task.status === "completed"
+                                                        ? "bg-success"
+                                                        : task.status === "error"
+                                                          ? "bg-danger"
+                                                          : "bg-secondary"
+                                                }`}
+                                            >
+                                                {task.status}
+                                            </small>
+                                            {(task.done || task.status === "error") && (
+                                                <div className="d-flex justify-content-end">
+                                                    <button
+                                                        type="button"
+                                                        className="btn-close"
+                                                        aria-label="Close"
+                                                        onClick={() => removeTask(task.taskId)}
+                                                    ></button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="progress" style={{ height: "8px" }}>
                                         <div
@@ -134,4 +154,5 @@ ProgressView.propTypes = {
     show: PropTypes.bool.isRequired,
     onHide: PropTypes.func.isRequired,
     tasks: PropTypes.array,
+    setTasks: PropTypes.func,
 };
