@@ -25,6 +25,10 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
         alert("Please select a file");
         return;
     }
+    const uploaddirpath = currentDir.replace(/\/$/, "") + "/" + file.dirPath;
+    const fullpath = file.isDirectory
+        ? uploaddirpath
+        : currentDir.replace(/\/$/, "") + "/" + file.dirPath + file.name;
     const taskId = fullpath + Date.now();
     const displayname = file.name.length > 20 ? file.name.slice(0, 10) + "..." : file.name;
 
@@ -41,10 +45,6 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
     setTasks((prev) => [...prev, newTask]);
 
     const startTime = Date.now();
-    const uploaddirpath = currentDir.replace(/\/$/, "") + "/" + file.dirPath;
-    const fullpath = file.isDirectory
-        ? uploaddirpath
-        : currentDir.replace(/\/$/, "") + "/" + file.dirPath + file.name;
 
     console.debug("uploaddirpath", uploaddirpath);
     console.debug("fullpath", fullpath);
