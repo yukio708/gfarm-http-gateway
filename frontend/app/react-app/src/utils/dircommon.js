@@ -13,11 +13,11 @@ async function dirCommon(path, method, message, params = null) {
                 const text = await response.text();
                 throw new Error(`HTTP ${response.status}: ${text}`);
             }
-            console.log(`dirCommon: Success (${message})`);
+            console.debug(`dirCommon: Success (${message})`);
             return null;
         } catch (error) {
             console.error(error);
-            console.log(`dirCommon: ${error}`);
+            console.debug(`dirCommon: ${error}`);
             return error.message;
         }
     } else {

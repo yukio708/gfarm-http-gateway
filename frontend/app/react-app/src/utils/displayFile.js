@@ -9,7 +9,7 @@ function displayFile(path) {
     const epath = encodePath(path);
     const url = `${API_URL}/file${epath}`;
     window.open(url, "_blank");
-    console.log("displayFile: url:", url);
+    console.debug("displayFile: url:", url);
 }
 
 export default displayFile;

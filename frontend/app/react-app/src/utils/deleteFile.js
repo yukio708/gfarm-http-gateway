@@ -16,7 +16,7 @@ async function removeFile(path, params) {
             const text = await response.text();
             throw new Error(`HTTP ${response.status}: ${text}`);
         }
-        console.log("Success (removed)");
+        console.debug("Success (removed)");
         return null;
     } catch (error) {
         console.error(error);

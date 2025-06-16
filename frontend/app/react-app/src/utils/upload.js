@@ -30,8 +30,8 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
         ? uploaddirpath
         : currentDir.replace(/\/$/, "") + "/" + file.dirPath + file.name;
 
-    console.log("uploaddirpath", uploaddirpath);
-    console.log("fullpath", fullpath);
+    console.debug("uploaddirpath", uploaddirpath);
+    console.debug("fullpath", fullpath);
 
     const taskId = fullpath + Date.now();
     const startTime = Date.now();
@@ -54,7 +54,7 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
     if (!dirSet.has(uploaddirpath)) {
         createDir(uploaddirpath, "p=on");
         dirSet.add(uploaddirpath);
-        console.log("dirSet", dirSet);
+        console.debug("dirSet", dirSet);
     }
 
     if (file.isDirectory) {
@@ -77,7 +77,7 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
 
     const epath = encodePath(fullpath);
     const uploadUrl = `${API_URL}/file` + epath;
-    console.log("uploadUrl:", uploadUrl);
+    console.debug("uploadUrl:", uploadUrl);
     const mtime = Math.floor(file.lastModified / 1000); // msec. -> sec.
 
     try {
@@ -130,7 +130,7 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                             : task
                     )
                 );
-                console.log("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
+                console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
             }
         };
         xhr.onload = () => {
@@ -149,7 +149,7 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
                             : task
                     )
                 );
-                console.log("Upload: success");
+                console.debug("Upload: success");
             } else {
                 const detail = xhr.response?.detail;
                 const stderr = detail?.stderr ? JSON.stringify(detail.stderr) : null;
@@ -203,123 +203,6 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
         );
         throw error;
     }
-
-    // fetch
-    // const controller = new AbortController();
-    // const signal = controller.signal;
-    // const newTask = {
-    //     taskId,
-    //     name: file.name,
-    //     value: 0,
-    //     done: false,
-    //     status: "uploading",
-    //     message: "",
-    //     onCancel: () => {
-    //         controller.abort();
-    //         console.log("cancel:", file);
-    //     },
-    //     startTime: startTime,
-    //     updateTime: Date.now(),
-    // };
-    // setTasks((prev) => [...prev, newTask]);
-    // try {
-    //     let uploaded = 0;
-    //     const reader = file.stream().getReader();
-
-    //     const stream = new ReadableStream({
-    //         start(controller) {
-    //             function push() {
-    //                 reader.read().then(({ done, value }) => {
-    //                     if (done) {
-    //                         controller.close();
-    //                         return;
-    //                     }
-    //                     uploaded += value.length;
-    //                     const percent = Math.floor((uploaded / file.size) * 100);
-    //                     const elapsedTime = Date.now() - startTime;
-    //                     const speed = Math.round((uploaded / elapsedTime) * 1000);
-    //                     const sec = Math.floor(elapsedTime / 1000);
-    //                     const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
-
-    //                     setTasks((prev) =>
-    //                         prev.map((task) =>
-    //                             task.taskId === taskId
-    //                                 ? { ...task, value: percent, message, updateTime: Date.now() }
-    //                                 : task
-    //                         )
-    //                     );
-    //                     controller.enqueue(value);
-    //                     push();
-    //                 });
-    //             }
-    //             push();
-    //         },
-    //     });
-
-    //     const response = await fetch(uploadUrl, {
-    //         method: "PUT",
-    //         headers: {
-    //             "Content-Type": file.type,
-    //             "X-File-Timestamp": mtime,
-    //         },
-    //         body: stream,
-    //         signal,
-    //         duplex: "half",
-    //     });
-
-    //     if (response.ok) {
-    //         setTasks((prev) =>
-    //             prev.map((task) =>
-    //                 task.taskId === taskId
-    //                     ? {
-    //                           ...task,
-    //                           status: "completed",
-    //                           message: "",
-    //                           done: true,
-    //                           updateTime: Date.now(),
-    //                       }
-    //                     : task
-    //             )
-    //         );
-    //         console.log("Upload: success");
-    //         refresh();
-    //     } else {
-    //         const errorResponse = await response.json().catch(() => null);
-    //         const stderr = errorResponse?.detail?.stderr;
-    //         const message = stderr
-    //             ? `Error: HTTP ${response.status}: ${response.statusText}, stderr=${stderr}`
-    //             : `Error: HTTP ${response.status}: ${response.statusText}`;
-
-    //         setTasks((prev) =>
-    //             prev.map((task) =>
-    //                 task.taskId === taskId
-    //                     ? { ...task, status: "error", message, updateTime: Date.now() }
-    //                     : task
-    //             )
-    //         );
-    //         console.error(message);
-    //         refresh();
-    //     }
-    // } catch (err) {
-    //     const isAbort = err.name === "AbortError";
-    //     const message = isAbort ? "Upload cancelled" : `${err.name}: ${err.message}`;
-
-    //     setTasks((prev) =>
-    //         prev.map((task) =>
-    //             task.taskId === taskId
-    //                 ? {
-    //                       ...task,
-    //                       status: isAbort ? "cancel" : "error",
-    //                       message,
-    //                       done: true,
-    //                       updateTime: Date.now(),
-    //                   }
-    //                 : task
-    //         )
-    //     );
-    //     console.error(message);
-    //     refresh();
-    // }
 }
 
 async function upload(currentDir, files, setTasks, refresh) {

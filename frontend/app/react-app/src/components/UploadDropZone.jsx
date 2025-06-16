@@ -70,7 +70,7 @@ function UploadDropZone({ onUpload }) {
         // const files = Array.from(e.dataTransfer.files);
         const items = e.dataTransfer.items;
         const data = await CollectPathsFromItems(items);
-        console.log("Collected files:", data.files);
+        console.debug("Collected files:", data.files);
         if (data.files.length === 0) {
             return;
         }
@@ -94,7 +94,7 @@ function UploadDropZone({ onUpload }) {
         setIsDragActive(false);
         setShowConfirm(false);
         if (selectedFiles.length > 0) {
-            console.log("selectedFiles:", selectedFiles);
+            console.debug("selectedFiles:", selectedFiles);
             onUpload(selectedFiles); // pass to upload function
         }
     };

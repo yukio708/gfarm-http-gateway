@@ -11,7 +11,7 @@ function UploadMenu({ onUpload, createDirectory }) {
         const files = Array.from(e.target.files);
         const data = CollectPathsFromFiles(files);
         if (data.files) {
-            console.log("Collected files:", data.files);
+            console.debug("Collected files:", data.files);
             onUpload(data.files);
         }
         e.target.value = null;

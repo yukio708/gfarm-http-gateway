@@ -33,7 +33,7 @@ test("display file list existing path", async ({ page }) => {
     });
     const fileText = await fileTable.textContent();
 
-    console.log(`File text: ${fileText}`);
+    console.debug(`File text: ${fileText}`);
 
     // Check if the table header is displayed
     const checkboxHeader = page.locator('[data-testid="header-checkbox"]');
@@ -165,7 +165,7 @@ test("display long file list", async ({ page }) => {
 
     // await expect(fileItems).toHaveCount(numberOfFiles);
     // const endTime = performance.now();
-    // console.log(`Rendering ${numberOfFiles} files took ${endTime - startTime} ms`);
+    // console.debug(`Rendering ${numberOfFiles} files took ${endTime - startTime} ms`);
     // // Expect rendering within 5 seconds
     // expect(endTime - startTime).toBeLessThan(5000);
 });
@@ -180,7 +180,7 @@ test("sort by filename", async ({ page }) => {
     const fileNamesLocator = page.locator("tbody tr td:nth-child(3)");
 
     // arc
-    console.log(`expectedChildren: ${initialFiles}`);
+    console.debug(`expectedChildren: ${initialFiles}`);
     const expectedAscendingNames = [...initialFiles].sort((a, b) => {
         const nameA = a.name.toLowerCase();
         const nameB = b.name.toLowerCase();
@@ -608,7 +608,7 @@ test("display action buttons", async ({ page }) => {
 
 test("double-clicking a file opens in new tab", async ({ page, context }) => {
     context.on("page", (page) => {
-        console.log("[DEBUG] New tab opened:", page.url());
+        console.debug("[DEBUG] New tab opened:", page.url());
     });
 
     const currentDirectory = "/documents";

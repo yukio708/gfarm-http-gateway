@@ -12,7 +12,7 @@ export const getDeepestDirs = (dirSet) => {
         const isDeepest = [...dirSet].every(
             (other) => other === dirpath || !other.startsWith(dirpath)
         );
-        console.log("getDeepestDirs: isDeepest:", isDeepest, dirpath);
+        console.debug("getDeepestDirs: isDeepest:", isDeepest, dirpath);
         if (isDeepest) {
             result.push(dirpath);
         }
@@ -33,12 +33,12 @@ export const CollectPathsFromItems = async (items) => {
                     file.isDirectory = false;
                     files.push(file);
                     resolve();
-                    console.log("file", file);
+                    console.debug("file", file);
                 });
             } else if (item.isDirectory) {
                 const currentPath = path + item.name + "/";
                 item.dirPath = currentPath;
-                console.log("item", item);
+                console.debug("item", item);
 
                 dirSet.add(currentPath); // collect directory
                 const dirReader = item.createReader();
@@ -71,21 +71,21 @@ export const CollectPathsFromItems = async (items) => {
 
 export const CollectPathsFromFiles = (files) => {
     const dirSet = new Set();
-    console.log("CollectPathsFromFiles:", files);
+    console.debug("CollectPathsFromFiles:", files);
 
     const uploadFiles = files.map((file) => {
         const dirPath = file.webkitRelativePath
             ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + "/"
             : "";
         file.dirPath = dirPath;
-        console.log("file.webkitRelativePath:", file.webkitRelativePath);
-        console.log("file.dirPath:", file.dirPath);
+        console.debug("file.webkitRelativePath:", file.webkitRelativePath);
+        console.debug("file.dirPath:", file.dirPath);
         if (dirPath !== "") {
             dirSet.add(dirPath);
         }
         return file;
     });
-    console.log("uploadFiles:", uploadFiles);
+    console.debug("uploadFiles:", uploadFiles);
 
     return { files: uploadFiles, dirSet };
 };
@@ -153,19 +153,18 @@ export const filterFiles = (files, filterTypes, dateFilter) => {
         const updated = new Date(file.mtime_str);
         if (dateFilter == "today") {
             const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            // console.log("updated", updated);
-            console.log("today: start", start);
+            console.debug("today: start", start);
             isDateMatch =
                 updated.getFullYear() === start.getFullYear() &&
                 updated.getMonth() === start.getMonth() &&
                 updated.getDate() === start.getDate();
         } else if (dateFilter === "this_month") {
             const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            console.log("this_month: start", start);
+            console.debug("this_month: start", start);
             isDateMatch = updated >= start;
         } else if (dateFilter === "this_year") {
             const start = new Date(now.getFullYear(), 0, 1);
-            console.log("this_year: start", start);
+            console.debug("this_year: start", start);
             isDateMatch = updated >= start;
         } else {
             const getOptionByValue = (value) => {
@@ -175,9 +174,9 @@ export const filterFiles = (files, filterTypes, dateFilter) => {
             if (selected) {
                 const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 start.setDate(start.getDate() + selected.start);
-                console.log(dateFilter, "start", start);
-                console.log("updated", updated);
-                console.log("updated >= start", updated >= start);
+                console.debug(dateFilter, "start", start);
+                console.debug("updated", updated);
+                console.debug("updated >= start", updated >= start);
 
                 isDateMatch = updated >= start;
             }

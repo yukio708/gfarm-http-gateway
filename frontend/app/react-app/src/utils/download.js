@@ -27,7 +27,7 @@ async function downloadFile(dlurl, defaultFilename, controller, request, setTask
         message: "",
         onCancel: () => {
             controller.abort();
-            console.log("cancel:", filename);
+            console.debug("cancel:", filename);
         },
     };
     setTasks((prev) => [...prev, newTask]);

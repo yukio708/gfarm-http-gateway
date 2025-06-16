@@ -85,7 +85,7 @@
     const installBtn = document.getElementById("installBtn");
     const userAgent = navigator.userAgent.toLowerCase();
     const platform = getPlatform();
-    console.log(platform);
+    console.debug(platform);
 
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();

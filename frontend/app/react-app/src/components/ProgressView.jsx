@@ -7,7 +7,7 @@ function ProgressView({ show, onHide, tasks }) {
     const canvasRef = useRef(null);
     const instanceRef = useRef(null);
     const handleHide = () => {
-        console.log("debug handleHide");
+        console.debug("debug handleHide");
         onHide();
     };
     useEffect(() => {
