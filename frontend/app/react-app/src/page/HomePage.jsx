@@ -4,7 +4,8 @@ import FileListView from "../components/FileListView";
 import CurrentDirView from "../components/CurrentDirView";
 import DetailView from "../components/DetailView";
 import ProgressView from "../components/ProgressView";
-import ModalWindow from "../components/Modal";
+import DeleteModal from "../components/DeleteModal";
+import NewDirModal from "../components/NewDirModal";
 import UploadDropZone from "../components/UploadDropZone";
 import UploadMenu from "../components/UploadMenu";
 import { FileActionMenu } from "../components/FileActionMenu";
@@ -13,11 +14,9 @@ import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
 import displayFile from "../utils/displayFile";
-import deleteFiles from "../utils/deleteFile";
 import moveFile from "../utils/moveFile";
 import getAttribute from "../utils/getAttribute";
 import setPermission from "../utils/setPermission";
-import { createDir } from "../utils/dircommon";
 import ErrorPage from "./ErrorPage";
 
 import PropTypes from "prop-types";
@@ -30,6 +29,7 @@ function HomePage({ user }) {
     const [refreshKey, setRefreshKey] = useState(false);
     const { files, listGetError } = useFileList(currentDir, refreshKey);
     const [selectedFiles, setSelectedFiles] = useState([]);
+    const [deleteFiles, setDeleteFiles] = useState([]);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
@@ -38,10 +38,7 @@ function HomePage({ user }) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [showPogressView, setShowPogressView] = useState(false);
     const [destPath, setDestPath] = useState("");
-    const [showModal, setShowModal] = useState(false);
-    const [modalTitle, setModalTitle] = useState("");
-    const [modalContent, setModalContent] = useState("");
-    const [modalConfirmAction, setModalConfirmAction] = useState(null);
+    const [showNewDirModal, setShowNewDirModal] = useState(false);
 
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
@@ -141,44 +138,17 @@ function HomePage({ user }) {
         setDetailContent(null);
     };
 
-    const deleteFile = async (files) => {
-        const deletefiles = Array.isArray(files) ? files : [files];
-        setModalTitle(
-            <p className="modal-title">Are you sure you want to delete the following file(s)?</p>
-        );
-        setModalContent(
-            <div>
-                <ul>
-                    {deletefiles.map((file, idx) => (
-                        <li key={idx}>{file.name}</li>
-                    ))}
-                </ul>
-            </div>
-        );
-        setModalConfirmAction(() => async () => {
-            const error = await deleteFiles(deletefiles, null, () => {
-                setRefreshKey((prev) => !prev);
-            });
-            setError(error);
-        });
-        setShowModal(true);
-    };
-
     const moveFiles = () => {
-        setShowModal(true);
+        // setShowModal(true);
     };
 
-    const handleMove = (files) => {
-        console.debug("files", files);
-        setShowModal(false);
-        moveFile(files, destPath);
-        setDestPath(""); // Reset after move
-        setRefreshKey((prev) => !prev);
-    };
-
-    const createDirectory = async (dirname) => {
-        await createDir(currentDir + "/" + dirname);
-    };
+    // const handleMove = (files) => {
+    //     console.debug("files", files);
+    //     setShowModal(false);
+    //     moveFile(files, destPath);
+    //     setDestPath(""); // Reset after move
+    //     setRefreshKey((prev) => !prev);
+    // };
 
     if (listGetError) {
         return <ErrorPage error={listGetError} />;
@@ -205,10 +175,15 @@ function HomePage({ user }) {
                             <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
                         </div>
                         <div className="d-flex gap-2">
-                            <UploadMenu onUpload={addFilesToUpload} onCreate={createDirectory} />
+                            <UploadMenu
+                                onUpload={addFilesToUpload}
+                                onCreate={() => {
+                                    setShowNewDirModal(true);
+                                }}
+                            />
                             <FileActionMenu
                                 selectedFiles={selectedFiles}
-                                deleteFile={deleteFile}
+                                removeFiles={setDeleteFiles}
                                 downloadFiles={addFilesToDownload}
                                 moveFiles={moveFiles}
                             />
@@ -228,7 +203,7 @@ function HomePage({ user }) {
                         download={addFilesToDownload}
                         showDetail={showDetail}
                         display={displayFile}
-                        remove={deleteFile}
+                        remove={setDeleteFiles}
                     />
                 </div>
             </div>
@@ -239,6 +214,7 @@ function HomePage({ user }) {
                     setShowPogressView(false);
                 }}
                 tasks={tasks}
+                setTasks={setTasks}
             />
             {!showPogressView && tasks.length > 0 && (
                 <button
@@ -251,7 +227,25 @@ function HomePage({ user }) {
                 </button>
             )}
             <UploadDropZone onUpload={addFilesToUpload} />
-            {showModal && (
+            <DeleteModal
+                deletefiles={deleteFiles}
+                setDeleteFiles={setDeleteFiles}
+                setError={setError}
+                refrech={() => {
+                    setDeleteFiles([]);
+                    setRefreshKey((prev) => !prev);
+                }}
+            />
+            <NewDirModal
+                showModal={showNewDirModal}
+                setShowModal={setShowNewDirModal}
+                currentDir={currentDir}
+                setError={setError}
+                refrech={() => {
+                    setRefreshKey((prev) => !prev);
+                }}
+            />
+            {/* {showModal && (
                 <ModalWindow
                     onCancel={() => {
                         setModalConfirmAction(null);
@@ -261,7 +255,7 @@ function HomePage({ user }) {
                     title={modalTitle}
                     text={modalContent}
                 />
-            )}
+            )} */}
         </div>
     );
 }

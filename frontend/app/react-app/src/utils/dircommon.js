@@ -25,10 +25,13 @@ async function dirCommon(path, method, message, params = null) {
     }
 }
 
-export async function createDir(path, params) {
+export async function createDir(path, params = null) {
+    console.debug("createDir:", path);
+
     return await dirCommon(path, "PUT", "created", params);
 }
 
 export async function removeDir(path) {
+    console.debug("removeDir:", path);
     return await dirCommon(path, "DELETE", "removed");
 }

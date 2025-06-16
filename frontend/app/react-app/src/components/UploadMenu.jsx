@@ -3,7 +3,7 @@ import { CollectPathsFromFiles } from "../utils/func";
 import { BsFileEarmarkArrowUp, BsFolder, BsFolderPlus } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function UploadMenu({ onUpload, createDirectory }) {
+function UploadMenu({ onUpload, onCreate }) {
     const fileInputRef = useRef(null);
     const folderInputRef = useRef(null);
 
@@ -59,7 +59,7 @@ function UploadMenu({ onUpload, createDirectory }) {
                     <h1 className="dropdown-header">Create new</h1>
                 </li>
                 <li>
-                    <button type="button" className="dropdown-item" onClick={createDirectory}>
+                    <button type="button" className="dropdown-item" onClick={onCreate}>
                         <BsFolderPlus className="me-2" />
                         New folder
                     </button>
@@ -89,5 +89,5 @@ export default UploadMenu;
 
 UploadMenu.propTypes = {
     onUpload: PropTypes.func,
-    createDirectory: PropTypes.func,
+    onCreate: PropTypes.func,
 };

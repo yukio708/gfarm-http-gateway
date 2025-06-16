@@ -14,6 +14,7 @@ function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText
                 keyboard: false,
             });
             modalInstance.current.show();
+            console.debug("Modal show");
         }
     }, []);
 
