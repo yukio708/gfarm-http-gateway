@@ -530,6 +530,16 @@ async def test_file_remove(mock_claims, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_file_remove_with_args(mock_claims, mock_exec):
+    response = client.delete("/file/test.pptx?force=on&recursive=on", headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfrm', '-f', '-r', '/test.pptx')
+    assert response.text == no_stdout
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
 async def test_move_rename(mock_claims, mock_exec):
     src = "/dir1/file1.txt"
     dest = "/dir2/file2.txt"
