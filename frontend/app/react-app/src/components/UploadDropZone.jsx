@@ -4,10 +4,11 @@ import { CollectPathsFromItems, formatFileSize } from "../utils/func";
 import "../css/DropZone.css";
 import PropTypes from "prop-types";
 
-function UploadDropZone({ onUpload }) {
+function UploadDropZone({ onUpload, files }) {
     const [isDragActive, setIsDragActive] = useState(false);
     const [dragging, setDragging] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [showReConfirm, setShowReConfirm] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState(null);
     const [modalText, setModalText] = useState(null);
 
@@ -82,7 +83,7 @@ function UploadDropZone({ onUpload }) {
                     data.files.map((file, idx) => (
                         <li key={idx}>
                             <strong>{file.dirPath + file.name}</strong> —{" "}
-                            {formatFileSize(file.size)} KB
+                            {formatFileSize(file.size)}
                         </li>
                     ))}
             </ul>
@@ -94,6 +95,37 @@ function UploadDropZone({ onUpload }) {
         setIsDragActive(false);
         setShowConfirm(false);
         if (selectedFiles.length > 0) {
+            const duplicates = files.filter((file) =>
+                selectedFiles.some((selectedfile) => {
+                    if (file.is_file && file.name === selectedfile.name) return true;
+                    else if (file.name === selectedfile.dirPath.split("/", 2)[0]) {
+                        return true;
+                    }
+                    return false;
+                })
+            );
+
+            if (duplicates.length > 0) {
+                setModalText(
+                    <ul className="modal-body">
+                        <p>The following files/directories already exist:</p>
+                        {duplicates.map((file, idx) => (
+                            <li key={idx}>
+                                <strong>{file.name}</strong>
+                            </li>
+                        ))}
+                    </ul>
+                );
+                setShowReConfirm(true);
+                return;
+            }
+            re_confirmUpload();
+        }
+    };
+
+    const re_confirmUpload = () => {
+        setShowReConfirm(false);
+        if (selectedFiles.length > 0) {
             console.debug("selectedFiles:", selectedFiles);
             onUpload(selectedFiles); // pass to upload function
         }
@@ -102,6 +134,9 @@ function UploadDropZone({ onUpload }) {
     const cancelUpload = () => {
         setIsDragActive(false);
         setShowConfirm(false);
+        if (showReConfirm) {
+            setShowReConfirm(false);
+        }
     };
 
     return (
@@ -121,7 +156,23 @@ function UploadDropZone({ onUpload }) {
                 <ModalWindow
                     onCancel={cancelUpload}
                     onConfirm={confirmUpload}
-                    title={<p>Are you sure you want to upload the following file(s)?</p>}
+                    title={
+                        <p className="modal-title">
+                            Are you sure you want to upload the following files?
+                        </p>
+                    }
+                    text={modalText}
+                />
+            )}
+            {showReConfirm && (
+                <ModalWindow
+                    onCancel={cancelUpload}
+                    onConfirm={re_confirmUpload}
+                    title={
+                        <p className="modal-title">
+                            Are you sure you want to overwrite the following files?
+                        </p>
+                    }
                     text={modalText}
                 />
             )}
@@ -133,4 +184,5 @@ export default UploadDropZone;
 
 UploadDropZone.propTypes = {
     onUpload: PropTypes.func,
+    files: PropTypes.array,
 };

@@ -28,7 +28,7 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
                 title={
                     <div>
                         <p className="modal-title">
-                            Are you sure you want to permanently delete the following file(s)?
+                            Are you sure you want to permanently delete the following files?
                         </p>
                     </div>
                 }

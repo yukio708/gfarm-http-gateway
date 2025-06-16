@@ -180,6 +180,7 @@ function HomePage({ user }) {
                                 onCreate={() => {
                                     setShowNewDirModal(true);
                                 }}
+                                files={files}
                             />
                             <FileActionMenu
                                 selectedFiles={selectedFiles}
@@ -226,7 +227,7 @@ function HomePage({ user }) {
                     <i className="bi bi-arrow-repeat me-2"></i> Show Progress
                 </button>
             )}
-            <UploadDropZone onUpload={addFilesToUpload} />
+            <UploadDropZone onUpload={addFilesToUpload} files={files} />
             <DeleteModal
                 deletefiles={deleteFiles}
                 setDeleteFiles={setDeleteFiles}
