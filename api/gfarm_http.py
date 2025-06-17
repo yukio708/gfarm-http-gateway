@@ -16,7 +16,7 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import List, Union, Optional, AsyncGenerator, Tuple
+from typing import List, Union, Optional, AsyncGenerator
 import urllib
 import re
 import tempfile
