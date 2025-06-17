@@ -1523,14 +1523,14 @@ async def gfls_generator(
                     dirname = os.path.normpath(line[:-1])
                 continue
             name = os.path.basename(parts[9]) if is_file else parts[9]
+            if name == "." or name == "..":
+                continue
             mode_str = parts[0]
             mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
             nlink = int(parts[1])
             uname = parts[2]
             gname = parts[3]
             size = int(parts[4])
-            if name == "." or name == "..":
-                continue
             yield Gfls_Entry(
                     name, nlink, uname, gname, size,
                     dirname, mtime_str, mode_str
