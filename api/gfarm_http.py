@@ -1531,10 +1531,15 @@ async def gfls_generator(
             size = int(parts[4])
             if name == "." or name == "..":
                 continue
-            yield Gfls_Entry(name, nlink, uname, gname, size, dirname, mtime_str, mode_str)
+            yield Gfls_Entry(
+                    name, nlink, uname, gname, size,
+                    dirname, mtime_str, mode_str
+                )
+
     return_code = await p.wait()
     if not ign_err and return_code != 0:
         raise RuntimeError(f"gfls failed: path={path} error={stdout}")
+
 
 async def gfmkdir(env, path, p=False):
     args = []
