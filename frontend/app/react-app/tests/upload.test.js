@@ -187,25 +187,93 @@ test("upload name conflict prompt (cancel)", async ({ page }) => {
     await expect(page.locator("#offcanvasFileDetail")).not.toBeVisible();
 });
 
-// // TC-081: 空ファイルアップロード
-// test("upload empty file", async ({ page }) => {
-//     // TODO: サイズ0のファイルアップロード → 成功確認
-// });
+// TC-081: 空ファイルアップロード
+test("upload empty file", async ({ page }) => {
+    const currentDirectory = "/";
+    const testFileName = "empty.txt";
+    const uploadFilePath = DUMMYS + "/" + testFileName;
+
+    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+
+    // UploadMenu のドロップダウンを開く
+    const uploadDropdownToggle = page.getByRole("button", { name: "Upload" });
+    await uploadDropdownToggle.click();
+    const fileUploadButton = page.getByRole("button", { name: "File upload" });
+    await fileUploadButton.click();
+
+    // input[type="file"][multiple] 要素に空ファイルをセット
+    const fileInput = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
+    await fileInput.setInputFiles([uploadFilePath]);
+
+    // ProgressView verification
+    await waitForProgressView(page, testFileName);
+});
 
 // // TC-083: 存在しないファイルのアップロード (異常系)
 // test("upload nonexistent file", async ({ page }) => {
-//     // TODO: 存在しないファイルを選択しようとしても無効なことを確認
 // });
 
 // // TC-084: 存在しないパスにアップロード
 // test("upload to nonexistent path", async ({ page }) => {
 //     // TODO: UIで存在しないフォルダにアップしようとするとエラー表示されること
+//  FastAPI
 // });
 
-// // TC-085: 単体ファイルのドラッグ&ドロップ
-// test("drag and drop single file", async ({ page }) => {
-//     // TODO: page.dispatch_event("drop", {...}) などを使って再現
-// });
+// TC-085: 単体ファイルのドラッグ&ドロップ
+test("drag and drop single file", async ({ page }) => {
+    const currentDirectory = "/";
+    const testFileName = "dummy.txt";
+    const uploadFilePath = DUMMYS + "/" + testFileName;
+    const fileContent = new Blob(["This is test file content"], { type: "text/plain" });
+    const file = new File([fileContent], "test-file.txt", { type: "text/plain" });
+
+    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+
+    const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+    dataTransfer.items.add(file);
+
+    await page.evaluate(() => {
+        const dataTransfer = new DataTransfer();
+        // Hack: Directly push "Files" into types (some frameworks rely on this)
+        Object.defineProperty(dataTransfer, "types", {
+            get: () => ["Files"],
+        });
+
+        const event = new DragEvent("dragenter", {
+            dataTransfer,
+            bubbles: true,
+            cancelable: true,
+        });
+
+        document.dispatchEvent(event);
+    });
+
+    // Manually simulate dragging the file over the drop zone
+    await page.dispatchEvent(".drop-zone", "dragenter", { dataTransfer });
+    await page.dispatchEvent(".drop-zone", "dragover", { dataTransfer });
+    const dropZoneLocator = page.locator(".drop-zone");
+    await expect(dropZoneLocator).toBeVisible();
+    await page.dispatchEvent(".drop-zone", "drop", { dataTransfer });
+
+    // その後の確認モーダルが表示されることを確認
+    const confirmModalTitle = page.getByText(
+        "Are you sure you want to upload the following files?"
+    );
+    await expect(confirmModalTitle).toBeVisible();
+    await expect(page.locator("ul.modal-body strong")).toContainText(testFileName); // ファイル名が表示されるか
+
+    // 「Confirm」ボタンをクリックしてアップロードを続行
+    const confirmButton = page.getByRole("button", { name: "Confirm" });
+    await confirmButton.click();
+
+    // ProgressView が開かれ、タスクが完了することを確認
+    await waitForProgressView(page, testFileName);
+
+    // アップロードされたファイルがリストに表示されていることを確認（リロード後）
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("tbody tr", { hasText: testFileName })).toBeVisible();
+});
 
 // // TC-086: 複数ファイルのドラッグ&ドロップ
 // test("drag and drop multiple files", async ({ page }) => {
