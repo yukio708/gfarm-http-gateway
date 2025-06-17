@@ -36,7 +36,7 @@ function HomePage({ user }) {
     const [isUploading, setIsUploading] = useState(false);
     const downloadQueueRef = useRef([]);
     const [isDownloading, setIsDownloading] = useState(false);
-    const [showPogressView, setShowPogressView] = useState(false);
+    const [showProgressView, setShowProgressView] = useState(false);
     const [destPath, setDestPath] = useState("");
     const [showNewDirModal, setShowNewDirModal] = useState(false);
 
@@ -82,10 +82,10 @@ function HomePage({ user }) {
             setTasks((prev) => prev.filter((t) => !t.done));
             while (uploadQueueRef.current.length) {
                 const uploadFiles = uploadQueueRef.current.shift();
+                setShowProgressView(true);
                 await upload(uploadFiles.uploadDir, uploadFiles.newFiles, setTasks, () => {
                     setRefreshKey((prev) => !prev);
                 });
-                setShowPogressView(true);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
@@ -107,8 +107,8 @@ function HomePage({ user }) {
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
                 console.debug("files", files);
+                setShowProgressView(true);
                 await download(files, setTasks);
-                setShowPogressView(true);
             }
         };
         const workers = Array(concurrency).fill().map(worker);
@@ -210,18 +210,18 @@ function HomePage({ user }) {
             </div>
             {detailContent && <DetailView detail={detailContent} onHide={closeDetail} />}
             <ProgressView
-                show={showPogressView}
+                show={showProgressView}
                 onHide={() => {
-                    setShowPogressView(false);
+                    setShowProgressView(false);
                 }}
                 tasks={tasks}
                 setTasks={setTasks}
             />
-            {!showPogressView && tasks.length > 0 && (
+            {!showProgressView && tasks.length > 0 && (
                 <button
                     className="btn btn-primary position-fixed end-0 bottom-0 m-3"
                     onClick={() => {
-                        setShowPogressView(true);
+                        setShowProgressView(true);
                     }}
                 >
                     <i className="bi bi-arrow-repeat me-2"></i> Show Progress

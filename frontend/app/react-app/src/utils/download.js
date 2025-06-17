@@ -69,7 +69,9 @@ async function downloadFile(dlurl, defaultFilename, controller, request, setTask
             const elapsed = Date.now() - startTime;
             const speed = Math.round((received / elapsed) * 1000);
             const sec = Math.floor(elapsed / 1000);
-            const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+            const message = percent
+                ? `${percent} % | ${sec} sec | ${speed} bytes/sec`
+                : `${sec} sec | ${speed} bytes/sec`;
 
             setTasks((prev) =>
                 prev.map((task) =>
