@@ -1939,21 +1939,22 @@ class Entry:
         self.is_sym = is_sym
 
 
-class FileList(BaseModel):
-    files: List[str]
+class PathList(BaseModel):
+    pathes: List[str]
 
 
 @app.post("/zip")
-async def download_zip(filelist: FileList,
-                       request: Request,
-                       authorization: Union[str, None] = Header(default=None)):
+async def zip_export(pathlist: PathList,
+                     request: Request,
+                     authorization: Union[str, None] = Header(default=None)):
     opname = "gfzip"
+    logger.debug(f"pathlist {pathlist.pathes[0]}")
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, filelist.files)
+    log_operation(env, opname, pathlist.pathes)
     filedatas = []
-    for filepath in filelist.files:
+    for filepath in pathlist.pathes:
         existing, is_file, _ = await file_size(env, filepath)
         if not existing:
             code = 404
@@ -2076,7 +2077,7 @@ async def download_zip(filelist: FileList,
             zip_writer.close()
 
     async def generate():
-        zip_writer = ZipStreamWriter(chunk_size=1024,
+        zip_writer = ZipStreamWriter(chunk_size=BUFSIZE,
                                      loop=asyncio.get_running_loop())
         asyncio.create_task(create_zip(zip_writer))
         async for chunk in zip_writer.get_chunks():

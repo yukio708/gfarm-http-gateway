@@ -150,7 +150,7 @@ async function download(files, setTasks) {
         const request = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ files: pathes }),
+            body: JSON.stringify({ pathes }),
             signal,
         };
         await downloadFile(dlurl, filename, controller, request, setTasks);
