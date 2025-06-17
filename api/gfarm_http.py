@@ -16,7 +16,7 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import List, Union, Optional, AsyncGenerator
+from typing import List, Union, Optional, AsyncGenerator, Tuple
 import urllib
 import re
 import tempfile
@@ -1313,6 +1313,26 @@ def parse_gfstat(file_info_str):
     return Stat.model_validate(file_info)  # Pydantic V2
 
 
+def from_rwx(rwx, highchar):
+    perm = 0
+    highbit = 0
+    r = rwx[0]
+    w = rwx[1]
+    x = rwx[2]
+    if r == 'r':
+        perm |= 0o4
+    if w == 'w':
+        perm |= 0o2
+    if x == 'x':
+        perm |= 0o1
+    elif x == highchar:
+        perm |= 0o1
+        highbit = 0o1
+    elif x == highchar.upper():
+        highbit = 0o1
+    return perm, highbit
+
+
 #############################################################################
 async def gfwhoami(env):
     args = []
@@ -1386,14 +1406,14 @@ async def gfreg(env, path, mtime):
 async def gfls(env,
                path,
                _all=False,
-               recursive=False,
+               _recursive=False,
                _long=False,
                _T=False,
                effperm=False):
     args = []
     if _all:
         args.append('-a')
-    if recursive:
+    if _recursive:
         args.append('-R')
     if _long:
         args.append('-l')
@@ -1409,6 +1429,112 @@ async def gfls(env,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT)
 
+
+class Gfls_Entry:
+    def __init__(
+            self,
+            name,
+            nlink,
+            uname,
+            gname,
+            size,
+            dirname,
+            mtime_str,
+            mode_str):
+        self.dirname = dirname
+        self.name = name
+        self.nlink = nlink
+        self.uname = uname
+        self.gname = gname
+        self.size = size
+        self.mtime_str = mtime_str
+        mtime = time.mktime(
+            time.strptime(mtime_str, '%b %d %H:%M:%S %Y'))
+        self.mtime = mtime
+        self.mode_str = mode_str
+        mode = 0
+        perm, highbit = from_rwx(mode_str[1:4], 's')
+        mode |= (perm << 6)
+        mode |= (highbit << 11)
+        perm, highbit = from_rwx(mode_str[4:7], 's')
+        mode |= (perm << 3)
+        mode |= (highbit << 10)
+        perm, highbit = from_rwx(mode_str[7:10], 't')
+        mode |= perm
+        mode |= (highbit << 9)
+        self.mode = mode
+        self.is_dir = mode_str.startswith('d')
+        self.is_sym = mode_str.startswith('l')
+        self.linkname = ''
+        if self.is_sym:
+            pair = name.split(' -> ')
+            self.name = pair[0]
+            self.linkname = pair[1]
+        self.path = os.path.join(self.dirname, self.name)
+
+    def json_dump(self):
+        return {
+            "mode_str": self.mode_str,
+            "is_file": not self.is_dir,
+            "is_sym": self.is_sym,
+            "linkname": self.linkname,
+            "nlink": self.nlink,
+            "uname": self.uname,
+            "gname": self.gname,
+            "size": self.size,
+            "mtime_str": self.mtime_str,
+            "name": self.name,
+            "path": self.path
+        }
+
+
+async def gfls_generator(
+        env,
+        path,
+        is_file,
+        _all: bool = True,
+        _recursive: bool = True,
+        _long: bool = True,
+        _T: bool = True,
+        effperm: bool = False,
+        ign_err: bool = False
+        ) -> AsyncGenerator[Union[str, Gfls_Entry], None]:
+    dirname = os.path.dirname(path) if is_file else path
+    p = await gfls(env, path, _all, _recursive, _long, _T, effperm)
+    stdout = ""
+    buffer = b""
+    while True:
+        chunk = await p.stdout.read(1)
+        if not chunk:
+            break
+        buffer += chunk
+        if b"\r" in buffer or b"\n" in buffer:
+            logger.debug(f"buffer:{buffer}")
+            line = buffer.decode("utf-8", errors="replace").strip()
+            stdout += line
+            buffer = b""
+            if not line:
+                continue
+            if not _long or not _T:
+                yield line
+            parts = line.strip().split(None, 9)
+            if len(parts) < 10:
+                if _recursive:
+                    dirname = os.path.normpath(line[:-1])
+                continue
+            name = os.path.basename(parts[9]) if is_file else parts[9]
+            mode_str = parts[0]
+            mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
+            nlink = int(parts[1])
+            uname = parts[2]
+            gname = parts[3]
+            size = int(parts[4])
+            if name == "." or name == "..":
+                continue
+            yield Gfls_Entry(name, nlink, uname, gname, size, dirname, mtime_str, mode_str)
+    return_code = await p.wait()
+    if not ign_err and return_code != 0:
+        raise RuntimeError(f"gfls failed: path={path} error={stdout}")
 
 async def gfmkdir(env, path, p=False):
     args = []
@@ -1648,70 +1774,41 @@ async def dir_list(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
-    existing, _, _ = await file_size(env, gfarm_path)
+    existing, is_file, _ = await file_size(env, gfarm_path)
     if not existing:
         code = 404
         message = f"gfls error: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, "", elist)
     T = format_type == 'json'
-    p = await gfls(env, gfarm_path,
-                   _all=a, recursive=R, _long=l, _T=T, effperm=e)
-    data = await p.stdout.read()
-    stdout = data.decode()
-    return_code = await p.wait()
-    if not ign_err and return_code != 0:
-        logger.debug(
-            f"{ipaddr}:0 user={user}, cmd={opname}, return={return_code},"
-            f" message={stdout}")
+
+    json_data = []
+    plain = ""
+    try:
+        async for entry in gfls_generator(
+                    env, gfarm_path, is_file,
+                    _all=a, _recursive=R, _long=l, _T=T, effperm=e,
+                    ign_err=ign_err
+                ):
+            if format_type == 'json':
+                if isinstance(entry, Gfls_Entry):
+                    json_data.append(entry.json_dump())
+                else:
+                    json_data.append(entry)
+            else:
+                plain += entry
+    except RuntimeError as e:
         code = 500
         message = f"gfls error: path={gfarm_path}"
         elist = []
-        raise gfarm_http_error(opname, code, message, stdout, elist)
+        raise gfarm_http_error(opname, code, e.message, "", elist)
 
     if format_type == 'json':
-        json = []
-        for line in stdout.splitlines():
-            parts = line.strip().split(None, 9)
-            if len(parts) < 10:
-                json.append(line)
-                continue
-            mode_str = parts[0]
-            nlink = int(parts[1])
-            uname = parts[2]
-            gname = parts[3]
-            size = int(parts[4])
-            mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
-            name = parts[9]
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json_data}")
+        return JSONResponse(content=json_data)
 
-            is_dir = mode_str.startswith('d')
-            is_sym = mode_str.startswith('l')
-            if is_sym:
-                pair = name.split(' -> ')
-                name = pair[0]
-                symlink = pair[1].replace("gfarm:/", "")
-                existing, is_file, _ = await file_size(env, symlink)
-                if existing:
-                    is_dir = not is_file
-            else:
-                symlink = None
-            json.append({
-                "mode_str": mode_str,
-                "is_file": not is_dir,
-                "symlink": symlink,
-                "nlink": nlink,
-                "uname": uname,
-                "gname": gname,
-                "size": size,
-                "mtime_str": mtime_str,
-                "name": name,
-                "path": os.path.join(gfarm_path, name)
-            })
-        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json}")
-        return JSONResponse(content=json)
-
-    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={stdout}")
-    return PlainTextResponse(content=stdout)
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={plain}")
+    return PlainTextResponse(content=plain)
 
 
 @app.put("/d/{gfarm_path:path}")
@@ -1844,26 +1941,6 @@ async def file_export(gfarm_path: str,
                              )
 
 
-def from_rwx(rwx, highchar):
-    perm = 0
-    highbit = 0
-    r = rwx[0]
-    w = rwx[1]
-    x = rwx[2]
-    if r == 'r':
-        perm |= 0o4
-    if w == 'w':
-        perm |= 0o2
-    if x == 'x':
-        perm |= 0o1
-    elif x == highchar:
-        perm |= 0o1
-        highbit = 0o1
-    elif x == highchar.upper():
-        highbit = 0o1
-    return perm, highbit
-
-
 class ZipStreamWriter:
     """
     Stream-like writer for ZipFile that supports async chunk consumption.
@@ -1918,27 +1995,6 @@ class ZipStreamWriter:
         pass
 
 
-class Entry:
-    def __init__(
-            self,
-            fullpath,
-            dirname,
-            name,
-            linkname,
-            mtime,
-            mode,
-            is_dir,
-            is_sym):
-        self.fullpath = fullpath
-        self.dirname = dirname
-        self.name = name
-        self.linkname = linkname
-        self.mtime = mtime
-        self.mode = mode
-        self.is_dir = is_dir
-        self.is_sym = is_sym
-
-
 class PathList(BaseModel):
     pathes: List[str]
 
@@ -1964,66 +2020,7 @@ async def zip_export(pathlist: PathList,
             raise gfarm_http_error(opname, code, message, stdout, elist)
         filedatas.append((filepath, is_file))
 
-    async def gather_all_entries() -> AsyncGenerator[Entry, None]:
-        for filepath, is_file in filedatas:
-            parent = os.path.dirname(filepath)
-            dirname = "" if is_file else os.path.basename(filepath)
-            p = await gfls(env, filepath,
-                           _all=True, recursive=True, _long=True, _T=True)
-            data = await p.stdout.read()
-            stdout = data.decode()
-            return_code = await p.wait()
-            if return_code != 0:
-                logger.debug(
-                    f"{ipaddr}:0 user={user}, cmd={opname}, " +
-                    f"return={return_code}," +
-                    f" message={stdout}")
-                return
-
-            for line in stdout.splitlines():
-                parts = line.strip().split(None, 9)
-                if len(parts) < 10:
-                    dirname = line[:-1].replace(parent + "/", "", 1)
-                    dirname = os.path.normpath(dirname)
-                    continue
-                name = os.path.basename(filepath) if is_file else parts[9]
-                mode_str = parts[0]
-                is_dir = mode_str.startswith('d')
-                is_sym = mode_str.startswith('l')
-                linkname = ''
-                if is_sym:
-                    pair = name.split(' -> ')
-                    name = pair[0]
-                    linkname = pair[1]
-                mode = 0
-                perm, highbit = from_rwx(mode_str[1:4], 's')
-                mode |= (perm << 6)
-                mode |= (highbit << 11)
-                perm, highbit = from_rwx(mode_str[4:7], 's')
-                mode |= (perm << 3)
-                mode |= (highbit << 10)
-                perm, highbit = from_rwx(mode_str[7:10], 't')
-                mode |= perm
-                mode |= (highbit << 9)
-                mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
-                mtime = time.mktime(
-                    time.strptime(mtime_str, '%b %d %H:%M:%S %Y'))
-                if name == "." or name == "..":
-                    continue
-                fullpath = filepath
-                if not is_file:
-                    logger.debug(f"parent {parent}")
-
-                    fullpath = os.path.normpath(
-                            parent + "/" + os.path.join(dirname, name)
-                        )
-                logger.debug(f"filepath {filepath}")
-                logger.debug(f"fullpath {fullpath}")
-                logger.debug(f"dirname {dirname}")
-                yield Entry(fullpath, dirname, name, linkname,
-                            mtime, mode, is_dir, is_sym)
-
-    async def add_entry_to_zip(zipf: zipfile.ZipFile, entry):
+    async def add_entry_to_zip(zipf: zipfile.ZipFile, entry: Gfls_Entry):
         rel_path = os.path.join(entry.dirname, entry.name)
         logger.debug(f"rel_path {rel_path}")
 
@@ -2044,7 +2041,7 @@ async def zip_export(pathlist: PathList,
         else:
             try:
                 env = await set_env(request, authorization)
-                proc = await gfexport(env, entry.fullpath)
+                proc = await gfexport(env, entry.path)
                 elist = []
                 stderr_task = asyncio.create_task(
                         log_stderr(opname, proc, elist)
@@ -2060,8 +2057,7 @@ async def zip_export(pathlist: PathList,
                 if return_code != 0:
                     raise
             except Exception as e:
-                code = 500
-                message = f"zip create error: path={entry.fullpath}: {e}"
+                message = f"zip create error: path={entry.path}: {e}"
                 logger.debug(
                     f"{ipaddr}:0 user={user}, cmd={opname}, " +
                     f" message={message}")
@@ -2071,13 +2067,19 @@ async def zip_export(pathlist: PathList,
         try:
             with zipfile.ZipFile(zip_writer, "w",
                                  compression=zipfile.ZIP_DEFLATED) as zf:
-                async for entry in gather_all_entries():
-                    await add_entry_to_zip(zf, entry)
+                for filepath, is_file in filedatas:
+                    parent = os.path.dirname(filepath)
+                    async for entry in gfls_generator(env, filepath, is_file):
+                        dirname = entry.dirname.replace(parent, "", 1)
+                        dirname = dirname.replace("/", "", 1)
+                        dirname = os.path.normpath(dirname)
+                        entry.dirname = dirname
+                        await add_entry_to_zip(zf, entry)
         finally:
             zip_writer.close()
 
     async def generate():
-        zip_writer = ZipStreamWriter(chunk_size=BUFSIZE,
+        zip_writer = ZipStreamWriter(chunk_size=1024, # tentative
                                      loop=asyncio.get_running_loop())
         asyncio.create_task(create_zip(zip_writer))
         async for chunk in zip_writer.get_chunks():

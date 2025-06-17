@@ -92,12 +92,12 @@ function FileListView({
         });
     };
 
-    const handleNameCick = (filepath, is_file, symlink) => {
+    const handleNameCick = (filepath, is_file, is_sym, linkname) => {
         if (is_file) {
             display(filepath);
         } else {
-            if (symlink) {
-                jumpDirectory(symlink);
+            if (is_sym) {
+                jumpDirectory(linkname);
             } else {
                 jumpDirectory(filepath);
             }
@@ -177,7 +177,12 @@ function FileListView({
                                         )
                                     }
                                     onDoubleClick={() =>
-                                        handleNameCick(file.path, file.is_file, file.symlink)
+                                        handleNameCick(
+                                            file.path,
+                                            file.is_file,
+                                            file.is_sym,
+                                            file.linkname
+                                        )
                                     }
                                 />
                             </td>

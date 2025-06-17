@@ -147,6 +147,7 @@ async function download(files, setTasks) {
         const dlurl = `${API_URL}/zip`;
         const filename = "tmp" + Date.now() + ".zip";
         const pathes = files.map((file) => file.path);
+        console.log("pathes", pathes);
         const request = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
