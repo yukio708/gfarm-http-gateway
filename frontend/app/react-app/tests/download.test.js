@@ -11,7 +11,7 @@ test.beforeEach(async ({ context }) => {
 
 test("download single file", async ({ page }) => {
     const currentDirectory = "/documents";
-    const testFileName = "report.docx"; // .docx ファイルを想定
+    const testFileName = "report.docx";
 
     await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
 
@@ -23,30 +23,27 @@ test("download single file", async ({ page }) => {
     const downloadButton = page.locator(".dropdown-menu").getByRole("button", { name: "Download" });
     await expect(downloadButton).toBeVisible();
 
-    // ダウンロードイベントを待機しつつ、ダウンロードボタンをクリック
     const downloadPromise = page.waitForEvent("download");
     await downloadButton.click();
     const download = await downloadPromise;
 
-    // タスクカードが表示されていることを確認
+    // ProgressView verification
     const taskCard = page.locator(".offcanvas-body .card", { hasText: "report.docx" });
     await expect(taskCard).toBeVisible();
 
-    // ファイル名の確認
     await expect(taskCard.locator("h6")).toContainText("report.docx");
 
-    // プログレスバーの幅とアニメーションの確認
     const progressBar = taskCard.locator(".progress-bar");
     await expect(progressBar).toBeVisible();
     await expect(taskCard.locator(".badge")).toHaveText("completed");
 
-    // ダウンロードされたファイル名を検証
+    // Verify the downloaded file name
     expect(download.suggestedFilename()).toBe(testFileName);
 
-    const path = await download.path(); // 一時ファイルパスを取得
-    const fileContent = fs.readFileSync(path, "utf8"); // ファイル内容を読み込み
-    expect(fileContent).toContain(testFileName); // 内容を検証
-    expect(fs.statSync(path).size).toBeGreaterThan(0); // ファイルサイズが0より大きいこと
+    const path = await download.path(); // Get the temporary file path
+    const fileContent = fs.readFileSync(path, "utf8"); // Read the file contents
+    expect(fileContent).toContain(testFileName);
+    expect(fs.statSync(path).size).toBeGreaterThan(0);
 });
 
 test("download multiple files", async ({ page }) => {

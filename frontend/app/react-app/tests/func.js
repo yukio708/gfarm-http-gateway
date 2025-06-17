@@ -5,6 +5,7 @@ const http = require("http");
 export const FRONTEND_URL = "http://localhost:3000";
 export const API_URL = "http://localhost:8080";
 export const DIR_LIST = path.resolve(__dirname, "data/filelist.json");
+export const DUMMYS = path.resolve(__dirname, "data/dummy");
 
 export const ZIPNAME = "files.zip";
 
@@ -127,8 +128,12 @@ export const getFileIconDefault = (ext, is_file) => {
     }
 };
 
+export const getDummyFileContent = (filename) => {
+    return fs.readFileSync(DUMMYS + filename, "utf8");
+};
+
 // Route handler
-export async function handleRoute(route, request) {
+export const handleRoute = async (route, request) => {
     const url = request.url();
     const method = request.method();
 
@@ -323,8 +328,11 @@ export async function handleRoute(route, request) {
     } else if (url.includes("/file/") && method === "PUT") {
         console.log("/file/", url);
         const request = route.request();
-        const body = await request.body();
-        console.log("body:", body);
+        const bodyBuffer = request.postDataBuffer();
+        const bodyText = request.postData();
+
+        console.log("Body buffer:", bodyBuffer);
+        console.log("Body text:", bodyText); // for plain text or JSON
 
         // Return mocked JSON response
         await route.fulfill({
@@ -332,7 +340,17 @@ export async function handleRoute(route, request) {
             contentType: "application/json",
             body: JSON.stringify({ result: "ok" }),
         });
+    } else if (url.includes("/dir/") && method === "PUT") {
+        console.log("/dir/", url);
+        const dirPath = decodeURIComponent(url.split("/dir/")[1].split("?")[0]);
+
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ message: `Directory '${dirPath}' created successfully.` }),
+        });
+        return;
     } else {
         await route.continue();
     }
-}
+};

@@ -631,8 +631,8 @@ expect_gfls_stdout_data = (
 gfls_success_param = (expect_gfls_stdout_data, b"", 0)
 
 
-async def download_zip_check(paths, expect_contents):
-    test_files = {"files": paths}
+async def download_zip_check(pathes, expect_contents):
+    test_files = {pathes}
 
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
@@ -759,7 +759,7 @@ async def test_download_zip_file_not_found(
         mock_size_not_found,
         mock_gfls,
         mock_gfexport_for_zip):
-    test_files = {"files": ["gfarm:/testdir"]}
+    test_files = {"pathes": ["gfarm:/testdir"]}
 
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
@@ -783,7 +783,7 @@ async def test_download_zip_gfls_error(
         mock_size,
         mock_gfls,
         mock_gfexport_for_zip):
-    test_files = {"files": ["gfarm:/tmp/testdir/testfile1.txt"]}
+    test_files = {"pathes": ["gfarm:/tmp/testdir/testfile1.txt"]}
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
                            json=test_files)
@@ -814,7 +814,7 @@ async def test_download_zip_gfexport_error(
         mock_size,
         mock_gfls,
         mock_exec):
-    test_files = {"files": ["gfarm:/tmp/testdir/testfile1.txt"]}
+    test_files = {"pathes": ["gfarm:/tmp/testdir/testfile1.txt"]}
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
                            json=test_files)

@@ -65,13 +65,13 @@ function HomePage({ user }) {
         }
     };
 
-    const addFilesToDownload = async (files) => {
+    const addFilesToDownload = (files) => {
         console.debug("addFilesToDownload: files:", files);
         downloadQueueRef.current.push(files);
         setIsDownloading(true);
     };
 
-    const addFilesToUpload = async (newFiles) => {
+    const addFilesToUpload = (newFiles) => {
         uploadQueueRef.current.push({ uploadDir: currentDir, newFiles });
         setIsUploading(true);
     };
@@ -246,17 +246,6 @@ function HomePage({ user }) {
                     setRefreshKey((prev) => !prev);
                 }}
             />
-            {/* {showModal && (
-                <ModalWindow
-                    onCancel={() => {
-                        setModalConfirmAction(null);
-                        setShowModal(false);
-                    }}
-                    onConfirm={modalConfirmAction}
-                    title={modalTitle}
-                    text={modalContent}
-                />
-            )} */}
         </div>
     );
 }

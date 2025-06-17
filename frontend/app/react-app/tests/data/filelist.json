@@ -229,6 +229,30 @@
                         "path": "/cancellable_file.txt"
                     }
                 ]
+            },
+            {
+                "mode_str": "drwxr-xr-x",
+                "is_file": false,
+                "nlink": 3,
+                "uname": "user4",
+                "gname": "users",
+                "size": 4096,
+                "mtime_str": "May 30 18:00:00 2025",
+                "name": "dummy",
+                "path": "/dummy",
+                "childlen" : [
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 0,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "dummy.txt",
+                        "path": "/dummy/dummy.txt"
+                    }
+                ]
             }
         ]
     }
