@@ -233,6 +233,11 @@ function HomePage({ user }) {
                 setDeleteFiles={setDeleteFiles}
                 setError={setError}
                 refrech={() => {
+                    setSelectedFiles(
+                        selectedFiles.filter((file) =>
+                            deleteFiles.some((deletedfile) => deletedfile.path !== file.path)
+                        )
+                    );
                     setDeleteFiles([]);
                     setRefreshKey((prev) => !prev);
                 }}
