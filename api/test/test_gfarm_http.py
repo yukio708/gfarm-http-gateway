@@ -332,13 +332,13 @@ async def test_whoami_basic_session(mock_claims, mock_access_token_none,
 
 
 expect_gfls_stdout = "test gfls stdout"
-expect_gfls = (expect_gfls_stdout.encode(), b"error", 0)
-
+expect_gfls = ((expect_gfls_stdout + "\n").encode(), b"error", 0)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
+async def test_dir_list(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir?l=0&format_type=plain",
+                          headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '/testdir')
@@ -347,8 +347,9 @@ async def test_dir_list(mock_claims, mock_size, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_a(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir?a=1", headers=req_headers_oidc_auth)
+async def test_dir_list_a(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir?a=1&l=0&format_type=plain",
+                          headers=req_headers_oidc_auth)
     assert response.status_code == 200
     # NOT WORK: mock_exec.assert_called_with(args=['gfls', '-a', 'testdir'])
     args, kwargs = mock_exec.call_args
@@ -358,8 +359,9 @@ async def test_dir_list_a(mock_claims, mock_size, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_l(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir?l=1", headers=req_headers_oidc_auth)
+async def test_dir_list_l(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir?l=1&format_type=plain",
+                          headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-l', '/testdir')
@@ -368,8 +370,9 @@ async def test_dir_list_l(mock_claims, mock_size, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_R(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir?R=1", headers=req_headers_oidc_auth)
+async def test_dir_list_R(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir?R=1&l=0&format_type=plain",
+                          headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-R', '/testdir')
@@ -378,33 +381,53 @@ async def test_dir_list_R(mock_claims, mock_size, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_e(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir?e=1", headers=req_headers_oidc_auth)
+async def test_dir_list_e(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir?e=1&l=0&format_type=plain",
+                          headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '-e', '/testdir')
     assert response.text == expect_gfls_stdout
 
 
+expect_gfls_stdout_data = (
+    b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 \
+    testfile1.txt\n"
+)
+gfls_success_param = (expect_gfls_stdout_data, b"", 0)
+
+expect_gfls_json_stdout = {
+    "mode_str": "-rw-r--r--",
+    "is_file": True,
+    "is_sym": False,
+    "linkname": "",
+    "nlink": 1,
+    "uname": "user",
+    "gname": "group",
+    "size": 5678,
+    "mtime_str": "Jun 01 09:00:00 2024",
+    "name": "testfile1.txt",
+    "path": "/testdir/testfile1.txt"
+}
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
-async def test_dir_list_format_type(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir?format_type=json",
+@pytest.mark.parametrize("mock_exec", [gfls_success_param], indirect=True)
+async def test_dir_list_json(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir",
                           headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
-    assert args == ('gfls', '-T', '/testdir')
-    assert response.json() == [expect_gfls_stdout]
+    assert args == ('gfls', '-l', '-T', '/testdir')
+    assert response.json() == [expect_gfls_json_stdout]
 
 
 expect_gfls_err_msg = "test gfls (error)"
-expect_gfls_err = (expect_gfls_err_msg.encode(), b"error", 1)
-
+expect_gfls_err = ((expect_gfls_err_msg + "\n").encode(), b"error", 1)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
-async def test_dir_list_err(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir", headers=req_headers_oidc_auth)
+async def test_dir_list_err(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir?l=0&format_type=plain", headers=req_headers_oidc_auth)
     assert_gfarm_http_error(response, 500, "gfls", None, expect_gfls_err_msg)
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '/testdir')
@@ -412,8 +435,8 @@ async def test_dir_list_err(mock_claims, mock_size, mock_exec):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
-async def test_dir_list_ign_err(mock_claims, mock_size, mock_exec):
-    response = client.get("/dir/testdir?ign_err=1",
+async def test_dir_list_ign_err(mock_claims, mock_size_not_file, mock_exec):
+    response = client.get("/dir/testdir?ign_err=1&l=0&format_type=plain",
                           headers=req_headers_oidc_auth)
     assert response.status_code == 200
     args, kwargs = mock_exec.call_args
@@ -615,24 +638,24 @@ async def test_user_info_None(mock_claims):
     assert json["username"] is None
 
 
-expect_gfls_stdout_data = (
+expect_gfls_stdout_data1 = (
     b"-rw-r--r-- 1 user group 6686 Mar 31 17:20:10 2025 file_a.txt\n"
     b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 file_b.txt\n"
     b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test\n"
     b"\n"
-    b"gfarm:/testdir/test:\n"
+    b"./testdir/test:\n"
     b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test2\n"
     b"lrw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024\
-    symlink -> gfarm:/test\n"
+    symlink -> ./test\n"
     b"\n"
-    b"gfarm:/testdir/test/test2:\n"
+    b"./testdir/test/test2:\n"
     b"-rw-r--r-- 1 user group 1234 May 20 15:30:00 2024 file_c.txt\n"
 )
-gfls_success_param = (expect_gfls_stdout_data, b"", 0)
+gfls_success_param1 = (expect_gfls_stdout_data1, b"", 0)
 
 
-async def download_zip_check(pathes, expect_contents):
-    test_files = {pathes}
+async def zip_export_check(pathes, expect_names, expect_contents):
+    test_files = {"pathes": pathes}
 
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
@@ -653,22 +676,22 @@ async def download_zip_check(pathes, expect_contents):
         namelist = zf.namelist()
         print(f"Zip file contains: {namelist}")
 
-        for path_in_zip in expect_contents:
-            assert path_in_zip in namelist
+        for i in range(0, len(expect_names)):
+            assert expect_names[i] in namelist
 
-            if not path_in_zip.endswith('.txt'):
+            if not expect_names[i].endswith('.txt'):
                 continue
 
-            with zf.open(path_in_zip, 'r') as f:
+            with zf.open(expect_names[i], 'r') as f:
                 content = f.read().decode()
-                assert path_in_zip in content
+                assert expect_contents[i] in content
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
-                         [gfls_success_param], indirect=True)
+                         [gfls_success_param1], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
-async def test_download_zip_file_and_directory(
+async def test_zip_export_file_and_directory(
         mock_claims,
         mock_size_not_file,
         mock_gfls,
@@ -681,25 +704,25 @@ async def test_download_zip_file_and_directory(
         "testdir/test/symlink",
         "testdir/test/test2/file_c.txt"
     ]
-    await download_zip_check(["gfarm:/testdir"], expected_zip_paths)
+    await zip_export_check(["/testdir"], expected_zip_paths, expected_zip_paths)
 
 
 expect_gfls_stdout_data2 = (
     b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test\n"
     b"\n"
-    b"gfarm:/testdir/test:\n"
+    b"./testdir/test:\n"
     b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test2\n"
     b"\n"
-    b"gfarm:/testdir/test/test2:\n"
+    b"./testdir/test/test2:\n"
     b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test3\n"
     b"\n"
-    b"gfarm:/testdir/test/test2/test3:\n"
+    b"./testdir/test/test2/test3:\n"
     b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test4\n"
     b"\n"
-    b"gfarm:/testdir/test/test2/test3/test4:\n"
+    b"./testdir/test/test2/test3/test4:\n"
     b"drw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test5\n"
     b"\n"
-    b"gfarm:/testdir/test/test2/test3/test4/test5:\n"
+    b"./testdir/test/test2/test3/test4/test5:\n"
     b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 test6.txt\n"
 )
 gfls_success_param2 = (expect_gfls_stdout_data2, b"", 0)
@@ -709,7 +732,7 @@ gfls_success_param2 = (expect_gfls_stdout_data2, b"", 0)
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param2], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
-async def test_download_zip_nest_directory(
+async def test_zip_export_nest_directory(
         mock_claims,
         mock_size_not_file,
         mock_gfls,
@@ -722,12 +745,12 @@ async def test_download_zip_nest_directory(
         "testdir/test/test2/test3/test4/test5/",
         "testdir/test/test2/test3/test4/test5/test6.txt",
     ]
-    await download_zip_check(["gfarm:/testdir"], expected_zip_paths)
+    await zip_export_check(["/testdir"], expected_zip_paths, expected_zip_paths)
 
 
 expect_gfls_stdout_data3 = (
     b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 \
-    gfarm:/tmp/testdir/testfile1.txt\n"
+    ./tmp/testdir/testfile1.txt\n"
 )
 gfls_success_param3 = (expect_gfls_stdout_data3, b"", 0)
 
@@ -736,17 +759,21 @@ gfls_success_param3 = (expect_gfls_stdout_data3, b"", 0)
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param3], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
-async def test_download_zip_file(
+async def test_zip_export_file(
         mock_claims,
         mock_size,
         mock_gfls,
         mock_gfexport_for_zip):
     expected_zip_paths = [
-        "testfile1.txt",
+        "./testfile1.txt",
     ]
-    await download_zip_check(
-            ["gfarm:/tmp/testdir/testfile1.txt"],
-            expected_zip_paths
+    expected_contents = [
+        "/tmp/testdir/testfile1.txt",
+    ]
+    await zip_export_check(
+            ["/tmp/testdir/testfile1.txt"],
+            expected_zip_paths,
+            expected_contents
         )
 
 
@@ -754,12 +781,12 @@ async def test_download_zip_file(
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
-async def test_download_zip_file_not_found(
+async def test_zip_export_file_not_found(
         mock_claims,
         mock_size_not_found,
         mock_gfls,
         mock_gfexport_for_zip):
-    test_files = {"pathes": ["gfarm:/testdir"]}
+    test_files = {"pathes": ["testdir"]}
 
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
@@ -778,12 +805,13 @@ gfls_error_param = (expect_gfls_stdout_data4, b"", 1)
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_error_param], indirect=True)
 @pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
-async def test_download_zip_gfls_error(
+async def test_zip_export_gfls_error(
         mock_claims,
         mock_size,
         mock_gfls,
         mock_gfexport_for_zip):
-    test_files = {"pathes": ["gfarm:/tmp/testdir/testfile1.txt"]}
+    test_files = {"pathes": ["/tmp/testdir/testfile1.txt"]}
+    expected_filename = "./testfile1.txt"
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
                            json=test_files)
@@ -802,19 +830,21 @@ async def test_download_zip_gfls_error(
     with zipfile.ZipFile(zip_buffer, 'r') as zf:
         namelist = zf.namelist()
         print(f"Zip file contains: {namelist}")
-        assert "testfile1.txt" not in namelist
+        assert expected_filename not in namelist
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param3], indirect=True)
 @pytest.mark.parametrize("mock_exec", [(b"", b"error", 1)], indirect=True)
-async def test_download_zip_gfexport_error(
+async def test_zip_export_gfexport_error(
         mock_claims,
         mock_size,
         mock_gfls,
         mock_exec):
-    test_files = {"pathes": ["gfarm:/tmp/testdir/testfile1.txt"]}
+    test_files = {"pathes": ["/tmp/testdir/testfile1.txt"]}
+    expected_filename = "./testfile1.txt"
+    expected_content = "/tmp/testdir/testfile1.txt"
     response = client.post("/zip",
                            headers=req_headers_oidc_auth,
                            json=test_files)
@@ -833,11 +863,11 @@ async def test_download_zip_gfexport_error(
     with zipfile.ZipFile(zip_buffer, 'r') as zf:
         namelist = zf.namelist()
         print(f"Zip file contains: {namelist}")
-        assert "testfile1.txt" in namelist
-        with zf.open("testfile1.txt", 'r') as f:
+        assert expected_filename in namelist
+        with zf.open(expected_filename, 'r') as f:
             content = f.read().decode()
             print(f"Zip file content: {content}")
-            assert "testfile1.txt" not in content
+            assert expected_content not in content
 
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize

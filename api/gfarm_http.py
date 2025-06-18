@@ -1538,7 +1538,7 @@ async def gfls_generator(
 
     return_code = await p.wait()
     if not ign_err and return_code != 0:
-        raise RuntimeError(f"gfls failed: path={path} error={stdout}")
+        raise RuntimeError(stdout)
 
 
 async def gfmkdir(env, path, p=False):
@@ -1769,8 +1769,8 @@ async def dir_list(gfarm_path: str,
                    a: bool = False,
                    e: bool = False,
                    R: bool = False,
-                   l: bool = False,  # noqa: E741
-                   format_type: str = 'plain',
+                   l: bool = True,  # noqa: E741
+                   format_type: str = 'json',
                    ign_err: bool = False,
                    authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
@@ -1788,32 +1788,27 @@ async def dir_list(gfarm_path: str,
     T = format_type == 'json'
 
     json_data = []
-    plain = ""
     try:
         async for entry in gfls_generator(
                     env, gfarm_path, is_file,
                     _all=a, _recursive=R, _long=l, _T=T, effperm=e,
                     ign_err=ign_err
                 ):
-            if format_type == 'json':
-                if isinstance(entry, Gfls_Entry):
+            if isinstance(entry, Gfls_Entry):
                     json_data.append(entry.json_dump())
-                else:
-                    json_data.append(entry)
             else:
-                plain += entry
+                json_data.append(entry)
     except RuntimeError as e:
         code = 500
         message = f"gfls error: path={gfarm_path}"
         elist = []
-        raise gfarm_http_error(opname, code, e.message, "", elist)
+        raise gfarm_http_error(opname, code, message, str(e), elist)
 
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={json_data}")
     if format_type == 'json':
-        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, json={json_data}")
         return JSONResponse(content=json_data)
 
-    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={plain}")
-    return PlainTextResponse(content=plain)
+    return PlainTextResponse(content="\n".join(json_data))
 
 
 @app.put("/d/{gfarm_path:path}")
@@ -2075,8 +2070,11 @@ async def zip_export(pathlist: PathList,
                 for filepath, is_file in filedatas:
                     parent = os.path.dirname(filepath)
                     async for entry in gfls_generator(env, filepath, is_file):
-                        dirname = entry.dirname.replace(parent, "", 1)
-                        dirname = dirname.replace("/", "", 1)
+                        dirname = entry.dirname
+                        if dirname.startswith(parent):
+                            dirname = dirname.replace(parent, "", 1)
+                        if dirname.startswith("/"):
+                            dirname = dirname[1:]
                         dirname = os.path.normpath(dirname)
                         entry.dirname = dirname
                         await add_entry_to_zip(zf, entry)
