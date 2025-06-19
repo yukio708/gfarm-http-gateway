@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import getList from "../utils/getList";
 
 function useFileList(dirPath, reload) {
-    const [files, setFiles] = useState([]);
+    const [currentFiles, setCurrentFiles] = useState([]);
     const [listGetError, setListGetError] = useState(null);
 
     useEffect(() => {
@@ -10,7 +10,7 @@ function useFileList(dirPath, reload) {
             setListGetError(null);
             const data = await getList(dirPath);
             if (Array.isArray(data)) {
-                setFiles(data.filter((file) => file.name !== "." && file.name !== ".."));
+                setCurrentFiles(data.filter((file) => file.name !== "." && file.name !== ".."));
                 setListGetError(null);
             } else {
                 console.error("listGetError", data);
@@ -21,7 +21,7 @@ function useFileList(dirPath, reload) {
         fetchFiles();
     }, [dirPath, reload]);
 
-    return { files, listGetError };
+    return { currentFiles, listGetError };
 }
 
 export default useFileList;

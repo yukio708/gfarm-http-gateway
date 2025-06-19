@@ -1,15 +1,16 @@
 import { API_URL } from "./api_url";
 
-async function moveFile(files, dest, refresh) {
-    if (!files || !dest) {
+async function moveFile(files, refresh) {
+    if (!files) {
         alert("Please input Gfarm path");
     }
     let res = "";
-    for (const src of files) {
+    for (const file of files) {
+        console.debug("moveFile", file.path, "to", file.destPath);
         const data = JSON.stringify(
             {
-                source: src.path,
-                destination: dest,
+                source: file.path,
+                destination: file.destPath,
             },
             null,
             2

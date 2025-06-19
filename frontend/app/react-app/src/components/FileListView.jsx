@@ -16,7 +16,7 @@ import { BsArrowUpShort, BsArrowDownShort } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function FileListView({
-    files,
+    currentFiles,
     selectedFiles,
     handleSelectFile,
     handleSelectAll,
@@ -32,8 +32,8 @@ function FileListView({
     const [filterTypes, setFilterTypes] = useState("");
     const [dateFilter, setDateFilter] = useState("all");
     const headerCheckboxRef = useRef(null);
-    const fileTypes = getFileTypes(files);
-    const filteredFiles = filterFiles(files, filterTypes, dateFilter);
+    const fileTypes = getFileTypes(currentFiles);
+    const filteredFiles = filterFiles(currentFiles, filterTypes, dateFilter);
 
     const sortedFiles = [...filteredFiles].sort((a, b) => {
         if (sortDirection.column === "name") {
@@ -78,7 +78,7 @@ function FileListView({
                 headerCheckboxRef.current.indeterminate = true;
             }
         }
-    }, [selectedFiles, files]);
+    }, [selectedFiles, currentFiles]);
 
     const toggleSortDirection = (column) => {
         setSortDirection((prevSort) => {
@@ -127,7 +127,10 @@ function FileListView({
                                 className="form-check-input"
                                 ref={headerCheckboxRef}
                                 onChange={handleSelectAll}
-                                checked={selectedFiles.length === files.length && files.length > 0}
+                                checked={
+                                    selectedFiles.length === currentFiles.length &&
+                                    currentFiles.length > 0
+                                }
                                 data-testid="header-checkbox"
                             />
                         </th>
@@ -225,7 +228,7 @@ function FileListView({
 export default FileListView;
 
 FileListView.propTypes = {
-    files: PropTypes.array,
+    currentFiles: PropTypes.array,
     selectedFiles: PropTypes.array,
     handleSelectFile: PropTypes.func,
     handleSelectAll: PropTypes.func,

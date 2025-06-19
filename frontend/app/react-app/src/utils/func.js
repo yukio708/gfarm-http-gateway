@@ -8,6 +8,7 @@ export const getParentPath = (path) => {
     if (!path || path === "/") return "/";
     const parts = path.split("/").filter(Boolean);
     parts.pop(); // remove last part
+    if (parts.length < 1) return "/";
     return "/" + parts.join("/");
 };
 
@@ -28,26 +29,41 @@ export const getDeepestDirs = (dirSet) => {
     return result;
 };
 
+const mtime_str_options = {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    year: "numeric",
+    hour12: false,
+};
+
 export const CollectPathsFromItems = async (items) => {
     const files = [];
-    const dirSet = new Set();
 
     const traverseFileTree = async (item, path = "") => {
         return new Promise((resolve) => {
             if (item.isFile) {
                 item.file((file) => {
-                    file.dirPath = path;
-                    file.isDirectory = false;
-                    files.push(file);
+                    const date = new Date(file.lastModified);
+                    // files.push(file);
+                    files.push({
+                        path: path + file.name,
+                        dirPath: path,
+                        name: file.name,
+                        is_file: true,
+                        mtime_str: date.toLocaleString("en-US", mtime_str_options),
+                        size: file.size,
+                    });
                     resolve();
                     console.debug("file", file);
                 });
             } else if (item.isDirectory) {
                 const currentPath = path + item.name + "/";
-                item.dirPath = currentPath;
                 console.debug("item", item);
+                console.debug("currentPath", currentPath);
 
-                dirSet.add(currentPath); // collect directory
                 const dirReader = item.createReader();
                 dirReader.readEntries(async (entries) => {
                     if (entries.length > 0) {
@@ -55,7 +71,15 @@ export const CollectPathsFromItems = async (items) => {
                             await traverseFileTree(entry, path + item.name + "/");
                         }
                     } else {
-                        files.push(item);
+                        // files.push(item);
+                        files.push({
+                            path: currentPath,
+                            dirPath: path,
+                            name: item.name,
+                            is_file: false,
+                            mtime_str: "unknown",
+                            size: null,
+                        });
                     }
                     resolve();
                 });
@@ -73,33 +97,42 @@ export const CollectPathsFromItems = async (items) => {
         }
     }
     await Promise.all(promises);
-    return { files, dirSet };
+    return files;
 };
 
 export const CollectPathsFromFiles = (files) => {
-    const dirSet = new Set();
     console.debug("CollectPathsFromFiles:", files);
 
     const uploadFiles = files.map((file) => {
         const dirPath = file.webkitRelativePath
             ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + "/"
             : "";
-        file.dirPath = dirPath;
+        // file.dirPath = dirPath;
+        // file.destPath = dirPath + file.name;
+        const date = new Date(file.lastModified);
         console.debug("file.webkitRelativePath:", file.webkitRelativePath);
         console.debug("file.dirPath:", file.dirPath);
-        if (dirPath !== "") {
-            dirSet.add(dirPath);
-        }
-        return file;
+        // return file;
+        return {
+            path: dirPath + file.name,
+            dirPath: dirPath,
+            name: file.name,
+            is_file: !file.isDirectory,
+            mtime_str: date.toLocaleString("en-US", mtime_str_options),
+            size: file.size,
+        };
     });
     console.debug("uploadFiles:", uploadFiles);
 
-    return { files: uploadFiles, dirSet };
+    return uploadFiles;
 };
 
 export const formatFileSize = (filesize) => {
-    if (filesize === 0) {
+    if (filesize === null) {
         return "";
+    }
+    if (filesize === 0) {
+        return "0 Bytes";
     }
 
     const k = 1024;
@@ -236,4 +269,73 @@ export const getPlatform = () => {
     if (/android/i.test(ua)) return "android";
     if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "ios";
     return "desktop";
+};
+
+export const checkConflicts = (incomingFiles, currentFiles) => {
+    const currentMap = new Map(currentFiles.map((file) => [file.name, file]));
+    let hasConflict = false;
+
+    const updatedIncoming = incomingFiles.map((file) => {
+        const current = currentMap.get(file.name);
+        const currentDir = file.dirPath ? currentMap.get(file.dirPath.replace(/\/$/, "")) : null;
+        if (current) {
+            hasConflict = true;
+            return {
+                ...file,
+                is_conflicted: true,
+                parent_is_conflicted: false,
+                current_size: current.size,
+                current_mtime_str: current.mtime_str,
+            };
+        } else if (currentDir) {
+            hasConflict = true;
+            return {
+                ...file,
+                is_conflicted: true,
+                parent_is_conflicted: true,
+                current_size: currentDir.size,
+                current_mtime_str: currentDir.mtime_str,
+            };
+        } else {
+            return {
+                ...file,
+                is_conflicted: false,
+                parent_is_conflicted: false,
+            };
+        }
+    });
+
+    return { hasConflict, incomingFiles: updatedIncoming };
+};
+
+export const getUniqueConflicts = (incomingFiles) => {
+    const map = new Map();
+    incomingFiles.forEach((file) => {
+        if (!file) return;
+        const key = file.parent_is_conflicted ? file.dirPath.replace(/\/$/, "") : file.name;
+        map.set(
+            key,
+            file.parent_is_conflicted
+                ? {
+                      ...file,
+                      name: file.dirPath.replace(/\/$/, ""),
+                  }
+                : file
+        );
+    });
+    return Array.from(map.values());
+};
+
+export const suggestNewName = (name, existingNames) => {
+    const extIndex = name.lastIndexOf(".");
+    const base = extIndex !== -1 ? name.slice(0, extIndex) : name;
+    const ext = extIndex !== -1 ? name.slice(extIndex) : "";
+
+    let i = 1;
+    let newName = `${base} (${i})${ext}`;
+    while (existingNames.includes(newName)) {
+        i++;
+        newName = `${base} (${i})${ext}`;
+    }
+    return newName;
 };

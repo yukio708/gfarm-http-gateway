@@ -1,10 +1,10 @@
-import { encodePath } from "./func";
+import { encodePath, getParentPath } from "./func";
 import { createDir } from "./dircommon";
 import { API_URL } from "./api_url";
 
 // file:
-// File + dirPath, isDirectory
-//   - dirPath
+// File + destPath, isDirectory
+//   - destPath
 //   - isDirectory
 //   - lastModified
 //   - lastModifiedDate
@@ -12,25 +12,23 @@ import { API_URL } from "./api_url";
 //   - size
 //   - type
 //   - webkitRelativePath
-// or, DirectoryEntry + dirPath
-//   - dirPath
+// or, DirectoryEntry + destPath
+//   - destPath
 //   - filesystem
 //   - fullPath
 //   - isDirectory
 //   - isFile
 //   - name
 
-async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
+async function uploadFile(file, dirSet, setTasks, refresh) {
     if (!file) {
         alert("Please select a file");
         return;
     }
-    const uploaddirpath = currentDir.replace(/\/$/, "") + "/" + file.dirPath;
-    const fullpath = file.isDirectory
-        ? uploaddirpath
-        : currentDir.replace(/\/$/, "") + "/" + file.dirPath + file.name;
+    const uploaddirpath = file.is_file ? getParentPath(file.destPath) : file.destPath;
+    const fullpath = file.destPath;
     const taskId = fullpath + Date.now();
-    const displayname = file.name.length > 20 ? file.name.slice(0, 10) + "..." : file.name;
+    const displayname = file.path.length > 20 ? file.path.slice(0, 20) + "..." : file.path;
 
     const newTask = {
         taskId,
@@ -194,10 +192,10 @@ async function uploadFile(currentDir, file, dirSet, setTasks, refresh) {
     }
 }
 
-async function upload(currentDir, files, setTasks, refresh) {
+async function upload(files, setTasks, refresh) {
     const dirSet = new Set();
     dirSet.add("/");
-    await Promise.all(files.map((file) => uploadFile(currentDir, file, dirSet, setTasks, refresh)));
+    await Promise.all(files.map((file) => uploadFile(file, dirSet, setTasks, refresh)));
 }
 
 export default upload;

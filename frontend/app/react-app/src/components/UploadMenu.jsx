@@ -1,56 +1,45 @@
 import React, { useRef, useState } from "react";
-import { CollectPathsFromFiles } from "../utils/func";
-import ModalWindow from "./Modal";
+import { CollectPathsFromFiles, checkConflicts } from "../utils/func";
+import ConflictResolutionModal from "./ConflictResolutionModal";
 import { BsFileEarmarkArrowUp, BsFolder, BsFolderPlus } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function UploadMenu({ onUpload, onCreate, files }) {
+function UploadMenu({ onUpload, onCreate, uploadDir, currentFiles }) {
     const fileInputRef = useRef(null);
     const folderInputRef = useRef(null);
     const [showConfirm, setShowConfirm] = useState(false);
-    const [modalText, setModalText] = useState(null);
-    const [selectedFiles, setSelectedFiles] = useState(null);
+    const [selectedFiles, setSelectedFiles] = useState([]);
 
     const handleFileChange = (e) => {
         const targetfiles = Array.from(e.target.files);
-        const data = CollectPathsFromFiles(targetfiles);
-        if (data.files) {
-            console.debug("Collected files:", data.files);
-            const duplicates = files.filter((file) =>
-                data.files.some((selectedfile) => {
-                    if (file.is_file && file.name === selectedfile.name) return true;
-                    else if (file.name === selectedfile.dirPath.split("/", 2)[0]) {
-                        return true;
-                    }
-                    return false;
-                })
-            );
+        console.debug("targetfiles:", targetfiles);
+        const collectedFiles = CollectPathsFromFiles(targetfiles).map((file) => {
+            return {
+                ...file,
+                destPath: uploadDir.replace(/\/$/, "") + "/" + file.path,
+                uploadDir: uploadDir.replace(/\/$/, ""),
+            };
+        });
+        if (collectedFiles) {
+            const res = checkConflicts(collectedFiles, currentFiles);
 
-            if (duplicates.length > 0) {
-                setSelectedFiles(data.files);
-                setModalText(
-                    <ul className="modal-body">
-                        <p>The following files/directories already exist:</p>
-                        {duplicates.map((file, idx) => (
-                            <li key={idx}>
-                                <strong>{file.name}</strong>
-                            </li>
-                        ))}
-                    </ul>
-                );
+            console.debug("res", res);
+            console.debug("collectedFiles", res.incomingFiles);
+            if (res.hasConflict) {
+                setSelectedFiles(res.incomingFiles);
                 setShowConfirm(true);
                 return;
             }
-            onUpload(data.files);
+            onUpload(res.incomingFiles);
         }
         e.target.value = null;
     };
 
-    const confirmUpload = () => {
+    const confirmUpload = (incomingFiles) => {
         setShowConfirm(false);
-        if (selectedFiles.length > 0) {
-            console.debug("selectedFiles:", selectedFiles);
-            onUpload(selectedFiles);
+        if (incomingFiles.length > 0) {
+            console.debug("incomingFiles:", incomingFiles);
+            onUpload(incomingFiles);
         }
     };
 
@@ -121,17 +110,14 @@ function UploadMenu({ onUpload, onCreate, files }) {
                 />
             </div>
             {showConfirm && (
-                <ModalWindow
+                <ConflictResolutionModal
+                    incomingFiles={selectedFiles}
+                    setIncomingFiles={setSelectedFiles}
+                    existingNames={currentFiles.map((file) => file.name)}
                     onCancel={() => {
                         setShowConfirm(false);
                     }}
                     onConfirm={confirmUpload}
-                    title={
-                        <p className="modal-title">
-                            Are you sure you want to overwrite the following files?
-                        </p>
-                    }
-                    text={modalText}
                 />
             )}
         </div>
@@ -143,5 +129,6 @@ export default UploadMenu;
 UploadMenu.propTypes = {
     onUpload: PropTypes.func,
     onCreate: PropTypes.func,
-    files: PropTypes.array,
+    uploadDir: PropTypes.string,
+    currentFiles: PropTypes.array,
 };
