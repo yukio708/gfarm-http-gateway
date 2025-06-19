@@ -26,6 +26,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, setError, refrech })
                     setDirname("");
                 }}
                 onConfirm={deleteFile}
+                comfirmText="Create"
                 title={<h5 className="modal-title">Create New Directory</h5>}
                 text={
                     <input

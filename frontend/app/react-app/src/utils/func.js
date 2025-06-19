@@ -4,6 +4,13 @@ export function encodePath(path) {
     return p.replace(/[^/]/g, encodeURIComponent);
 }
 
+export const getParentPath = (path) => {
+    if (!path || path === "/") return "/";
+    const parts = path.split("/").filter(Boolean);
+    parts.pop(); // remove last part
+    return "/" + parts.join("/");
+};
+
 export const getDeepestDirs = (dirSet) => {
     const result = [];
 

@@ -80,12 +80,12 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => move(file.path)}>
+                    <button className="dropdown-item" onClick={() => move([file])}>
                         <BsArrowRightSquare className="me-2" /> Move
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => move(file.path)}>
+                    <button className="dropdown-item" onClick={() => {}}>
                         <BsFiles className="me-2" /> Copy
                     </button>
                 </li>

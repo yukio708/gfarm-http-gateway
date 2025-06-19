@@ -1,9 +1,10 @@
 import { API_URL } from "./api_url";
 
-async function moveFile(files, dest) {
+async function moveFile(files, dest, refresh) {
     if (!files || !dest) {
         alert("Please input Gfarm path");
     }
+    let res = "";
     for (const src of files) {
         const data = JSON.stringify(
             {
@@ -23,15 +24,18 @@ async function moveFile(files, dest) {
                 },
                 body: data,
             });
+            const text = await response.text();
             if (!response.ok) {
-                const text = await response.text();
                 throw new Error(`HTTP ${response.status}: ${text}`);
             }
-            console.debug(`Success (moved)`);
+            console.debug(`Success (moved)`, text);
         } catch (error) {
             console.error(error);
+            res = error;
         }
     }
+    refresh();
+    return res;
 }
 
 export default moveFile;

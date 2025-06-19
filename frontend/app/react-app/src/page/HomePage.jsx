@@ -10,6 +10,7 @@ import UploadDropZone from "../components/UploadDropZone";
 import UploadMenu from "../components/UploadMenu";
 import { FileActionMenu } from "../components/FileActionMenu";
 import UserMenu from "../components/UserMenu";
+import MoveModal from "../components/MoveModel";
 import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
@@ -30,6 +31,7 @@ function HomePage({ user }) {
     const { files, listGetError } = useFileList(currentDir, refreshKey);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [deleteFiles, setDeleteFiles] = useState([]);
+    const [movedFiles, setMovedFiles] = useState([]);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
@@ -37,6 +39,7 @@ function HomePage({ user }) {
     const downloadQueueRef = useRef([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const [showProgressView, setShowProgressView] = useState(false);
+    const [showMoveModal, setShowMoveModal] = useState(false);
     const [destPath, setDestPath] = useState("");
     const [showNewDirModal, setShowNewDirModal] = useState(false);
 
@@ -138,17 +141,20 @@ function HomePage({ user }) {
         setDetailContent(null);
     };
 
-    const moveFiles = () => {
-        // setShowModal(true);
+    const addFilesToMove = (path) => {
+        setMovedFiles(path);
+        setShowMoveModal(true);
     };
 
-    // const handleMove = (files) => {
-    //     console.debug("files", files);
-    //     setShowModal(false);
-    //     moveFile(files, destPath);
-    //     setDestPath(""); // Reset after move
-    //     setRefreshKey((prev) => !prev);
-    // };
+    const moveFiles = (files) => {
+        console.debug("files", files);
+        moveFile(movedFiles, destPath, () => {
+            setRefreshKey((prev) => !prev);
+        });
+        setDestPath(""); // Reset after move
+        setMovedFiles("");
+        setRefreshKey((prev) => !prev);
+    };
 
     if (listGetError) {
         return <ErrorPage error={listGetError} />;
@@ -186,7 +192,7 @@ function HomePage({ user }) {
                                 selectedFiles={selectedFiles}
                                 removeFiles={setDeleteFiles}
                                 downloadFiles={addFilesToDownload}
-                                moveFiles={moveFiles}
+                                moveFiles={addFilesToMove}
                             />
                         </div>
                     </div>
@@ -205,6 +211,7 @@ function HomePage({ user }) {
                         showDetail={showDetail}
                         display={displayFile}
                         remove={setDeleteFiles}
+                        move={addFilesToMove}
                     />
                 </div>
             </div>
@@ -250,6 +257,14 @@ function HomePage({ user }) {
                 refrech={() => {
                     setRefreshKey((prev) => !prev);
                 }}
+            />
+            <MoveModal
+                showModal={showMoveModal}
+                setShowModal={setShowMoveModal}
+                currentDir={currentDir}
+                targetPath={destPath}
+                setTargetPath={setDestPath}
+                onConfirm={moveFiles}
             />
         </div>
     );

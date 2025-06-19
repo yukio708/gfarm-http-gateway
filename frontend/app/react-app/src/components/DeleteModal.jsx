@@ -25,6 +25,7 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
                     setShowModal(false);
                 }}
                 onConfirm={deleteFile}
+                comfirmText="Delete"
                 title={
                     <div>
                         <p className="modal-title">
