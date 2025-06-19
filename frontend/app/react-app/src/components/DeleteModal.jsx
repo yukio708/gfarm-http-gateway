@@ -38,7 +38,7 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
                         <ul>
                             {deletefiles.map((file, idx) => (
                                 <li key={idx}>
-                                    &quot;{file.name}&quot; {!file.is_file && "and its contents"}
+                                    &quot;{file.name}&quot; {file.is_dir && "and its contents"}
                                 </li>
                             ))}
                         </ul>

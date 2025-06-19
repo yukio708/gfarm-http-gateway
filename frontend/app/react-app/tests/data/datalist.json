@@ -2,6 +2,8 @@
     {
         "mode_str": "drwxrwxrwt",
         "is_file": false,
+        "is_dir": true,
+        "is_sym": false,
         "nlink": 2,
         "uname": "node",
         "gname": "gfarmadm",

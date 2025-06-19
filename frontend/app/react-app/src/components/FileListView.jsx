@@ -21,6 +21,7 @@ function FileListView({
     handleSelectFile,
     handleSelectAll,
     jumpDirectory,
+    handleSym,
     download,
     display,
     move,
@@ -92,12 +93,14 @@ function FileListView({
         });
     };
 
-    const handleNameCick = (filepath, is_file, is_sym, linkname) => {
+    const handleNameCick = (filepath, is_file, is_sym, linkname, file) => {
+        console.debug("handleNameCick", filepath, is_file, is_sym, linkname);
+        console.debug("handleNameCick", file);
         if (is_file) {
             display(filepath);
         } else {
             if (is_sym) {
-                jumpDirectory(linkname);
+                handleSym(linkname);
             } else {
                 jumpDirectory(filepath);
             }
@@ -169,7 +172,8 @@ function FileListView({
                             <td>
                                 <FileIcon
                                     filename={file.name}
-                                    is_file={file.is_file}
+                                    is_dir={file.is_dir}
+                                    is_sym={file.is_sym}
                                     size={"1.8rem"}
                                     onClick={() =>
                                         handleSelectFile(
@@ -199,7 +203,12 @@ function FileListView({
                                     )
                                 }
                                 onDoubleClick={() =>
-                                    handleNameCick(file.path, file.is_file, file.symlink)
+                                    handleNameCick(
+                                        file.path,
+                                        file.is_file,
+                                        file.is_sym,
+                                        file.linkname
+                                    )
                                 }
                             >
                                 {file.name}
@@ -233,6 +242,7 @@ FileListView.propTypes = {
     handleSelectFile: PropTypes.func,
     handleSelectAll: PropTypes.func,
     jumpDirectory: PropTypes.func,
+    handleSym: PropTypes.func,
     download: PropTypes.func,
     display: PropTypes.func,
     move: PropTypes.func,

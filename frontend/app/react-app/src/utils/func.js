@@ -1,8 +1,8 @@
-export function encodePath(path) {
+export const encodePath = (path) => {
     let p = "/" + path.replace(/^\/+/, "").replace(/\/+$/, "");
     // URL encode without slash
     return p.replace(/[^/]/g, encodeURIComponent);
-}
+};
 
 export const getParentPath = (path) => {
     if (!path || path === "/") return "/";
@@ -230,8 +230,8 @@ export const sortFilesByName = (a, b, sortDirection) => {
     const nameA = a.name.toLowerCase();
     const nameB = b.name.toLowerCase();
 
-    if (a.is_file !== b.is_file) {
-        return a.is_file ? 1 : -1;
+    if (a.is_dir !== b.is_dir) {
+        return a.is_dir ? -1 : 1;
     }
 
     if (sortDirection === "asc") {
@@ -242,8 +242,8 @@ export const sortFilesByName = (a, b, sortDirection) => {
 };
 
 export const sortFilesBySize = (a, b, sortDirection) => {
-    if (a.is_file !== b.is_file) {
-        return a.is_file ? 1 : -1;
+    if (a.is_dir !== b.is_dir) {
+        return a.is_dir ? -1 : 1;
     }
     if (sortDirection === "asc") {
         return a.size - b.size;
@@ -253,8 +253,8 @@ export const sortFilesBySize = (a, b, sortDirection) => {
 };
 
 export const sortFilesByUpdateDate = (a, b, sortDirection) => {
-    if (a.is_file !== b.is_file) {
-        return a.is_file ? 1 : -1;
+    if (a.is_dir !== b.is_dir) {
+        return a.is_dir ? -1 : 1;
     }
     if (sortDirection === "asc") {
         return new Date(a.mtime_str) - new Date(b.mtime_str);

@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { getFileIcon } from "../utils/getFileCategory";
 import PropTypes from "prop-types";
 
-function FileIcon({ filename, is_file, size, onClick, onDoubleClick }) {
+function FileIcon({ filename, is_dir, is_sym, size, onClick, onDoubleClick }) {
     const [iconClass, setIconClass] = useState("bi bi-file-earmark");
     const extension = filename.split(".").pop();
 
     useEffect(() => {
         const loadIcons = async () => {
-            const classname = await getFileIcon(extension, is_file);
+            const classname = await getFileIcon(extension, is_dir, is_sym);
             setIconClass(classname);
         };
         loadIcons();
@@ -28,7 +28,8 @@ export default FileIcon;
 
 FileIcon.propTypes = {
     filename: PropTypes.string,
-    is_file: PropTypes.bool,
+    is_dir: PropTypes.bool,
+    is_sym: PropTypes.bool,
     size: PropTypes.string,
     onClick: PropTypes.func,
     onDoubleClick: PropTypes.func,

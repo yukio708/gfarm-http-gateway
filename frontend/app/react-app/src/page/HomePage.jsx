@@ -15,6 +15,7 @@ import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
 import displayFile from "../utils/displayFile";
+import getSymInfo from "../utils/getSymInfo";
 import moveFile from "../utils/moveFile";
 import getAttribute from "../utils/getAttribute";
 import setPermission from "../utils/setPermission";
@@ -51,6 +52,26 @@ function HomePage({ user }) {
         setSelectedFiles([]);
     };
 
+    const handleDisplayFile = (path) => {
+        displayFile(path);
+    };
+
+    const handleSym = async (symlink) => {
+        console.debug("handleSym", symlink);
+        try {
+            const info = await getSymInfo(symlink);
+            if (info.is_file) {
+                handleDisplayFile(info.path);
+            } else if (info.is_sym) {
+                alert("Link not found");
+            } else {
+                jumpDirectory(info.linkname);
+            }
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const handleSelectAll = (event) => {
         if (event.target.checked) {
             setSelectedFiles(currentFiles);
@@ -60,6 +81,7 @@ function HomePage({ user }) {
     };
 
     const handleSelectFile = (event, file) => {
+        console.debug("handleSelectFile file", file);
         if (event.target.checked) {
             setSelectedFiles([...selectedFiles, file]);
         } else {
@@ -208,9 +230,10 @@ function HomePage({ user }) {
                         handleSelectFile={handleSelectFile}
                         handleSelectAll={handleSelectAll}
                         jumpDirectory={jumpDirectory}
+                        handleSym={handleSym}
                         download={addFilesToDownload}
                         showDetail={showDetail}
-                        display={displayFile}
+                        display={handleDisplayFile}
                         remove={setFilesToDelete}
                         move={addFilesToMove}
                     />

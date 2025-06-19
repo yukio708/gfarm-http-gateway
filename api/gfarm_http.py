@@ -1475,7 +1475,8 @@ class Gfls_Entry:
     def json_dump(self):
         return {
             "mode_str": self.mode_str,
-            "is_file": not self.is_dir,
+            "is_file": not self.is_dir and not self.is_sym,
+            "is_dir": self.is_dir,
             "is_sym": self.is_sym,
             "linkname": self.linkname,
             "nlink": self.nlink,
@@ -1809,6 +1810,42 @@ async def dir_list(gfarm_path: str,
         return JSONResponse(content=json_data)
 
     return PlainTextResponse(content="\n".join(json_data))
+
+
+@app.get("/sym_info/{gfarm_path:path}")
+async def get_symstat(gfarm_path: str,
+                      request: Request,
+                      authorization: Union[str, None] = Header(default=None)):
+    opname = "gfls"
+    gfarm_path = fullpath(gfarm_path)
+    env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
+    log_operation(env, opname, gfarm_path)
+    try:
+        async def get_info(env, path) -> Gfls_Entry:
+            existing, is_file, _ = await file_size(env, path)
+            if existing:
+                async for entry in gfls_generator(env, path, is_file):
+                    if entry.is_sym:
+                        get_info(env, entry.linkname)
+                    return entry
+            raise FileExistsError("")
+        entry = await get_info(env, gfarm_path)
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={entry.json_dump()}")
+        return JSONResponse(content=entry.json_dump())
+
+    except RuntimeError as e:
+        code = 500
+        message = f"gfls error: path={gfarm_path}"
+        elist = []
+        raise gfarm_http_error(opname, code, message, str(e), elist)
+    except FileExistsError:
+        code = 404
+        message = f"gfls error: path={gfarm_path}"
+        elist = []
+        raise gfarm_http_error(opname, code, message, "", elist)
+
 
 
 @app.put("/d/{gfarm_path:path}")

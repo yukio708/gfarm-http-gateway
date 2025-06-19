@@ -40,7 +40,7 @@ export const findChildrenByPath = (nodes, targetPath) => {
         }
 
         // If the current node is a directory and has child elements
-        if (!node.is_file && node.childlen && Array.isArray(node.childlen)) {
+        if (node.is_dir && node.childlen && Array.isArray(node.childlen)) {
             if (
                 normalizedTargetPath.startsWith(node.path + "/") ||
                 (node.path === "/" && normalizedTargetPath !== "/")
@@ -65,7 +65,7 @@ export const findNodeByPath = (nodes, targetPath) => {
             return node;
         }
 
-        if (!node.is_file && node.childlen && Array.isArray(node.childlen)) {
+        if (node.is_dir && node.childlen && Array.isArray(node.childlen)) {
             if (
                 normalizedTargetPath.startsWith(node.path + "/") ||
                 (node.path === "/" && normalizedTargetPath !== "/")
@@ -93,9 +93,12 @@ export const getSize = (filesize) => {
     return sizestr;
 };
 
-export const getFileIconDefault = (ext, is_file) => {
+export const getFileIconDefault = (ext, is_dir, is_sym) => {
     ext = ext.toLowerCase();
-    if (!is_file) {
+    if (is_dir) {
+        return "bi bi-folder";
+    }
+    if (is_sym) {
         return "bi bi-folder";
     }
 

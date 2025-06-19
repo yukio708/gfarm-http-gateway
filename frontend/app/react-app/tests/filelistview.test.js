@@ -60,7 +60,7 @@ test("display file list existing path", async ({ page }) => {
 
         // Check the icon
         const ext = expectedFile.name.split(".").pop();
-        const iconClassString = getFileIconDefault(ext, expectedFile.is_file);
+        const iconClassString = getFileIconDefault(ext, expectedFile.is_dir, expectedFile.is_sym);
         const iconCssSelector = "." + iconClassString.replace(/ /g, ".");
         await expect(rowLocator.locator(iconCssSelector)).toBeVisible();
 
@@ -185,8 +185,8 @@ test("sort by filename", async ({ page }) => {
         const nameA = a.name.toLowerCase();
         const nameB = b.name.toLowerCase();
 
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
+        if (a.is_dir !== b.is_dir) {
+            return a.is_dir ? -1 : 1;
         }
         return nameA.localeCompare(nameB);
     });
@@ -204,8 +204,8 @@ test("sort by filename", async ({ page }) => {
         const nameA = a.name.toLowerCase();
         const nameB = b.name.toLowerCase();
 
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
+        if (a.is_dir !== b.is_dir) {
+            return a.is_dir ? -1 : 1;
         }
         return nameB.localeCompare(nameA);
     });
@@ -230,8 +230,8 @@ test("sort by filesize", async ({ page }) => {
 
     // arc
     const expectedAscendingSizes = [...initialFiles].sort((a, b) => {
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
+        if (a.is_dir !== b.is_dir) {
+            return a.is_dir ? -1 : 1;
         }
         return a.size - b.size;
     });
@@ -246,8 +246,8 @@ test("sort by filesize", async ({ page }) => {
 
     // desc
     const expectedDescendingSizes = [...initialFiles].sort((a, b) => {
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
+        if (a.is_dir !== b.is_dir) {
+            return a.is_dir ? -1 : 1;
         }
         return b.size - a.size;
     });
@@ -271,8 +271,8 @@ test("sort by update date", async ({ page }) => {
 
     // arc
     const expectedAscendingTimes = [...initialFiles].sort((a, b) => {
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
+        if (a.is_dir !== b.is_dir) {
+            return a.is_dir ? -1 : 1;
         }
         return new Date(a.mtime_str) - new Date(b.mtime_str);
     });
@@ -287,8 +287,8 @@ test("sort by update date", async ({ page }) => {
 
     // desc
     const expectedDescendingTimes = [...initialFiles].sort((a, b) => {
-        if (a.is_file !== b.is_file) {
-            return a.is_file ? 1 : -1;
+        if (a.is_dir !== b.is_dir) {
+            return a.is_dir ? -1 : 1;
         }
         return new Date(b.mtime_str) - new Date(a.mtime_str);
     });

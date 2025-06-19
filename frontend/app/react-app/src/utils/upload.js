@@ -3,23 +3,7 @@ import { createDir } from "./dircommon";
 import { API_URL } from "./api_url";
 
 // file:
-// File + destPath, isDirectory
-//   - destPath
-//   - isDirectory
-//   - lastModified
-//   - lastModifiedDate
-//   - name
-//   - size
-//   - type
-//   - webkitRelativePath
-// or, DirectoryEntry + destPath
-//   - destPath
-//   - filesystem
-//   - fullPath
-//   - isDirectory
-//   - isFile
-//   - name
-
+// file + destPath
 async function uploadFile(file, dirSet, setTasks, refresh) {
     if (!file) {
         alert("Please select a file");

@@ -21,7 +21,7 @@ function MoveModal({
     const [loadingText, setLoadingText] = useState("Loading suggestions...");
     const [showConflictModal, setShowConflictModal] = useState(false);
     const [pendingConfirm, setPendingConfirm] = useState(false);
-    const suggestions = currentFiles.filter((file) => !file.is_file);
+    const suggestions = currentFiles.filter((file) => file.is_dir);
 
     useEffect(() => {
         if (listGetError) {
@@ -150,7 +150,7 @@ function MoveModal({
                                             )}
                                             {suggestions.map(
                                                 (file, i) =>
-                                                    !file.is_file && (
+                                                    file.is_dir && (
                                                         <li
                                                             key={i}
                                                             className="list-group-item list-group-item-action"

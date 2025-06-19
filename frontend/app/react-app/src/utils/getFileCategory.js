@@ -36,9 +36,12 @@ export const getFileCategory = async (ext) => {
     return meta._extensionToCategoryMap[ext] || "unknown";
 };
 
-const getFileIconDefault = (ext, is_file) => {
+const getFileIconDefault = (ext, is_dir, is_sym) => {
     ext = ext.toLowerCase();
-    if (!is_file) {
+    if (is_dir) {
+        return "bi bi-folder";
+    }
+    if (is_sym) {
         return "bi bi-folder";
     }
 
@@ -71,14 +74,17 @@ const getFileIconDefault = (ext, is_file) => {
     }
 };
 
-export const getFileIcon = async (ext, is_file) => {
+export const getFileIcon = async (ext, is_dir, is_sym) => {
     const meta = await loadFileMeta();
     if (meta == null) {
-        return getFileIconDefault(ext, is_file);
+        return getFileIconDefault(ext, is_dir, is_sym);
     }
-    if (!is_file) {
-        return meta.icons?.["folder"] || getFileIconDefault(ext, is_file);
+    if (is_dir) {
+        return meta.icons?.["folder"] || getFileIconDefault(ext, is_dir, is_sym);
+    }
+    if (is_sym) {
+        return meta.icons?.["symlink"] || getFileIconDefault(ext, is_dir, is_sym);
     }
     const category = await getFileCategory(ext);
-    return meta.icons?.[category] || getFileIconDefault(ext, is_file);
+    return meta.icons?.[category] || getFileIconDefault(ext, is_dir, is_sym);
 };
