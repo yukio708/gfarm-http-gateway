@@ -58,7 +58,8 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
     const epath = encodePath(fullpath);
     const uploadUrl = `${API_URL}/file` + epath;
     console.debug("uploadUrl:", uploadUrl);
-    const mtime = Math.floor(file.lastModified / 1000); // msec. -> sec.
+    const lastModified = new Date(file.mtime_str);
+    const mtime = Math.floor(lastModified.getTime() / 1000); // msec. -> sec.
 
     try {
         const xhr = new XMLHttpRequest();
