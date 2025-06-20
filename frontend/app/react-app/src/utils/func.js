@@ -47,22 +47,21 @@ export const CollectPathsFromItems = async (items) => {
             if (item.isFile) {
                 item.file((file) => {
                     const date = new Date(file.lastModified);
-                    // files.push(file);
                     files.push({
                         path: path + file.name,
                         dirPath: path,
                         name: file.name,
                         is_file: true,
+                        is_dir: false,
                         mtime_str: date.toLocaleString("en-US", mtime_str_options),
                         size: file.size,
+                        file: file,
                     });
                     resolve();
                     console.debug("file", file);
                 });
             } else if (item.isDirectory) {
                 const currentPath = path + item.name + "/";
-                console.debug("item", item);
-                console.debug("currentPath", currentPath);
 
                 const dirReader = item.createReader();
                 dirReader.readEntries(async (entries) => {
@@ -71,12 +70,12 @@ export const CollectPathsFromItems = async (items) => {
                             await traverseFileTree(entry, path + item.name + "/");
                         }
                     } else {
-                        // files.push(item);
                         files.push({
                             path: currentPath,
                             dirPath: path,
                             name: item.name,
                             is_file: false,
+                            is_dir: true,
                             mtime_str: "unknown",
                             size: null,
                         });
@@ -107,19 +106,16 @@ export const CollectPathsFromFiles = (files) => {
         const dirPath = file.webkitRelativePath
             ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + "/"
             : "";
-        // file.dirPath = dirPath;
-        // file.destPath = dirPath + file.name;
         const date = new Date(file.lastModified);
-        console.debug("file.webkitRelativePath:", file.webkitRelativePath);
-        console.debug("file.dirPath:", file.dirPath);
-        // return file;
         return {
             path: dirPath + file.name,
             dirPath: dirPath,
             name: file.name,
             is_file: !file.isDirectory,
+            is_dir: file.isDirectory,
             mtime_str: date.toLocaleString("en-US", mtime_str_options),
             size: file.size,
+            file: file,
         };
     });
     console.debug("uploadFiles:", uploadFiles);
@@ -273,36 +269,41 @@ export const getPlatform = () => {
 
 export const checkConflicts = (incomingFiles, currentFiles) => {
     const currentMap = new Map(currentFiles.map((file) => [file.name, file]));
+    console.debug("currentMap", currentMap);
     let hasConflict = false;
 
     const updatedIncoming = incomingFiles.map((file) => {
-        const current = currentMap.get(file.name);
-        const currentDir = file.dirPath ? currentMap.get(file.dirPath.replace(/\/$/, "")) : null;
-        if (current) {
-            hasConflict = true;
-            return {
-                ...file,
-                is_conflicted: true,
-                parent_is_conflicted: false,
-                current_size: current.size,
-                current_mtime_str: current.mtime_str,
-            };
-        } else if (currentDir) {
-            hasConflict = true;
-            return {
-                ...file,
-                is_conflicted: true,
-                parent_is_conflicted: true,
-                current_size: currentDir.size,
-                current_mtime_str: currentDir.mtime_str,
-            };
+        if (file.dirPath) {
+            const currentDir = currentMap.get(file.dirPath.replace(/\/$/, ""));
+            if (currentDir) {
+                hasConflict = true;
+                return {
+                    ...file,
+                    is_conflicted: true,
+                    parent_is_conflicted: true,
+                    current_size: currentDir.size,
+                    current_mtime_str: currentDir.mtime_str,
+                };
+            }
         } else {
-            return {
-                ...file,
-                is_conflicted: false,
-                parent_is_conflicted: false,
-            };
+            const current = currentMap.get(file.name);
+            if (current) {
+                hasConflict = true;
+                return {
+                    ...file,
+                    is_conflicted: true,
+                    parent_is_conflicted: false,
+                    current_size: current.size || null,
+                    current_mtime_str: current.mtime_str,
+                };
+            }
         }
+
+        return {
+            ...file,
+            is_conflicted: false,
+            parent_is_conflicted: false,
+        };
     });
 
     return { hasConflict, incomingFiles: updatedIncoming };

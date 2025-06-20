@@ -28,6 +28,7 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentFiles }) {
             if (res.hasConflict) {
                 setSelectedFiles(res.incomingFiles);
                 setShowConfirm(true);
+                e.target.value = null;
                 return;
             }
             onUpload(res.incomingFiles);

@@ -3,7 +3,7 @@ import { createDir } from "./dircommon";
 import { API_URL } from "./api_url";
 
 // file:
-// file + destPath
+// file + destPath + lastModified + type
 async function uploadFile(file, dirSet, setTasks, refresh) {
     if (!file) {
         alert("Please select a file");
@@ -38,7 +38,7 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
         console.debug("dirSet", dirSet);
     }
 
-    if (file.isDirectory) {
+    if (file.is_dir) {
         setTasks((prev) =>
             prev.map((task) =>
                 task.taskId === taskId
@@ -58,8 +58,7 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
     const epath = encodePath(fullpath);
     const uploadUrl = `${API_URL}/file` + epath;
     console.debug("uploadUrl:", uploadUrl);
-    const lastModified = new Date(file.mtime_str);
-    const mtime = Math.floor(lastModified.getTime() / 1000); // msec. -> sec.
+    const mtime = Math.floor(file.file.lastModified / 1000); // msec. -> sec.
 
     try {
         const xhr = new XMLHttpRequest();
@@ -85,14 +84,14 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
                                           : task
                                   )
                               );
-                              console.warn("cancel:", file);
+                              console.warn("cancel:", file.name);
                           },
                       }
                     : task
             )
         );
 
-        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.setRequestHeader("Content-Type", file.file.type);
         xhr.setRequestHeader("X-File-Timestamp", mtime);
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
@@ -156,7 +155,7 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
             );
             console.error("Network error");
         };
-        xhr.send(file);
+        xhr.send(file.file);
     } catch (error) {
         alert("Cannot upload:" + error);
         console.error("Cannot upload:", error);
