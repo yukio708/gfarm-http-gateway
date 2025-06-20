@@ -180,10 +180,10 @@ async function runWithLimit(tasks, limit = 10) {
         }
     }
 
-    return Promise.all(results);
+    return Promise.allSettled(results);
 }
 
-async function upload(files, setTasks, refresh) {
+async function upload(files, setTasks) {
     const dirSet = new Set();
     dirSet.add("/");
 
@@ -212,8 +212,6 @@ async function upload(files, setTasks, refresh) {
         }),
         3
     );
-    console.log("done!");
-    refresh();
 }
 
 export default upload;

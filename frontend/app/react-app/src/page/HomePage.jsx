@@ -104,16 +104,19 @@ function HomePage({ user }) {
     const handleUpload = async () => {
         setTasks((prev) => prev.filter((t) => !t.done));
         const worker = async () => {
+            const allUploads = [];
             while (uploadQueueRef.current.length) {
                 const uploadFiles = uploadQueueRef.current.shift();
                 setShowProgressView(true);
-                upload(uploadFiles, setTasks, () => {
-                    setRefreshKey((prev) => !prev);
-                });
+                const promise = upload(uploadFiles, setTasks);
+                allUploads.push(promise);
             }
-        };
-        await worker();
 
+            await Promise.allSettled(allUploads);
+            console.log("done!");
+            setRefreshKey((prev) => !prev);
+        };
+        worker();
         setIsUploading(false);
     };
 
