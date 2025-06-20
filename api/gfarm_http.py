@@ -720,7 +720,7 @@ async def oidc_auth_common(request):
     user = get_user_from_access_token(access_token)
     log_login(request, user, "access_token")
     # return RedirectResponse(url="./")
-    url = request.session.get("next_url", request.url_for("index").path)
+    url = await get_next_url(request)
     return RedirectResponse(url=url)
 
 
@@ -809,10 +809,7 @@ async def login_page(request: Request,
     csrf_token = gen_csrf(request)
     error = request.session.get("error", "")
     request.session.pop("error", None)
-    if redirect:
-        request.session['next_url'] = redirect
-    else:
-        request.session['next_url'] = request.url_for("index").path
+    request.session["next_url"] = redirect
     return templates.TemplateResponse("login.html",
                                       {"request": request,
                                        "error": error,
@@ -930,6 +927,27 @@ def delete_user_passwd(request: Request):
     request.session.pop("password", None)
 
 
+async def get_next_url(request: Request,
+                       env = None,
+                       authorization: Union[str, None] = None):
+    if env is None:
+        env = await set_env(request, authorization)
+    url = request.session.get("next_url", None)
+    if url is None:
+        p = await gfwhoami(env)
+        elist =[]
+        stderr_task = asyncio.create_task(log_stderr("gfwhoami", p, elist))
+        data = await p.stdout.read()
+        stdout = data.decode()
+        await stderr_task
+        return_code = await p.wait()
+        if return_code != 0:
+            return request.url_for("index").path
+        _, _, home_directory, _ = await gfuser_info(env, stdout.rstrip())
+        return request.url_for("index").path + "#" + home_directory
+    return url
+
+
 @app.post("/login_passwd")
 async def login_passwd(request: Request,
                        username: str = Form(),
@@ -940,21 +958,18 @@ async def login_passwd(request: Request,
     set_user_passwd(request, username, password)
     env = await set_env(request, None)
     p = await gfwhoami(env)
-    url = request.session.get("next_url", request.url_for("index").path)
+    url = await get_next_url(request, env)
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
     except Exception as e:
         delete_user_passwd(request)
         err = str(e)
         request.session["error"] = err
-        # err = urllib.parse.quote(err)
-        # url = str(request.url_for("index")) + f"?error={err}"
         log_login_error(request, username, "password", err)
         url = urllib.parse.quote(url)
-        return RedirectResponse(url=f"/login?redirect={url}", status_code=303)
+        return RedirectResponse(url=f"/login", status_code=303)
     # OK
     log_login(request, username, "password")
-    # return RedirectResponse(url="./", status_code=303)
     return RedirectResponse(url=url, status_code=303)
 
 
@@ -1670,6 +1685,40 @@ async def gfptar(env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
+
+
+async def gfuser(env, cmd: str, username: str):
+    args = []
+    if cmd is not None:
+        args.append(f"-{cmd}")
+    args.append(username)
+    return await asyncio.create_subprocess_exec(
+        'gfuser', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
+async def gfuser_info(env, gfarm_username):
+    proc = await gfuser(env, "l", gfarm_username)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr("gfstat", proc, elist))
+    res = await proc.stdout.read()
+    stdout = res.decode()
+    await stderr_task
+    return_code = await proc.wait()
+    if return_code != 0:
+        raise RuntimeError(stdout)
+
+    gfarm_info = stdout.split(":",3)
+    if (len(gfarm_info) < 4):
+        raise RuntimeError(gfarm_info)
+    name = gfarm_info[0]
+    authority = gfarm_info[1]
+    home_directory = gfarm_info[2]
+    identifier = gfarm_info[3]
+    return name, authority, home_directory, identifier
 
 
 #############################################################################
