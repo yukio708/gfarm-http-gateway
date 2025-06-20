@@ -1524,8 +1524,6 @@ async def gfls_generator(
                     dirname = os.path.normpath(line[:-1])
                 continue
             name = os.path.basename(parts[9]) if is_file else parts[9]
-            if name == "." or name == "..":
-                continue
             mode_str = parts[0]
             mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
             nlink = int(parts[1])
@@ -1825,15 +1823,21 @@ async def get_symstat(gfarm_path: str,
     try:
         async def get_info(env, path) -> Gfls_Entry:
             existing, is_file, _ = await file_size(env, path)
+
             if existing:
-                async for entry in gfls_generator(env, path, is_file):
+                async for entry in gfls_generator(env, path, is_file, _all=True):
+                    entry.name = os.path.basename(path)
                     if entry.is_sym:
-                        get_info(env, entry.linkname)
+                        if ":" in entry.linkname or entry.linkname.startswith("/"):
+                            nextpath = entry.linkname
+                        else:
+                            nextpath = os.path.join(os.path.dirname(path), entry.linkname)
+                        return await get_info(env, nextpath)
                     return entry
             raise FileExistsError("")
-        entry = await get_info(env, gfarm_path)
-        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={entry.json_dump()}")
-        return JSONResponse(content=entry.json_dump())
+        lastentry = await get_info(env, gfarm_path)
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={lastentry.json_dump()}")
+        return JSONResponse(content=lastentry.json_dump())
 
     except RuntimeError as e:
         code = 500
@@ -2107,6 +2111,8 @@ async def zip_export(pathlist: PathList,
                 for filepath, is_file in filedatas:
                     parent = os.path.dirname(filepath)
                     async for entry in gfls_generator(env, filepath, is_file):
+                        if entry.name == "." or entry.name == "..":
+                            continue
                         dirname = entry.dirname
                         if dirname.startswith(parent):
                             dirname = dirname.replace(parent, "", 1)

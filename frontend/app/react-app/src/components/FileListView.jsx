@@ -93,17 +93,13 @@ function FileListView({
         });
     };
 
-    const handleNameCick = (filepath, is_file, is_sym, linkname, file) => {
-        console.debug("handleNameCick", filepath, is_file, is_sym, linkname);
-        console.debug("handleNameCick", file);
+    const handleNameCick = (filepath, is_file, is_dir) => {
         if (is_file) {
             display(filepath);
+        } else if (is_dir) {
+            jumpDirectory(filepath);
         } else {
-            if (is_sym) {
-                handleSym(linkname);
-            } else {
-                jumpDirectory(filepath);
-            }
+            handleSym(filepath);
         }
     };
 
@@ -184,12 +180,7 @@ function FileListView({
                                         )
                                     }
                                     onDoubleClick={() =>
-                                        handleNameCick(
-                                            file.path,
-                                            file.is_file,
-                                            file.is_sym,
-                                            file.linkname
-                                        )
+                                        handleNameCick(file.path, file.is_file, file.is_dir)
                                     }
                                 />
                             </td>
@@ -203,12 +194,7 @@ function FileListView({
                                     )
                                 }
                                 onDoubleClick={() =>
-                                    handleNameCick(
-                                        file.path,
-                                        file.is_file,
-                                        file.is_sym,
-                                        file.linkname
-                                    )
+                                    handleNameCick(file.path, file.is_file, file.is_dir)
                                 }
                             >
                                 {file.name}
