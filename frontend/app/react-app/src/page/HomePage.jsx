@@ -98,45 +98,42 @@ function HomePage({ user }) {
     const addFilesToUpload = (newFiles) => {
         uploadQueueRef.current.push(newFiles);
         setIsUploading(true);
+        console.debug("addFilesToUpload", newFiles);
     };
 
     const handleUpload = async () => {
-        const concurrency = 3;
+        setTasks((prev) => prev.filter((t) => !t.done));
         const worker = async () => {
-            setTasks((prev) => prev.filter((t) => !t.done));
             while (uploadQueueRef.current.length) {
                 const uploadFiles = uploadQueueRef.current.shift();
                 setShowProgressView(true);
-                await upload(uploadFiles, setTasks, () => {
+                upload(uploadFiles, setTasks, () => {
                     setRefreshKey((prev) => !prev);
                 });
             }
         };
-        const workers = Array(concurrency).fill().map(worker);
-        await Promise.all(workers);
+        await worker();
 
         setIsUploading(false);
     };
 
     useEffect(() => {
+        console.debug("isUploading", isUploading);
         if (isUploading) {
             handleUpload();
         }
     }, [isUploading]);
 
     const handleDownload = async () => {
-        const concurrency = 3;
         const worker = async () => {
             setTasks((prev) => prev.filter((t) => !t.done));
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
-                console.debug("files", files);
                 setShowProgressView(true);
-                await download(files, setTasks);
+                download(files, setTasks);
             }
         };
-        const workers = Array(concurrency).fill().map(worker);
-        await Promise.all(workers);
+        await worker();
 
         setIsDownloading(false);
     };

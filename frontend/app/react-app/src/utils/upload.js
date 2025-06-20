@@ -4,28 +4,12 @@ import { API_URL } from "./api_url";
 
 // file:
 // file + destPath + lastModified + type
-async function uploadFile(file, dirSet, setTasks, refresh) {
+async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
     if (!file) {
         alert("Please select a file");
-        return;
+        return Promise.resolve();
     }
     const uploaddirpath = file.is_file ? getParentPath(file.destPath) : file.destPath;
-    const fullpath = file.destPath;
-    const taskId = fullpath + Date.now();
-    const displayname = file.path.length > 20 ? file.path.slice(0, 20) + "..." : file.path;
-
-    const newTask = {
-        taskId,
-        name: displayname,
-        value: 0,
-        done: false,
-        type: "upload",
-        status: "uploading",
-        message: "",
-        onCancel: () => {},
-    };
-    setTasks((prev) => [...prev, newTask]);
-
     const startTime = Date.now();
 
     console.debug("uploaddirpath", uploaddirpath);
@@ -52,7 +36,7 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
                     : task
             )
         );
-        return;
+        return Promise.resolve();
     }
 
     const epath = encodePath(fullpath);
@@ -109,55 +93,58 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
                 console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
             }
         };
-        xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
+        return new Promise((resolve, reject) => {
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    setTasks((prev) =>
+                        prev.map((task) =>
+                            task.taskId === taskId
+                                ? {
+                                      ...task,
+                                      status: "completed",
+                                      value: 100,
+                                      message: "",
+                                      done: true,
+                                  }
+                                : task
+                        )
+                    );
+                    console.debug("Upload: success");
+                    resolve();
+                } else {
+                    const detail = xhr.response?.detail;
+                    const stderr = detail?.stderr ? JSON.stringify(detail.stderr) : null;
+                    const message = stderr
+                        ? `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`
+                        : `Error: HTTP ${xhr.status}: ${xhr.statusText}, detail=${JSON.stringify(detail)}`;
+                    setTasks((prev) =>
+                        prev.map((task) =>
+                            task.taskId === taskId ? { ...task, status: "error", message } : task
+                        )
+                    );
+                    console.error(message);
+                    reject(new Error(message));
+                }
+            };
+            xhr.onerror = () => {
                 setTasks((prev) =>
                     prev.map((task) =>
                         task.taskId === taskId
                             ? {
                                   ...task,
-                                  status: "completed",
-                                  value: 100,
-                                  message: "",
+                                  status: "error",
+                                  message: "Network error",
                                   done: true,
                               }
                             : task
                     )
                 );
-                console.debug("Upload: success");
-            } else {
-                const detail = xhr.response?.detail;
-                const stderr = detail?.stderr ? JSON.stringify(detail.stderr) : null;
-                const message = stderr
-                    ? `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`
-                    : `Error: HTTP ${xhr.status}: ${xhr.statusText}, detail=${JSON.stringify(detail)}`;
-                setTasks((prev) =>
-                    prev.map((task) =>
-                        task.taskId === taskId ? { ...task, status: "error", message } : task
-                    )
-                );
-                console.error(message);
-            }
-            refresh();
-        };
-        xhr.onerror = () => {
-            setTasks((prev) =>
-                prev.map((task) =>
-                    task.taskId === taskId
-                        ? {
-                              ...task,
-                              status: "error",
-                              message: "Network error",
-                              done: true,
-                          }
-                        : task
-                )
-            );
-            console.error("Network error");
-        };
-        xhr.send(file.file);
+                console.error("Network error");
+                reject(new Error("Network error"));
+            };
+            xhr.send(file.file);
+        });
     } catch (error) {
-        alert("Cannot upload:" + error);
         console.error("Cannot upload:", error);
 
         setTasks((prev) =>
@@ -172,14 +159,61 @@ async function uploadFile(file, dirSet, setTasks, refresh) {
                     : task
             )
         );
-        throw error;
+        return Promise.reject(error);
     }
+}
+
+async function runWithLimit(tasks, limit = 10) {
+    const results = [];
+    const queue = [];
+
+    for (const task of tasks) {
+        const p = task().then((result) => {
+            queue.splice(queue.indexOf(p), 1);
+            return result;
+        });
+        queue.push(p);
+        results.push(p);
+
+        if (queue.length >= limit) {
+            await Promise.race(queue);
+        }
+    }
+
+    return Promise.all(results);
 }
 
 async function upload(files, setTasks, refresh) {
     const dirSet = new Set();
     dirSet.add("/");
-    await Promise.all(files.map((file) => uploadFile(file, dirSet, setTasks, refresh)));
+
+    const tasks = files.map((file) => {
+        const fullpath = file.destPath;
+        const taskId = fullpath + Date.now();
+        const displayname = file.path.length > 20 ? file.path.slice(0, 20) + "..." : file.path;
+
+        const newTask = {
+            taskId,
+            name: displayname,
+            value: 0,
+            done: false,
+            type: "upload",
+            status: "uploading",
+            message: "waiting to upload...",
+            onCancel: () => {},
+        };
+        setTasks((prev) => [...prev, newTask]);
+        return [file, fullpath, taskId];
+    });
+
+    await runWithLimit(
+        tasks.map(([file, fullpath, taskId]) => {
+            return uploadFile(file, fullpath, taskId, dirSet, setTasks);
+        }),
+        3
+    );
+    console.log("done!");
+    refresh();
 }
 
 export default upload;
