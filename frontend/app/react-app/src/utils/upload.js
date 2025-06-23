@@ -2,12 +2,11 @@ import { encodePath, getParentPath } from "./func";
 import { createDir } from "./dircommon";
 import { API_URL } from "./api_url";
 
-// file:
-// file + destPath + lastModified + type
+// file: file + File
 async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
     if (!file) {
         alert("Please select a file");
-        return Promise.resolve();
+        return;
     }
     const uploaddirpath = file.is_file ? getParentPath(file.destPath) : file.destPath;
     const startTime = Date.now();
@@ -16,8 +15,9 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
     console.debug("fullpath", fullpath);
 
     // createdir
+    let createDirError = null;
     if (!dirSet.has(uploaddirpath)) {
-        createDir(uploaddirpath, "p=on");
+        createDirError = await createDir(uploaddirpath, "p=on");
         dirSet.add(uploaddirpath);
         console.debug("dirSet", dirSet);
     }
@@ -28,15 +28,16 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
                 task.taskId === taskId
                     ? {
                           ...task,
-                          status: "completed",
+                          status: createDirError ? "error" : "completed",
                           value: 100,
-                          message: "",
+                          message: createDirError ? createDirError : "",
                           done: true,
                       }
                     : task
             )
         );
-        return Promise.resolve();
+
+        return;
     }
 
     const epath = encodePath(fullpath);
@@ -159,7 +160,7 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
                     : task
             )
         );
-        return Promise.reject(error);
+        return;
     }
 }
 
@@ -202,16 +203,20 @@ async function upload(files, setTasks) {
             message: "waiting to upload...",
             onCancel: () => {},
         };
-        setTasks((prev) => [...prev, newTask]);
-        return [file, fullpath, taskId];
+        return { file, fullpath, taskId, task: newTask };
     });
 
-    await runWithLimit(
-        tasks.map(([file, fullpath, taskId]) => {
-            return uploadFile(file, fullpath, taskId, dirSet, setTasks);
-        }),
-        3
-    );
+    setTasks((prev) => [...prev, ...tasks.map((entry) => entry.task)]);
+
+    const uploadFunctions = tasks.map(({ file, fullpath, taskId }) => {
+        return () =>
+            uploadFile(file, fullpath, taskId, dirSet, setTasks).catch((err) => {
+                console.error("uploadFile failed:", err);
+                // Don't re-throw — swallow the error to avoid crashing runWithLimit
+            });
+    });
+
+    return runWithLimit(uploadFunctions, 3);
 }
 
 export default upload;

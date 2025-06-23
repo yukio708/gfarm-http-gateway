@@ -111,13 +111,13 @@ function HomePage({ user }) {
                 const promise = upload(uploadFiles, setTasks);
                 allUploads.push(promise);
             }
+            setIsUploading(false);
 
             await Promise.allSettled(allUploads);
             console.log("done!");
             setRefreshKey((prev) => !prev);
         };
         worker();
-        setIsUploading(false);
     };
 
     useEffect(() => {
@@ -135,10 +135,9 @@ function HomePage({ user }) {
                 setShowProgressView(true);
                 download(files, setTasks);
             }
+            setIsDownloading(false);
         };
         await worker();
-
-        setIsDownloading(false);
     };
 
     useEffect(() => {
