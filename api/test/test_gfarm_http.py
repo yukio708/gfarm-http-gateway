@@ -334,6 +334,7 @@ async def test_whoami_basic_session(mock_claims, mock_access_token_none,
 expect_gfls_stdout = "test gfls stdout"
 expect_gfls = ((expect_gfls_stdout + "\n").encode(), b"error", 0)
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls], indirect=True)
 async def test_dir_list(mock_claims, mock_size_not_file, mock_exec):
@@ -410,6 +411,7 @@ expect_gfls_json_stdout = {
     "path": "/testdir/testfile1.txt"
 }
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [gfls_success_param], indirect=True)
 async def test_dir_list_json(mock_claims, mock_size_not_file, mock_exec):
@@ -424,10 +426,12 @@ async def test_dir_list_json(mock_claims, mock_size_not_file, mock_exec):
 expect_gfls_err_msg = "test gfls (error)"
 expect_gfls_err = ((expect_gfls_err_msg + "\n").encode(), b"error", 1)
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfls_err], indirect=True)
 async def test_dir_list_err(mock_claims, mock_size_not_file, mock_exec):
-    response = client.get("/dir/testdir?l=0&format_type=plain", headers=req_headers_oidc_auth)
+    response = client.get("/dir/testdir?l=0&format_type=plain",
+                          headers=req_headers_oidc_auth)
     assert_gfarm_http_error(response, 500, "gfls", None, expect_gfls_err_msg)
     args, kwargs = mock_exec.call_args
     assert args == ('gfls', '/testdir')
@@ -704,7 +708,9 @@ async def test_zip_export_file_and_directory(
         "testdir/test/symlink",
         "testdir/test/test2/file_c.txt"
     ]
-    await zip_export_check(["/testdir"], expected_zip_paths, expected_zip_paths)
+    await zip_export_check(["/testdir"],
+                           expected_zip_paths,
+                           expected_zip_paths)
 
 
 expect_gfls_stdout_data2 = (
@@ -745,7 +751,9 @@ async def test_zip_export_nest_directory(
         "testdir/test/test2/test3/test4/test5/",
         "testdir/test/test2/test3/test4/test5/test6.txt",
     ]
-    await zip_export_check(["/testdir"], expected_zip_paths, expected_zip_paths)
+    await zip_export_check(["/testdir"],
+                           expected_zip_paths,
+                           expected_zip_paths)
 
 
 expect_gfls_stdout_data3 = (

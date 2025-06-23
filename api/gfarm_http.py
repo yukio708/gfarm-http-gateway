@@ -928,14 +928,14 @@ def delete_user_passwd(request: Request):
 
 
 async def get_next_url(request: Request,
-                       env = None,
+                       env=None,
                        authorization: Union[str, None] = None):
     if env is None:
         env = await set_env(request, authorization)
     url = request.session.get("next_url", None)
     if url is None:
         p = await gfwhoami(env)
-        elist =[]
+        elist = []
         stderr_task = asyncio.create_task(log_stderr("gfwhoami", p, elist))
         data = await p.stdout.read()
         stdout = data.decode()
@@ -967,7 +967,7 @@ async def login_passwd(request: Request,
         request.session["error"] = err
         log_login_error(request, username, "password", err)
         url = urllib.parse.quote(url)
-        return RedirectResponse(url=f"/login", status_code=303)
+        return RedirectResponse(url="/login", status_code=303)
     # OK
     log_login(request, username, "password")
     return RedirectResponse(url=url, status_code=303)
@@ -1711,7 +1711,7 @@ async def gfuser_info(env, gfarm_username):
     if return_code != 0:
         raise RuntimeError(stdout)
 
-    gfarm_info = stdout.split(":",3)
+    gfarm_info = stdout.split(":", 3)
     if (len(gfarm_info) < 4):
         raise RuntimeError(gfarm_info)
     name = gfarm_info[0]
@@ -1843,7 +1843,7 @@ async def dir_list(gfarm_path: str,
                     ign_err=ign_err
                 ):
             if isinstance(entry, Gfls_Entry):
-                    json_data.append(entry.json_dump())
+                json_data.append(entry.json_dump())
             else:
                 json_data.append(entry)
     except RuntimeError as e:
@@ -1874,18 +1874,24 @@ async def get_symstat(gfarm_path: str,
             existing, is_file, _ = await file_size(env, path)
 
             if existing:
-                async for entry in gfls_generator(env, path, is_file, _all=True):
+                async for entry in gfls_generator(env, path, is_file,
+                                                  _all=True):
                     entry.name = os.path.basename(path)
                     if entry.is_sym:
-                        if ":" in entry.linkname or entry.linkname.startswith("/"):
+                        if ":" in entry.linkname or \
+                                entry.linkname.startswith("/"):
                             nextpath = entry.linkname
                         else:
-                            nextpath = os.path.join(os.path.dirname(path), entry.linkname)
+                            nextpath = os.path.join(
+                                    os.path.dirname(path),
+                                    entry.linkname
+                                )
                         return await get_info(env, nextpath)
                     return entry
             raise FileExistsError("")
         lastentry = await get_info(env, gfarm_path)
-        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={lastentry.json_dump()}")
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}," +
+                     f"stdout={lastentry.json_dump()}")
         return JSONResponse(content=lastentry.json_dump())
 
     except RuntimeError as e:
@@ -1898,7 +1904,6 @@ async def get_symstat(gfarm_path: str,
         message = f"gfls error: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, "", elist)
-
 
 
 @app.put("/d/{gfarm_path:path}")
