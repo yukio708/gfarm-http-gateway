@@ -1896,7 +1896,8 @@ async def check_writable(env, path):
                 if "w" in acl.acl_perms:
                     return True
         if acl.acl_type == "group":
-            groupusers = await get_groupuser(env, acl.acl_name)
+            groupname = acl.acl_name if acl.acl_name else acl_info.group
+            groupusers = await get_groupuser(env, groupname)
             if username in groupusers and "w" in acl.acl_perms:
                 return True
         if acl.acl_type == "other":
