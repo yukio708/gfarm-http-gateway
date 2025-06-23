@@ -166,6 +166,7 @@ conf_required_keys = [
     "GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD",
     "GFARM_HTTP_ALLOW_ANONYMOUS",
     "GFARM_HTTP_ASYNC_GFEXPORT",
+    "GFARM_HTTP_SESSION_MAX_AGE",
 ]
 
 # default parameters
@@ -418,8 +419,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# TODO GFARM_HTTP_SESSION_MAX_AGE
-SESSION_MAX_AGE = 60 * 60 * 24  # 1 day
+try:
+    SESSION_MAX_AGE = int(conf.GFARM_HTTP_SESSION_MAX_AGE)
+except Exception as e:
+    logger.warning("Invalid value for SESSION_MAX_AGE: " + {str(e)})
+    SESSION_MAX_AGE = 60 * 60 * 24  # 1 day
 
 # https://www.starlette.io/middleware/#sessionmiddleware
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET,
@@ -1320,7 +1324,7 @@ def parse_gfstat(file_info_str):
                 zone = t[2]
                 value = f"{day} {sec}.{usec} {zone}"
                 value_sec = timestamp_to_unix(value)
-                file_info[key+"Secound"] = value_sec
+                file_info[key + "Secound"] = value_sec
         elif key is None:
             continue
         file_info[key] = value
@@ -1513,8 +1517,7 @@ async def gfls_generator(
         _long: bool = True,
         _T: bool = True,
         effperm: bool = False,
-        ign_err: bool = False
-        ) -> AsyncGenerator[Union[str, Gfls_Entry], None]:
+        ign_err: bool = False) -> AsyncGenerator[Union[str, Gfls_Entry], None]:
     dirname = os.path.dirname(path) if is_file else path
     p = await gfls(env, path, _all, _recursive, _long, _T, effperm)
     stdout = ""
@@ -1546,9 +1549,8 @@ async def gfls_generator(
             gname = parts[3]
             size = int(parts[4])
             yield Gfls_Entry(
-                    name, nlink, uname, gname, size,
-                    dirname, mtime_str, mode_str
-                )
+                name, nlink, uname, gname, size,
+                dirname, mtime_str, mode_str)
 
     return_code = await p.wait()
     if not ign_err and return_code != 0:
@@ -1838,10 +1840,9 @@ async def dir_list(gfarm_path: str,
     json_data = []
     try:
         async for entry in gfls_generator(
-                    env, gfarm_path, is_file,
-                    _all=a, _recursive=R, _long=l, _T=T, effperm=e,
-                    ign_err=ign_err
-                ):
+                env, gfarm_path, is_file,
+                _all=a, _recursive=R, _long=l, _T=T, effperm=e,
+                ign_err=ign_err):
             if isinstance(entry, Gfls_Entry):
                 json_data.append(entry.json_dump())
             else:
@@ -1883,9 +1884,8 @@ async def get_symstat(gfarm_path: str,
                             nextpath = entry.linkname
                         else:
                             nextpath = os.path.join(
-                                    os.path.dirname(path),
-                                    entry.linkname
-                                )
+                                os.path.dirname(path),
+                                entry.linkname)
                         return await get_info(env, nextpath)
                     return entry
             raise FileExistsError("")
@@ -2059,8 +2059,7 @@ class ZipStreamWriter:
             with self._lock:
                 while len(self._current_chunk) >= self._chunk_size:
                     self._buffer.append(
-                            bytes(self._current_chunk[:self._chunk_size])
-                        )
+                        bytes(self._current_chunk[:self._chunk_size]))
                     del self._current_chunk[:self._chunk_size]
             self._loop.create_task(self._notify())
 
@@ -2139,8 +2138,7 @@ async def zip_export(pathlist: PathList,
                 proc = await gfexport(env, entry.path)
                 elist = []
                 stderr_task = asyncio.create_task(
-                        log_stderr(opname, proc, elist)
-                    )
+                    log_stderr(opname, proc, elist))
                 with zipf.open(zipinfo, 'w') as dest:
                     while True:
                         chunk = await proc.stdout.read(BUFSIZE)
@@ -2185,13 +2183,12 @@ async def zip_export(pathlist: PathList,
         async for chunk in zip_writer.get_chunks():
             yield chunk
 
-    zipname = f'download_{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip'
+    zipname = 'download_' + datetime.now().strftime('%Y%m%d-%H%M%S') + '.zip'
     headers = {"Content-Disposition": f'attachment; filename="{zipname}"'}
     return StreamingResponse(
-            content=generate(),
-            media_type="application/zip",
-            headers=headers,
-        )
+        content=generate(),
+        media_type="application/zip",
+        headers=headers)
 
 
 @app.put("/f/{gfarm_path:path}")
@@ -2454,12 +2451,10 @@ async def compress_or_extract(
                     j_line = json.dumps({"message": msg}) # TODO:msgを項目ごとに変換する
                     yield j_line + '\n'
                     logger.debug(
-                        f"{ipaddr}:0 user={user}, cmd={opname}, json={j_line}"
-                        )
+                        f"{ipaddr}:0 user={user}, cmd={opname}, json={j_line}")
                     # Update access_token
                     _, _, exp = await set_tokenfilepath_to_env(
-                        request, env, tokenfilepath, exp
-                        )
+                        request, env, tokenfilepath, exp)
             await stderr_task
             return_code = await p.wait()
             if return_code != 0:
@@ -2471,8 +2466,7 @@ async def compress_or_extract(
         except asyncio.CancelledError:
             p.terminate()
             logger.error(
-                f"{ipaddr}:0 user={user}, cmd={opname}, Client disconnected"
-                )
+                f"{ipaddr}:0 user={user}, cmd={opname}, Client disconnected")
         finally:
             try:
                 os.remove(tokenfilepath)
