@@ -16,7 +16,7 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import List, Union, Optional, AsyncGenerator
+from typing import List, Union, Optional, AsyncGenerator, Tuple
 import urllib
 import re
 import tempfile
@@ -938,16 +938,10 @@ async def get_next_url(request: Request,
         env = await set_env(request, authorization)
     url = request.session.get("next_url", None)
     if url is None:
-        p = await gfwhoami(env)
-        elist = []
-        stderr_task = asyncio.create_task(log_stderr("gfwhoami", p, elist))
-        data = await p.stdout.read()
-        stdout = data.decode()
-        await stderr_task
-        return_code = await p.wait()
-        if return_code != 0:
+        username = await get_username(env)
+        if username is None:
             return request.url_for("index").path
-        _, _, home_directory, _ = await gfuser_info(env, stdout.rstrip())
+        _, _, home_directory, _ = await gfuser_info(env, username)
         return request.url_for("index").path + "#" + home_directory
     return url
 
@@ -1352,6 +1346,75 @@ def from_rwx(rwx, highchar):
     return perm, highbit
 
 
+class ACLInfo(BaseModel):
+    acl_type: str
+    acl_name: str
+    acl_perms: str
+    is_default: bool
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "acl_type": "user",
+                    "acl_name": "name",
+                    "acl_perms": "rwx",
+                    "is_default": False,
+                }
+            ]
+        }
+    }
+
+
+def parse_gfgetfacl(acl_str) -> Tuple[str, str, List[ACLInfo]]:
+    owner = ""
+    group = ""
+    acls = []
+    lines = acl_str.strip().split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        if line.startswith('# owner:'):
+            owner_match = re.match(r"# owner:\s*(\S+)", line)
+            if owner_match:
+                owner = owner_match.group(1)
+        elif line.startswith('# group:'):
+            group_match = re.match(r"# group:\s*(\S+)", line)
+            if group_match:
+                group = group_match.group(1)
+        elif not line.startswith('#'):
+            is_default = False
+            if line.startswith('default:'):
+                is_default = True
+                line = line[len('default:'):]
+
+            match = re.match(r"(user|group|other)(?::([^:]+))?::([rwx-]+)",
+                             line)
+            if match:
+                acl_type = match.group(1)
+                if match.group(2):
+                    acl_name = match.group(2)
+                else:
+                    if acl_type == "user":
+                        acl_name = owner
+                    elif acl_type == "group":
+                        acl_name = group
+                    else:
+                        acl_name = ""
+                acl_perms = match.group(3)
+                acls.append(ACLInfo(acl_type=acl_type,
+                                    acl_name=acl_name,
+                                    acl_perms=acl_perms,
+                                    is_default=is_default))
+
+    if not owner or not group:
+        return None, None, None
+
+    return owner, group, acls
+
+
 #############################################################################
 async def gfwhoami(env):
     args = []
@@ -1528,7 +1591,7 @@ async def gfls_generator(
             break
         buffer += chunk
         if b"\r" in buffer or b"\n" in buffer:
-            logger.debug(f"buffer:{buffer}")
+            # logger.debug(f"buffer:{buffer}")
             line = buffer.decode("utf-8", errors="replace").strip()
             stdout += line
             buffer = b""
@@ -1642,28 +1705,6 @@ async def gfchmod(env, path, mode):
 #     return existing, is_file, size
 
 
-async def file_size(env, path):
-    metadata = False
-    proc = await gfstat(env, path, metadata)
-    elist = []
-    stderr_task = asyncio.create_task(log_stderr("gfstat", proc, elist))
-    data = await proc.stdout.read()
-    stdout = data.decode()
-    await stderr_task
-    return_code = await proc.wait()
-    if return_code != 0:
-        existing = False
-        is_file = False
-        size = 0
-    else:
-        st = parse_gfstat(stdout)
-        existing = True
-        is_file = (st.Filetype == "regular file")
-        size = st.Size
-    logger.debug(f"file_size: {existing}, {is_file}, {size}")
-    return existing, is_file, size
-
-
 async def gfptar(env,
                  cmd: str,
                  outdir,
@@ -1700,6 +1741,138 @@ async def gfuser(env, cmd: str, username: str):
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
+
+
+async def gfgroup(env, groupname: str, cmd: str = None):
+    args = []
+    if cmd is not None:
+        args.append(f"-{cmd}")
+    args.append(groupname)
+    return await asyncio.create_subprocess_exec(
+        'gfuser', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
+async def gfsetfacl(env, path,
+                    _b=False, _k=False, _n=False, _r=False,
+                    acl_spec=None, acl_file=None):
+    args = []
+    if _b:
+        args.append("-b")
+    if _k:
+        args.append("-k")
+    if _n:
+        args.append("-n")
+    if _r:
+        args.append("-r")
+    if acl_spec is not None:
+        args.append("-m {acl_spec}")
+    if acl_file is not None:
+        args.append("-M {acl_file}")
+    args.append(path)
+    return await asyncio.create_subprocess_exec(
+        'gfsetfacl', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
+async def gfgetfacl(env, path):
+    args = [path]
+    return await asyncio.create_subprocess_exec(
+        'gfgetfacl', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
+async def get_username(env):
+    p = await gfwhoami(env)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr("gfwhoami", p, elist))
+    data = await p.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await p.wait()
+    if return_code != 0:
+        return None
+    return stdout.rstrip()
+
+
+async def get_groupuser(env, groupname):
+    p = await gfgroup(env, groupname)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr("gfgroup", p, elist))
+    data = await p.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await p.wait()
+    if return_code != 0:
+        return None
+    parts = stdout.strip().split(None)
+    if len(parts) < 2:
+        return []
+    return parts[1:]
+
+
+async def file_size(env, path):
+    metadata = False
+    proc = await gfstat(env, path, metadata)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr("gfstat", proc, elist))
+    data = await proc.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await proc.wait()
+    if return_code != 0:
+        existing = False
+        is_file = False
+        size = 0
+    else:
+        st = parse_gfstat(stdout)
+        existing = True
+        is_file = (st.Filetype == "regular file")
+        size = st.Size
+    logger.debug(f"file_size: {existing}, {is_file}, {size}")
+    return existing, is_file, size
+
+
+async def check_writable(env, path):
+    proc = await gfgetfacl(env, path)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr("gfgetfacl", proc, elist))
+    data = await proc.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await proc.wait()
+    if return_code != 0:
+        return False
+    owner, _, acls = parse_gfgetfacl(stdout)
+    if owner is None:
+        return False
+    username = await get_username(env)
+    for acl in acls:
+        logger.debug(f"Type: {acl.acl_type}, Name: '{acl.acl_name}'," +
+                     f"Perms: {acl.acl_perms}")
+        if acl.is_default:
+            continue
+        if acl.acl_type == "user" and acl.acl_name == username:
+            if "w" in acl.acl_perms:
+                return True
+        if acl.acl_type == "group":
+            groupusers = await get_groupuser(env, acl.acl_name)
+            if username in groupusers and "w" in acl.acl_perms:
+                return True
+        if acl.acl_type == "other":
+            if "w" in acl.acl_perms:
+                return True
+
+    return False
 
 
 async def gfuser_info(env, gfarm_username):
@@ -1992,8 +2165,10 @@ async def file_export(gfarm_path: str,
     if not first_byte:
         if ASYNC_GFEXPORT:
             await stderr_task
-        # TODO check_writable() : True ... 500,  False ... 403
-        code = 403
+        if await check_writable(env, gfarm_path):
+            code = 403
+        else:
+            code = 500
         message = f"Cannot read: path={gfarm_path}"
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
@@ -2091,6 +2266,16 @@ class ZipStreamWriter:
 
 class PathList(BaseModel):
     pathes: List[str]
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "pathes": ["/foo", "/bar"],
+                }
+            ]
+        }
+    }
 
 
 @app.post("/zip")
@@ -2202,22 +2387,30 @@ async def file_import(gfarm_path: str,
                       x_csrf_token: Union[str, None] = Header(default=None)):
     check_csrf(request, x_csrf_token)
     # TODO overwrite=1, defaut 0
-    # TODO check writable parent dir or target file
     opname = "gfreg"
     gfarm_path = fullpath(gfarm_path)
     filename = os.path.basename(gfarm_path)
+    dirname = os.path.dirname(gfarm_path)
+    env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
+    log_operation(env, opname, gfarm_path)
+
+    if not await check_writable(env, dirname):
+        code = 403
+        message = f"Permission denied path={dirname}"
+        stdout = ""
+        elist = []
+        raise gfarm_http_error(opname, code, message, stdout, elist)
+
     # NOTE: MAXNAMLEN == 255
     filename_prefix = filename[:128]
 
     choices = string.ascii_letters + string.digits
     randstr = ''.join(random.choices(choices, k=8))
     tmpname = "gfarm-http.upload." + filename_prefix + "." + randstr
-    tmppath = os.path.join(os.path.dirname(gfarm_path), tmpname)
+    tmppath = os.path.join(dirname, tmpname)
 
-    env = await set_env(request, authorization)
-    user = get_user_from_env(env)
-    ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, gfarm_path)
     p = await gfreg(env, tmppath, x_file_timestamp)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
