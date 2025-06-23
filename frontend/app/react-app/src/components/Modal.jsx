@@ -2,9 +2,10 @@ import React, { useEffect, useRef } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import PropTypes from "prop-types";
 
-function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText }) {
+function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText, size }) {
     const modalRef = useRef(null);
     const modalInstance = useRef(null);
+    const size_class = size == "large" ? "modal-lg" : "";
 
     useEffect(() => {
         if (!modalRef.current) return;
@@ -27,7 +28,7 @@ function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText
 
     return (
         <div className="modal fade" ref={modalRef} tabIndex="-1">
-            <div className="modal-dialog" role="document">
+            <div className={`modal-dialog ${size_class}`} role="document">
                 <div className="modal-content">
                     <div className="modal-header">
                         {title}
@@ -72,4 +73,5 @@ ModalWindow.propTypes = {
     text: PropTypes.string,
     cancelText: PropTypes.string,
     comfirmText: PropTypes.string,
+    size: PropTypes.string,
 };

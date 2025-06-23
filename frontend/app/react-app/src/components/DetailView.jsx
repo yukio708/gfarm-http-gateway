@@ -77,17 +77,6 @@ function DetailView({ detail, onHide, showTab = "detail" }) {
                             Mode (chmod)
                         </button>
                     </li>
-                    <li className="nav-item" role="presentation">
-                        <button
-                            className={`nav-link ${activeTab === "acl" ? "active" : ""}`}
-                            id="acl-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#acl"
-                            type="button"
-                        >
-                            ACL
-                        </button>
-                    </li>
                 </ul>
                 <div className="tab-content" id="permissionTabsContent">
                     <div
@@ -159,14 +148,34 @@ function DetailView({ detail, onHide, showTab = "detail" }) {
                         id="mode"
                         role="tabpanel"
                     >
-                        test1
-                    </div>
-                    <div
-                        className={`tab-pane show p-3 ${activeTab === "acl" ? "active" : ""}`}
-                        id="acl"
-                        role="tabpanel"
-                    >
-                        test2
+                        <form>
+                            {["Owner", "Group", "Other"].map((type) => (
+                                <div className="mb-3" key={type}>
+                                    <strong className="me-2">{type}:</strong>
+                                    {["Read", "Write", "Execute"].map((perm) => {
+                                        const id = `${type}-${perm}`;
+                                        return (
+                                            <div className="form-check form-check-inline" key={id}>
+                                                <input
+                                                    className="form-check-input"
+                                                    type="checkbox"
+                                                    id={id}
+                                                    name={id}
+                                                />
+                                                <label className="form-check-label" htmlFor={id}>
+                                                    {perm}
+                                                </label>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                            <div className="d-flex justify-content-end">
+                                <button type="button" className="btn btn-primary me-3">
+                                    Set
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

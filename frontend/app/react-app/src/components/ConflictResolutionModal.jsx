@@ -71,6 +71,7 @@ function ConflictResolutionModal({
         <ModalWindow
             onCancel={onCancel}
             onConfirm={handleResolve}
+            size="large"
             title={<h5 className="modal-title">File Name Conflict</h5>}
             text={
                 <div>

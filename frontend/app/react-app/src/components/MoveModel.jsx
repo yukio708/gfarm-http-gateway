@@ -112,6 +112,7 @@ function MoveModal({
                     onCancel={() => setShowModal(false)}
                     onConfirm={() => handleConfirm()}
                     comfirmText="Move"
+                    size="large"
                     title={<h5 className="modal-title">Move File</h5>}
                     text={
                         <div>

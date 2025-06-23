@@ -11,6 +11,7 @@ import UploadMenu from "../components/UploadMenu";
 import { FileActionMenu } from "../components/FileActionMenu";
 import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
+import ACLModal from "../components/ACLModal";
 import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
@@ -42,6 +43,7 @@ function HomePage({ user }) {
     const [showProgressView, setShowProgressView] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
+    const [showAclModal, setShowAclModal] = useState(false);
 
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
@@ -235,6 +237,7 @@ function HomePage({ user }) {
                         display={handleDisplayFile}
                         remove={setFilesToDelete}
                         move={addFilesToMove}
+                        permission={setShowAclModal}
                     />
                 </div>
             </div>
@@ -292,6 +295,14 @@ function HomePage({ user }) {
                 handleMove={handleMove}
                 filesToMove={filesToMove}
                 setFilesToMove={setFilesToMove}
+            />
+            <ACLModal
+                showModal={showAclModal}
+                onClose={() => setShowAclModal(false)}
+                onSubmit={(aclData) => {
+                    console.log("Submit ACL:", aclData);
+                    // TODO: send POST to /acl/{path}
+                }}
             />
         </div>
     );
