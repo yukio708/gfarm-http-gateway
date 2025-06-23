@@ -2362,7 +2362,7 @@ async def zip_export(pathlist: PathList,
             zip_writer.close()
 
     async def generate():
-        zip_writer = ZipStreamWriter(chunk_size=1024, # tentative
+        zip_writer = ZipStreamWriter(chunk_size=BUFSIZE,
                                      loop=asyncio.get_running_loop())
         asyncio.create_task(create_zip(zip_writer))
         async for chunk in zip_writer.get_chunks():
