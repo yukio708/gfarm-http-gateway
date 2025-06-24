@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
 
-const { waitForReact, FRONTEND_URL } = require("./func");
+const { waitForReact, FRONTEND_URL } = require("./test_func");
 
 const DIR_LIST = path.resolve(__dirname, "data/datalist.json");
 

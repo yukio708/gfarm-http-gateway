@@ -1,7 +1,14 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, DIR_LIST, DUMMYS } = require("./func");
+const {
+    waitForReact,
+    handleRoute,
+    API_URL,
+    FRONTEND_URL,
+    DIR_LIST,
+    DUMMYS,
+} = require("./test_func");
 
 async function waitForProgressView(page, expectedFileNames) {
     const taskCard = page.locator(".offcanvas-body .card", { hasText: expectedFileNames });

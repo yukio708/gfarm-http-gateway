@@ -140,12 +140,12 @@ export const handleRoute = async (route, request) => {
     const url = request.url();
     const method = request.method();
 
-    if (url.includes("/d/")) {
-        console.log("/d/", url);
+    if (url.includes("/dir/") && method === "GET") {
+        console.log("/dir/", url);
         if (fileStructureData === null) {
             fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
         }
-        const path = url.split("/d/", 2)[1].split("?")[0];
+        const path = url.split("/dir/", 2)[1].split("?")[0];
         const jsonData = findChildrenByPath(fileStructureData, path);
         if (jsonData !== null) {
             await route.fulfill({

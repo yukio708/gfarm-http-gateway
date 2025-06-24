@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ZIPNAME } = require("./func");
+const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ZIPNAME } = require("./test_func");
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {

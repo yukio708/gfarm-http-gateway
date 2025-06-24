@@ -9,7 +9,7 @@ const {
     handleRoute,
     FRONTEND_URL,
     DIR_LIST,
-} = require("./func");
+} = require("./test_func");
 
 let fileStructureData = null;
 
