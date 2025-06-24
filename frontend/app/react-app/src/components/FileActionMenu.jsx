@@ -60,10 +60,7 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
             </button>
             <ul className="dropdown-menu">
                 <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => showDetail(file.name, file.path)}
-                    >
+                    <button className="dropdown-item" onClick={() => showDetail(file)}>
                         <BsInfoCircle className="me-2" /> Detail
                     </button>
                 </li>

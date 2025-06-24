@@ -2692,7 +2692,7 @@ async def set_acl(gfarm_path: str,
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
     log_operation(env, request.url.path, opname, acl)
     acl_str = acl.make_acl_str("\n") + "\n"
-    proc = await gfsetfacl(env, gfarm_path, acl_file="-")
+    proc = await gfsetfacl(env, gfarm_path, _b=True, acl_file="-")
     stdout, _ = await proc.communicate(input=acl_str.encode())
     elist = []
     stdout = stdout.decode()

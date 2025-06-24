@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import FileListView from "../components/FileListView";
 import CurrentDirView from "../components/CurrentDirView";
-import DetailView from "../components/DetailView";
+import SidePanel from "../components/SidePanel";
 import ProgressView from "../components/ProgressView";
 import DeleteModal from "../components/DeleteModal";
 import NewDirModal from "../components/NewDirModal";
@@ -11,14 +11,12 @@ import UploadMenu from "../components/UploadMenu";
 import { FileActionMenu } from "../components/FileActionMenu";
 import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
-import ACLModal from "../components/ACLModal";
 import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
 import displayFile from "../utils/displayFile";
 import getSymlink from "../utils/getSymlink";
 import moveFile from "../utils/moveFile";
-import getAttribute from "../utils/getAttribute";
 import ErrorPage from "./ErrorPage";
 
 import PropTypes from "prop-types";
@@ -33,8 +31,7 @@ function HomePage({ user }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [filesToDelete, setFilesToDelete] = useState([]);
     const [filesToMove, setFilesToMove] = useState([]);
-    const [fileToChmod, setFileToChmod] = useState(null);
-    const [detailContent, setDetailContent] = useState(null);
+    const [fileToShowDetail, setFileToShowDetail] = useState(null);
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
     const [isUploading, setIsUploading] = useState(false);
@@ -43,7 +40,7 @@ function HomePage({ user }) {
     const [showProgressView, setShowProgressView] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
-    const [showAclModal, setShowAclModal] = useState(false);
+    const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
 
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
@@ -88,6 +85,9 @@ function HomePage({ user }) {
             setSelectedFiles([...selectedFiles, file]);
         } else {
             setSelectedFiles(selectedFiles.filter((path) => path !== file));
+        }
+        if (showSidePanel) {
+            setFileToShowDetail(file);
         }
     };
 
@@ -148,21 +148,6 @@ function HomePage({ user }) {
         }
     }, [isDownloading]);
 
-    const showDetail = async (name, filepath) => {
-        try {
-            const detail = await getAttribute(filepath);
-            console.debug("detail:", detail);
-            detail.Name = name;
-            setDetailContent(detail);
-        } catch (err) {
-            console.error("getAttribute failed:", err);
-        }
-    };
-
-    const closeDetail = () => {
-        setDetailContent(null);
-    };
-
     const addFilesToMove = (files) => {
         setFilesToMove(files);
         setShowMoveModal(true);
@@ -179,9 +164,9 @@ function HomePage({ user }) {
         setRefreshKey((prev) => !prev);
     };
 
-    const handleChmod = (file) => {
-        setFileToChmod(file);
-        setShowAclModal(true);
+    const handleShowDetail = (file, tab) => {
+        setFileToShowDetail(file);
+        setShowSidePanel({ show: true, tab });
     };
 
     if (listGetError) {
@@ -238,15 +223,27 @@ function HomePage({ user }) {
                         jumpDirectory={jumpDirectory}
                         handleSym={handleSym}
                         download={addFilesToDownload}
-                        showDetail={showDetail}
+                        showDetail={(file) => {
+                            handleShowDetail(file, "detail");
+                        }}
                         display={handleDisplayFile}
                         remove={setFilesToDelete}
                         move={addFilesToMove}
-                        permission={handleChmod}
+                        permission={(file) => {
+                            handleShowDetail(file, "acl");
+                        }}
+                        showSidePanel={showSidePanel}
                     />
                 </div>
             </div>
-            {detailContent && <DetailView detail={detailContent} onHide={closeDetail} />}
+            <SidePanel
+                show={showSidePanel.show}
+                showTab={showSidePanel.tab}
+                file={fileToShowDetail}
+                onHide={() => {
+                    setShowSidePanel({ show: false, tab: "" });
+                }}
+            />
             <ProgressView
                 show={showProgressView}
                 onHide={() => {
@@ -301,7 +298,6 @@ function HomePage({ user }) {
                 filesToMove={filesToMove}
                 setFilesToMove={setFilesToMove}
             />
-            <ACLModal showModal={showAclModal} setShowModal={setShowAclModal} file={fileToChmod} />
         </div>
     );
 }
