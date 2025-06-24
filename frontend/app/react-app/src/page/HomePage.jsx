@@ -16,7 +16,7 @@ import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
 import displayFile from "../utils/displayFile";
-import getSymInfo from "../utils/getSymInfo";
+import getSymlink from "../utils/getSymlink";
 import moveFile from "../utils/moveFile";
 import getAttribute from "../utils/getAttribute";
 import setPermission from "../utils/setPermission";
@@ -61,7 +61,7 @@ function HomePage({ user }) {
     const handleSym = async (symlink) => {
         console.debug("handleSym", symlink);
         try {
-            const info = await getSymInfo(symlink);
+            const info = await getSymlink(symlink);
             if (info.is_file) {
                 handleDisplayFile(info.path);
             } else if (info.is_sym) {

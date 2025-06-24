@@ -167,6 +167,7 @@ conf_required_keys = [
     "GFARM_HTTP_ALLOW_ANONYMOUS",
     "GFARM_HTTP_ASYNC_GFEXPORT",
     "GFARM_HTTP_SESSION_MAX_AGE",
+    "GFARM_HTTP_RECURSIVE_MAX_DEPTH"
 ]
 
 # default parameters
@@ -235,6 +236,18 @@ TOKEN_USER_CLAIM = conf.GFARM_HTTP_TOKEN_USER_CLAIM
 VERIFY_CERT = str2bool(conf.GFARM_HTTP_VERIFY_CERT)
 SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
 ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
+
+try:
+    SESSION_MAX_AGE = int(conf.GFARM_HTTP_SESSION_MAX_AGE)
+except Exception as e:
+    logger.warning("Invalid value for SESSION_MAX_AGE: " + {str(e)})
+    SESSION_MAX_AGE = 60 * 60 * 24  # 1 day
+
+try:
+    RECURSIVE_MAX_DEPTH = int(conf.GFARM_HTTP_RECURSIVE_MAX_DEPTH)
+except Exception as e:
+    logger.warning("Invalid value for SESSION_MAX_AGE: " + {str(e)})
+    RECURSIVE_MAX_DEPTH = 16
 
 
 def conf_check_not_recommended():
@@ -418,12 +431,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
-
-try:
-    SESSION_MAX_AGE = int(conf.GFARM_HTTP_SESSION_MAX_AGE)
-except Exception as e:
-    logger.warning("Invalid value for SESSION_MAX_AGE: " + {str(e)})
-    SESSION_MAX_AGE = 60 * 60 * 24  # 1 day
 
 # https://www.starlette.io/middleware/#sessionmiddleware
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET,
@@ -1346,7 +1353,7 @@ def from_rwx(rwx, highchar):
     return perm, highbit
 
 
-class ACLInfo(BaseModel):
+class GFLS(BaseModel):
     acl_type: str
     acl_name: Union[str, None]
     acl_perms: str
@@ -1366,10 +1373,28 @@ class ACLInfo(BaseModel):
     }
 
 
-class ACLInfoList(BaseModel):
-    owner: str
-    group: str
-    acls: List[ACLInfo]
+class ACInfo(BaseModel):
+    acl_type: str
+    acl_name: Union[str, None]
+    acl_perms: str
+    is_default: bool
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "acl_type": "user",
+                    "acl_name": "name",
+                    "acl_perms": "rwx",
+                    "is_default": False,
+                }
+            ]
+        }
+    }
+
+
+class ACList(BaseModel):
+    acl: List[ACInfo]
 
     def make_acl_spec(self) -> str:
         acl_parts = []
@@ -1385,9 +1410,7 @@ class ACLInfoList(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "owner": "user",
-                    "group": "group",
-                    "acls": [
+                    "acl": [
                         {
                             "acl_type": "user",
                             "acl_name": "name",
@@ -1401,7 +1424,7 @@ class ACLInfoList(BaseModel):
     }
 
 
-def parse_gfgetfacl(acl_str) -> Union[ACLInfoList, None]:
+def parse_gfgetfacl(acl_str) -> Union[ACList, None]:
     owner = ""
     group = ""
     acls = []
@@ -1431,15 +1454,15 @@ def parse_gfgetfacl(acl_str) -> Union[ACLInfoList, None]:
                 acl_type = match.group(1)
                 acl_name = match.group(2) if match.group(2) else None
                 acl_perms = match.group(3)
-                acls.append(ACLInfo(acl_type=acl_type,
-                                    acl_name=acl_name,
-                                    acl_perms=acl_perms,
-                                    is_default=is_default))
+                acls.append(ACInfo(acl_type=acl_type,
+                                   acl_name=acl_name,
+                                   acl_perms=acl_perms,
+                                   is_default=is_default))
 
     if not owner or not group:
         return None
 
-    return ACLInfoList(owner=owner, group=group, acls=acls)
+    return ACList(owner=owner, group=group, acls=acls)
 
 
 #############################################################################
@@ -1542,25 +1565,39 @@ async def gfls(env,
 class Gfls_Entry:
     def __init__(
             self,
-            name,
-            nlink,
-            uname,
-            gname,
-            size,
-            dirname,
-            mtime_str,
-            mode_str):
+            name: Union[str, None] = None,
+            nlink: Union[str, None] = None,
+            uname: Union[str, None] = None,
+            gname: Union[str, None] = None,
+            size: Union[str, None] = None,
+            dirname: Union[str, None] = None,
+            mtime_str: Union[str, None] = None,
+            mode_str: Union[str, None] = None,
+            perms: Union[str, None] = None):
         self.dirname = dirname
         self.name = name
         self.nlink = nlink
         self.uname = uname
         self.gname = gname
         self.size = size
-        self.mtime_str = mtime_str
-        mtime = time.mktime(
-            time.strptime(mtime_str, '%b %d %H:%M:%S %Y'))
-        self.mtime = mtime
+        self.perms = perms
+        self.set_mtime(mtime_str)
+        self.set_mode(mode_str)
+        self.set_linkname(name, self.is_sym)
+        if dirname is not None and name is not None:
+            self.path = os.path.join(self.dirname, self.name)
+
+    def set_dirname(self, dirname):
+        self.dirname = dirname
+        self.path = os.path.join(self.dirname, self.name)
+
+    def set_mode(self, mode_str):
         self.mode_str = mode_str
+        if mode_str is None:
+            self.mode = None
+            self.is_dir = None
+            self.is_sym = None
+            return
         mode = 0
         perm, highbit = from_rwx(mode_str[1:4], 's')
         mode |= (perm << 6)
@@ -1574,12 +1611,24 @@ class Gfls_Entry:
         self.mode = mode
         self.is_dir = mode_str.startswith('d')
         self.is_sym = mode_str.startswith('l')
+
+    def set_mtime(self, mtime_str):
+        self.mtime_str = mtime_str
+        if mtime_str is None:
+            self.mtime = None
+            return
+        mtime = time.mktime(
+            time.strptime(mtime_str, '%b %d %H:%M:%S %Y'))
+        self.mtime = mtime
+
+    def set_linkname(self, name, is_sym):
         self.linkname = ''
-        if self.is_sym:
+        if is_sym is None:
+            return
+        if is_sym:
             pair = name.split(' -> ')
             self.name = pair[0]
             self.linkname = pair[1]
-        self.path = os.path.join(self.dirname, self.name)
 
     def json_dump(self):
         return {
@@ -1596,6 +1645,50 @@ class Gfls_Entry:
             "name": self.name,
             "path": self.path
         }
+
+    def parse(line,
+              is_file, long_format, full_format_time, effperm, dirname=None):
+        if not long_format:
+            return line
+
+        split_count = 8
+        if effperm:
+            split_count += 1
+        if full_format_time:
+            split_count += 1
+
+        parts = line.strip().split(None, split_count)
+        if len(parts) < 10:
+            return line
+
+        perms = parts.pop(0) if effperm else None
+        mode_str = parts.pop(0)
+        nlink = int(parts.pop(0))
+        uname = parts.pop(0)
+        gname = parts.pop(0)
+        size = int(parts.pop(0))
+        month = parts.pop(0)
+        day = parts.pop(0)
+        time = parts.pop(0)
+        if full_format_time:
+            year = parts.pop(0)
+            mtime_str = f"{month} {day} {time} {year}"
+        else:
+            mtime_str = f"{month} {day} {time}"
+        if is_file:
+            name = os.path.basename(parts.pop(0))
+        else:
+            name = parts.pop(0)
+
+        return Gfls_Entry(name,
+                          nlink,
+                          uname,
+                          gname,
+                          size,
+                          dirname,
+                          mtime_str,
+                          mode_str,
+                          perms)
 
 
 async def gfls_generator(
@@ -1624,23 +1717,19 @@ async def gfls_generator(
             buffer = b""
             if not line:
                 continue
-            if not _long or not _T:
-                yield line
-            parts = line.strip().split(None, 9)
-            if len(parts) < 10:
-                if _recursive:
-                    dirname = os.path.normpath(line[:-1])
+            entry = Gfls_Entry.parse(line=line,
+                                     is_file=is_file,
+                                     long_format=_long,
+                                     full_format_time=_T,
+                                     effperm=effperm)
+            if isinstance(entry, Gfls_Entry):
+                entry.set_dirname(dirname)
+                yield entry
                 continue
-            name = os.path.basename(parts[9]) if is_file else parts[9]
-            mode_str = parts[0]
-            mtime_str = f"{parts[5]} {parts[6]} {parts[7]} {parts[8]}"
-            nlink = int(parts[1])
-            uname = parts[2]
-            gname = parts[3]
-            size = int(parts[4])
-            yield Gfls_Entry(
-                name, nlink, uname, gname, size,
-                dirname, mtime_str, mode_str)
+            if _recursive:
+                dirname = os.path.normpath(line[:-1])
+            else:
+                yield line
 
     return_code = await p.wait()
     if not ign_err and return_code != 0:
@@ -1871,39 +1960,18 @@ async def file_size(env, path):
     return existing, is_file, size
 
 
-async def check_writable(env, path):
-    proc = await gfgetfacl(env, path)
-    elist = []
-    stderr_task = asyncio.create_task(log_stderr("gfgetfacl", proc, elist))
-    data = await proc.stdout.read()
-    stdout = data.decode()
-    await stderr_task
-    return_code = await proc.wait()
-    if return_code != 0:
+async def can_access(env, path, check_perm="w"):
+    existing, is_file, _ = await file_size(env, path)
+    if not existing:
         return False
-    acl_info = parse_gfgetfacl(stdout)
-    if acl_info is None:
-        return False
-    username = await get_username(env)
-    for acl in acl_info.acls:
-        logger.debug(f"Type: {acl.acl_type}, Name: '{acl.acl_name}'," +
-                     f"Perms: {acl.acl_perms}")
-        if acl.is_default:
-            continue
-        if acl.acl_type == "user":
-            if (acl.acl_name is None and acl_info.owner == username)\
-                    or acl.acl_name == username:
-                if "w" in acl.acl_perms:
-                    return True
-        if acl.acl_type == "group":
-            groupname = acl.acl_name if acl.acl_name else acl_info.group
-            groupusers = await get_groupuser(env, groupname)
-            if username in groupusers and "w" in acl.acl_perms:
-                return True
-        if acl.acl_type == "other":
-            if "w" in acl.acl_perms:
-                return True
-
+    async for entry in gfls_generator(env,
+                                      path,
+                                      is_file,
+                                      _all=True,
+                                      _long=True,
+                                      effperm=True):
+        if check_perm in entry.perms:
+            return True
     return False
 
 
@@ -2065,8 +2133,8 @@ async def dir_list(gfarm_path: str,
     return PlainTextResponse(content="\n".join(json_data))
 
 
-@app.get("/sym_info/{gfarm_path:path}")
-async def get_symstat(gfarm_path: str,
+@app.get("/symlink/{gfarm_path:path}")
+async def get_symlink(gfarm_path: str,
                       request: Request,
                       authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
@@ -2076,7 +2144,10 @@ async def get_symstat(gfarm_path: str,
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
     try:
-        async def get_info(env, path) -> Gfls_Entry:
+        async def get_info(env, path, depth) -> Gfls_Entry:
+            if depth > RECURSIVE_MAX_DEPTH:
+                raise RuntimeError(
+                    "Reached maximum symlink follow limit ({depth})")
             existing, is_file, _ = await file_size(env, path)
 
             if existing:
@@ -2091,20 +2162,19 @@ async def get_symstat(gfarm_path: str,
                             nextpath = os.path.join(
                                 os.path.dirname(path),
                                 entry.linkname)
-                        return await get_info(env, nextpath)
+                        return await get_info(env, nextpath, depth + 1)
                     return entry
-            raise FileExistsError("")
-        lastentry = await get_info(env, gfarm_path)
+            raise FileNotFoundError("")
+        lastentry = await get_info(env, gfarm_path, 0)
         logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}," +
                      f"stdout={lastentry.json_dump()}")
         return JSONResponse(content=lastentry.json_dump())
-
     except RuntimeError as e:
         code = 500
         message = f"gfls error: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, str(e), elist)
-    except FileExistsError:
+    except FileNotFoundError:
         code = 404
         message = f"gfls error: path={gfarm_path}"
         elist = []
@@ -2197,7 +2267,7 @@ async def file_export(gfarm_path: str,
     if not first_byte:
         if ASYNC_GFEXPORT:
             await stderr_task
-        if await check_writable(env, gfarm_path):
+        if await can_access(env, gfarm_path, "r"):
             code = 403
         else:
             code = 500
@@ -2315,7 +2385,6 @@ async def zip_export(pathlist: PathList,
                      request: Request,
                      authorization: Union[str, None] = Header(default=None)):
     opname = "gfzip"
-    logger.debug(f"pathlist {pathlist.pathes[0]}")
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
@@ -2428,7 +2497,7 @@ async def file_import(gfarm_path: str,
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, opname, gfarm_path)
 
-    if not await check_writable(env, dirname):
+    if not await can_access(env, dirname, "w"):
         code = 403
         message = f"Permission denied path={dirname}"
         stdout = ""
@@ -2639,7 +2708,7 @@ async def get_acl(gfarm_path: str,
 
 @app.post("/acl/{gfarm_path:path}")
 async def set_acl(gfarm_path: str,
-                  acl_info: ACLInfoList,
+                  acl_info: ACList,
                   request: Request,
                   authorization: Union[str, None] = Header(default=None),
                   x_csrf_token: Union[str, None] = Header(default=None)):

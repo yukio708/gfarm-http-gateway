@@ -1,9 +1,9 @@
 import { encodePath } from "./func";
 import { API_URL } from "./api_url";
 
-async function getSymInfo(symlink) {
+async function getSymlink(symlink) {
     const epath = encodePath(symlink);
-    const fullpath = `${API_URL}/sym_info${epath}`;
+    const fullpath = `${API_URL}/symlink${epath}`;
     const response = await fetch(fullpath);
     if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
@@ -12,4 +12,4 @@ async function getSymInfo(symlink) {
     return data;
 }
 
-export default getSymInfo;
+export default getSymlink;
