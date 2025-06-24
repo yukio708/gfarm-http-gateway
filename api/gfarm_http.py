@@ -16,7 +16,7 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import List, Union, Optional, AsyncGenerator, Literal
+from typing import List, Union, Optional, AsyncGenerator, Literal, Dict
 import urllib
 import re
 import tempfile
@@ -1353,30 +1353,10 @@ def from_rwx(rwx, highchar):
     return perm, highbit
 
 
-class GFLS(BaseModel):
-    acl_type: str
-    acl_name: Union[str, None]
-    acl_perms: str
-    is_default: bool
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "acl_type": "user",
-                    "acl_name": "name",
-                    "acl_perms": "rwx",
-                    "is_default": False,
-                }
-            ]
-        }
-    }
-
-
 class ACInfo(BaseModel):
     acl_type: str
     acl_name: Union[str, None]
-    acl_perms: str
+    acl_perms: Dict[str, bool]
     is_default: bool
 
     model_config = {
@@ -1385,7 +1365,11 @@ class ACInfo(BaseModel):
                 {
                     "acl_type": "user",
                     "acl_name": "name",
-                    "acl_perms": "rwx",
+                    "acl_perms": {
+                        "r": True,
+                        "w": True,
+                        "x": True,
+                    },
                     "is_default": False,
                 }
             ]
@@ -1396,15 +1380,18 @@ class ACInfo(BaseModel):
 class ACList(BaseModel):
     acl: List[ACInfo]
 
-    def make_acl_spec(self) -> str:
+    def make_acl_str(self, join_char) -> str:
         acl_parts = []
-        for acl in self.acls:
-            prefix = "default:" if acl.is_default else ""
-            type_part = f"{acl.acl_type}:"
-            name_part = f"{acl.acl_name}:" if acl.acl_name else ":"
-            acl_parts.append(f"{prefix}{type_part}{acl.acl_type}{name_part}" +
-                             f"{acl.acl_perms}")
-        return ",".join(acl_parts)
+        for acinfo in self.acl:
+            prefix = "default:" if acinfo.is_default else ""
+            type_part = f"{acinfo.acl_type}:"
+            name_part = f"{acinfo.acl_name}:" if acinfo.acl_name else ":"
+            r_part = "r" if acinfo.acl_perms["r"] else "-"
+            w_part = "w" if acinfo.acl_perms["w"] else "-"
+            x_part = "x" if acinfo.acl_perms["x"] else "-"
+            acl_parts.append(f"{prefix}{type_part}{name_part}" +
+                             f"{r_part}{w_part}{x_part}")
+        return join_char.join(acl_parts)
 
     model_config = {
         "json_schema_extra": {
@@ -1427,7 +1414,7 @@ class ACList(BaseModel):
 def parse_gfgetfacl(acl_str) -> Union[ACList, None]:
     owner = ""
     group = ""
-    acls = []
+    acl = []
     lines = acl_str.strip().split('\n')
     for line in lines:
         line = line.strip()
@@ -1453,16 +1440,18 @@ def parse_gfgetfacl(acl_str) -> Union[ACList, None]:
             if match:
                 acl_type = match.group(1)
                 acl_name = match.group(2) if match.group(2) else None
-                acl_perms = match.group(3)
-                acls.append(ACInfo(acl_type=acl_type,
-                                   acl_name=acl_name,
-                                   acl_perms=acl_perms,
-                                   is_default=is_default))
+                acl_perms = {}
+                for key in ["r", "w", "x"]:
+                    acl_perms[key] = key in match.group(3)
+                acl.append(ACInfo(acl_type=acl_type,
+                                  acl_name=acl_name,
+                                  acl_perms=acl_perms,
+                                  is_default=is_default))
 
     if not owner or not group:
         return None
 
-    return ACList(owner=owner, group=group, acls=acls)
+    return ACList(acl=acl)
 
 
 #############################################################################
@@ -1886,16 +1875,14 @@ async def gfsetfacl(env, path,
     if _r:
         args.append("-r")
     if acl_spec is not None:
-        args.append("-m")
-        args.append(acl_spec)
-    if acl_file is not None:
-        args.append("-M")
-        args.append(acl_file)
+        args.extend(["-m", acl_spec])
+    elif acl_file is not None:
+        args.extend(["-M", acl_file])
     args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfsetfacl', *args,
         env=env,
-        stdin=asyncio.subprocess.DEVNULL,
+        stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
@@ -2669,6 +2656,7 @@ async def get_acl(gfarm_path: str,
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
+    log_operation(env, request.url.path, opname, "")
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
     proc = await gfgetfacl(env, gfarm_path)
     elist = []
@@ -2681,17 +2669,17 @@ async def get_acl(gfarm_path: str,
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
         message = "failed to execute gfgetfacl"
         raise gfarm_http_error(opname, code, message, stdout, elist)
-    acl_info = parse_gfgetfacl(stdout)
-    if acl_info is None:
+    acl = parse_gfgetfacl(stdout)
+    if acl is None:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
         message = "failed to parse gfgetfacl"
         raise gfarm_http_error(opname, code, message, stdout, elist)
-    return JSONResponse(content=acl_info.model_dump())
+    return JSONResponse(content=acl.model_dump())
 
 
 @app.post("/acl/{gfarm_path:path}")
 async def set_acl(gfarm_path: str,
-                  acl_info: ACList,
+                  acl: ACList,
                   request: Request,
                   authorization: Union[str, None] = Header(default=None),
                   x_csrf_token: Union[str, None] = Header(default=None)):
@@ -2702,13 +2690,12 @@ async def set_acl(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
-    acl_info_str = acl_info.make_acl_spec()
-    proc = await gfsetfacl(env, gfarm_path, acl_spec=acl_info_str)
+    log_operation(env, request.url.path, opname, acl)
+    acl_str = acl.make_acl_str("\n") + "\n"
+    proc = await gfsetfacl(env, gfarm_path, acl_file="-")
+    stdout, _ = await proc.communicate(input=acl_str.encode())
     elist = []
-    stderr_task = asyncio.create_task(log_stderr("gfsetfacl", proc, elist))
-    data = await proc.stdout.read()
-    stdout = data.decode()
-    await stderr_task
+    stdout = stdout.decode()
     return_code = await proc.wait()
     if return_code != 0:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR

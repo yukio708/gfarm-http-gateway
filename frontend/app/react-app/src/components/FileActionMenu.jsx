@@ -100,7 +100,7 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => permission(true)}>
+                    <button className="dropdown-item" onClick={() => permission(file)}>
                         <BsKey className="me-2" /> Change Permissions
                     </button>
                 </li>

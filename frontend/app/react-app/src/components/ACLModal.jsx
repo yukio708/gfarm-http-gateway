@@ -1,18 +1,56 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
+import { set_acl, get_acl } from "../utils/acl";
 import PropTypes from "prop-types";
 
-function ACLModal({ showModal, onClose, onSubmit }) {
-    const [entries, setEntries] = useState([
-        { type: "user", name: "", perms: { r: true, w: false, x: false } },
-    ]);
+function ACLModal({ showModal, setShowModal, file }) {
+    const [entries, setEntries] = useState([]);
+
+    useEffect(() => {
+        console.debug("file", file);
+        if (file === null) {
+            return;
+        }
+        const get_list = async (path) => {
+            const res = await get_acl(path);
+            if (res.error) {
+                console.error(res);
+            } else {
+                const acl = res.data.acl.map((acinfo) => {
+                    if (acinfo.acl_name === null) {
+                        acinfo["base"] = true;
+                    }
+                    return acinfo;
+                });
+                console.debug("acl", acl);
+                setEntries(
+                    acl.sort((a, b) => {
+                        if (a.base !== b.base) {
+                            return a.base ? -1 : 1;
+                        }
+                    })
+                );
+            }
+        };
+        get_list(file.path);
+    }, [file]);
+
+    const updateEntry = () => {
+        const set_list = async (path) => {
+            const res = await set_acl(path, entries);
+            if (res !== "") {
+                console.error(res);
+            }
+        };
+        set_list(file.path);
+    };
 
     const handleChange = (index, field, value) => {
         const updated = [...entries];
-        if (field === "type" || field === "name") {
+        if (field === "acl_type" || field === "acl_name") {
             updated[index][field] = value;
         } else {
-            updated[index].perms[field] = value;
+            updated[index].acl_perms[field] = value;
         }
         setEntries(updated);
     };
@@ -20,27 +58,23 @@ function ACLModal({ showModal, onClose, onSubmit }) {
     const addEntry = () => {
         setEntries([
             ...entries,
-            { type: "user", name: "", perms: { r: false, w: false, x: false } },
+            {
+                acl_type: "user",
+                acl_name: "",
+                acl_perms: { r: false, w: false, x: false },
+                is_default: false,
+            },
         ]);
-    };
-
-    const handleSubmit = () => {
-        const aclData = entries.map((e) => ({
-            acl_type: e.type,
-            acl_name: e.name,
-            acl_perms: (e.perms.r ? "r" : "") + (e.perms.w ? "w" : "") + (e.perms.x ? "x" : ""),
-            is_default: false,
-        }));
-        onSubmit(aclData);
-        onClose();
     };
 
     return (
         <div>
             {showModal && (
                 <ModalWindow
-                    onCancel={onClose}
-                    onConfirm={handleSubmit}
+                    onCancel={() => {
+                        setShowModal(false);
+                    }}
+                    onConfirm={updateEntry}
                     comfirmText="Set ACL"
                     size="large"
                     title={<h5 className="modal-title">Set ACL</h5>}
@@ -51,9 +85,9 @@ function ACLModal({ showModal, onClose, onSubmit }) {
                                     <div className="col-3">
                                         <select
                                             className="form-select"
-                                            value={entry.type}
+                                            value={entry.acl_type}
                                             onChange={(e) =>
-                                                handleChange(i, "type", e.target.value)
+                                                handleChange(i, "acl_type", e.target.value)
                                             }
                                         >
                                             <option value="user">User</option>
@@ -62,16 +96,31 @@ function ACLModal({ showModal, onClose, onSubmit }) {
                                         </select>
                                     </div>
                                     <div className="col-4">
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="Name"
-                                            value={entry.name}
-                                            onChange={(e) =>
-                                                handleChange(i, "name", e.target.value)
-                                            }
-                                            disabled={entry.type === "other"}
-                                        />
+                                        {entry.base ? (
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Name"
+                                                value={
+                                                    entry.acl_type === "user"
+                                                        ? "owner"
+                                                        : entry.acl_type === "group"
+                                                          ? "owner's group"
+                                                          : ""
+                                                }
+                                                disabled={true}
+                                            />
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="Name"
+                                                value={entry.acl_name}
+                                                onChange={(e) =>
+                                                    handleChange(i, "acl_name", e.target.value)
+                                                }
+                                            />
+                                        )}
                                     </div>
                                     <div className="col">
                                         {["r", "w", "x"].map((perm) => (
@@ -82,7 +131,7 @@ function ACLModal({ showModal, onClose, onSubmit }) {
                                                 <input
                                                     className="form-check-input"
                                                     type="checkbox"
-                                                    checked={entry.perms[perm]}
+                                                    checked={entry.acl_perms[perm]}
                                                     onChange={(e) =>
                                                         handleChange(i, perm, e.target.checked)
                                                     }
@@ -129,8 +178,8 @@ function ACLModal({ showModal, onClose, onSubmit }) {
 
 ACLModal.propTypes = {
     showModal: PropTypes.bool.isRequired,
-    onClose: PropTypes.func.isRequired,
-    onSubmit: PropTypes.func.isRequired,
+    setShowModal: PropTypes.func.isRequired,
+    file: PropTypes.object.isRequired,
 };
 
 export default ACLModal;

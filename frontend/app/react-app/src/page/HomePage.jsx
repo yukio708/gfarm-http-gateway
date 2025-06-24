@@ -19,7 +19,6 @@ import displayFile from "../utils/displayFile";
 import getSymlink from "../utils/getSymlink";
 import moveFile from "../utils/moveFile";
 import getAttribute from "../utils/getAttribute";
-import setPermission from "../utils/setPermission";
 import ErrorPage from "./ErrorPage";
 
 import PropTypes from "prop-types";
@@ -34,6 +33,7 @@ function HomePage({ user }) {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [filesToDelete, setFilesToDelete] = useState([]);
     const [filesToMove, setFilesToMove] = useState([]);
+    const [fileToChmod, setFileToChmod] = useState(null);
     const [detailContent, setDetailContent] = useState(null);
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
@@ -179,6 +179,11 @@ function HomePage({ user }) {
         setRefreshKey((prev) => !prev);
     };
 
+    const handleChmod = (file) => {
+        setFileToChmod(file);
+        setShowAclModal(true);
+    };
+
     if (listGetError) {
         return <ErrorPage error={listGetError} />;
     }
@@ -237,7 +242,7 @@ function HomePage({ user }) {
                         display={handleDisplayFile}
                         remove={setFilesToDelete}
                         move={addFilesToMove}
-                        permission={setShowAclModal}
+                        permission={handleChmod}
                     />
                 </div>
             </div>
@@ -296,14 +301,7 @@ function HomePage({ user }) {
                 filesToMove={filesToMove}
                 setFilesToMove={setFilesToMove}
             />
-            <ACLModal
-                showModal={showAclModal}
-                onClose={() => setShowAclModal(false)}
-                onSubmit={(aclData) => {
-                    console.log("Submit ACL:", aclData);
-                    // TODO: send POST to /acl/{path}
-                }}
-            />
+            <ACLModal showModal={showAclModal} setShowModal={setShowAclModal} file={fileToChmod} />
         </div>
     );
 }
