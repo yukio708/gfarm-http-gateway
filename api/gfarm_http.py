@@ -16,7 +16,7 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import List, Union, Optional, AsyncGenerator
+from typing import List, Union, Optional, AsyncGenerator, Literal
 import urllib
 import re
 import tempfile
@@ -1695,14 +1695,15 @@ async def gfls_generator(
         env,
         path,
         is_file,
-        _all: bool = True,
-        _recursive: bool = True,
-        _long: bool = True,
-        _T: bool = True,
+        show_hidden: bool = True,
+        recursive: bool = True,
+        long_format: bool = True,
+        time_format: Literal['full', 'short'] = 'full',
         effperm: bool = False,
         ign_err: bool = False) -> AsyncGenerator[Union[str, Gfls_Entry], None]:
     dirname = os.path.dirname(path) if is_file else path
-    p = await gfls(env, path, _all, _recursive, _long, _T, effperm)
+    p = await gfls(env, path,
+                   show_hidden, recursive, long_format, time_format, effperm)
     stdout = ""
     buffer = b""
     while True:
@@ -1719,14 +1720,14 @@ async def gfls_generator(
                 continue
             entry = Gfls_Entry.parse(line=line,
                                      is_file=is_file,
-                                     long_format=_long,
-                                     full_format_time=_T,
+                                     long_format=long_format,
+                                     full_format_time=time_format == 'full',
                                      effperm=effperm)
             if isinstance(entry, Gfls_Entry):
                 entry.set_dirname(dirname)
                 yield entry
                 continue
-            if _recursive:
+            if recursive:
                 dirname = os.path.normpath(line[:-1])
             else:
                 yield line
@@ -1964,12 +1965,7 @@ async def can_access(env, path, check_perm="w"):
     existing, is_file, _ = await file_size(env, path)
     if not existing:
         return False
-    async for entry in gfls_generator(env,
-                                      path,
-                                      is_file,
-                                      _all=True,
-                                      _long=True,
-                                      effperm=True):
+    async for entry in gfls_generator(env, path, is_file, effperm=True):
         if check_perm in entry.perms:
             return True
     return False
@@ -2089,11 +2085,12 @@ async def whoami(request: Request,
 @app.get("/directories/{gfarm_path:path}")
 async def dir_list(gfarm_path: str,
                    request: Request,
-                   a: bool = False,
-                   e: bool = False,
-                   R: bool = False,
-                   l: bool = True,  # noqa: E741
-                   format_type: str = 'json',
+                   show_hidden: bool = False,
+                   effperm: bool = False,
+                   recursive: bool = False,
+                   long_format: bool = True,  # noqa: E741
+                   time_format: Literal['full', 'short'] = 'full',
+                   output_format: Literal['json', 'plain'] = 'json',
                    ign_err: bool = False,
                    authorization: Union[str, None] = Header(default=None)):
     opname = "gfls"
@@ -2108,13 +2105,16 @@ async def dir_list(gfarm_path: str,
         message = f"gfls error: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, "", elist)
-    T = format_type == 'json'
 
     json_data = []
     try:
         async for entry in gfls_generator(
                 env, gfarm_path, is_file,
-                _all=a, _recursive=R, _long=l, _T=T, effperm=e,
+                show_hidden=show_hidden,
+                recursive=recursive,
+                long_format=long_format,
+                time_format=time_format,
+                effperm=effperm,
                 ign_err=ign_err):
             if isinstance(entry, Gfls_Entry):
                 json_data.append(entry.json_dump())
@@ -2127,7 +2127,7 @@ async def dir_list(gfarm_path: str,
         raise gfarm_http_error(opname, code, message, str(e), elist)
 
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={json_data}")
-    if format_type == 'json':
+    if output_format == 'json':
         return JSONResponse(content=json_data)
 
     return PlainTextResponse(content="\n".join(json_data))
@@ -2152,7 +2152,7 @@ async def get_symlink(gfarm_path: str,
 
             if existing:
                 async for entry in gfls_generator(env, path, is_file,
-                                                  _all=True):
+                                                  show_hidden=True):
                     entry.name = os.path.basename(path)
                     if entry.is_sym:
                         if ":" in entry.linkname or \
