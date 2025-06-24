@@ -2068,9 +2068,7 @@ async def gfarm_command_standard_response(env, proc, command):
 
 
 #############################################################################
-@app.get("/c/me")
 @app.get("/conf/me")
-@app.get("/config/me")
 async def whoami(request: Request,
                  authorization: Union[str, None] = Header(default=None)):
     opname = "gfwhoami"
@@ -2080,9 +2078,7 @@ async def whoami(request: Request,
     return await gfarm_command_standard_response(env, p, opname)
 
 
-@app.get("/d/{gfarm_path:path}")
 @app.get("/dir/{gfarm_path:path}")
-@app.get("/directories/{gfarm_path:path}")
 async def dir_list(gfarm_path: str,
                    request: Request,
                    show_hidden: bool = False,
@@ -2181,9 +2177,7 @@ async def get_symlink(gfarm_path: str,
         raise gfarm_http_error(opname, code, message, "", elist)
 
 
-@app.put("/d/{gfarm_path:path}")
 @app.put("/dir/{gfarm_path:path}")
-@app.put("/directories/{gfarm_path:path}")
 async def dir_create(gfarm_path: str,
                      request: Request,
                      p: bool = False,
@@ -2198,9 +2192,7 @@ async def dir_create(gfarm_path: str,
     return await gfarm_command_standard_response(env, proc, opname)
 
 
-@app.delete("/d/{gfarm_path:path}")
 @app.delete("/dir/{gfarm_path:path}")
-@app.delete("/directories/{gfarm_path:path}")
 async def dir_remove(gfarm_path: str,
                      request: Request,
                      authorization: Union[str, None] = Header(default=None),
@@ -2221,7 +2213,6 @@ BUFSIZE = 1024 * 1024
 ASYNC_GFEXPORT = str2bool(conf.GFARM_HTTP_ASYNC_GFEXPORT)
 
 
-@app.get("/f/{gfarm_path:path}")
 @app.get("/file/{gfarm_path:path}")
 async def file_export(gfarm_path: str,
                       request: Request,
@@ -2477,9 +2468,7 @@ async def zip_export(pathlist: PathList,
         headers=headers)
 
 
-@app.put("/f/{gfarm_path:path}")
 @app.put("/file/{gfarm_path:path}")
-@app.put("/files/{gfarm_path:path}")
 async def file_import(gfarm_path: str,
                       request: Request,
                       x_file_timestamp:
@@ -2563,9 +2552,7 @@ async def file_import(gfarm_path: str,
     raise gfarm_http_error(opname, code, message, stdout, elist)
 
 
-@app.delete("/f/{gfarm_path:path}")
 @app.delete("/file/{gfarm_path:path}")
-@app.delete("/files/{gfarm_path:path}")
 async def file_remove(gfarm_path: str,
                       request: Request,
                       force: bool = False,
@@ -2612,9 +2599,7 @@ async def move_rename(request: Request,
     return await gfarm_command_standard_response(env, p, opname)
 
 
-@app.get("/a/{gfarm_path:path}")
 @app.get("/attr/{gfarm_path:path}")
-@app.get("/attributes/{gfarm_path:path}")
 async def get_attr(gfarm_path: str,
                    request: Request,
                    authorization: Union[str, None] = Header(default=None)
@@ -2647,9 +2632,7 @@ async def get_attr(gfarm_path: str,
     return JSONResponse(content=st.model_dump())
 
 
-@app.post("/a/{gfarm_path:path}")
 @app.post("/attr/{gfarm_path:path}")
-@app.post("/attributes/{gfarm_path:path}")
 async def change_attr(gfarm_path: str,
                       stat: UpdateStat,
                       request: Request,
