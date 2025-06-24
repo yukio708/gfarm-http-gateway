@@ -367,11 +367,11 @@ logger.configure(handlers=loguru_handlers)
 #   logger.bind(payload=dict(request.query_params)).debug("params")  # noqa: E501
 
 
-def log_operation(env, opname, args):
+def log_operation(env, apiname, opname, args):
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     logger.opt(depth=1).info(
-        f"{ipaddr}:0 user={user}, cmd={opname}, args={str(args)}")
+        f"{ipaddr}:0 user={user}, cmd={apiname}:{opname}, args={str(args)}")
 
 
 def log_login(request, user, login_type):
@@ -2075,7 +2075,7 @@ async def whoami(request: Request,
                  authorization: Union[str, None] = Header(default=None)):
     opname = "gfwhoami"
     env = await set_env(request, authorization)
-    log_operation(env, opname, None)
+    log_operation(env, request.url.path, opname, None)
     p = await gfwhoami(env)
     return await gfarm_command_standard_response(env, p, opname)
 
@@ -2098,7 +2098,7 @@ async def dir_list(gfarm_path: str,
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
     existing, is_file, _ = await file_size(env, gfarm_path)
     if not existing:
         code = 404
@@ -2142,7 +2142,7 @@ async def get_symlink(gfarm_path: str,
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
     try:
         async def get_info(env, path, depth) -> Gfls_Entry:
             if depth > RECURSIVE_MAX_DEPTH:
@@ -2193,7 +2193,7 @@ async def dir_create(gfarm_path: str,
     opname = "gfmkdir"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
     proc = await gfmkdir(env, gfarm_path, p)
     return await gfarm_command_standard_response(env, proc, opname)
 
@@ -2209,7 +2209,7 @@ async def dir_remove(gfarm_path: str,
     opname = "gfrmdir"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
     p = await gfrmdir(env, gfarm_path)
     return await gfarm_command_standard_response(env, p, opname)
 
@@ -2232,7 +2232,7 @@ async def file_export(gfarm_path: str,
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
     existing, is_file, size = await file_size(env, gfarm_path)
     if not existing:
         code = 404
@@ -2388,7 +2388,7 @@ async def zip_export(pathlist: PathList,
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, pathlist.pathes)
+    log_operation(env, request.url.path, opname, pathlist.pathes)
     filedatas = []
     for filepath in pathlist.pathes:
         existing, is_file, _ = await file_size(env, filepath)
@@ -2495,7 +2495,7 @@ async def file_import(gfarm_path: str,
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
 
     if not await can_access(env, dirname, "w"):
         code = 403
@@ -2576,7 +2576,7 @@ async def file_remove(gfarm_path: str,
     opname = "gfrm"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
     p = await gfrm(env, gfarm_path, force, recursive)
     return await gfarm_command_standard_response(env, p, opname)
 
@@ -2607,7 +2607,7 @@ async def move_rename(request: Request,
     src = move_data.source
     dest = move_data.destination
     env = await set_env(request, authorization)
-    log_operation(env, opname, {"src": src, "dest": dest})
+    log_operation(env, request.url.path, opname, {"src": src, "dest": dest})
     p = await gfmv(env, src, dest)
     return await gfarm_command_standard_response(env, p, opname)
 
@@ -2622,7 +2622,7 @@ async def get_attr(gfarm_path: str,
     opname = "gfstat"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
-    log_operation(env, opname, gfarm_path)
+    log_operation(env, request.url.path, opname, gfarm_path)
     metadata = True
     proc = await gfstat(env, gfarm_path, metadata)
 
@@ -2662,7 +2662,7 @@ async def change_attr(gfarm_path: str,
     opname = None
     if stat.Mode:
         opname = "gfchmod"
-        log_operation(env, opname, (stat.Mode, gfarm_path))
+        log_operation(env, request.url.path, opname, (stat.Mode, gfarm_path))
         proc = await gfchmod(env, gfarm_path, stat.Mode)
         response = await gfarm_command_standard_response(env, proc, opname)
     if response:
@@ -2775,7 +2775,7 @@ async def compress_or_extract(
     tokenfilepath, env, expire = await set_tokenfilepath_to_env(request, env)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, opname, tar_data)
+    log_operation(env, request.url.path, opname, tar_data)
 
     tar_dict = tar_data.model_dump()
     cmd = tar_dict.pop("command", None)
