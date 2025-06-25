@@ -27,7 +27,7 @@ function DetailTab({ item }) {
         <div>
             {error && <div className="alert alert-danger">{error}</div>}
             {detailContent && (
-                <table className="table table-striped">
+                <table className="table table-striped mt-4">
                     <tbody>
                         <tr>
                             <td>

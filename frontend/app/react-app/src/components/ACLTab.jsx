@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SuggestInput from "./SuggestInput";
 import { set_acl, get_acl } from "../utils/acl";
 import { getUsers, getGroups } from "../utils/getNameList";
@@ -8,6 +8,8 @@ function ACLTab({ item }) {
     const [entries, setEntries] = useState([]);
     const [userList, setUserList] = useState([]);
     const [groupList, setGroupList] = useState([]);
+    const copyRef = useRef(null);
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         async function fetchSuggestions() {
@@ -78,106 +80,153 @@ function ACLTab({ item }) {
         setEntries(updated);
     };
 
+    const handleCopy = () => {
+        if (copyRef.current) {
+            navigator.clipboard.writeText(copyRef.current.value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // reset after 2s
+        }
+    };
+
     return (
         <div>
-            <div className="text-end mb-3">
-                <button className="btn btn-primary btn-sm " onClick={updateEntry}>
-                    Set ACL
-                </button>
-            </div>
-            {entries.map((entry, i) => (
-                <div key={i} className="border rounded p-2 mb-2">
-                    {!entry.base && (
-                        <div className="text-end">
-                            <button
-                                className="btn btn-sm btn-close"
-                                aria-label="Close"
-                                onClick={() => removeEntry(i)}
-                            ></button>
-                        </div>
-                    )}
-                    <div className="row mb-2">
-                        <div className="col-5">
-                            <label className="form-label fw-bold">Type</label>
-                            <select
-                                className="form-select form-select-sm"
-                                value={entry.acl_type}
-                                onChange={(e) => handleChange(i, "acl_type", e.target.value)}
-                            >
-                                <option value="user">User</option>
-                                <option value="group">Group</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div className="col-7">
-                            <label className="form-label fw-bold">Name</label>
-                            {entry.base ? (
-                                <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    value={
-                                        entry.acl_type === "user"
-                                            ? "owner"
-                                            : entry.acl_type === "group"
-                                              ? "owner's group"
-                                              : ""
-                                    }
-                                    disabled
-                                />
-                            ) : (
-                                <SuggestInput
-                                    value={entry.acl_name}
-                                    onChange={(val) => handleChange(i, "acl_name", val)}
-                                    suggestions={entry.acl_type === "user" ? userList : groupList}
-                                />
+            {item && (
+                <div className="my-2">
+                    <label className="form-label fw-bold">Shareable Link</label>
+                    <div className="input-group input-group-sm">
+                        <input
+                            ref={copyRef}
+                            type="text"
+                            className="form-control"
+                            readOnly
+                            value={
+                                item.is_dir
+                                    ? `${window.location.origin}/#${item.path}`
+                                    : `${window.location.origin}/file${item.path}`
+                            }
+                        />
+                        <button
+                            className="btn btn-outline-secondary"
+                            type="button"
+                            onClick={handleCopy}
+                        >
+                            {copied ? "Copied!" : "Copy"}
+                        </button>
+                    </div>
+                </div>
+            )}
+            <label className="form-label fw-bold mt-2">ACL</label>
+            <div className="d-flex flex-column" style={{ maxHeight: "70vh" }}>
+                <div className="flex-grow-1 overflow-auto pe-1" style={{ minHeight: 0 }}>
+                    {entries.map((entry, i) => (
+                        <div key={i} className="border rounded p-2 mb-2">
+                            {!entry.base && (
+                                <div className="text-end">
+                                    <button
+                                        className="btn btn-sm btn-close"
+                                        aria-label="Close"
+                                        onClick={() => removeEntry(i)}
+                                    ></button>
+                                </div>
+                            )}
+                            <div className="row mb-2">
+                                <div className="col-5">
+                                    <label className="form-label fw-bold">Type</label>
+                                    <select
+                                        className="form-select form-select-sm"
+                                        value={entry.acl_type}
+                                        onChange={(e) =>
+                                            handleChange(i, "acl_type", e.target.value)
+                                        }
+                                    >
+                                        <option value="user">User</option>
+                                        <option value="group">Group</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="col-7">
+                                    <label className="form-label fw-bold">Name</label>
+                                    {entry.base ? (
+                                        <input
+                                            type="text"
+                                            className="form-control form-control-sm"
+                                            value={
+                                                entry.acl_type === "user"
+                                                    ? "owner"
+                                                    : entry.acl_type === "group"
+                                                      ? "owner's group"
+                                                      : ""
+                                            }
+                                            disabled
+                                        />
+                                    ) : (
+                                        <SuggestInput
+                                            value={entry.acl_name}
+                                            onChange={(val) => handleChange(i, "acl_name", val)}
+                                            suggestions={
+                                                entry.acl_type === "user" ? userList : groupList
+                                            }
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mb-2">
+                                <label className="form-label fw-bold me-2">Permissions</label>
+                                {["r", "w", "x"].map((perm) => (
+                                    <div className="form-check form-check-inline" key={perm}>
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            checked={entry.acl_perms[perm]}
+                                            onChange={(e) =>
+                                                handleChange(i, perm, e.target.checked)
+                                            }
+                                            id={`perm-${i}-${perm}`}
+                                        />
+                                        <label
+                                            className="form-check-label"
+                                            htmlFor={`perm-${i}-${perm}`}
+                                        >
+                                            {perm.toUpperCase()}
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {!entry.base && (
+                                <div className="mb-2">
+                                    <label className="form-label fw-bold me-2">Default</label>
+                                    <div className="form-check form-check-inline">
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            checked={entry.is_default}
+                                            onChange={(e) =>
+                                                handleChange(i, "is_default", e.target.checked)
+                                            }
+                                            id={`default-${i}`}
+                                        />
+                                        <label
+                                            className="form-check-label"
+                                            htmlFor={`default-${i}`}
+                                        ></label>
+                                    </div>
+                                </div>
                             )}
                         </div>
+                    ))}
+                    <div className="d-flex justify-content-between mt-3">
+                        <button className="btn btn-secondary btn-sm" onClick={addEntry}>
+                            + Add Entry
+                        </button>
                     </div>
-
-                    <div className="mb-2">
-                        <label className="form-label fw-bold me-2">Permissions</label>
-                        {["r", "w", "x"].map((perm) => (
-                            <div className="form-check form-check-inline" key={perm}>
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={entry.acl_perms[perm]}
-                                    onChange={(e) => handleChange(i, perm, e.target.checked)}
-                                    id={`perm-${i}-${perm}`}
-                                />
-                                <label className="form-check-label" htmlFor={`perm-${i}-${perm}`}>
-                                    {perm.toUpperCase()}
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-
-                    {!entry.base && (
-                        <div className="mb-2">
-                            <label className="form-label fw-bold me-2">Default</label>
-                            <div className="form-check form-check-inline">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={entry.is_default}
-                                    onChange={(e) =>
-                                        handleChange(i, "is_default", e.target.checked)
-                                    }
-                                    id={`default-${i}`}
-                                />
-                                <label
-                                    className="form-check-label"
-                                    htmlFor={`default-${i}`}
-                                ></label>
-                            </div>
-                        </div>
-                    )}
                 </div>
-            ))}
-            <div className="d-flex justify-content-between mt-3">
-                <button className="btn btn-secondary btn-sm" onClick={addEntry}>
-                    + Add Entry
-                </button>
+                <div className="text-end mt-3">
+                    <button className="btn btn-primary btn-sm " onClick={updateEntry}>
+                        Set ACL
+                    </button>
+                </div>
             </div>
         </div>
     );
