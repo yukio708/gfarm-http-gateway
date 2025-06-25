@@ -11,8 +11,8 @@
     "react-router-dom": "^7.6.1"
   },
   "scripts": {
-    "start": "VITE_API_BASE_URL=http://localhost:8080 vite --no-open",
-    "build": "VITE_API_BASE_URL=. vite build",
+    "start": "vite --mode development --no-open",
+    "build": "vite build --mode production",
     "lint": "eslint ./src --ext .js,.jsx",
     "lint:fix": "eslint ./src --ext .js,.jsx --fix",
     "e2e:all": "playwright test",

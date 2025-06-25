@@ -16,7 +16,14 @@ import secrets
 import shlex
 import subprocess
 import sys
-from typing import List, Union, Optional, AsyncGenerator, Literal, Dict
+from typing import (
+    List,
+    Union,
+    Optional,
+    AsyncGenerator,
+    Literal,
+    Dict,
+    Callable)
 import urllib
 import re
 import tempfile
@@ -1837,11 +1844,12 @@ async def gfptar(env,
         stderr=asyncio.subprocess.PIPE)
 
 
-async def gfuser(env, cmd: str, username: str):
+async def gfuser(env, username: str = None, cmd: str = None):
     args = []
     if cmd is not None:
         args.append(f"-{cmd}")
-    args.append(username)
+    if username is not None:
+        args.append(username)
     return await asyncio.create_subprocess_exec(
         'gfuser', *args,
         env=env,
@@ -1850,11 +1858,12 @@ async def gfuser(env, cmd: str, username: str):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def gfgroup(env, groupname: str, cmd: str = None):
+async def gfgroup(env, groupname: str = None, cmd: str = None):
     args = []
     if cmd is not None:
         args.append(f"-{cmd}")
-    args.append(groupname)
+    if groupname is not None:
+        args.append(groupname)
     return await asyncio.create_subprocess_exec(
         'gfuser', *args,
         env=env,
@@ -1960,9 +1969,9 @@ async def can_access(env, path, check_perm="w"):
 
 
 async def gfuser_info(env, gfarm_username):
-    proc = await gfuser(env, "l", gfarm_username)
+    proc = await gfuser(env, gfarm_username, "l")
     elist = []
-    stderr_task = asyncio.create_task(log_stderr("gfstat", proc, elist))
+    stderr_task = asyncio.create_task(log_stderr("gfuser", proc, elist))
     res = await proc.stdout.read()
     stdout = res.decode()
     await stderr_task
@@ -2718,6 +2727,62 @@ async def set_acl(gfarm_path: str,
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
         message = "failed to execute gfsetfacl"
         raise gfarm_http_error(opname, code, message, stdout, elist)
+
+
+async def get_name_list(request: Request,
+                        authorization: Union[str, None],
+                        x_csrf_token: Union[str, None],
+                        opname: str,
+                        apiname: str,
+                        exec_func: Callable):
+    check_csrf(request, x_csrf_token)
+    env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname},")
+    log_operation(env, request.method, apiname, opname, "")
+
+    proc = await exec_func(env)
+    elist = []
+    stderr_task = asyncio.create_task(log_stderr(opname, proc, elist))
+    data = await proc.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await proc.wait()
+
+    if return_code != 0:
+        code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        message = f"failed to execute {opname}"
+        raise gfarm_http_error(opname, code, message, stdout, elist)
+
+    items = [line.strip() for line in stdout.splitlines() if line.strip()]
+    return JSONResponse(content={"list": items})
+
+
+@app.get("/users")
+async def get_usernames(request: Request,
+                        authorization: Union[str, None] = Header(default=None),
+                        x_csrf_token: Union[str, None] = Header(default=None)):
+    return await get_name_list(
+        request=request,
+        authorization=authorization,
+        x_csrf_token=x_csrf_token,
+        opname="gfuser",
+        apiname="/users",
+        exec_func=gfuser)
+
+
+@app.get("/groups")
+async def get_groups(request: Request,
+                     authorization: Union[str, None] = Header(default=None),
+                     x_csrf_token: Union[str, None] = Header(default=None)):
+    return await get_name_list(
+        request=request,
+        authorization=authorization,
+        x_csrf_token=x_csrf_token,
+        opname="gfgroup",
+        apiname="/groups",
+        exec_func=gfgroup)
 
 
 class Tar(BaseModel):

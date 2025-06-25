@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ModalWindow from "./Modal";
+import SuggestInput from "./SuggestInput";
 import ConflictResolutionModal from "./ConflictResolutionModal";
 import useFileList from "../hooks/useFileList";
 import { getParentPath, checkConflicts } from "../utils/func";
@@ -67,8 +68,7 @@ function MoveModal({
         }
     }, [loading, pendingConfirm]);
 
-    const handleChange = (e) => {
-        const input = e.target.value;
+    const handleChange = (input) => {
         setTargetPath(input);
     };
 
@@ -105,11 +105,16 @@ function MoveModal({
         setPendingConfirm(true);
     };
 
+    const handleCancel = () => {
+        setTargetPath("");
+        setShowModal(false);
+    };
+
     return (
         <div>
             {showModal && (
                 <ModalWindow
-                    onCancel={() => setShowModal(false)}
+                    onCancel={() => handleCancel()}
                     onConfirm={() => handleConfirm()}
                     comfirmText="Move"
                     size="large"
@@ -118,12 +123,12 @@ function MoveModal({
                         <div>
                             <div className="mb-3">
                                 <label className="form-label fw-semibold">Destination path:</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
+                                <SuggestInput
                                     value={targetPath}
-                                    onChange={handleChange}
-                                    placeholder="/destination/path"
+                                    onChange={(val) => handleChange(val)}
+                                    suggestions={currentItems
+                                        .filter((item) => item.is_dir)
+                                        .map((item) => item.path)}
                                 />
                             </div>
                             <div className="mb-3">
