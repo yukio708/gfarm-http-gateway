@@ -27,11 +27,11 @@ function HomePage({ user }) {
     const currentDir = decodeURIComponent(location.pathname);
     const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(false);
-    const { currentFiles, listGetError } = useFileList(currentDir, refreshKey);
-    const [selectedFiles, setSelectedFiles] = useState([]);
-    const [filesToDelete, setFilesToDelete] = useState([]);
-    const [filesToMove, setFilesToMove] = useState([]);
-    const [fileToShowDetail, setFileToShowDetail] = useState(null);
+    const { currentItems, listGetError } = useFileList(currentDir, refreshKey);
+    const [selectedItems, setSelectedItems] = useState([]);
+    const [itemsToDelete, setItemsToDelete] = useState([]);
+    const [itemsToMove, setItemsToMove] = useState([]);
+    const [itemToShowDetail, setItemToShowDetail] = useState(null);
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
     const [isUploading, setIsUploading] = useState(false);
@@ -48,7 +48,7 @@ function HomePage({ user }) {
         } else {
             navigate(newdir);
         }
-        setSelectedFiles([]);
+        setSelectedItems([]);
     };
 
     const handleDisplayFile = (path) => {
@@ -73,34 +73,34 @@ function HomePage({ user }) {
 
     const handleSelectAll = (event) => {
         if (event.target.checked) {
-            setSelectedFiles(currentFiles);
+            setSelectedItems(currentItems);
         } else {
-            setSelectedFiles([]);
+            setSelectedItems([]);
         }
     };
 
-    const handleSelectFile = (event, file) => {
-        console.debug("handleSelectFile file", file);
+    const handleSelectItem = (event, item) => {
+        console.debug("handleSelectItem item", item);
         if (event.target.checked) {
-            setSelectedFiles([...selectedFiles, file]);
+            setSelectedItems([...selectedItems, item]);
         } else {
-            setSelectedFiles(selectedFiles.filter((path) => path !== file));
+            setSelectedItems(selectedItems.filter((path) => path !== item));
         }
         if (showSidePanel) {
-            setFileToShowDetail(file);
+            setItemToShowDetail(item);
         }
     };
 
-    const addFilesToDownload = (files) => {
-        console.debug("addFilesToDownload: files:", files);
-        downloadQueueRef.current.push(files);
+    const addItemsToDownload = (items) => {
+        console.debug("addItemsToDownload: items:", items);
+        downloadQueueRef.current.push(items);
         setIsDownloading(true);
     };
 
-    const addFilesToUpload = (newFiles) => {
-        uploadQueueRef.current.push(newFiles);
+    const addFilesToUpload = (newItems) => {
+        uploadQueueRef.current.push(newItems);
         setIsUploading(true);
-        console.debug("addFilesToUpload", newFiles);
+        console.debug("addFilesToUpload", newItems);
     };
 
     const handleUpload = async () => {
@@ -148,24 +148,24 @@ function HomePage({ user }) {
         }
     }, [isDownloading]);
 
-    const addFilesToMove = (files) => {
-        setFilesToMove(files);
+    const addItemsToMove = (items) => {
+        setItemsToMove(items);
         setShowMoveModal(true);
     };
 
-    const handleMove = (files, destPath) => {
-        moveFile(files, destPath, () => {
+    const handleMove = (items) => {
+        moveFile(items, () => {
             setRefreshKey((prev) => !prev);
         });
-        setSelectedFiles(
-            selectedFiles.filter((file) => files.some((movedFile) => movedFile.name !== file.name))
+        setSelectedItems(
+            selectedItems.filter((file) => items.some((movedFile) => movedFile.name !== file.name))
         );
-        setFilesToMove("");
+        setItemsToMove("");
         setRefreshKey((prev) => !prev);
     };
 
-    const handleShowDetail = (file, tab) => {
-        setFileToShowDetail(file);
+    const handleShowDetail = (item, tab) => {
+        setItemToShowDetail(item);
         setShowSidePanel({ show: true, tab });
     };
 
@@ -200,13 +200,13 @@ function HomePage({ user }) {
                                     setShowNewDirModal(true);
                                 }}
                                 uploadDir={currentDir}
-                                currentFiles={currentFiles}
+                                currentItems={currentItems}
                             />
                             <FileActionMenu
-                                selectedFiles={selectedFiles}
-                                removeFiles={setFilesToDelete}
-                                downloadFiles={addFilesToDownload}
-                                moveFiles={addFilesToMove}
+                                selectedItems={selectedItems}
+                                removeItems={setItemsToDelete}
+                                downloadItems={addItemsToDownload}
+                                moveItems={addItemsToMove}
                             />
                         </div>
                     </div>
@@ -216,19 +216,19 @@ function HomePage({ user }) {
                 {error && <div className="alert alert-danger">{error}</div>}
                 <div className="col">
                     <FileListView
-                        currentFiles={currentFiles}
-                        selectedFiles={selectedFiles}
-                        handleSelectFile={handleSelectFile}
+                        currentItems={currentItems}
+                        selectedItems={selectedItems}
+                        handleSelectItem={handleSelectItem}
                         handleSelectAll={handleSelectAll}
                         jumpDirectory={jumpDirectory}
                         handleSym={handleSym}
-                        download={addFilesToDownload}
+                        download={addItemsToDownload}
                         showDetail={(file) => {
                             handleShowDetail(file, "detail");
                         }}
                         display={handleDisplayFile}
-                        remove={setFilesToDelete}
-                        move={addFilesToMove}
+                        remove={setItemsToDelete}
+                        move={addItemsToMove}
                         permission={(file) => {
                             handleShowDetail(file, "acl");
                         }}
@@ -239,7 +239,7 @@ function HomePage({ user }) {
             <SidePanel
                 show={showSidePanel.show}
                 showTab={showSidePanel.tab}
-                file={fileToShowDetail}
+                item={itemToShowDetail}
                 onHide={() => {
                     setShowSidePanel({ show: false, tab: "" });
                 }}
@@ -265,19 +265,19 @@ function HomePage({ user }) {
             <UploadDropZone
                 onUpload={addFilesToUpload}
                 uploadDir={currentDir}
-                currentFiles={currentFiles}
+                currentItems={currentItems}
             />
             <DeleteModal
-                deletefiles={filesToDelete}
-                setDeleteFiles={setFilesToDelete}
+                itemsToDelete={itemsToDelete}
+                setItemsToDelete={setItemsToDelete}
                 setError={setError}
                 refrech={() => {
-                    setSelectedFiles(
-                        selectedFiles.filter((file) =>
-                            filesToDelete.some((deletedfile) => deletedfile.path !== file.path)
+                    setSelectedItems(
+                        selectedItems.filter((file) =>
+                            itemsToDelete.some((deletedfile) => deletedfile.path !== file.path)
                         )
                     );
-                    setFilesToDelete([]);
+                    setItemsToDelete([]);
                     setRefreshKey((prev) => !prev);
                 }}
             />
@@ -295,8 +295,8 @@ function HomePage({ user }) {
                 setShowModal={setShowMoveModal}
                 currentDir={currentDir}
                 handleMove={handleMove}
-                filesToMove={filesToMove}
-                setFilesToMove={setFilesToMove}
+                itemsToMove={itemsToMove}
+                setItemsToMove={setItemsToMove}
             />
         </div>
     );

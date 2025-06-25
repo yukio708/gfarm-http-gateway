@@ -11,17 +11,17 @@ function MoveModal({
     setShowModal,
     handleMove,
     currentDir,
-    filesToMove,
-    setFilesToMove,
+    itemsToMove,
+    setItemsToMove,
 }) {
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
-    const { currentFiles, listGetError } = useFileList(suggestDir, suggestDir);
+    const { currentItems, listGetError } = useFileList(suggestDir, suggestDir);
     const [loading, setLoading] = useState(true);
     const [loadingText, setLoadingText] = useState("Loading suggestions...");
     const [showConflictModal, setShowConflictModal] = useState(false);
     const [pendingConfirm, setPendingConfirm] = useState(false);
-    const suggestions = currentFiles.filter((file) => file.is_dir);
+    const suggestions = currentItems.filter((file) => file.is_dir);
 
     useEffect(() => {
         if (listGetError) {
@@ -30,7 +30,7 @@ function MoveModal({
             setLoadingText("Loading suggestions...");
             setLoading(false);
         }
-    }, [currentFiles]);
+    }, [currentItems]);
 
     useEffect(() => {
         setTargetPath(currentDir);
@@ -56,14 +56,14 @@ function MoveModal({
     useEffect(() => {
         if (!loading && pendingConfirm) {
             setPendingConfirm(false);
-            const res = checkConflicts(filesToMove, currentFiles);
+            const res = checkConflicts(itemsToMove, currentItems);
             console.debug("res", res);
             if (res.hasConflict) {
-                setFilesToMove(res.incomingFiles);
+                setItemsToMove(res.incomingItems);
                 setShowConflictModal(true);
                 return;
             }
-            handleMove(filesToMove, targetPath);
+            handleMove(itemsToMove);
         }
     }, [loading, pendingConfirm]);
 
@@ -93,7 +93,7 @@ function MoveModal({
             setLoading(true);
         }
 
-        const files = filesToMove.map((file) => {
+        const items = itemsToMove.map((file) => {
             return {
                 ...file,
                 destPath: targetPath.replace(/\/$/, "") + "/" + file.name,
@@ -101,7 +101,7 @@ function MoveModal({
             };
         });
 
-        setFilesToMove(files);
+        setItemsToMove(items);
         setPendingConfirm(true);
     };
 
@@ -138,7 +138,7 @@ function MoveModal({
                                         <span className="text-secondary">{loadingText}</span>
                                     </div>
                                 ) : (
-                                    currentFiles.length > 0 && (
+                                    currentItems.length > 0 && (
                                         <ul className="list-group mt-2 shadow-sm">
                                             {suggestDir !== "/" && (
                                                 <li
@@ -150,17 +150,17 @@ function MoveModal({
                                                 </li>
                                             )}
                                             {suggestions.map(
-                                                (file, i) =>
-                                                    file.is_dir && (
+                                                (item, i) =>
+                                                    item.is_dir && (
                                                         <li
                                                             key={i}
                                                             className="list-group-item list-group-item-action"
                                                             onClick={() =>
-                                                                handleSelectSuggestion(file.path)
+                                                                handleSelectSuggestion(item.path)
                                                             }
                                                         >
                                                             <BsFolder className="me-2" />
-                                                            {file.name}
+                                                            {item.name}
                                                         </li>
                                                     )
                                             )}
@@ -174,13 +174,13 @@ function MoveModal({
             )}
             {showConflictModal && (
                 <ConflictResolutionModal
-                    incomingFiles={filesToMove}
-                    setIncomingFiles={setFilesToMove}
-                    existingNames={currentFiles.map((file) => file.name)}
+                    incomingItems={itemsToMove}
+                    setIncomingItems={setItemsToMove}
+                    existingNames={currentItems.map((item) => item.name)}
                     onCancel={() => {
                         setShowConflictModal(false);
                     }}
-                    onConfirm={(files) => handleMove(files, targetPath)}
+                    onConfirm={(items) => handleMove(items)}
                 />
             )}
         </div>
@@ -194,6 +194,6 @@ MoveModal.propTypes = {
     setShowModal: PropTypes.func,
     handleMove: PropTypes.func,
     currentDir: PropTypes.string,
-    filesToMove: PropTypes.array,
-    setFilesToMove: PropTypes.func,
+    itemsToMove: PropTypes.array,
+    setItemsToMove: PropTypes.func,
 };

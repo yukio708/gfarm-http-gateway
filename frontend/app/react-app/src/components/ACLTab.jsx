@@ -2,14 +2,14 @@ import React, { useState, useEffect } from "react";
 import { set_acl, get_acl } from "../utils/acl";
 import PropTypes from "prop-types";
 
-function ACLTab({ file }) {
+function ACLTab({ item }) {
     const [entries, setEntries] = useState([]);
 
     useEffect(() => {
-        if (!file) return;
+        if (!item) return;
 
         const fetchACL = async () => {
-            const res = await get_acl(file.path);
+            const res = await get_acl(item.path);
             if (res.error) {
                 console.error(res);
             } else {
@@ -24,10 +24,10 @@ function ACLTab({ file }) {
         };
 
         fetchACL();
-    }, [file]);
+    }, [item]);
 
     const updateEntry = async () => {
-        const res = await set_acl(file.path, entries);
+        const res = await set_acl(item.path, entries);
         if (res !== "") {
             console.error(res);
         }
@@ -145,7 +145,7 @@ function ACLTab({ file }) {
 }
 
 ACLTab.propTypes = {
-    file: PropTypes.object,
+    item: PropTypes.object,
 };
 
 export default ACLTab;

@@ -5,12 +5,12 @@ import { CollectPathsFromItems, formatFileSize, checkConflicts } from "../utils/
 import "../css/DropZone.css";
 import PropTypes from "prop-types";
 
-function UploadDropZone({ onUpload, uploadDir, currentFiles }) {
+function UploadDropZone({ onUpload, uploadDir, currentItems }) {
     const [isDragActive, setIsDragActive] = useState(false);
     const [dragging, setDragging] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [showReConfirm, setShowReConfirm] = useState(false);
-    const [selectedFiles, setSelectedFiles] = useState(null);
+    const [selectedItems, setSelectedItems] = useState(null);
     const [modalText, setModalText] = useState(null);
 
     useEffect(() => {
@@ -73,26 +73,26 @@ function UploadDropZone({ onUpload, uploadDir, currentFiles }) {
         const items = e.dataTransfer.items;
         const result = await CollectPathsFromItems(items);
         console.debug("result", result);
-        const collectedFiles = result.map((file) => {
+        const collectedItems = result.map((file) => {
             return {
                 ...file,
                 destPath: uploadDir.replace(/\/$/, "") + "/" + file.path,
                 uploadDir: uploadDir.replace(/\/$/, ""),
             };
         });
-        console.debug("Collected files:", collectedFiles);
-        if (collectedFiles.length === 0) {
+        console.debug("Collected files:", collectedItems);
+        if (collectedItems.length === 0) {
             return;
         }
 
-        setSelectedFiles(collectedFiles);
+        setSelectedItems(collectedItems);
         setModalText(
             <ul className="modal-body">
-                {collectedFiles !== null &&
-                    collectedFiles.map((file, idx) => (
+                {collectedItems !== null &&
+                    collectedItems.map((item, idx) => (
                         <li key={idx}>
-                            <strong>{file.path}</strong> —{" "}
-                            {formatFileSize(file.size) || "unknown size"}
+                            <strong>{item.path}</strong> —{" "}
+                            {formatFileSize(item.size, item.is_dir) || "unknown size"}
                         </li>
                     ))}
             </ul>
@@ -103,25 +103,25 @@ function UploadDropZone({ onUpload, uploadDir, currentFiles }) {
     const confirmUpload = () => {
         setIsDragActive(false);
         setShowConfirm(false);
-        if (selectedFiles.length > 0) {
-            const res = checkConflicts(selectedFiles, currentFiles);
+        if (selectedItems.length > 0) {
+            const res = checkConflicts(selectedItems, currentItems);
 
             console.debug("res", res);
-            console.debug("collectedFiles", res.incomingFiles);
+            console.debug("collectedFiles", res.incomingItems);
             if (res.hasConflict) {
-                setSelectedFiles(res.incomingFiles);
+                setSelectedItems(res.incomingItems);
                 setShowReConfirm(true);
                 return;
             }
-            onUpload(res.incomingFiles);
+            onUpload(res.incomingItems);
         }
     };
 
-    const re_confirmUpload = (incomingFiles) => {
+    const re_confirmUpload = (incomingItems) => {
         setShowReConfirm(false);
-        if (incomingFiles.length > 0) {
-            console.debug("incomingFiles:", incomingFiles);
-            onUpload(incomingFiles); // pass to upload function
+        if (incomingItems.length > 0) {
+            console.debug("incomingItems:", incomingItems);
+            onUpload(incomingItems); // pass to upload function
         }
     };
 
@@ -161,9 +161,9 @@ function UploadDropZone({ onUpload, uploadDir, currentFiles }) {
             {showReConfirm && (
                 <ConflictResolutionModal
                     setShowModal={setShowConfirm}
-                    incomingFiles={selectedFiles}
-                    setIncomingFiles={setSelectedFiles}
-                    existingNames={currentFiles.map((file) => file.name)}
+                    incomingItems={selectedItems}
+                    setIncomingItems={setSelectedItems}
+                    existingNames={currentItems.map((item) => item.name)}
                     onCancel={cancelUpload}
                     onConfirm={re_confirmUpload}
                 />
@@ -177,5 +177,5 @@ export default UploadDropZone;
 UploadDropZone.propTypes = {
     onUpload: PropTypes.func,
     uploadDir: PropTypes.string,
-    currentFiles: PropTypes.array,
+    currentItems: PropTypes.array,
 };

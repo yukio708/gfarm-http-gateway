@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import FileIcon from "../components/FileIcon";
 import FileTypeFilter from "../components/FileTypeFilter";
 import DateFilter from "../components/DateFilter";
-import { FileMenu } from "../components/FileActionMenu";
+import { ItemMenu } from "../components/FileActionMenu";
 import {
-    filterFiles,
+    filterItems,
     getFileTypes,
-    sortFilesByName,
-    sortFilesBySize,
-    sortFilesByUpdateDate,
+    sortItemsByName,
+    sortItemsBySize,
+    sortItemsByUpdateDate,
     formatFileSize,
 } from "../utils/func";
 import "../css/FileListView.css";
@@ -16,9 +16,9 @@ import { BsArrowUpShort, BsArrowDownShort } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function FileListView({
-    currentFiles,
-    selectedFiles,
-    handleSelectFile,
+    currentItems,
+    selectedItems,
+    handleSelectItem,
     handleSelectAll,
     jumpDirectory,
     handleSym,
@@ -33,16 +33,16 @@ function FileListView({
     const [filterTypes, setFilterTypes] = useState("");
     const [dateFilter, setDateFilter] = useState("all");
     const headerCheckboxRef = useRef(null);
-    const fileTypes = getFileTypes(currentFiles);
-    const filteredFiles = filterFiles(currentFiles, filterTypes, dateFilter);
+    const fileTypes = getFileTypes(currentItems);
+    const filteredItems = filterItems(currentItems, filterTypes, dateFilter);
 
-    const sortedFiles = [...filteredFiles].sort((a, b) => {
+    const sortedItems = [...filteredItems].sort((a, b) => {
         if (sortDirection.column === "name") {
-            return sortFilesByName(a, b, sortDirection.order);
+            return sortItemsByName(a, b, sortDirection.order);
         } else if (sortDirection.column === "size") {
-            return sortFilesBySize(a, b, sortDirection.order);
+            return sortItemsBySize(a, b, sortDirection.order);
         } else if (sortDirection.column === "updatedate") {
-            return sortFilesByUpdateDate(a, b, sortDirection.order);
+            return sortItemsByUpdateDate(a, b, sortDirection.order);
         }
         return 0;
     });
@@ -69,17 +69,17 @@ function FileListView({
 
     useEffect(() => {
         if (headerCheckboxRef.current) {
-            if (selectedFiles.length === 0) {
+            if (selectedItems.length === 0) {
                 headerCheckboxRef.current.indeterminate = false;
                 headerCheckboxRef.current.checked = false;
-            } else if (selectedFiles.length === filteredFiles.length) {
+            } else if (selectedItems.length === filteredItems.length) {
                 headerCheckboxRef.current.indeterminate = false;
                 headerCheckboxRef.current.checked = true;
             } else {
                 headerCheckboxRef.current.indeterminate = true;
             }
         }
-    }, [selectedFiles, currentFiles]);
+    }, [selectedItems, currentItems]);
 
     const toggleSortDirection = (column) => {
         setSortDirection((prevSort) => {
@@ -93,18 +93,18 @@ function FileListView({
         });
     };
 
-    const handleNameCick = (filepath, is_file, is_dir) => {
+    const handleNameCick = (path, is_file, is_dir) => {
         if (is_file) {
-            display(filepath);
+            display(path);
         } else if (is_dir) {
-            jumpDirectory(filepath);
+            jumpDirectory(path);
         } else {
-            handleSym(filepath);
+            handleSym(path);
         }
     };
 
-    const getSize = (filesize) => {
-        return <>{formatFileSize(filesize)}</>;
+    const getSize = (filesize, is_dir) => {
+        return <>{formatFileSize(filesize, is_dir)}</>;
     };
 
     return (
@@ -127,8 +127,8 @@ function FileListView({
                                 ref={headerCheckboxRef}
                                 onChange={handleSelectAll}
                                 checked={
-                                    selectedFiles.length === currentFiles.length &&
-                                    currentFiles.length > 0
+                                    selectedItems.length === currentItems.length &&
+                                    currentItems.length > 0
                                 }
                                 data-testid="header-checkbox"
                             />
@@ -154,56 +154,56 @@ function FileListView({
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedFiles.map((file) => (
-                        <tr key={file.path}>
+                    {sortedItems.map((item) => (
+                        <tr key={item.path}>
                             <td>
                                 <input
                                     type="checkbox"
                                     className="form-check-input"
-                                    id={"checkbox-" + file.name}
-                                    onChange={(event) => handleSelectFile(event, file)}
-                                    checked={selectedFiles.includes(file)}
+                                    id={"checkbox-" + item.name}
+                                    onChange={(event) => handleSelectItem(event, item)}
+                                    checked={selectedItems.includes(item)}
                                 />
                             </td>
                             <td>
                                 <FileIcon
-                                    filename={file.name}
-                                    is_dir={file.is_dir}
-                                    is_sym={file.is_sym}
+                                    filename={item.name}
+                                    is_dir={item.is_dir}
+                                    is_sym={item.is_sym}
                                     size={"1.8rem"}
                                     onClick={() =>
-                                        handleSelectFile(
+                                        handleSelectItem(
                                             {
-                                                target: { checked: !selectedFiles.includes(file) },
+                                                target: { checked: !selectedItems.includes(item) },
                                             },
-                                            file
+                                            item
                                         )
                                     }
                                     onDoubleClick={() =>
-                                        handleNameCick(file.path, file.is_file, file.is_dir)
+                                        handleNameCick(item.path, item.is_file, item.is_dir)
                                     }
                                 />
                             </td>
                             <td
                                 onClick={() =>
-                                    handleSelectFile(
+                                    handleSelectItem(
                                         {
-                                            target: { checked: !selectedFiles.includes(file) },
+                                            target: { checked: !selectedItems.includes(item) },
                                         },
-                                        file
+                                        item
                                     )
                                 }
                                 onDoubleClick={() =>
-                                    handleNameCick(file.path, file.is_file, file.is_dir)
+                                    handleNameCick(item.path, item.is_file, item.is_dir)
                                 }
                             >
-                                {file.name}
+                                {item.name}
                             </td>
-                            <td>{getSize(file.size)}</td>
-                            <td>{file.mtime_str}</td>
+                            <td>{getSize(item.size, item.is_dir)}</td>
+                            <td>{item.mtime_str}</td>
                             <td>
-                                <FileMenu
-                                    file={file}
+                                <ItemMenu
+                                    item={item}
                                     download={download}
                                     display={display}
                                     move={move}
@@ -223,9 +223,9 @@ function FileListView({
 export default FileListView;
 
 FileListView.propTypes = {
-    currentFiles: PropTypes.array,
-    selectedFiles: PropTypes.array,
-    handleSelectFile: PropTypes.func,
+    currentItems: PropTypes.array,
+    selectedItems: PropTypes.array,
+    handleSelectItem: PropTypes.func,
     handleSelectAll: PropTypes.func,
     jumpDirectory: PropTypes.func,
     handleSym: PropTypes.func,

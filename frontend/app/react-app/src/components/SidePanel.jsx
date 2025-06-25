@@ -4,7 +4,7 @@ import ACLTab from "./ACLTab";
 import DetailTab from "./DetailTab";
 import PropTypes from "prop-types";
 
-function SidePanel({ show, file, onHide, showTab = "detail" }) {
+function SidePanel({ show, item, onHide, showTab = "detail" }) {
     const [activeTab, setActiveTab] = useState("detail");
 
     useEffect(() => {
@@ -17,7 +17,7 @@ function SidePanel({ show, file, onHide, showTab = "detail" }) {
             style={{ width: "400px", zIndex: 1050 }}
         >
             <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
-                {file && <h5 className="m-0">{file.name}</h5>}
+                {item && <h5 className="m-0">{item.name}</h5>}
                 <button className="btn-close" onClick={onHide}></button>
             </div>
             <div className="px-3 pt-2">
@@ -41,8 +41,8 @@ function SidePanel({ show, file, onHide, showTab = "detail" }) {
                 </ul>
             </div>
             <div className="px-3 py-2 overflow-auto" style={{ maxHeight: "calc(100% - 100px)" }}>
-                {activeTab === "detail" && <DetailTab file={file} />}
-                {activeTab === "acl" && <ACLTab file={file} />}
+                {activeTab === "detail" && <DetailTab item={item} />}
+                {activeTab === "acl" && <ACLTab item={item} />}
             </div>
         </div>
     );
@@ -52,7 +52,7 @@ export default SidePanel;
 
 SidePanel.propTypes = {
     show: PropTypes.bool,
-    file: PropTypes.object,
+    item: PropTypes.object,
     onHide: PropTypes.func,
     showTab: PropTypes.string,
 };

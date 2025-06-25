@@ -3,16 +3,16 @@ import { formatFileSize } from "../utils/func";
 import getAttribute from "../utils/getAttribute";
 import PropTypes from "prop-types";
 
-function DetailTab({ file }) {
+function DetailTab({ item }) {
     const [detailContent, setDetailContent] = useState(null);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!file) return;
+        if (!item) return;
 
-        const showDetail = async (filepath) => {
+        const showDetail = async (itempath) => {
             try {
-                const detail = await getAttribute(filepath);
+                const detail = await getAttribute(itempath);
                 console.debug("detail:", detail);
                 setDetailContent(detail);
             } catch (err) {
@@ -20,8 +20,8 @@ function DetailTab({ file }) {
                 setError(err);
             }
         };
-        showDetail(file.path);
-    }, [file]);
+        showDetail(item.path);
+    }, [item]);
 
     return (
         <div>
@@ -45,7 +45,7 @@ function DetailTab({ file }) {
                             <td>
                                 <strong>Size:</strong>
                             </td>
-                            <td>{formatFileSize(detailContent.Size)}</td>
+                            <td>{formatFileSize(detailContent.Size, item.is_dir)}</td>
                         </tr>
                         <tr>
                             <td>
@@ -93,5 +93,5 @@ function DetailTab({ file }) {
 export default DetailTab;
 
 DetailTab.propTypes = {
-    file: PropTypes.object,
+    item: PropTypes.object,
 };

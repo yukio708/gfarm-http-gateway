@@ -7,62 +7,62 @@ import PropTypes from "prop-types";
 function ConflictResolutionModal({
     onConfirm,
     onCancel,
-    incomingFiles,
-    setIncomingFiles,
+    incomingItems,
+    setIncomingItems,
     existingNames,
 }) {
-    const showFiles = getUniqueConflicts(incomingFiles);
-    console.debug("showFiles", showFiles);
+    const showItems = getUniqueConflicts(incomingItems);
+    console.debug("showItems", showItems);
 
     const handleResolve = () => {
-        const filtered = incomingFiles.filter((file) => {
-            return !file.is_conflicted || file.keep_incoming;
+        const filtered = incomingItems.filter((item) => {
+            return !item.is_conflicted || item.keep_incoming;
         });
 
-        const resolved = filtered.map((file) => {
-            if (file.keep_current && file.keep_incoming) {
-                if (file.parent_is_conflicted) {
+        const resolved = filtered.map((item) => {
+            if (item.keep_current && item.keep_incoming) {
+                if (item.parent_is_conflicted) {
                     const newDirpath = suggestNewName(
-                        file.dirPath.replace(/\/$/, ""),
+                        item.dirPath.replace(/\/$/, ""),
                         existingNames
                     );
                     return {
-                        ...file,
-                        path: newDirpath + "/" + file.name,
-                        destPath: file.uploadDir + "/" + newDirpath + "/" + file.name,
+                        ...item,
+                        path: newDirpath + "/" + item.name,
+                        destPath: item.uploadDir + "/" + newDirpath + "/" + item.name,
                     };
-                } else if (file.is_conflicted) {
-                    const newName = suggestNewName(file.name, existingNames);
+                } else if (item.is_conflicted) {
+                    const newName = suggestNewName(item.name, existingNames);
                     return {
-                        ...file,
-                        destPath: getParentPath(file.destPath) + newName,
+                        ...item,
+                        destPath: getParentPath(item.destPath) + newName,
                     };
                 }
             }
-            return file;
+            return item;
         });
 
         console.debug("handleResolve resolved", resolved);
         onConfirm(resolved);
     };
 
-    const handleCheck = (event, file, key) => {
-        setIncomingFiles((prev) =>
-            prev.map((incomingFile) => {
-                if (incomingFile.name === file.name) {
+    const handleCheck = (event, item, key) => {
+        setIncomingItems((prev) =>
+            prev.map((incomingItem) => {
+                if (incomingItem.name === item.name) {
                     return {
-                        ...incomingFile,
+                        ...incomingItem,
                         [key]: event.target.checked,
                     };
                 }
-                if (incomingFile.dirPath === file.dirPath) {
+                if (incomingItem.dirPath === item.dirPath) {
                     console.debug("incomingFile.dirPath === file.dirPath");
                     return {
-                        ...incomingFile,
+                        ...incomingItem,
                         [key]: event.target.checked,
                     };
                 }
-                return incomingFile;
+                return incomingItem;
             })
         );
     };
@@ -78,12 +78,12 @@ function ConflictResolutionModal({
                     Choose which files to keep. <br />
                     Selecting both will rename the incoming file. <br />
                     <ul className="list-group mt-3 shadow-sm">
-                        {showFiles.map(
-                            (file, i) =>
-                                file.is_conflicted && (
+                        {showItems.map(
+                            (item, i) =>
+                                item.is_conflicted && (
                                     <li key={i} className="list-group-item list-group-item-action">
                                         <div className="d-flex justify-content-between align-items-center">
-                                            <strong>{file.name}</strong>
+                                            <strong>{item.name}</strong>
                                             <span className="badge bg-warning text-dark">
                                                 Conflict
                                             </span>
@@ -92,34 +92,36 @@ function ConflictResolutionModal({
                                             <input
                                                 type="checkbox"
                                                 className="form-check-input me-2"
-                                                id={`current-${file.name}`}
+                                                id={`current-${item.name}`}
                                                 onChange={(e) =>
-                                                    handleCheck(e, file, "keep_current")
+                                                    handleCheck(e, item, "keep_current")
                                                 }
                                             />
                                             <label
                                                 className="form-check-label"
-                                                htmlFor={`current-${file.name}`}
+                                                htmlFor={`current-${item.name}`}
                                             >
-                                                Keep current - {formatFileSize(file.size)},{" "}
-                                                {file.mtime_str}
+                                                Keep current -{" "}
+                                                {formatFileSize(item.size, item.is_dir)},{" "}
+                                                {item.mtime_str}
                                             </label>
                                         </div>
                                         <div className="form-check mt-2">
                                             <input
                                                 type="checkbox"
                                                 className="form-check-input me-2"
-                                                id={`incoming-${file.name}`}
+                                                id={`incoming-${item.name}`}
                                                 onChange={(e) =>
-                                                    handleCheck(e, file, "keep_incoming")
+                                                    handleCheck(e, item, "keep_incoming")
                                                 }
                                             />
                                             <label
                                                 className="form-check-label"
-                                                htmlFor={`incoming-${file.name}`}
+                                                htmlFor={`incoming-${item.name}`}
                                             >
-                                                Keep incoming - {formatFileSize(file.current_size)},{" "}
-                                                {file.current_mtime_str}
+                                                Keep incoming -{" "}
+                                                {formatFileSize(item.current_size, item.is_dir)},{" "}
+                                                {item.current_mtime_str}
                                             </label>
                                         </div>
                                     </li>
@@ -137,7 +139,7 @@ export default ConflictResolutionModal;
 ConflictResolutionModal.propTypes = {
     onConfirm: PropTypes.func,
     onCancel: PropTypes.func,
-    incomingFiles: PropTypes.array,
-    setIncomingFiles: PropTypes.func,
+    incomingItems: PropTypes.array,
+    setIncomingItems: PropTypes.func,
     existingNames: PropTypes.array,
 };

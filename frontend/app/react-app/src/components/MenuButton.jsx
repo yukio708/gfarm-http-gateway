@@ -1,12 +1,12 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-function MenuButton({ text, onClick, selectedFiles }) {
+function MenuButton({ text, onClick, selectedItems }) {
     return (
         <div>
             <button
                 className="btn btn-outline-secondary btn-sm"
-                onClick={() => onClick(selectedFiles)}
+                onClick={() => onClick(selectedItems)}
             >
                 {text}
             </button>
@@ -19,5 +19,5 @@ export default MenuButton;
 MenuButton.propTypes = {
     text: PropTypes.string,
     onClick: PropTypes.func,
-    selectedFiles: PropTypes.array,
+    selectedItems: PropTypes.array,
 };

@@ -12,8 +12,8 @@ import {
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function FileActionMenu({ downloadFiles, removeFiles, moveFiles, selectedFiles }) {
-    if (selectedFiles.length === 0) return null;
+function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems }) {
+    if (selectedItems.length === 0) return null;
 
     return (
         <div className="dropdown">
@@ -28,17 +28,17 @@ function FileActionMenu({ downloadFiles, removeFiles, moveFiles, selectedFiles }
             </button>
             <ul className="dropdown-menu" aria-labelledby="fileActionsDropdown">
                 <li>
-                    <button className="dropdown-item" onClick={() => downloadFiles(selectedFiles)}>
+                    <button className="dropdown-item" onClick={() => downloadItems(selectedItems)}>
                         <BsDownload className="me-2" /> Download
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => removeFiles(selectedFiles)}>
+                    <button className="dropdown-item" onClick={() => removeItems(selectedItems)}>
                         <BsTrash className="me-2" /> Delete
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => moveFiles(selectedFiles)}>
+                    <button className="dropdown-item" onClick={() => moveItems(selectedItems)}>
                         <BsArrowRightSquare className="me-2" /> Move
                     </button>
                 </li>
@@ -47,7 +47,7 @@ function FileActionMenu({ downloadFiles, removeFiles, moveFiles, selectedFiles }
     );
 }
 
-function FileMenu({ file, download, display, move, remove, showDetail, permission }) {
+function ItemMenu({ item, download, display, move, remove, showDetail, permission }) {
     return (
         <div className="dropdown">
             <button
@@ -60,24 +60,24 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
             </button>
             <ul className="dropdown-menu">
                 <li>
-                    <button className="dropdown-item" onClick={() => showDetail(file)}>
+                    <button className="dropdown-item" onClick={() => showDetail(item)}>
                         <BsInfoCircle className="me-2" /> Detail
                     </button>
                 </li>
-                {file.is_file && (
+                {item.is_file && (
                     <li>
-                        <button className="dropdown-item" onClick={() => display(file.path)}>
+                        <button className="dropdown-item" onClick={() => display(item.path)}>
                             <BsEye className="me-2" /> View
                         </button>
                     </li>
                 )}
                 <li>
-                    <button className="dropdown-item" onClick={() => move(file.path)}>
+                    <button className="dropdown-item" onClick={() => move(item.path)}>
                         <BsPencil className="me-2" /> Rename
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => move([file])}>
+                    <button className="dropdown-item" onClick={() => move([item])}>
                         <BsArrowRightSquare className="me-2" /> Move
                     </button>
                 </li>
@@ -87,17 +87,17 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => download([file])}>
+                    <button className="dropdown-item" onClick={() => download([item])}>
                         <BsDownload className="me-2" /> Download
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => remove([file])}>
+                    <button className="dropdown-item" onClick={() => remove([item])}>
                         <BsTrash className="me-2" /> Delete
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => permission(file)}>
+                    <button className="dropdown-item" onClick={() => permission(item)}>
                         <BsKey className="me-2" /> Change Permissions
                     </button>
                 </li>
@@ -106,17 +106,17 @@ function FileMenu({ file, download, display, move, remove, showDetail, permissio
     );
 }
 
-export { FileActionMenu, FileMenu };
+export { FileActionMenu, ItemMenu };
 
 FileActionMenu.propTypes = {
-    downloadFiles: PropTypes.func,
-    removeFiles: PropTypes.func,
-    moveFiles: PropTypes.func,
-    selectedFiles: PropTypes.array,
+    downloadItems: PropTypes.func,
+    removeItems: PropTypes.func,
+    moveItems: PropTypes.func,
+    selectedItems: PropTypes.array,
 };
 
-FileMenu.propTypes = {
-    file: PropTypes.object,
+ItemMenu.propTypes = {
+    item: PropTypes.object,
     download: PropTypes.func,
     display: PropTypes.func,
     move: PropTypes.func,

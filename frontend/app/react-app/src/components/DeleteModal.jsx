@@ -3,17 +3,17 @@ import ModalWindow from "./Modal";
 import removeFiles from "../utils/removeFile";
 import PropTypes from "prop-types";
 
-function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
+function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refrech }) {
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
-        if (deletefiles.length > 0) {
+        if (itemsToDelete.length > 0) {
             setShowModal(true);
         }
-    }, [deletefiles]);
+    }, [itemsToDelete]);
 
     const deleteFile = async () => {
-        const error = await removeFiles(deletefiles, refrech);
+        const error = await removeFiles(itemsToDelete, refrech);
         setError(error);
     };
 
@@ -21,7 +21,7 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
         showModal && (
             <ModalWindow
                 onCancel={() => {
-                    setDeleteFiles([]);
+                    setItemsToDelete([]);
                     setShowModal(false);
                 }}
                 onConfirm={deleteFile}
@@ -36,7 +36,7 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
                 text={
                     <div>
                         <ul>
-                            {deletefiles.map((file, idx) => (
+                            {itemsToDelete.map((file, idx) => (
                                 <li key={idx}>
                                     &quot;{file.name}&quot; {file.is_dir && "and its contents"}
                                 </li>
@@ -52,8 +52,8 @@ function DeleteModal({ deletefiles, setDeleteFiles, setError, refrech }) {
 export default DeleteModal;
 
 DeleteModal.propTypes = {
-    deletefiles: PropTypes.array,
-    setDeleteFiles: PropTypes.func,
+    itemsToDelete: PropTypes.array,
+    setItemsToDelete: PropTypes.func,
     setError: PropTypes.func,
     refrech: PropTypes.func,
 };

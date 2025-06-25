@@ -4,43 +4,43 @@ import ConflictResolutionModal from "./ConflictResolutionModal";
 import { BsFileEarmarkArrowUp, BsFolder, BsFolderPlus } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function UploadMenu({ onUpload, onCreate, uploadDir, currentFiles }) {
+function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
     const fileInputRef = useRef(null);
     const folderInputRef = useRef(null);
     const [showConfirm, setShowConfirm] = useState(false);
-    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [selectedItems, setSelectedItems] = useState([]);
 
     const handleFileChange = (e) => {
         const targetfiles = Array.from(e.target.files);
         console.debug("targetfiles:", targetfiles);
-        const collectedFiles = CollectPathsFromFiles(targetfiles).map((file) => {
+        const collectedItems = CollectPathsFromFiles(targetfiles).map((file) => {
             return {
                 ...file,
                 destPath: uploadDir.replace(/\/$/, "") + "/" + file.path,
                 uploadDir: uploadDir.replace(/\/$/, ""),
             };
         });
-        if (collectedFiles) {
-            const res = checkConflicts(collectedFiles, currentFiles);
+        if (collectedItems) {
+            const res = checkConflicts(collectedItems, currentItems);
 
             console.debug("res", res);
-            console.debug("collectedFiles", res.incomingFiles);
+            console.debug("collectedFiles", res.incomingItems);
             if (res.hasConflict) {
-                setSelectedFiles(res.incomingFiles);
+                setSelectedItems(res.incomingItems);
                 setShowConfirm(true);
                 e.target.value = null;
                 return;
             }
-            onUpload(res.incomingFiles);
+            onUpload(res.incomingItems);
         }
         e.target.value = null;
     };
 
-    const confirmUpload = (incomingFiles) => {
+    const confirmUpload = (incomingItems) => {
         setShowConfirm(false);
-        if (incomingFiles.length > 0) {
-            console.debug("incomingFiles:", incomingFiles);
-            onUpload(incomingFiles);
+        if (incomingItems.length > 0) {
+            console.debug("incomingItems:", incomingItems);
+            onUpload(incomingItems);
         }
     };
 
@@ -112,9 +112,9 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentFiles }) {
             </div>
             {showConfirm && (
                 <ConflictResolutionModal
-                    incomingFiles={selectedFiles}
-                    setIncomingFiles={setSelectedFiles}
-                    existingNames={currentFiles.map((file) => file.name)}
+                    incomingItems={selectedItems}
+                    setIncomingItems={setSelectedItems}
+                    existingNames={currentItems.map((item) => item.name)}
                     onCancel={() => {
                         setShowConfirm(false);
                     }}
@@ -131,5 +131,5 @@ UploadMenu.propTypes = {
     onUpload: PropTypes.func,
     onCreate: PropTypes.func,
     uploadDir: PropTypes.string,
-    currentFiles: PropTypes.array,
+    currentItems: PropTypes.array,
 };

@@ -6,7 +6,7 @@ import PropTypes from "prop-types";
 function NewDirModal({ showModal, setShowModal, currentDir, setError, refrech }) {
     const [dirname, setDirname] = useState("");
 
-    const deleteFile = async () => {
+    const handleCreateDir = async () => {
         if (dirname === "") {
             alert("Please input Directory Name");
             return;
@@ -25,7 +25,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, setError, refrech })
                     setShowModal(false);
                     setDirname("");
                 }}
-                onConfirm={deleteFile}
+                onConfirm={handleCreateDir}
                 comfirmText="Create"
                 title={<h5 className="modal-title">Create New Directory</h5>}
                 text={

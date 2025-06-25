@@ -123,8 +123,8 @@ export const CollectPathsFromFiles = (files) => {
     return uploadFiles;
 };
 
-export const formatFileSize = (filesize) => {
-    if (filesize === null) {
+export const formatFileSize = (filesize, is_dir) => {
+    if (filesize === null || is_dir) {
         return "";
     }
     if (filesize === 0) {
@@ -175,9 +175,9 @@ export const options = [
     { label: "This Year", value: "this_year", start: 0 },
 ];
 
-export const filterFiles = (files, filterTypes, dateFilter) => {
+export const filterItems = (items, filterTypes, dateFilter) => {
     const now = new Date();
-    return files.filter((file) => {
+    return items.filter((file) => {
         let isTypeMatch = true;
         let isDateMatch = true;
         if (filterTypes.length !== 0) {
@@ -222,7 +222,7 @@ export const filterFiles = (files, filterTypes, dateFilter) => {
     });
 };
 
-export const sortFilesByName = (a, b, sortDirection) => {
+export const sortItemsByName = (a, b, sortDirection) => {
     const nameA = a.name.toLowerCase();
     const nameB = b.name.toLowerCase();
 
@@ -237,7 +237,7 @@ export const sortFilesByName = (a, b, sortDirection) => {
     }
 };
 
-export const sortFilesBySize = (a, b, sortDirection) => {
+export const sortItemsBySize = (a, b, sortDirection) => {
     if (a.is_dir !== b.is_dir) {
         return a.is_dir ? -1 : 1;
     }
@@ -248,7 +248,7 @@ export const sortFilesBySize = (a, b, sortDirection) => {
     }
 };
 
-export const sortFilesByUpdateDate = (a, b, sortDirection) => {
+export const sortItemsByUpdateDate = (a, b, sortDirection) => {
     if (a.is_dir !== b.is_dir) {
         return a.is_dir ? -1 : 1;
     }
@@ -267,12 +267,12 @@ export const getPlatform = () => {
     return "desktop";
 };
 
-export const checkConflicts = (incomingFiles, currentFiles) => {
-    const currentMap = new Map(currentFiles.map((file) => [file.name, file]));
+export const checkConflicts = (incomingItems, currentItems) => {
+    const currentMap = new Map(currentItems.map((file) => [file.name, file]));
     console.debug("currentMap", currentMap);
     let hasConflict = false;
 
-    const updatedIncoming = incomingFiles.map((file) => {
+    const updatedIncoming = incomingItems.map((file) => {
         if (file.dirPath) {
             const currentDir = currentMap.get(file.dirPath.replace(/\/$/, ""));
             if (currentDir) {
@@ -306,12 +306,12 @@ export const checkConflicts = (incomingFiles, currentFiles) => {
         };
     });
 
-    return { hasConflict, incomingFiles: updatedIncoming };
+    return { hasConflict, incomingItems: updatedIncoming };
 };
 
-export const getUniqueConflicts = (incomingFiles) => {
+export const getUniqueConflicts = (incomingItems) => {
     const map = new Map();
-    incomingFiles.forEach((file) => {
+    incomingItems.forEach((file) => {
         if (!file) return;
         const key = file.parent_is_conflicted ? file.dirPath.replace(/\/$/, "") : file.name;
         map.set(

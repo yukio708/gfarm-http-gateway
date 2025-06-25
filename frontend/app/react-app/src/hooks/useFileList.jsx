@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import getList from "../utils/getList";
 
 function useFileList(dirPath, reload) {
-    const [currentFiles, setCurrentFiles] = useState([]);
+    const [currentItems, setCurrentFiles] = useState([]);
     const [listGetError, setListGetError] = useState(null);
 
     useEffect(() => {
@@ -21,7 +21,7 @@ function useFileList(dirPath, reload) {
         fetchFiles();
     }, [dirPath, reload]);
 
-    return { currentFiles, listGetError };
+    return { currentItems, listGetError };
 }
 
 export default useFileList;
