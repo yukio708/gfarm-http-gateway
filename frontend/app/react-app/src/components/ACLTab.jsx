@@ -89,7 +89,7 @@ function ACLTab({ item }) {
     };
 
     return (
-        <div>
+        <div data-testid="acl-tab">
             {item && (
                 <div className="my-2">
                     <label className="form-label fw-bold">Shareable Link</label>
@@ -119,7 +119,7 @@ function ACLTab({ item }) {
             <div className="d-flex flex-column" style={{ maxHeight: "70vh" }}>
                 <div className="flex-grow-1 overflow-auto pe-1" style={{ minHeight: 0 }}>
                     {entries.map((entry, i) => (
-                        <div key={i} className="border rounded p-2 mb-2">
+                        <div key={`acinfo-${i}`} className="border rounded p-2 mb-2">
                             {!entry.base && (
                                 <div className="text-end">
                                     <button
@@ -194,7 +194,7 @@ function ACLTab({ item }) {
                                 ))}
                             </div>
 
-                            {!entry.base && (
+                            {!entry.base && item.is_dir && (
                                 <div className="mb-2">
                                     <label className="form-label fw-bold me-2">Default</label>
                                     <div className="form-check form-check-inline">

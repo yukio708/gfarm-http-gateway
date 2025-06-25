@@ -1,0 +1,38 @@
+[
+    {
+        "acl_type": "user",
+        "acl_name": null,
+        "acl_perms": { "r": true, "w": true, "x": true },
+        "is_default": false
+    },
+    {
+        "acl_type": "group",
+        "acl_name": null,
+        "acl_perms": { "r": true, "w": true, "x": true },
+        "is_default": false
+    },
+    {
+        "acl_type": "other",
+        "acl_name": null,
+        "acl_perms": { "r": true, "w": false, "x": false },
+        "is_default": false
+    },
+    {
+        "acl_type": "user",
+        "acl_name": "userA",
+        "acl_perms": { "r": true, "w": false, "x": false },
+        "is_default": false
+    },
+    {
+        "acl_type": "group",
+        "acl_name": "developers",
+        "acl_perms": { "r": true, "w": true, "x": false },
+        "is_default": false
+    },
+    {
+        "acl_type": "group",
+        "acl_name": "",
+        "acl_perms": { "r": true, "w": true, "x": false },
+        "is_default": true
+    }
+]

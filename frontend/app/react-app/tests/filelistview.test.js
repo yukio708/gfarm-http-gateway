@@ -71,7 +71,9 @@ test("display file list existing path", async ({ page }) => {
 
         await expect(rowLocator.locator("td").nth(2)).toHaveText(expectedFile.name);
 
-        await expect(rowLocator.locator("td").nth(3)).toHaveText(getSize(expectedFile.size));
+        await expect(rowLocator.locator("td").nth(3)).toHaveText(
+            getSize(expectedFile.size, expectedFile.is_dir)
+        );
 
         await expect(rowLocator.locator("td").nth(4)).toHaveText(expectedFile.mtime_str);
     }

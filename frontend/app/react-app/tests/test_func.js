@@ -5,6 +5,7 @@ const http = require("http");
 export const FRONTEND_URL = "http://localhost:3000";
 export const API_URL = "http://localhost:8080";
 export const DIR_LIST = path.resolve(__dirname, "data/filelist.json");
+export const ACLIST = path.resolve(__dirname, "data/aclist.json");
 export const DUMMYS = path.resolve(__dirname, "data/dummy");
 
 export const ZIPNAME = "files.zip";
@@ -80,8 +81,8 @@ export const findNodeByPath = (nodes, targetPath) => {
     return null;
 };
 
-export const getSize = (filesize) => {
-    if (filesize === 0) {
+export const getSize = (filesize, is_dir) => {
+    if (is_dir) {
         return "";
     }
 
@@ -139,6 +140,7 @@ export const getDummyFileContent = (filename) => {
 export const handleRoute = async (route, request) => {
     const url = request.url();
     const method = request.method();
+    console.log("url", url);
 
     if (url.includes("/dir/") && method === "GET") {
         console.log("/dir/", url);
@@ -353,6 +355,36 @@ export const handleRoute = async (route, request) => {
             body: JSON.stringify({ message: `Directory '${dirPath}' created successfully.` }),
         });
         return;
+    } else if (url.includes("/users") && method === "GET") {
+        console.log("[MOCK] /users GET", url);
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ list: ["userA", "userB", "userC", "admin"] }),
+        });
+    } else if (url.includes("/groups") && method === "GET") {
+        console.log("[MOCK] /groups GET", url);
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ list: ["groupA", "groupB", "developers", "testers"] }),
+        });
+    } else if (url.includes("/acl") && method === "GET") {
+        console.log("[MOCK] /acl GET", url);
+        let mockAclData = JSON.parse(fs.readFileSync(ACLIST, "utf-8"));
+
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ acl: mockAclData }),
+        });
+    } else if (url.includes("/acl") && method === "POST") {
+        console.log("[MOCK] /acl POST", url);
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ message: "ACL updated successfully" }),
+        });
     } else {
         await route.continue();
     }

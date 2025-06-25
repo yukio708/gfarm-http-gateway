@@ -8,7 +8,7 @@ import {
     BsFiles,
     BsDownload,
     BsTrash,
-    BsKey,
+    BsShare,
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
@@ -98,7 +98,7 @@ function ItemMenu({ item, download, display, move, remove, showDetail, permissio
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => permission(item)}>
-                        <BsKey className="me-2" /> Change Permissions
+                        <BsShare className="me-2" /> Share
                     </button>
                 </li>
             </ul>

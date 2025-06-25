@@ -8,6 +8,7 @@ const {
     getSize,
     handleRoute,
     FRONTEND_URL,
+    API_URL,
     DIR_LIST,
 } = require("./test_func");
 
@@ -25,15 +26,16 @@ async function openDetailModal(page, fileName) {
 
     await detailButton.click();
 
-    await expect(page.locator(".offcanvas.offcanvas-end.show")).toBeVisible();
+    await expect(page.locator(".custom-sidepanel")).toBeVisible();
 }
 
 // Helper function to close the detail modal
 async function closeDetailModal(page) {
-    const closeButton = page.locator(".offcanvas.offcanvas-end.show .btn-close");
+    const sidepanel = page.locator(".custom-sidepanel");
+    const closeButton = sidepanel.locator(".btn-close");
     await expect(closeButton).toBeVisible();
     await closeButton.click();
-    await expect(page.locator(".offcanvas.offcanvas-end.show")).not.toBeVisible();
+    await expect(page.locator(".custom-sidepanel.hide")).toBeVisible();
 }
 
 test.beforeAll(async () => {
@@ -43,10 +45,12 @@ test.beforeAll(async () => {
 
 // === Tests ===
 
-test.beforeAll(async () => {
+test.beforeEach(async ({ context }) => {
     await waitForReact();
     fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
+    await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
+
 // --- Detail View Test ---
 const getExpectedDetailData = (filePath) => {
     const fileNode = findNodeByPath(fileStructureData, filePath);
@@ -73,7 +77,6 @@ const getExpectedDetailData = (filePath) => {
 };
 
 test("display file name in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -92,7 +95,6 @@ test("display file name in details", async ({ page }) => {
 });
 
 test("display file type in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -111,7 +113,6 @@ test("display file type in details", async ({ page }) => {
 });
 
 test("display file size in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -123,14 +124,13 @@ test("display file size in details", async ({ page }) => {
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
             page.locator(".table tbody tr", { hasText: "Size:" }).locator("td").nth(1)
-        ).toHaveText(getSize(expectedDetail.Size));
+        ).toHaveText(getSize(expectedDetail.Size, expectedDetail.Filetype === "directory"));
 
         await closeDetailModal(page);
     }
 });
 
 test("display permissions in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -149,7 +149,6 @@ test("display permissions in details", async ({ page }) => {
 });
 
 test("display access time in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -168,7 +167,6 @@ test("display access time in details", async ({ page }) => {
 });
 
 test("display modified time in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -187,7 +185,6 @@ test("display modified time in details", async ({ page }) => {
 });
 
 test("display change time in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -206,7 +203,6 @@ test("display change time in details", async ({ page }) => {
 });
 
 test("display owner uid in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -225,7 +221,6 @@ test("display owner uid in details", async ({ page }) => {
 });
 
 test("display owner gid in details", async ({ page }) => {
-    await page.route("**/*", handleRoute);
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
