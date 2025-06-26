@@ -213,7 +213,17 @@ function HomePage({ user }) {
                 </div>
             </div>
             <div className="row">
-                {error && <div className="alert alert-danger">{error}</div>}
+                {error && (
+                    <div className="alert alert-danger d-flex justify-content-between">
+                        <div>{error}</div>
+                        <button
+                            className="btn btn-close"
+                            onClick={() => {
+                                setError(null);
+                            }}
+                        ></button>
+                    </div>
+                )}
                 <div className="col">
                     <FileListView
                         currentItems={currentItems}
