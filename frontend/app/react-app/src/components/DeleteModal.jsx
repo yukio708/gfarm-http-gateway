@@ -15,6 +15,8 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refrech }) {
     const deleteFile = async () => {
         const error = await removeFiles(itemsToDelete, refrech);
         setError(error);
+        setItemsToDelete([]);
+        setShowModal(false);
     };
 
     return (

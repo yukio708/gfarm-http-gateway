@@ -4,16 +4,18 @@ import SuggestInput from "./SuggestInput";
 import ConflictResolutionModal from "./ConflictResolutionModal";
 import useFileList from "../hooks/useFileList";
 import { getParentPath, checkConflicts } from "../utils/func";
+import moveFile from "../utils/moveFile";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function MoveModal({
     showModal,
     setShowModal,
-    handleMove,
     currentDir,
     itemsToMove,
     setItemsToMove,
+    setError,
+    refrech,
 }) {
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
@@ -34,9 +36,11 @@ function MoveModal({
     }, [currentItems]);
 
     useEffect(() => {
-        setTargetPath(currentDir);
-        setSuggestDir(currentDir);
-    }, []);
+        if (showModal) {
+            setTargetPath(currentDir);
+            setSuggestDir(currentDir);
+        }
+    }, [showModal]);
 
     useEffect(() => {
         if (targetPath.endsWith("/")) {
@@ -46,13 +50,13 @@ function MoveModal({
         }
     }, [targetPath]);
 
-    useEffect(() => {
-        if (targetPath.endsWith("/")) {
-            setLoading(true);
-            setSuggestDir(targetPath);
-            setLoading(true);
-        }
-    }, [targetPath]);
+    const handleMove = async (items) => {
+        const error = await moveFile(items);
+        setError(error);
+        setTargetPath("");
+        setItemsToMove([]);
+        refrech();
+    };
 
     useEffect(() => {
         if (!loading && pendingConfirm) {
@@ -87,7 +91,12 @@ function MoveModal({
 
     const handleConfirm = () => {
         setShowModal(false);
-        // if (targetPath === currentDir) return;
+        if (targetPath === currentDir) {
+            setTargetPath("");
+            setItemsToMove([]);
+            refrech();
+            return;
+        }
         if (suggestDir !== targetPath) {
             setSuggestDir(targetPath);
             setLoading(true);
@@ -107,7 +116,11 @@ function MoveModal({
 
     const handleCancel = () => {
         setTargetPath("");
+        setItemsToMove([]);
         setShowModal(false);
+        if (showConflictModal) {
+            setShowConflictModal(false);
+        }
     };
 
     return (
@@ -183,9 +196,12 @@ function MoveModal({
                     setIncomingItems={setItemsToMove}
                     existingNames={currentItems.map((item) => item.name)}
                     onCancel={() => {
-                        setShowConflictModal(false);
+                        handleCancel();
                     }}
-                    onConfirm={(items) => handleMove(items)}
+                    onConfirm={(items) => {
+                        setShowConflictModal(false);
+                        handleMove(items);
+                    }}
                 />
             )}
         </div>
@@ -197,8 +213,9 @@ export default MoveModal;
 MoveModal.propTypes = {
     showModal: PropTypes.bool,
     setShowModal: PropTypes.func,
-    handleMove: PropTypes.func,
     currentDir: PropTypes.string,
     itemsToMove: PropTypes.array,
     setItemsToMove: PropTypes.func,
+    setError: PropTypes.func,
+    refrech: PropTypes.func,
 };

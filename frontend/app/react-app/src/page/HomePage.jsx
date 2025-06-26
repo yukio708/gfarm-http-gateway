@@ -16,7 +16,6 @@ import upload from "../utils/upload";
 import download from "../utils/download";
 import displayFile from "../utils/displayFile";
 import getSymlink from "../utils/getSymlink";
-import moveFile from "../utils/moveFile";
 import ErrorPage from "./ErrorPage";
 
 import PropTypes from "prop-types";
@@ -38,8 +37,8 @@ function HomePage({ user }) {
     const downloadQueueRef = useRef([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const [showProgressView, setShowProgressView] = useState(false);
-    const [showMoveModal, setShowMoveModal] = useState(false);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
+    const [showMoveModal, setShowMoveModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
 
     const jumpDirectory = (newdir) => {
@@ -151,17 +150,6 @@ function HomePage({ user }) {
     const addItemsToMove = (items) => {
         setItemsToMove(items);
         setShowMoveModal(true);
-    };
-
-    const handleMove = (items) => {
-        moveFile(items, () => {
-            setRefreshKey((prev) => !prev);
-        });
-        setSelectedItems(
-            selectedItems.filter((file) => items.some((movedFile) => movedFile.name !== file.name))
-        );
-        setItemsToMove("");
-        setRefreshKey((prev) => !prev);
     };
 
     const handleShowDetail = (item, tab) => {
@@ -303,10 +291,13 @@ function HomePage({ user }) {
             <MoveModal
                 showModal={showMoveModal}
                 setShowModal={setShowMoveModal}
-                currentDir={currentDir}
-                handleMove={handleMove}
                 itemsToMove={itemsToMove}
                 setItemsToMove={setItemsToMove}
+                currentDir={currentDir}
+                setError={setError}
+                refrech={() => {
+                    setRefreshKey((prev) => !prev);
+                }}
             />
         </div>
     );

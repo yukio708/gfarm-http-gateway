@@ -13,6 +13,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, setError, refrech })
         }
         const path = currentDir.replace(/\/$/, "") + "/" + dirname;
         const error = await createDir(path);
+        setShowModal(false);
         setDirname("");
         setError(error);
         refrech();

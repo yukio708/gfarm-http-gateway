@@ -23,7 +23,6 @@ function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText
         if (onConfirm) {
             onConfirm();
         }
-        onCancel();
     };
 
     return (
