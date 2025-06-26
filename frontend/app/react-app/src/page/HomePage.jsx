@@ -11,6 +11,7 @@ import UploadMenu from "../components/UploadMenu";
 import { FileActionMenu } from "../components/FileActionMenu";
 import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
+import GfptarModal from "../components/GfptarModal";
 import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
@@ -28,9 +29,9 @@ function HomePage({ user }) {
     const [refreshKey, setRefreshKey] = useState(false);
     const { currentItems, listGetError } = useFileList(currentDir, refreshKey);
     const [selectedItems, setSelectedItems] = useState([]);
+    const [lastSelectedItem, setLastSelectedItem] = useState(null);
     const [itemsToDelete, setItemsToDelete] = useState([]);
     const [itemsToMove, setItemsToMove] = useState([]);
-    const [itemToShowDetail, setItemToShowDetail] = useState(null);
     const [tasks, setTasks] = useState([]);
     const uploadQueueRef = useRef([]);
     const [isUploading, setIsUploading] = useState(false);
@@ -39,6 +40,7 @@ function HomePage({ user }) {
     const [showProgressView, setShowProgressView] = useState(false);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
+    const [showGfptarModal, setShowGfptarModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
 
     const jumpDirectory = (newdir) => {
@@ -54,8 +56,8 @@ function HomePage({ user }) {
         displayFile(path);
     };
 
-    const handleSym = async (symlink) => {
-        console.debug("handleSym", symlink);
+    const handleSymlink = async (symlink) => {
+        console.debug("handleSymlink", symlink);
         try {
             const info = await getSymlink(symlink);
             if (info.is_file) {
@@ -70,23 +72,13 @@ function HomePage({ user }) {
         }
     };
 
-    const handleSelectAll = (event) => {
-        if (event.target.checked) {
-            setSelectedItems(currentItems);
+    const handleItemClick = (path, is_file, is_dir) => {
+        if (is_file) {
+            handleDisplayFile(path);
+        } else if (is_dir) {
+            jumpDirectory(path);
         } else {
-            setSelectedItems([]);
-        }
-    };
-
-    const handleSelectItem = (event, item) => {
-        console.debug("handleSelectItem item", item);
-        if (event.target.checked) {
-            setSelectedItems([...selectedItems, item]);
-        } else {
-            setSelectedItems(selectedItems.filter((path) => path !== item));
-        }
-        if (showSidePanel) {
-            setItemToShowDetail(item);
+            handleSymlink(path);
         }
     };
 
@@ -153,7 +145,6 @@ function HomePage({ user }) {
     };
 
     const handleShowDetail = (item, tab) => {
-        setItemToShowDetail(item);
         setShowSidePanel({ show: true, tab });
     };
 
@@ -195,6 +186,9 @@ function HomePage({ user }) {
                                 removeItems={setItemsToDelete}
                                 downloadItems={addItemsToDownload}
                                 moveItems={addItemsToMove}
+                                gfptar={() => {
+                                    setShowGfptarModal(true);
+                                }}
                             />
                         </div>
                     </div>
@@ -214,12 +208,12 @@ function HomePage({ user }) {
                 )}
                 <div className="col">
                     <FileListView
+                        parentName="HomePage"
                         currentItems={currentItems}
                         selectedItems={selectedItems}
-                        handleSelectItem={handleSelectItem}
-                        handleSelectAll={handleSelectAll}
-                        jumpDirectory={jumpDirectory}
-                        handleSym={handleSym}
+                        setSelectedItems={setSelectedItems}
+                        setLastSelectedItem={setLastSelectedItem}
+                        handleItemClick={handleItemClick}
                         download={addItemsToDownload}
                         showDetail={(file) => {
                             handleShowDetail(file, "detail");
@@ -237,7 +231,7 @@ function HomePage({ user }) {
             <SidePanel
                 show={showSidePanel.show}
                 showTab={showSidePanel.tab}
-                item={itemToShowDetail}
+                item={lastSelectedItem}
                 onHide={() => {
                     setShowSidePanel({ show: false, tab: "" });
                 }}
@@ -293,6 +287,19 @@ function HomePage({ user }) {
                 setShowModal={setShowMoveModal}
                 itemsToMove={itemsToMove}
                 setItemsToMove={setItemsToMove}
+                currentDir={currentDir}
+                setError={setError}
+                refrech={() => {
+                    setRefreshKey((prev) => !prev);
+                }}
+            />
+            <GfptarModal
+                showModal={showGfptarModal}
+                setShowModal={setShowGfptarModal}
+                selectedItems={selectedItems}
+                setSelectedItems={setSelectedItems}
+                lastSelectedItem={lastSelectedItem}
+                currentDirItems={currentItems}
                 currentDir={currentDir}
                 setError={setError}
                 refrech={() => {

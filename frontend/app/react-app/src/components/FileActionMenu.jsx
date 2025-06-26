@@ -12,7 +12,7 @@ import {
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems }) {
+function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, gfptar }) {
     if (selectedItems.length === 0) return null;
 
     return (
@@ -40,6 +40,11 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems }
                 <li>
                     <button className="dropdown-item" onClick={() => moveItems(selectedItems)}>
                         <BsArrowRightSquare className="me-2" /> Move
+                    </button>
+                </li>
+                <li>
+                    <button className="dropdown-item" onClick={() => gfptar()}>
+                        <BsArrowRightSquare className="me-2" /> gfptar
                     </button>
                 </li>
             </ul>

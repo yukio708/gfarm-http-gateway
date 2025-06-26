@@ -139,9 +139,7 @@ function MoveModal({
                                 <SuggestInput
                                     value={targetPath}
                                     onChange={(val) => handleChange(val)}
-                                    suggestions={currentItems
-                                        .filter((item) => item.is_dir)
-                                        .map((item) => item.path)}
+                                    suggestions={suggestions.map((item) => item.path)}
                                 />
                             </div>
                             <div className="mb-3">

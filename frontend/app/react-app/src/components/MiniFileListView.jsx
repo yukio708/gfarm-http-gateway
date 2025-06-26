@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import FileIcon from "../components/FileIcon";
 import FileTypeFilter from "../components/FileTypeFilter";
 import DateFilter from "../components/DateFilter";
-import { ItemMenu } from "../components/FileActionMenu";
 import {
     filterItems,
     getFileTypes,
@@ -11,24 +9,10 @@ import {
     sortItemsByUpdateDate,
     formatFileSize,
 } from "../utils/func";
-import "../css/FileListView.css";
 import { BsArrowUpShort, BsArrowDownShort } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function FileListView({
-    parentName,
-    currentItems,
-    selectedItems,
-    setSelectedItems,
-    setLastSelectedItem,
-    handleItemClick,
-    download,
-    display,
-    move,
-    remove,
-    showDetail,
-    permission,
-}) {
+function MiniFileListView({ parentName, currentItems, selectedItems, setSelectedItems }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
     const [dateFilter, setDateFilter] = useState("all");
@@ -83,20 +67,18 @@ function FileListView({
 
     const handleSelectAll = (event) => {
         if (event.target.checked) {
-            setSelectedItems(sortedItems);
+            setSelectedItems(currentItems);
         } else {
             setSelectedItems([]);
         }
     };
 
-    const handleSelectItem = (event, item) => {
-        console.debug("handleSelectItem item", item);
-        if (event.target.checked) {
+    const handleClick = (item) => {
+        if (!selectedItems.includes(item)) {
             setSelectedItems([...selectedItems, item]);
         } else {
             setSelectedItems(selectedItems.filter((path) => path !== item));
         }
-        setLastSelectedItem(item);
     };
 
     const toggleSortDirection = (column) => {
@@ -142,12 +124,7 @@ function FileListView({
                                 data-testid="header-checkbox"
                             />
                         </th>
-                        {/* <th onClick={() => toggleSortDirection("name")}></th> */}
-                        <th
-                            colSpan={2}
-                            onClick={() => toggleSortDirection("name")}
-                            data-testid="header-name"
-                        >
+                        <th onClick={() => toggleSortDirection("name")} data-testid="header-name">
                             Name {sortDirection.column === "name" && getSortIcon()}
                         </th>
                         <th onClick={() => toggleSortDirection("size")} data-testid="header-size">
@@ -159,7 +136,6 @@ function FileListView({
                         >
                             Modified {sortDirection.column === "updatedate" && getSortIcon()}
                         </th>
-                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -170,57 +146,15 @@ function FileListView({
                                     type="checkbox"
                                     className="form-check-input"
                                     id={"checkbox-" + item.name}
-                                    onChange={(event) => handleSelectItem(event, item)}
+                                    onChange={() => handleClick(item)}
                                     checked={selectedItems.includes(item)}
                                 />
                             </td>
-                            <td>
-                                <FileIcon
-                                    filename={item.name}
-                                    is_dir={item.is_dir}
-                                    is_sym={item.is_sym}
-                                    size={"1.8rem"}
-                                    onClick={() =>
-                                        handleSelectItem(
-                                            {
-                                                target: { checked: !selectedItems.includes(item) },
-                                            },
-                                            item
-                                        )
-                                    }
-                                    onDoubleClick={() =>
-                                        handleItemClick(item.path, item.is_file, item.is_dir)
-                                    }
-                                />
+                            <td onClick={() => handleClick(item)}>{item.name}</td>
+                            <td onClick={() => handleClick(item)}>
+                                {getSize(item.size, item.is_dir)}
                             </td>
-                            <td
-                                onClick={() =>
-                                    handleSelectItem(
-                                        {
-                                            target: { checked: !selectedItems.includes(item) },
-                                        },
-                                        item
-                                    )
-                                }
-                                onDoubleClick={() =>
-                                    handleItemClick(item.path, item.is_file, item.is_dir)
-                                }
-                            >
-                                {item.name}
-                            </td>
-                            <td>{getSize(item.size, item.is_dir)}</td>
-                            <td>{item.mtime_str}</td>
-                            <td>
-                                <ItemMenu
-                                    item={item}
-                                    download={download}
-                                    display={display}
-                                    move={move}
-                                    remove={remove}
-                                    showDetail={showDetail}
-                                    permission={permission}
-                                />
-                            </td>
+                            <td onClick={() => handleClick(item)}>{item.mtime_str}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -229,19 +163,11 @@ function FileListView({
     );
 }
 
-export default FileListView;
+export default MiniFileListView;
 
-FileListView.propTypes = {
+MiniFileListView.propTypes = {
     parentName: PropTypes.string,
     currentItems: PropTypes.array,
     selectedItems: PropTypes.array,
     setSelectedItems: PropTypes.func,
-    setLastSelectedItem: PropTypes.func,
-    handleItemClick: PropTypes.func,
-    download: PropTypes.func,
-    display: PropTypes.func,
-    move: PropTypes.func,
-    remove: PropTypes.func,
-    showDetail: PropTypes.func,
-    permission: PropTypes.func,
 };

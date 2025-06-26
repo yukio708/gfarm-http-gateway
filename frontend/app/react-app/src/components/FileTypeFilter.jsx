@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-function FileTypeFilter({ fileTypes, filterTypes, setFilterTypes }) {
+function FileTypeFilter({ parentName, fileTypes, filterTypes, setFilterTypes }) {
     const toggleType = (type) => {
         setFilterTypes((prev) =>
             prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
@@ -45,13 +45,13 @@ function FileTypeFilter({ fileTypes, filterTypes, setFilterTypes }) {
                         <li key={type} htmlFor={`dropdown-filter-${type}`}>
                             <label
                                 className="form-check-label d-flex w-100"
-                                htmlFor={`dropdown-filter-${type}`}
+                                htmlFor={`${parentName}-dropdown-filter-${type}`}
                             >
                                 <input
                                     className="form-check-input"
                                     type="checkbox"
                                     value={type}
-                                    id={`dropdown-filter-${type}`}
+                                    id={`${parentName}-dropdown-filter-${type}`}
                                     checked={filterTypes.includes(type)}
                                     onChange={() => toggleType(type)}
                                 />
@@ -67,6 +67,7 @@ function FileTypeFilter({ fileTypes, filterTypes, setFilterTypes }) {
 export default FileTypeFilter;
 
 FileTypeFilter.propTypes = {
+    parentName: PropTypes.string,
     fileTypes: PropTypes.array,
     filterTypes: PropTypes.array,
     setFilterTypes: PropTypes.func,
