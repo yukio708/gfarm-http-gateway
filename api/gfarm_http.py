@@ -1824,15 +1824,15 @@ async def gfptar(env,
                  outdir,
                  basedir,
                  src,
-                 options={}):
+                 options=None):
     args = []
-    for key, value in options.items():
-        if value is None:
-            continue
-        args.append(f"--{key}={value}")
+    if options:
+        args.append(options)
 
     if cmd == "x":
         args.extend([f"-{cmd}", outdir, src])
+    elif cmd == "t":
+        args.extend([f"-{cmd}", basedir])
     else:
         args.extend([f"-{cmd}", outdir, "-C", basedir, src])
 
@@ -2788,13 +2788,9 @@ async def get_groups(request: Request,
 class Tar(BaseModel):
     command: str
     basedir: str
-    source: str
+    source: List[str]
     outdir: str
-    exclude: str | None
-    jobs: int | None
-    size: str | None
-    type: str | None
-    compress: str | None
+    options: List[str] | None
 
     model_config = {
         "json_schema_extra": {
@@ -2802,13 +2798,9 @@ class Tar(BaseModel):
                 {
                     "command": "c",
                     "basedir": "/",
-                    "source": "./tmp",
+                    "source": ["./tmp"],
                     "outdir": "/tmp2",
-                    "exclude": "",
-                    "jobs": 4,
-                    "size": "200Mi",
-                    "type": "gz",
-                    "compress": ""
+                    "option": ["--jobs=4"]
 
                 }
             ]
@@ -2831,12 +2823,13 @@ async def compress_or_extract(
     log_operation(env, request.method, apiname, opname, tar_data)
 
     tar_dict = tar_data.model_dump()
-    cmd = tar_dict.pop("command", None)
-    basedir = tar_dict.pop("basedir", None)
-    src = tar_dict.pop("source", None)
-    outdir = tar_dict.pop("outdir", None)
+    cmd = tar_dict.get("command", None)
+    basedir = tar_dict.get("basedir", None)
+    src = tar_dict.get("source", None)
+    outdir = tar_dict.get("outdir", None)
+    options = tar_dict.get("options", None)
 
-    p = await gfptar(env, cmd, outdir, basedir, src, tar_dict)
+    p = await gfptar(env, cmd, outdir, basedir, src, options)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
 
