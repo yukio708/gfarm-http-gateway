@@ -1,5 +1,5 @@
 import { encodePath } from "./func";
-import { API_URL } from "../utils/api_url";
+import { API_URL } from "../utils/config";
 
 function getFilenameFromHeader(header) {
     console.debug("header", header);

@@ -1,9 +1,7 @@
-import { API_URL } from "./api_url";
+import { API_URL, FETCH_INTERVAL } from "./config";
 
 const cachedUsers = { users: [], lastFetch: 0 };
 const cachedGroups = { groups: [], lastFetch: 0 };
-
-const FETCH_INTERVAL = parseInt(import.meta.VITE_API_CHACE_AGE) || 60000;
 
 export async function getUsers() {
     const now = Date.now();

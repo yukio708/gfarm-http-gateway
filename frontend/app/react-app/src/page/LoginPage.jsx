@@ -1,4 +1,4 @@
-import { API_URL } from "../utils/api_url";
+import { API_URL } from "../utils/config";
 
 function LoginPage() {
     const location = window.location.href;

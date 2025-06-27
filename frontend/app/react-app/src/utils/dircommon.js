@@ -1,5 +1,5 @@
 import { encodePath } from "./func";
-import { API_URL } from "./api_url";
+import { API_URL } from "./config";
 
 async function dirCommon(path, method, message, params = null) {
     if (path) {

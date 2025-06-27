@@ -1,5 +1,5 @@
 import { encodePath } from "./func";
-import { API_URL } from "./api_url";
+import { API_URL } from "./config";
 
 export async function set_acl(path, acl) {
     const epath = encodePath(path);

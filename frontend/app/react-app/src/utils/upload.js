@@ -1,6 +1,6 @@
 import { encodePath, getParentPath } from "./func";
 import { createDir } from "./dircommon";
-import { API_URL } from "./api_url";
+import { API_URL, PARALLEL_LIMIT } from "./config";
 
 // file: file + File
 async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
@@ -216,7 +216,7 @@ async function upload(files, setTasks) {
             });
     });
 
-    return runWithLimit(uploadFunctions, 3);
+    return runWithLimit(uploadFunctions, PARALLEL_LIMIT);
 }
 
 export default upload;

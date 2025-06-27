@@ -1,4 +1,4 @@
-import { API_URL } from "./api_url";
+import { API_URL } from "./config";
 
 async function moveFile(files) {
     if (!files) {

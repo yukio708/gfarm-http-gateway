@@ -1,4 +1,4 @@
-import { API_URL } from './api_url';
+import { API_URL } from "./config";
 
 export async function get_username() {
     try {

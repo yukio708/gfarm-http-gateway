@@ -1,7 +1,7 @@
 // components/UserMenu.js
 import PropTypes from "prop-types";
 import React from "react";
-import { API_URL } from "../utils/api_url";
+import { API_URL } from "../utils/config";
 
 function UserMenu({ user }) {
     return (
