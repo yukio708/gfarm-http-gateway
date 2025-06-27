@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import Offcanvas from "bootstrap/js/dist/offcanvas";
-import { BsArrowUpSquare, BsArrowDownSquare } from "react-icons/bs";
+import { BsArrowUpSquare, BsArrowDownSquare, BsExclamationSquare } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function ProgressView({ show, onHide, tasks, setTasks }) {
@@ -71,9 +71,11 @@ function ProgressView({ show, onHide, tasks, setTasks }) {
                                         <h6 className="mb-0">
                                             {task.type === "upload" ? (
                                                 <BsArrowUpSquare className="me-2" />
-                                            ) : (
+                                            ) : task.type === "download" ? (
                                                 <BsArrowDownSquare className="me-2" />
-                                            )}{" "}
+                                            ) : (
+                                                <BsExclamationSquare className="me-2" />
+                                            )}
                                             {task.name}
                                         </h6>
                                         <div className="d-flex justify-content-end mb-2">

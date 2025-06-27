@@ -3,7 +3,7 @@ import ModalWindow from "./Modal";
 import removeFiles from "../utils/remove";
 import PropTypes from "prop-types";
 
-function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refrech }) {
+function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refresh }) {
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
@@ -13,7 +13,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refrech }) {
     }, [itemsToDelete]);
 
     const deleteFile = async () => {
-        const error = await removeFiles(itemsToDelete, refrech);
+        const error = await removeFiles(itemsToDelete, refresh);
         setError(error);
         setItemsToDelete([]);
         setShowModal(false);
@@ -57,5 +57,5 @@ DeleteModal.propTypes = {
     itemsToDelete: PropTypes.array,
     setItemsToDelete: PropTypes.func,
     setError: PropTypes.func,
-    refrech: PropTypes.func,
+    refresh: PropTypes.func,
 };

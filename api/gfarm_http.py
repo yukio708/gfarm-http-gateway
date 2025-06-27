@@ -2826,6 +2826,15 @@ async def compress_or_extract(
 
     tar_dict = tar_data.model_dump()
     cmd = tar_dict.get("command", None)
+    if cmd == "create" or cmd == "update":
+        cmd = cmd[0]
+    elif cmd == "extract":
+        cmd = "x"
+    elif cmd == "list":
+        cmd = "t"
+    elif cmd == "append":
+        cmd = "r"
+
     basedir = tar_dict.get("basedir", None)
     src = tar_dict.get("source", None)
     outdir = tar_dict.get("outdir", None)

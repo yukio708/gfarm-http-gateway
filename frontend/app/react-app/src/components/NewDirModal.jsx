@@ -3,7 +3,7 @@ import ModalWindow from "./Modal";
 import { createDir } from "../utils/dircommon";
 import PropTypes from "prop-types";
 
-function NewDirModal({ showModal, setShowModal, currentDir, setError, refrech }) {
+function NewDirModal({ showModal, setShowModal, currentDir, setError, refresh }) {
     const [dirname, setDirname] = useState("");
 
     const handleCreateDir = async () => {
@@ -16,7 +16,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, setError, refrech })
         setShowModal(false);
         setDirname("");
         setError(error);
-        refrech();
+        refresh();
     };
 
     return (
@@ -50,5 +50,5 @@ NewDirModal.propTypes = {
     setShowModal: PropTypes.func,
     currentDir: PropTypes.string,
     setError: PropTypes.func,
-    refrech: PropTypes.func,
+    refresh: PropTypes.func,
 };

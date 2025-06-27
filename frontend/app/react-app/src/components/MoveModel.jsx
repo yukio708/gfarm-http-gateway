@@ -15,7 +15,7 @@ function MoveModal({
     itemsToMove,
     setItemsToMove,
     setError,
-    refrech,
+    refresh,
 }) {
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
@@ -55,7 +55,7 @@ function MoveModal({
         setError(error);
         setTargetPath("");
         setItemsToMove([]);
-        refrech();
+        refresh();
     };
 
     useEffect(() => {
@@ -94,7 +94,7 @@ function MoveModal({
         if (targetPath === currentDir) {
             setTargetPath("");
             setItemsToMove([]);
-            refrech();
+            refresh();
             return;
         }
         if (suggestDir !== targetPath) {
@@ -215,5 +215,5 @@ MoveModal.propTypes = {
     itemsToMove: PropTypes.array,
     setItemsToMove: PropTypes.func,
     setError: PropTypes.func,
-    refrech: PropTypes.func,
+    refresh: PropTypes.func,
 };

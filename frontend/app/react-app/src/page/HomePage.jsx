@@ -33,6 +33,7 @@ function HomePage({ user }) {
     const [itemsToDelete, setItemsToDelete] = useState([]);
     const [itemsToMove, setItemsToMove] = useState([]);
     const [tasks, setTasks] = useState([]);
+    const [taskCount, setTaskCount] = useState(0);
     const uploadQueueRef = useRef([]);
     const [isUploading, setIsUploading] = useState(false);
     const downloadQueueRef = useRef([]);
@@ -42,6 +43,13 @@ function HomePage({ user }) {
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [showGfptarModal, setShowGfptarModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
+
+    useEffect(() => {
+        if (taskCount < tasks.length) {
+            setShowProgressView(true);
+        }
+        setTaskCount(tasks.length);
+    }, [tasks]);
 
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
@@ -100,7 +108,6 @@ function HomePage({ user }) {
             const allUploads = [];
             while (uploadQueueRef.current.length) {
                 const uploadFiles = uploadQueueRef.current.shift();
-                setShowProgressView(true);
                 const promise = upload(uploadFiles, setTasks);
                 allUploads.push(promise);
             }
@@ -125,7 +132,6 @@ function HomePage({ user }) {
             setTasks((prev) => prev.filter((t) => !t.done));
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
-                setShowProgressView(true);
                 download(files, setTasks);
             }
             setIsDownloading(false);
@@ -144,7 +150,7 @@ function HomePage({ user }) {
         setShowMoveModal(true);
     };
 
-    const handleShowDetail = (item, tab) => {
+    const handleShowDetail = (tab) => {
         setShowSidePanel({ show: true, tab });
     };
 
@@ -221,14 +227,14 @@ function HomePage({ user }) {
                         setLastSelectedItem={setLastSelectedItem}
                         handleItemClick={handleItemClick}
                         download={addItemsToDownload}
-                        showDetail={(file) => {
-                            handleShowDetail(file, "detail");
+                        showDetail={() => {
+                            handleShowDetail("detail");
                         }}
                         display={handleDisplayFile}
                         remove={setItemsToDelete}
                         move={addItemsToMove}
-                        permission={(file) => {
-                            handleShowDetail(file, "acl");
+                        permission={() => {
+                            handleShowDetail("acl");
                         }}
                         showSidePanel={showSidePanel}
                     />
@@ -269,7 +275,7 @@ function HomePage({ user }) {
                 itemsToDelete={itemsToDelete}
                 setItemsToDelete={setItemsToDelete}
                 setError={setError}
-                refrech={() => {
+                refresh={() => {
                     setSelectedItems(
                         selectedItems.filter((file) =>
                             itemsToDelete.some((deletedfile) => deletedfile.path !== file.path)
@@ -284,7 +290,7 @@ function HomePage({ user }) {
                 setShowModal={setShowNewDirModal}
                 currentDir={currentDir}
                 setError={setError}
-                refrech={() => {
+                refresh={() => {
                     setRefreshKey((prev) => !prev);
                 }}
             />
@@ -295,7 +301,7 @@ function HomePage({ user }) {
                 setItemsToMove={setItemsToMove}
                 currentDir={currentDir}
                 setError={setError}
-                refrech={() => {
+                refresh={() => {
                     setRefreshKey((prev) => !prev);
                 }}
             />
@@ -309,7 +315,7 @@ function HomePage({ user }) {
                 currentDir={currentDir}
                 setError={setError}
                 setTasks={setTasks}
-                refrech={() => {
+                refresh={() => {
                     setRefreshKey((prev) => !prev);
                 }}
             />

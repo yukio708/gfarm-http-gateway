@@ -9,6 +9,7 @@ import {
     BsDownload,
     BsTrash,
     BsShare,
+    BsArchive,
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
@@ -44,7 +45,7 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => gfptar()}>
-                        <BsArrowRightSquare className="me-2" /> gfptar
+                        <BsArchive className="me-2" /> gfptar
                     </button>
                 </li>
             </ul>

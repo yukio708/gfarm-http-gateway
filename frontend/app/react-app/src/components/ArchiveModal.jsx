@@ -3,8 +3,6 @@ import ModalWindow from "./Modal";
 import SuggestInput from "./SuggestInput";
 import MiniFileListView from "./MiniFileListView";
 import useFileList from "../hooks/useFileList";
-import { BsArrowBarUp, BsFolder } from "react-icons/bs";
-import { getParentPath } from "../utils/func";
 import gfptar from "../utils/archive";
 import PropTypes from "prop-types";
 
@@ -19,20 +17,17 @@ function ArchiveModal({
     refresh,
 }) {
     const [activeTab, setActiveTab] = useState("compress");
+    const [compressMode, setCompressMode] = useState("create");
     const [suggestDir, setSuggestDir] = useState("");
     const [destDir, setDestDir] = useState("");
-    const { currentItems, listGetError } = useFileList(suggestDir, suggestDir);
-    const [loading, setLoading] = useState(true);
-    const [loadingText, setLoadingText] = useState("Loading suggestions...");
-
+    const { currentItems } = useFileList(suggestDir, suggestDir);
+    const [error, setError] = useState(null);
     const [targetDir, setTargetDir] = useState("");
     const [targetItems, setTargetItems] = useState([]);
-
     const [options, setOptions] = useState([]);
     const [listStatus, setListStatus] = useState([]);
     const [indirList, setIndirList] = useState([]);
     const [selectedFromList, setSelectedFromList] = useState([]);
-
     const suggestions = currentItems.filter((file) => file.is_dir);
 
     useEffect(() => {
@@ -40,32 +35,27 @@ function ArchiveModal({
     }, [selectedItems]);
 
     useEffect(() => {
-        if (listGetError) {
-            setLoadingText(listGetError);
-        } else {
-            setLoadingText("Loading suggestions...");
-            setLoading(false);
-        }
-    }, [currentItems]);
-
-    useEffect(() => {
         setTargetDir(currentDir);
-        setSuggestDir(currentDir);
+        setDestDir(currentDir + "/");
     }, [showModal]);
 
     useEffect(() => {
-        if (targetDir.endsWith("/")) {
-            setLoading(true);
-            setSuggestDir(targetDir);
-            setLoading(true);
+        console.log("destDir", destDir);
+        if (currentItems.some((item) => item.path === destDir)) {
+            setError("! already exists !");
+        } else {
+            setError(null);
         }
-    }, [targetDir]);
+        if (destDir.endsWith("/")) {
+            setSuggestDir(destDir);
+        }
+    }, [destDir]);
 
     useEffect(() => {
         if (listStatus.length > 0) {
-            console.debug("listStatus", listStatus[0].message);
             if (listStatus[0].message) {
-                setIndirList((prev) => [...prev, listStatus[0].message]);
+                const [file_type, path] = listStatus[0].message.trim().split(" ", 2);
+                setIndirList((prev) => [...prev, { file_type, path }]);
             }
         }
     }, [listStatus]);
@@ -74,37 +64,25 @@ function ArchiveModal({
         setDestDir(input);
     };
 
-    const handleSelectSuggestion = (path) => {
-        console.debug("handleSelectSuggestion", path);
-        if (path === "..") {
-            const parent = getParentPath(suggestDir);
-            setDestDir(parent);
-            setSuggestDir(parent);
-        } else {
-            setDestDir(path);
-            setSuggestDir(path);
-        }
-        setLoading(true);
-    };
-
     const handleGfptar = async (command) => {
         await gfptar(
             command,
-            command === "compress" ? targetDir : lastSelectedItem.path,
-            command === "compress"
+            activeTab === "compress" ? targetDir : lastSelectedItem.path,
+            activeTab === "compress"
                 ? targetItems.map((item) => item.name)
-                : selectedFromList.map((item) => item.split(" ")[1]),
+                : selectedFromList.map((item) => item.path),
             destDir,
             options,
-            command === "list" ? setListStatus : setTasks
+            command === "list" ? setListStatus : setTasks,
+            refresh
         );
-        // refresh();
         setListStatus([]);
     };
 
     const handleConfirm = () => {
         setShowModal(false);
-        handleGfptar(activeTab);
+
+        handleGfptar(activeTab === "compress" ? compressMode : activeTab);
     };
 
     const handleCancel = () => {
@@ -154,54 +132,66 @@ function ArchiveModal({
                                     onChange={(val) => handleChange(val)}
                                     suggestions={suggestions.map((item) => item.path)}
                                 />
-                                <label className="form-label text-muted">Choose destination:</label>
-                                <div className="form-text">{suggestDir}</div>
-                                {loading ? (
-                                    <div className="d-flex align-items-center gap-2">
-                                        <div
-                                            className="spinner-border spinner-border-sm text-secondary"
-                                            role="status"
-                                        />
-                                        <span className="text-secondary">{loadingText}</span>
-                                    </div>
-                                ) : (
-                                    currentItems.length > 0 && (
-                                        <div
-                                            className="mb-3 overflow-auto"
-                                            style={{
-                                                minHeight: "100px",
-                                                maxHeight: "100px",
-                                            }}
-                                        >
-                                            <ul className="list-group mt-2 shadow-sm">
-                                                {suggestDir !== "/" && (
-                                                    <li
-                                                        className="list-group-item list-group-item-action"
-                                                        onClick={() => handleSelectSuggestion("..")}
-                                                    >
-                                                        <BsArrowBarUp className="me-2" />
-                                                        ..
-                                                    </li>
-                                                )}
-                                                {suggestions.map((item, i) => (
-                                                    <li
-                                                        key={i}
-                                                        className="list-group-item list-group-item-action"
-                                                        onClick={() =>
-                                                            handleSelectSuggestion(item.path)
-                                                        }
-                                                    >
-                                                        <BsFolder className="me-2" />
-                                                        {item.name}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )
-                                )}
+                                {error && <div className="form-text alert-danger">{error}</div>}
                             </div>
                             {activeTab === "compress" && (
                                 <div>
+                                    <div className="mb-3">
+                                        <label className="form-label fw-bold me-2">
+                                            Compression Mode
+                                        </label>
+                                        <div className="form-check form-check-inline">
+                                            <input
+                                                className="form-check-input"
+                                                type="radio"
+                                                name="compressMode"
+                                                id="mode-create"
+                                                value="create"
+                                                checked={compressMode === "create"}
+                                                onChange={() => setCompressMode("create")}
+                                            />
+                                            <label
+                                                className="form-check-label"
+                                                htmlFor="mode-create"
+                                            >
+                                                Create
+                                            </label>
+                                        </div>
+                                        <div className="form-check form-check-inline">
+                                            <input
+                                                className="form-check-input"
+                                                type="radio"
+                                                name="compressMode"
+                                                id="mode-update"
+                                                value="update"
+                                                checked={compressMode === "update"}
+                                                onChange={() => setCompressMode("update")}
+                                            />
+                                            <label
+                                                className="form-check-label"
+                                                htmlFor="mode-update"
+                                            >
+                                                Update
+                                            </label>
+                                        </div>
+                                        <div className="form-check form-check-inline">
+                                            <input
+                                                className="form-check-input"
+                                                type="radio"
+                                                name="compressMode"
+                                                id="mode-append"
+                                                value="append"
+                                                checked={compressMode === "append"}
+                                                onChange={() => setCompressMode("append")}
+                                            />
+                                            <label
+                                                className="form-check-label"
+                                                htmlFor="mode-append"
+                                            >
+                                                Append
+                                            </label>
+                                        </div>
+                                    </div>
                                     <div className="mb-3 d-flex">
                                         <label className="form-label fw-bold me-4">
                                             Target Directory
@@ -261,8 +251,11 @@ function ArchiveModal({
                                             >
                                                 <ul className="list-group small">
                                                     {indirList.map((line, i) => {
-                                                        const isSelected =
-                                                            selectedFromList.includes(line);
+                                                        const isSelected = selectedFromList.some(
+                                                            (item) =>
+                                                                item.path === line.path &&
+                                                                item.file_type === line.file_type
+                                                        );
                                                         return (
                                                             <li
                                                                 key={i}
@@ -279,7 +272,10 @@ function ArchiveModal({
                                                                 }}
                                                                 style={{ cursor: "pointer" }}
                                                             >
-                                                                {line}
+                                                                <span className="me-2 text-muted">
+                                                                    {line.file_type}
+                                                                </span>
+                                                                {line.path}
                                                             </li>
                                                         );
                                                     })}

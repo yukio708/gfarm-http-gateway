@@ -8,23 +8,12 @@ class Tar(BaseModel):
     outdir: str
     options: List[str] | None
 */
-async function gfptar(command, targetDir, targetItems, destDir, options, setTasks) {
+async function gfptar(command, targetDir, targetItems, destDir, options, setTasks, refresh) {
     const dlurl = `${API_URL}/gfptar`;
     const taskId = targetItems.join(",") + Date.now();
     const displayname = taskId.length > 20 ? taskId.slice(0, 10) + "..." : taskId;
 
     console.debug("gfptar", options, command, destDir, "-C", targetDir, targetItems);
-
-    let cmd;
-    if (command === "list") {
-        cmd = "t";
-    } else if (command === "compress") {
-        cmd = "c";
-    } else if (command === "extract") {
-        cmd = "x";
-    } else {
-        return "Error: unknown command";
-    }
 
     const controller = new AbortController();
     const signal = controller.signal;
@@ -32,7 +21,7 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            command: cmd,
+            command,
             basedir: "gfarm:" + targetDir,
             source: targetItems,
             outdir: "gfarm:" + destDir,
@@ -91,16 +80,6 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
                     console.warn("Failed to parse line:", line, err);
                 }
             }
-
-            // const line = decoder.decode(value, { stream: true });
-            // console.debug("line", line);
-            // const json = JSON.parse(line);
-            // const message = json.message ? json.message : "";
-            // setTasks((prev) =>
-            //     prev.map((task) =>
-            //         task.taskId === taskId ? { ...task, value: undefined, message } : task
-            //     )
-            // );
         }
 
         setTasks((prev) =>
@@ -116,6 +95,7 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
                     : task
             )
         );
+        refresh();
     } catch (err) {
         const isAbort = err.name === "AbortError";
         const message = isAbort ? "Download cancelled" : `${err.name}: ${err.message}`;
