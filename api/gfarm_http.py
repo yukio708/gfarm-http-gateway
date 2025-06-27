@@ -1823,19 +1823,22 @@ async def gfptar(env,
                  cmd: str,
                  outdir,
                  basedir,
-                 src,
+                 src: List[str],
                  options=None):
     args = []
     if options:
         args.append(options)
 
     if cmd == "x":
-        args.extend([f"-{cmd}", outdir, src])
+        args.extend([f"-{cmd}", outdir, basedir])
+        if len(src) > 0:
+            args.append(" ".join(src))
     elif cmd == "t":
         args.extend([f"-{cmd}", basedir])
     else:
-        args.extend([f"-{cmd}", outdir, "-C", basedir, src])
+        args.extend([f"-{cmd}", outdir, "-C", basedir, "--", " ".join(src)])
 
+    logger.debug(f"!!!!args {args}")
     return await asyncio.create_subprocess_exec(
         'gfptar', *args,
         env=env,

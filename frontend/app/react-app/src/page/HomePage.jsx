@@ -302,6 +302,7 @@ function HomePage({ user }) {
                 currentDirItems={currentItems}
                 currentDir={currentDir}
                 setError={setError}
+                setTasks={setTasks}
                 refrech={() => {
                     setRefreshKey((prev) => !prev);
                 }}

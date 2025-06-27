@@ -28,7 +28,7 @@ function GfptarModal({
     const [targetDir, setTargetDir] = useState("");
     const [targetItems, setTargetItems] = useState([]);
 
-    const [options, setOptions] = useState("");
+    const [options, setOptions] = useState([]);
     const [listStatus, setListStatus] = useState([]);
     const [indirList, setIndirList] = useState([]);
     const [selectedFromList, setSelectedFromList] = useState([]);
@@ -89,13 +89,13 @@ function GfptarModal({
     const handleGfptar = async (command) => {
         await gfptar(
             command,
-            targetDir,
-            targetItems,
+            command === "compress" ? targetDir : lastSelectedItem.path,
+            command === "compress" ? targetItems : selectedFromList,
             destDir,
             options,
             command === "list" ? setListStatus : setTasks
         );
-        refresh();
+        // refresh();
         setListStatus([]);
     };
 

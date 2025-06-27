@@ -33,9 +33,9 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             command: cmd,
-            basedir: targetDir,
-            source: targetItems,
-            outdir: destDir,
+            basedir: "gfarm:" + targetDir,
+            source: targetItems.map((item) => "./" + item.name),
+            outdir: "gfarm:" + destDir,
             options,
         }),
         signal,
@@ -108,9 +108,9 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
             )
         );
         if (isAbort) {
-            console.warn("Download cancelled", err);
+            console.warn("gfptar cancelled", err);
         } else {
-            console.error("Download failed", err);
+            console.error("gfptar failed", err);
         }
     }
 }
