@@ -63,8 +63,9 @@ function ArchiveModal({
 
     useEffect(() => {
         if (listStatus.length > 0) {
-            if (listStatus.message) {
-                setIndirList((prev) => [...prev, listStatus.message]);
+            console.debug("listStatus", listStatus[0].message);
+            if (listStatus[0].message) {
+                setIndirList((prev) => [...prev, listStatus[0].message]);
             }
         }
     }, [listStatus]);
@@ -90,7 +91,9 @@ function ArchiveModal({
         await gfptar(
             command,
             command === "compress" ? targetDir : lastSelectedItem.path,
-            command === "compress" ? targetItems : selectedFromList,
+            command === "compress"
+                ? targetItems.map((item) => item.name)
+                : selectedFromList.map((item) => item.split(" ")[1]),
             destDir,
             options,
             command === "list" ? setListStatus : setTasks

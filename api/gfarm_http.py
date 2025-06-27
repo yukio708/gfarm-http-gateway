@@ -1838,7 +1838,6 @@ async def gfptar(env,
     else:
         args.extend([f"-{cmd}", outdir, "-C", basedir, "--", " ".join(src)])
 
-    logger.debug(f"!!!!args {args}")
     return await asyncio.create_subprocess_exec(
         'gfptar', *args,
         env=env,

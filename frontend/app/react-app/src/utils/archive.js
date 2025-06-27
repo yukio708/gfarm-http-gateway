@@ -34,7 +34,7 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         body: JSON.stringify({
             command: cmd,
             basedir: "gfarm:" + targetDir,
-            source: targetItems.map((item) => "./" + item.name),
+            source: targetItems,
             outdir: "gfarm:" + destDir,
             options,
         }),
@@ -64,19 +64,43 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
 
         const decoder = new TextDecoder("utf-8");
         const reader = response.body.getReader();
-        const chunks = [];
+        let buffer = "";
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            chunks.push(value);
 
-            const message = decoder.decode(value, { stream: true });
-            setTasks((prev) =>
-                prev.map((task) =>
-                    task.taskId === taskId ? { ...task, value: undefined, message } : task
-                )
-            );
+            buffer += decoder.decode(value, { stream: true });
+
+            let lines = buffer.split("\n");
+            buffer = lines.pop(); // Save last partial line back to buffer
+            for (const line of lines) {
+                if (line.trim() === "") continue;
+                try {
+                    const json = JSON.parse(line);
+                    // console.log("Streamed message:", json.message);
+
+                    setTasks((prev) =>
+                        prev.map((task) =>
+                            task.taskId === taskId
+                                ? { ...task, value: undefined, message: json.message }
+                                : task
+                        )
+                    );
+                } catch (err) {
+                    console.warn("Failed to parse line:", line, err);
+                }
+            }
+
+            // const line = decoder.decode(value, { stream: true });
+            // console.debug("line", line);
+            // const json = JSON.parse(line);
+            // const message = json.message ? json.message : "";
+            // setTasks((prev) =>
+            //     prev.map((task) =>
+            //         task.taskId === taskId ? { ...task, value: undefined, message } : task
+            //     )
+            // );
         }
 
         setTasks((prev) =>
