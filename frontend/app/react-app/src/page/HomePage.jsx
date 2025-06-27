@@ -158,7 +158,13 @@ function HomePage({ user }) {
                 <div className="col">
                     <nav className="navbar bg-body-tertiary">
                         <div className="container-fluid">
-                            <span className="navbar-brand mb-0 h1">Title</span>
+                            <img
+                                src="./assets/Gfarm_logo_tate_color.svg"
+                                alt="Logo"
+                                width="30"
+                                height="30"
+                                className="d-inline-block align-text-top"
+                            />
                             <div className="ms-2 d-flex gap-2">
                                 <UserMenu user={user} />
                             </div>
