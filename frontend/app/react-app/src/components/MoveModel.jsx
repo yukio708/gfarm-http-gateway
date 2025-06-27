@@ -4,7 +4,7 @@ import SuggestInput from "./SuggestInput";
 import ConflictResolutionModal from "./ConflictResolutionModal";
 import useFileList from "../hooks/useFileList";
 import { getParentPath, checkConflicts } from "../utils/func";
-import moveFile from "../utils/moveFile";
+import moveFile from "../utils/move";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 

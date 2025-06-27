@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
-import removeFiles from "../utils/removeFile";
+import removeFiles from "../utils/remove";
 import PropTypes from "prop-types";
 
 function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refrech }) {

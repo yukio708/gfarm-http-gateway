@@ -11,11 +11,11 @@ import UploadMenu from "../components/UploadMenu";
 import { FileActionMenu } from "../components/FileActionMenu";
 import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
-import GfptarModal from "../components/GfptarModal";
+import ArchiveModal from "../components/ArchiveModal";
 import useFileList from "../hooks/useFileList";
 import upload from "../utils/upload";
 import download from "../utils/download";
-import displayFile from "../utils/displayFile";
+import displayFile from "../utils/display";
 import getSymlink from "../utils/getSymlink";
 import ErrorPage from "./ErrorPage";
 
@@ -293,7 +293,7 @@ function HomePage({ user }) {
                     setRefreshKey((prev) => !prev);
                 }}
             />
-            <GfptarModal
+            <ArchiveModal
                 showModal={showGfptarModal}
                 setShowModal={setShowGfptarModal}
                 selectedItems={selectedItems}

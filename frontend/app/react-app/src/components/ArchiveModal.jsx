@@ -5,10 +5,10 @@ import MiniFileListView from "./MiniFileListView";
 import useFileList from "../hooks/useFileList";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import { getParentPath } from "../utils/func";
-import gfptar from "../utils/gfptar";
+import gfptar from "../utils/archive";
 import PropTypes from "prop-types";
 
-function GfptarModal({
+function ArchiveModal({
     showModal,
     setShowModal,
     currentDir,
@@ -305,9 +305,9 @@ function GfptarModal({
     );
 }
 
-export default GfptarModal;
+export default ArchiveModal;
 
-GfptarModal.propTypes = {
+ArchiveModal.propTypes = {
     showModal: PropTypes.bool,
     setShowModal: PropTypes.func,
     handleMove: PropTypes.func,
