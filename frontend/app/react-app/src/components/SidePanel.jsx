@@ -41,8 +41,8 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
                 </ul>
             </div>
             <div className="px-3 py-2 overflow-auto" style={{ maxHeight: "calc(100% - 100px)" }}>
-                {show && activeTab === "detail" && <DetailTab item={item} />}
-                {show && activeTab === "acl" && <ACLTab item={item} />}
+                {show && <DetailTab item={item} active={activeTab === "detail"} />}
+                {show && <ACLTab item={item} active={activeTab === "acl"} />}
             </div>
         </div>
     );

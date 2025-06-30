@@ -4,7 +4,7 @@ import { set_acl, get_acl } from "../utils/acl";
 import { getUsers, getGroups } from "../utils/getNameList";
 import PropTypes from "prop-types";
 
-function ACLTab({ item }) {
+function ACLTab({ item, active }) {
     const [entries, setEntries] = useState([]);
     const [userList, setUserList] = useState([]);
     const [groupList, setGroupList] = useState([]);
@@ -91,11 +91,13 @@ function ACLTab({ item }) {
         }
     };
 
+    if (!active) return <></>;
+
     return (
         <div data-testid="acl-tab">
             {item && (
                 <div className="my-2">
-                    <label className="form-label fw-bold">Shareable Link</label>
+                    <label className="form-label fw-bold">Link</label>
                     <div className="input-group input-group-sm">
                         <input
                             ref={copyRef}
@@ -250,6 +252,7 @@ function ACLTab({ item }) {
 
 ACLTab.propTypes = {
     item: PropTypes.object,
+    active: PropTypes.bool,
 };
 
 export default ACLTab;

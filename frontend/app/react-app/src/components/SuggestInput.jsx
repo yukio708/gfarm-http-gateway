@@ -9,7 +9,6 @@ function SuggestInput({ value, onChange, suggestions, disabled = false }) {
 
     useEffect(() => {
         if (typeof value !== "string") return;
-        console.debug("change suggestions");
         const f = suggestions.filter(
             (name) =>
                 typeof name === "string" &&

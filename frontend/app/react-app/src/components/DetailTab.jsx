@@ -3,7 +3,7 @@ import { formatFileSize } from "../utils/func";
 import getAttribute from "../utils/getAttribute";
 import PropTypes from "prop-types";
 
-function DetailTab({ item }) {
+function DetailTab({ item, active }) {
     const [detailContent, setDetailContent] = useState(null);
     const [error, setError] = useState(null);
 
@@ -22,6 +22,8 @@ function DetailTab({ item }) {
         };
         showDetail(item.path);
     }, [item]);
+
+    if (!active) return <></>;
 
     return (
         <div>
@@ -94,4 +96,5 @@ export default DetailTab;
 
 DetailTab.propTypes = {
     item: PropTypes.object,
+    active: PropTypes.bool,
 };
