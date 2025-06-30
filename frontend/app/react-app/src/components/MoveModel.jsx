@@ -54,7 +54,6 @@ function MoveModal({
         const error = await moveFile(items);
         setError(error);
         setTargetPath("");
-        setItemsToMove([]);
         refresh();
     };
 
@@ -93,7 +92,6 @@ function MoveModal({
         setShowModal(false);
         if (targetPath === currentDir) {
             setTargetPath("");
-            setItemsToMove([]);
             refresh();
             return;
         }

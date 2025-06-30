@@ -78,18 +78,19 @@ function FileListView({
     };
 
     useEffect(() => {
+        console.log("FileListView useEffect selectedItems", selectedItems);
         if (headerCheckboxRef.current) {
             if (selectedItems.length === 0) {
                 headerCheckboxRef.current.indeterminate = false;
                 headerCheckboxRef.current.checked = false;
-            } else if (selectedItems.length === filteredItems.length) {
+            } else if (selectedItems.length === sortedItems.length) {
                 headerCheckboxRef.current.indeterminate = false;
                 headerCheckboxRef.current.checked = true;
             } else {
                 headerCheckboxRef.current.indeterminate = true;
             }
         }
-    }, [selectedItems, currentItems]);
+    }, [selectedItems, sortedItems]);
 
     const handleSelectAll = (event) => {
         if (event.target.checked) {
@@ -99,12 +100,12 @@ function FileListView({
         }
     };
 
-    const handleSelectItem = (event, item) => {
+    const handleSelectItem = (checked, item) => {
         console.debug("handleSelectItem item", item);
-        if (event.target.checked) {
+        if (checked) {
             setSelectedItems([...selectedItems, item]);
         } else {
-            setSelectedItems(selectedItems.filter((path) => path !== item));
+            setSelectedItems((prev) => prev.filter((selected) => selected.path !== item.path));
         }
         setLastSelectedItem(item);
     };
@@ -180,8 +181,12 @@ function FileListView({
                                     type="checkbox"
                                     className="form-check-input"
                                     id={"checkbox-" + item.name}
-                                    onChange={(event) => handleSelectItem(event, item)}
-                                    checked={selectedItems.includes(item)}
+                                    onChange={(event) =>
+                                        handleSelectItem(event.target.checked, item)
+                                    }
+                                    checked={selectedItems.some(
+                                        (selected) => selected.path === item.path
+                                    )}
                                 />
                             </td>
                             <td>
@@ -192,9 +197,9 @@ function FileListView({
                                     size={"1.8rem"}
                                     onClick={() =>
                                         handleSelectItem(
-                                            {
-                                                target: { checked: !selectedItems.includes(item) },
-                                            },
+                                            !selectedItems.some(
+                                                (selected) => selected.path === item.path
+                                            ),
                                             item
                                         )
                                     }
@@ -206,9 +211,9 @@ function FileListView({
                             <td
                                 onClick={() =>
                                     handleSelectItem(
-                                        {
-                                            target: { checked: !selectedItems.includes(item) },
-                                        },
+                                        !selectedItems.some(
+                                            (selected) => selected.path === item.path
+                                        ),
                                         item
                                     )
                                 }
@@ -218,8 +223,36 @@ function FileListView({
                             >
                                 {item.name}
                             </td>
-                            <td>{getSize(item.size, item.is_dir)}</td>
-                            <td>{item.mtime_str}</td>
+                            <td
+                                onClick={() =>
+                                    handleSelectItem(
+                                        !selectedItems.some(
+                                            (selected) => selected.path === item.path
+                                        ),
+                                        item
+                                    )
+                                }
+                                onDoubleClick={() =>
+                                    handleItemClick(item.path, item.is_file, item.is_dir)
+                                }
+                            >
+                                {getSize(item.size, item.is_dir)}
+                            </td>
+                            <td
+                                onClick={() =>
+                                    handleSelectItem(
+                                        !selectedItems.some(
+                                            (selected) => selected.path === item.path
+                                        ),
+                                        item
+                                    )
+                                }
+                                onDoubleClick={() =>
+                                    handleItemClick(item.path, item.is_file, item.is_dir)
+                                }
+                            >
+                                {item.mtime_str}
+                            </td>
                             <td>
                                 <ItemMenu
                                     item={item}

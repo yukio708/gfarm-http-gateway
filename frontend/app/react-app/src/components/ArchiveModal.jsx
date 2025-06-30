@@ -22,7 +22,7 @@ function ArchiveModal({
     const [destDir, setDestDir] = useState("");
     const { currentItems } = useFileList(suggestDir, suggestDir);
     const [error, setError] = useState(null);
-    const [targetDir, setTargetDir] = useState("");
+    const [targetDir, setTargetDir] = useState([]);
     const [targetItems, setTargetItems] = useState([]);
     const [options, setOptions] = useState("");
     const [listStatus, setListStatus] = useState([]);
@@ -35,13 +35,17 @@ function ArchiveModal({
     }, [selectedItems]);
 
     useEffect(() => {
+        setTargetItems(selectedItems);
         setTargetDir(currentDir);
-        setDestDir(currentDir + "/");
+        setDestDir(currentDir.replace(/\/$/, "") + "/");
     }, [showModal]);
 
     useEffect(() => {
         console.log("destDir", destDir);
-        if (currentItems.some((item) => item.path === destDir)) {
+        if (
+            (compressMode === "create" || activeTab === "extract") &&
+            currentItems.some((item) => item.path === destDir)
+        ) {
             setError("! already exists !");
         } else {
             setError(null);
@@ -55,7 +59,16 @@ function ArchiveModal({
         if (listStatus.length > 0) {
             if (listStatus[0].message) {
                 const [file_type, path] = listStatus[0].message.trim().split(" ", 2);
-                setIndirList((prev) => [...prev, { file_type, path }]);
+                setIndirList((prev) => [
+                    ...prev,
+                    {
+                        is_dir: file_type === "D",
+                        is_file: file_type === "F",
+                        is_sym: file_type === "S",
+                        path,
+                        name: path,
+                    },
+                ]);
             }
         }
     }, [listStatus]);
@@ -208,7 +221,6 @@ function ArchiveModal({
                                         }}
                                     >
                                         <MiniFileListView
-                                            parentName="GfptarModal"
                                             currentItems={currentDirItems}
                                             selectedItems={targetItems}
                                             setSelectedItems={setTargetItems}
@@ -249,37 +261,11 @@ function ArchiveModal({
                                                     maxHeight: "calc(30vh - 100px)",
                                                 }}
                                             >
-                                                <ul className="list-group small">
-                                                    {indirList.map((line, i) => {
-                                                        const isSelected = selectedFromList.some(
-                                                            (item) =>
-                                                                item.path === line.path &&
-                                                                item.file_type === line.file_type
-                                                        );
-                                                        return (
-                                                            <li
-                                                                key={i}
-                                                                className={`list-group-item list-group-item-action ${isSelected ? "active" : ""}`}
-                                                                onClick={() => {
-                                                                    setSelectedFromList((prev) =>
-                                                                        isSelected
-                                                                            ? prev.filter(
-                                                                                  (item) =>
-                                                                                      item !== line
-                                                                              )
-                                                                            : [...prev, line]
-                                                                    );
-                                                                }}
-                                                                style={{ cursor: "pointer" }}
-                                                            >
-                                                                <span className="me-2 text-muted">
-                                                                    {line.file_type}
-                                                                </span>
-                                                                {line.path}
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
+                                                <MiniFileListView
+                                                    currentItems={indirList}
+                                                    selectedItems={selectedFromList}
+                                                    setSelectedItems={setSelectedFromList}
+                                                />
                                             </div>
                                         )}
                                     </div>

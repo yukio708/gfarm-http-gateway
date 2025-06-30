@@ -45,6 +45,12 @@ function HomePage({ user }) {
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
 
     useEffect(() => {
+        setSelectedItems((prev) =>
+            prev.filter((selected) => currentItems.some((item) => item.path === selected.path))
+        );
+    }, [currentItems]);
+
+    useEffect(() => {
         if (taskCount < tasks.length) {
             setShowProgressView(true);
         }
@@ -57,7 +63,6 @@ function HomePage({ user }) {
         } else {
             navigate(newdir);
         }
-        setSelectedItems([]);
     };
 
     const handleDisplayFile = (path) => {
@@ -277,9 +282,9 @@ function HomePage({ user }) {
                 setItemsToDelete={setItemsToDelete}
                 setError={setError}
                 refresh={() => {
-                    setSelectedItems(
-                        selectedItems.filter((file) =>
-                            itemsToDelete.some((deletedfile) => deletedfile.path !== file.path)
+                    setSelectedItems((prev) =>
+                        prev.filter((item) =>
+                            itemsToDelete.some((deletedItem) => deletedItem.path !== item.path)
                         )
                     );
                     setItemsToDelete([]);
@@ -303,6 +308,12 @@ function HomePage({ user }) {
                 currentDir={currentDir}
                 setError={setError}
                 refresh={() => {
+                    setSelectedItems((prev) =>
+                        prev.filter((file) =>
+                            itemsToMove.some((movedItem) => movedItem.path !== file.path)
+                        )
+                    );
+                    setItemsToMove([]);
                     setRefreshKey((prev) => !prev);
                 }}
             />
