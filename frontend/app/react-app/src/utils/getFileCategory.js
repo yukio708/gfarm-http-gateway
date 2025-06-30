@@ -42,7 +42,7 @@ const getFileIconDefault = (ext, is_dir, is_sym) => {
         return "bi bi-folder";
     }
     if (is_sym) {
-        return "bi bi-folder";
+        return "bi bi-folder-symlink";
     }
 
     switch (ext) {
@@ -70,7 +70,7 @@ const getFileIconDefault = (ext, is_dir, is_sym) => {
         case "gz":
             return "bi bi-file-earmark-zip";
         default:
-            return "bi bi-file-earmark-text"; // Default file icon
+            return "bi bi-file-earmark"; // Default file icon
     }
 };
 

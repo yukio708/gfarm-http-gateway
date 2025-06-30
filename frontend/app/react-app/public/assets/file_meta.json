@@ -10,13 +10,15 @@
   },
   "icons": {
     "folder": "bi bi-folder",
+    "symlink": "bi bi-folder-symlink",
     "image": "bi bi-file-earmark-image",
     "video": "bi bi-file-earmark-play",
     "audio": "bi bi-file-earmark-music",
     "document": "bi bi-file-earmark-text",
     "pdf": "bi bi-file-earmark-pdf",
     "archive": "bi bi-file-earmark-zip",
-    "code": "bi bi-file-earmark-code"
+    "code": "bi bi-file-earmark-code",
+    "default": "bi bi-file-earmark"
   },
   "css": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
 }
