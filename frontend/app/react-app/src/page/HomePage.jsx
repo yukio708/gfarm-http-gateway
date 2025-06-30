@@ -150,7 +150,8 @@ function HomePage({ user }) {
         setShowMoveModal(true);
     };
 
-    const handleShowDetail = (tab) => {
+    const handleShowDetail = (item, tab) => {
+        setLastSelectedItem(item);
         setShowSidePanel({ show: true, tab });
     };
 
@@ -227,14 +228,14 @@ function HomePage({ user }) {
                         setLastSelectedItem={setLastSelectedItem}
                         handleItemClick={handleItemClick}
                         download={addItemsToDownload}
-                        showDetail={() => {
-                            handleShowDetail("detail");
+                        showDetail={(item) => {
+                            handleShowDetail(item, "detail");
                         }}
                         display={handleDisplayFile}
                         remove={setItemsToDelete}
                         move={addItemsToMove}
-                        permission={() => {
-                            handleShowDetail("acl");
+                        permission={(item) => {
+                            handleShowDetail(item, "acl");
                         }}
                         showSidePanel={showSidePanel}
                     />

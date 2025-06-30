@@ -1,15 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 
-function SuggestInput({ value, onChange, suggestions }) {
+function SuggestInput({ value, onChange, suggestions, disabled = false }) {
     const [focused, setFocused] = useState(false);
     const [filtered, setFiltered] = useState([]);
     const [highlight, setHighlight] = useState(0);
     const inputRef = useRef(null);
 
     useEffect(() => {
+        if (typeof value !== "string") return;
+        console.debug("change suggestions");
         const f = suggestions.filter(
-            (name) => name.toLowerCase().includes(value.toLowerCase()) && name !== value
+            (name) =>
+                typeof name === "string" &&
+                name.toLowerCase().includes(value.toLowerCase()) &&
+                name !== value
         );
         setFiltered(f);
         setHighlight(0);
@@ -43,6 +48,7 @@ function SuggestInput({ value, onChange, suggestions }) {
                 onBlur={() => setTimeout(() => setFocused(false), 100)}
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={handleKeyDown}
+                disabled={disabled}
             />
             {focused && filtered.length > 0 && (
                 <ul
@@ -72,4 +78,5 @@ SuggestInput.propTypes = {
     value: PropTypes.string,
     onChange: PropTypes.func,
     suggestions: PropTypes.array,
+    disabled: PropTypes.bool,
 };

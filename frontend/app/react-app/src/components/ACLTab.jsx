@@ -56,6 +56,9 @@ function ACLTab({ item }) {
         const updated = [...entries];
         if (field === "acl_type" || field === "acl_name" || field === "is_default") {
             updated[index][field] = value;
+            if (field === "acl_type" && value === "other") {
+                updated[index]["acl_name"] = "";
+            }
         } else {
             updated[index].acl_perms[field] = value;
         }
@@ -132,17 +135,29 @@ function ACLTab({ item }) {
                             <div className="row mb-2">
                                 <div className="col-5">
                                     <label className="form-label fw-bold">Type</label>
-                                    <select
-                                        className="form-select form-select-sm"
-                                        value={entry.acl_type}
-                                        onChange={(e) =>
-                                            handleChange(i, "acl_type", e.target.value)
-                                        }
-                                    >
-                                        <option value="user">User</option>
-                                        <option value="group">Group</option>
-                                        <option value="other">Other</option>
-                                    </select>
+                                    {entry.base ? (
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={entry.acl_type}
+                                            disabled
+                                        >
+                                            <option value="user">User</option>
+                                            <option value="group">Group</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    ) : (
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={entry.acl_type}
+                                            onChange={(e) =>
+                                                handleChange(i, "acl_type", e.target.value)
+                                            }
+                                        >
+                                            <option value="user">User</option>
+                                            <option value="group">Group</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    )}
                                 </div>
                                 <div className="col-7">
                                     <label className="form-label fw-bold">Name</label>
@@ -166,6 +181,7 @@ function ACLTab({ item }) {
                                             suggestions={
                                                 entry.acl_type === "user" ? userList : groupList
                                             }
+                                            disabled={entry.acl_type === "other"}
                                         />
                                     )}
                                 </div>

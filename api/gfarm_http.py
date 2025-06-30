@@ -1867,7 +1867,7 @@ async def gfgroup(env, groupname: str = None, cmd: str = None):
     if groupname is not None:
         args.append(groupname)
     return await asyncio.create_subprocess_exec(
-        'gfuser', *args,
+        'gfgroup', *args,
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
@@ -2758,6 +2758,7 @@ async def get_name_list(request: Request,
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
     items = [line.strip() for line in stdout.splitlines() if line.strip()]
+    logger.debug(f"!!!!items {apiname} {items}")
     return JSONResponse(content={"list": items})
 
 
