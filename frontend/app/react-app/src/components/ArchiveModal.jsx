@@ -24,7 +24,7 @@ function ArchiveModal({
     const [error, setError] = useState(null);
     const [targetDir, setTargetDir] = useState("");
     const [targetItems, setTargetItems] = useState([]);
-    const [options, setOptions] = useState([]);
+    const [options, setOptions] = useState("");
     const [listStatus, setListStatus] = useState([]);
     const [indirList, setIndirList] = useState([]);
     const [selectedFromList, setSelectedFromList] = useState([]);
@@ -72,7 +72,7 @@ function ArchiveModal({
                 ? targetItems.map((item) => item.name)
                 : selectedFromList.map((item) => item.path),
             destDir,
-            options,
+            options.split(" ").filter(Boolean),
             command === "list" ? setListStatus : setTasks,
             refresh
         );

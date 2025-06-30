@@ -1169,9 +1169,9 @@ async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
     claims = jwt.get_unverified_claims(access_token)
     exp = claims.get("exp", None)
 
+    user = claims.get(TOKEN_USER_CLAIM, None)
     # Create token file
     if tokenfile is None:
-        user = claims.get(TOKEN_USER_CLAIM, None)
         tmpdir = f"{TMPDIR}/{user}/" if user is not None else TMPDIR
         env.pop('GFARM_SASL_PASSWORD', None)
         os.makedirs(tmpdir, exist_ok=True)
@@ -1827,7 +1827,7 @@ async def gfptar(env,
                  options=None):
     args = []
     if options:
-        args.append(options)
+        args.extend(options)
 
     if cmd == "x":
         args.extend([f"-{cmd}", outdir, basedir])
@@ -2758,7 +2758,6 @@ async def get_name_list(request: Request,
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
     items = [line.strip() for line in stdout.splitlines() if line.strip()]
-    logger.debug(f"!!!!items {apiname} {items}")
     return JSONResponse(content={"list": items})
 
 
@@ -2841,14 +2840,39 @@ async def compress_or_extract(
     outdir = tar_dict.get("outdir", None)
     options = tar_dict.get("options", None)
 
+    existing, _, _ = await file_size(env, basedir if cmd == 't' else outdir)
+    if cmd == 'c' or cmd == 'x':
+        if existing:
+            code = status.HTTP_403_FORBIDDEN
+            message = f"destination path already exists : path={outdir}"
+            stdout = ""
+            raise gfarm_http_error(opname, code, message, stdout, [])
+    else:
+        if not existing:
+            code = status.HTTP_404_NOT_FOUND
+            if cmd == 't':
+                message = f"destination path dosn't exist : path={outdir}"
+            else:
+                message = f"source path dosn't exist : path={basedir}"
+            stdout = ""
+            raise gfarm_http_error(opname, code, message, stdout, [])
+
     p = await gfptar(env, cmd, outdir, basedir, src, options)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
 
+    first_byte = await p.stdout.read(1)
+    if not first_byte:
+        await stderr_task
+        code = 500
+        message = f"Cannot read: path={basedir} {src}"
+        stdout = ""
+        raise gfarm_http_error(opname, code, message, stdout, elist)
+
     async def stream_response():
         try:
             exp = expire
-            buffer = b""
+            buffer = first_byte
             while True:
                 chunk = await p.stdout.read(1)
                 if not chunk:
