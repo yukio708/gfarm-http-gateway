@@ -1832,7 +1832,7 @@ async def gfptar(env,
     if cmd == "x":
         args.extend([f"-{cmd}", outdir, basedir])
         if len(src) > 0:
-            args.append(" ".join(src))
+            args.extend(src)
     elif cmd == "t":
         args.extend([f"-{cmd}", basedir])
     else:
