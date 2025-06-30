@@ -135,7 +135,14 @@ function ConflictResolutionModal({
                                 item.is_conflicted && (
                                     <li key={i} className="list-group-item list-group-item-action">
                                         <div className="d-flex justify-content-between align-items-center mb-2">
-                                            <strong>{item.name}</strong>
+                                            <div>
+                                                {item.is_dir ? (
+                                                    <BsFolder className="me-2" />
+                                                ) : (
+                                                    <BsFileEarmark className="me-2" />
+                                                )}
+                                                <strong>{item.name}</strong>
+                                            </div>
                                             <span className="badge bg-warning text-dark">
                                                 Conflict
                                             </span>
