@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import FileIcon from "../components/FileIcon";
 import FileTypeFilter from "../components/FileTypeFilter";
 import DateFilter from "../components/DateFilter";
@@ -34,18 +34,28 @@ function FileListView({
     const [dateFilter, setDateFilter] = useState("all");
     const headerCheckboxRef = useRef(null);
     const fileTypes = getFileTypes(currentItems);
-    const filteredItems = filterItems(currentItems, filterTypes, dateFilter);
+    const filteredItems = useMemo(
+        () => filterItems(currentItems, filterTypes, dateFilter),
+        [currentItems, filterTypes, dateFilter]
+    );
+    const sortedItems = useMemo(
+        () =>
+            [...filteredItems].sort((a, b) => {
+                if (sortDirection.column === "name") {
+                    return sortItemsByName(a, b, sortDirection.order);
+                } else if (sortDirection.column === "size") {
+                    return sortItemsBySize(a, b, sortDirection.order);
+                } else if (sortDirection.column === "updatedate") {
+                    return sortItemsByUpdateDate(a, b, sortDirection.order);
+                }
+                return 0;
+            }),
+        [filteredItems, sortDirection]
+    );
 
-    const sortedItems = [...filteredItems].sort((a, b) => {
-        if (sortDirection.column === "name") {
-            return sortItemsByName(a, b, sortDirection.order);
-        } else if (sortDirection.column === "size") {
-            return sortItemsBySize(a, b, sortDirection.order);
-        } else if (sortDirection.column === "updatedate") {
-            return sortItemsByUpdateDate(a, b, sortDirection.order);
-        }
-        return 0;
-    });
+    useEffect(() => {
+        setSelectedItems([]);
+    }, [filterTypes, dateFilter]);
 
     const getSortIcon = () => {
         if (sortDirection.order === "asc") {
@@ -136,8 +146,8 @@ function FileListView({
                                 ref={headerCheckboxRef}
                                 onChange={handleSelectAll}
                                 checked={
-                                    selectedItems.length === currentItems.length &&
-                                    currentItems.length > 0
+                                    selectedItems.length === sortedItems.length &&
+                                    sortedItems.length > 0
                                 }
                                 data-testid="header-checkbox"
                             />
