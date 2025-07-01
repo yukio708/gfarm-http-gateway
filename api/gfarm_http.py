@@ -1836,7 +1836,8 @@ async def gfptar(env,
     elif cmd == "t":
         args.extend([f"-{cmd}", basedir])
     else:
-        args.extend([f"-{cmd}", outdir, "-C", basedir, "--", " ".join(src)])
+        args.extend([f"-{cmd}", outdir, "-C", basedir, "--"])
+        args.extend(src)
 
     return await asyncio.create_subprocess_exec(
         'gfptar', *args,
@@ -2873,16 +2874,19 @@ async def compress_or_extract(
         try:
             exp = expire
             buffer = first_byte
+            if b"\r" in buffer or b"\n" in buffer:
+                yield json.dumps({"message": ""}) + '\n'
+                buffer = b""
             while True:
                 chunk = await p.stdout.read(1)
                 if not chunk:
                     break
                 buffer += chunk
-                # logger.debug(f"buffer:{buffer}")
+                logger.debug(f"buffer:{buffer}")
                 if b"\r" in buffer or b"\n" in buffer:
                     msg = buffer.decode("utf-8", errors="replace").strip()
                     buffer = b""
-                    j_line = json.dumps({"message": msg}) # TODO:msgを項目ごとに変換する
+                    j_line = json.dumps({"message": msg})
                     yield j_line + '\n'
                     logger.debug(
                         f"{ipaddr}:0 user={user}, cmd={opname}, json={j_line}")
