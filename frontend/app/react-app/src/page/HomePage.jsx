@@ -6,6 +6,7 @@ import SidePanel from "../components/SidePanel";
 import ProgressView from "../components/ProgressView";
 import DeleteModal from "../components/DeleteModal";
 import NewDirModal from "../components/NewDirModal";
+import RenameModal from "../components/RenameModal";
 import UploadDropZone from "../components/UploadDropZone";
 import UploadMenu from "../components/UploadMenu";
 import { FileActionMenu } from "../components/FileActionMenu";
@@ -40,6 +41,7 @@ function HomePage({ user }) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [showProgressView, setShowProgressView] = useState(false);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
+    const [showRenameModal, setShowRenameModal] = useState(false);
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [showGfptarModal, setShowGfptarModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
@@ -160,6 +162,11 @@ function HomePage({ user }) {
         setShowSidePanel({ show: true, tab });
     };
 
+    const handleRename = (item) => {
+        setLastSelectedItem(item);
+        setShowRenameModal(true);
+    };
+
     if (listGetError) {
         return <ErrorPage error={listGetError} />;
     }
@@ -239,6 +246,7 @@ function HomePage({ user }) {
                         display={handleDisplayFile}
                         remove={setItemsToDelete}
                         move={addItemsToMove}
+                        rename={handleRename}
                         permission={(item) => {
                             handleShowDetail(item, "acl");
                         }}
@@ -297,6 +305,19 @@ function HomePage({ user }) {
                 currentDir={currentDir}
                 setError={setError}
                 refresh={() => {
+                    setRefreshKey((prev) => !prev);
+                }}
+            />
+            <RenameModal
+                showModal={showRenameModal}
+                setShowModal={setShowRenameModal}
+                renameItem={lastSelectedItem}
+                setError={setError}
+                refresh={() => {
+                    setSelectedItems((prev) =>
+                        prev.filter((item) => lastSelectedItem.path !== item.path)
+                    );
+                    setLastSelectedItem(null);
                     setRefreshKey((prev) => !prev);
                 }}
             />

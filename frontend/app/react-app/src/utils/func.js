@@ -340,3 +340,11 @@ export const suggestNewName = (name, existingNames) => {
     }
     return newName;
 };
+
+export const checkFileName = (name) => {
+    return (
+        name.length > 0 && // not empty
+        !/[<>:"/\\|?*]/.test(name) && // no invalid chars
+        !/[. ]$/.test(name) // doesn't end with space or dot
+    );
+};

@@ -25,6 +25,7 @@ function FileListView({
     download,
     display,
     move,
+    rename,
     remove,
     showDetail,
     permission,
@@ -259,6 +260,7 @@ function FileListView({
                                     download={download}
                                     display={display}
                                     move={move}
+                                    rename={rename}
                                     remove={remove}
                                     showDetail={showDetail}
                                     permission={permission}
@@ -284,6 +286,7 @@ FileListView.propTypes = {
     download: PropTypes.func,
     display: PropTypes.func,
     move: PropTypes.func,
+    rename: PropTypes.func,
     remove: PropTypes.func,
     showDetail: PropTypes.func,
     permission: PropTypes.func,

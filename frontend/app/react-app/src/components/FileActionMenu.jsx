@@ -53,7 +53,7 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
     );
 }
 
-function ItemMenu({ item, download, display, move, remove, showDetail, permission }) {
+function ItemMenu({ item, download, display, move, rename, remove, showDetail, permission }) {
     return (
         <div className="dropdown">
             <button
@@ -78,7 +78,7 @@ function ItemMenu({ item, download, display, move, remove, showDetail, permissio
                     </li>
                 )}
                 <li>
-                    <button className="dropdown-item" onClick={() => move(item.path)}>
+                    <button className="dropdown-item" onClick={() => rename(item)}>
                         <BsPencil className="me-2" /> Rename
                     </button>
                 </li>
@@ -126,6 +126,7 @@ ItemMenu.propTypes = {
     download: PropTypes.func,
     display: PropTypes.func,
     move: PropTypes.func,
+    rename: PropTypes.func,
     remove: PropTypes.func,
     showDetail: PropTypes.func,
     permission: PropTypes.func,
