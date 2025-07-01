@@ -8,8 +8,6 @@ import DeleteModal from "../components/DeleteModal";
 import NewDirModal from "../components/NewDirModal";
 import RenameModal from "../components/RenameModal";
 import UploadDropZone from "../components/UploadDropZone";
-import UploadMenu from "../components/UploadMenu";
-import { FileActionMenu } from "../components/FileActionMenu";
 import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
 import ArchiveModal from "../components/ArchiveModal";
@@ -197,25 +195,6 @@ function HomePage({ user }) {
                         <div className="mx-3">
                             <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
                         </div>
-                        <div className="d-flex gap-2">
-                            <UploadMenu
-                                onUpload={addFilesToUpload}
-                                onCreate={() => {
-                                    setShowNewDirModal(true);
-                                }}
-                                uploadDir={currentDir}
-                                currentItems={currentItems}
-                            />
-                            <FileActionMenu
-                                selectedItems={selectedItems}
-                                removeItems={setItemsToDelete}
-                                downloadItems={addItemsToDownload}
-                                moveItems={addItemsToMove}
-                                gfptar={() => {
-                                    setShowGfptarModal(true);
-                                }}
-                            />
-                        </div>
                     </div>
                 </div>
             </div>
@@ -234,12 +213,14 @@ function HomePage({ user }) {
                 <div className="col">
                     <FileListView
                         parentName="HomePage"
+                        currentDir={currentDir}
                         currentItems={currentItems}
                         selectedItems={selectedItems}
                         setSelectedItems={setSelectedItems}
                         setLastSelectedItem={setLastSelectedItem}
                         handleItemClick={handleItemClick}
                         download={addItemsToDownload}
+                        upload={addFilesToUpload}
                         showDetail={(item) => {
                             handleShowDetail(item, "detail");
                         }}
@@ -254,6 +235,12 @@ function HomePage({ user }) {
                             handleShowDetail(item, "share");
                         }}
                         showSidePanel={showSidePanel}
+                        createNewDir={() => {
+                            setShowNewDirModal(true);
+                        }}
+                        gfptar={() => {
+                            setShowGfptarModal(true);
+                        }}
                     />
                 </div>
             </div>

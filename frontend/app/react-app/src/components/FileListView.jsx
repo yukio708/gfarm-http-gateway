@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import FileIcon from "../components/FileIcon";
 import FileTypeFilter from "../components/FileTypeFilter";
 import DateFilter from "../components/DateFilter";
-import { ItemMenu } from "../components/FileActionMenu";
+import UploadMenu from "../components/UploadMenu";
+import { ItemMenu, FileActionMenu } from "../components/FileActionMenu";
 import {
     filterItems,
     getFileTypes,
@@ -17,12 +18,14 @@ import PropTypes from "prop-types";
 
 function FileListView({
     parentName,
+    currentDir,
     currentItems,
     selectedItems,
     setSelectedItems,
     setLastSelectedItem,
     handleItemClick,
     download,
+    upload,
     display,
     move,
     rename,
@@ -30,6 +33,8 @@ function FileListView({
     showDetail,
     permission,
     share,
+    gfptar,
+    createNewDir,
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
@@ -138,6 +143,20 @@ function FileListView({
                     setFilterTypes={setFilterTypes}
                 />
                 <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
+
+                <UploadMenu
+                    onUpload={upload}
+                    onCreate={createNewDir}
+                    uploadDir={currentDir}
+                    currentItems={currentItems}
+                />
+                <FileActionMenu
+                    selectedItems={selectedItems}
+                    removeItems={remove}
+                    downloadItems={download}
+                    moveItems={move}
+                    archiveItems={gfptar}
+                />
             </div>
             <table className="file-table">
                 <thead style={{ position: "sticky", top: 0 }}>
@@ -280,12 +299,14 @@ export default FileListView;
 
 FileListView.propTypes = {
     parentName: PropTypes.string,
+    currentDir: PropTypes.string,
     currentItems: PropTypes.array,
     selectedItems: PropTypes.array,
     setSelectedItems: PropTypes.func,
     setLastSelectedItem: PropTypes.func,
     handleItemClick: PropTypes.func,
     download: PropTypes.func,
+    upload: PropTypes.func,
     display: PropTypes.func,
     move: PropTypes.func,
     rename: PropTypes.func,
@@ -293,4 +314,6 @@ FileListView.propTypes = {
     showDetail: PropTypes.func,
     permission: PropTypes.func,
     share: PropTypes.func,
+    gfptar: PropTypes.func,
+    createNewDir: PropTypes.func,
 };
