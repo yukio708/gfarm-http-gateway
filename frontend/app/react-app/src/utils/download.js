@@ -23,7 +23,7 @@ async function downloadFile(dlurl, defaultFilename, controller, request, setTask
         name: displayname,
         value: 0,
         type: "download",
-        status: "downloading",
+        status: "download",
         message: "",
         onCancel: () => {
             controller.abort();

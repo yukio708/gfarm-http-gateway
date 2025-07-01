@@ -10,8 +10,8 @@ class Tar(BaseModel):
 */
 async function gfptar(command, targetDir, targetItems, destDir, options, setTasks, refresh) {
     const dlurl = `${API_URL}/gfptar`;
-    const taskId = targetItems.join(",") + Date.now();
-    const displayname = taskId.length > 20 ? taskId.slice(0, 10) + "..." : taskId;
+    const taskId = destDir + Date.now();
+    const displayname = destDir;
 
     console.debug("gfptar", options, command, destDir, "-C", targetDir, targetItems);
 

@@ -13,6 +13,7 @@ function ArchiveModal({
     selectedItems,
     lastSelectedItem,
     currentDirItems,
+    setSelectedItems,
     setTasks,
     refresh,
 }) {
@@ -90,6 +91,10 @@ function ArchiveModal({
             refresh
         );
         setListStatus([]);
+        if (command !== "list") {
+            setIndirList([]);
+            setSelectedItems([]);
+        }
     };
 
     const handleConfirm = () => {
@@ -103,6 +108,7 @@ function ArchiveModal({
         setDestDir("");
         setTargetItems([]);
         setListStatus([]);
+        setIndirList([]);
         setShowModal(false);
     };
 
@@ -150,9 +156,7 @@ function ArchiveModal({
                             {activeTab === "compress" && (
                                 <div>
                                     <div className="mb-3">
-                                        <label className="form-label fw-bold me-2">
-                                            Compression Mode
-                                        </label>
+                                        <label className="form-label fw-bold me-2">Operation</label>
                                         <div className="form-check form-check-inline">
                                             <input
                                                 className="form-check-input"
@@ -231,7 +235,7 @@ function ArchiveModal({
 
                             {activeTab === "extract" && (
                                 <div>
-                                    <div className="mb-3 d-flex">
+                                    <div className="mb-2 d-flex">
                                         <label className="form-label fw-bold me-4">
                                             Target File
                                         </label>
@@ -239,21 +243,21 @@ function ArchiveModal({
                                     </div>
 
                                     <div className="mb-2">
+                                        <label className="form-label fw-bold me-2">
+                                            List of Contents
+                                        </label>
                                         <button
                                             className="btn btn-outline-secondary btn-sm"
                                             onClick={async () => {
                                                 await handleGfptar("list");
                                             }}
                                         >
-                                            List Contents
+                                            Get
                                         </button>
                                     </div>
 
-                                    <div className="mb-3">
-                                        <label className="form-label fw-bold">
-                                            Archive Contents
-                                        </label>
-                                        {indirList.length > 0 && (
+                                    {indirList.length > 0 && (
+                                        <div className="mb-3">
                                             <div
                                                 className="mb-3 overflow-auto"
                                                 style={{
@@ -267,8 +271,8 @@ function ArchiveModal({
                                                     setSelectedItems={setSelectedFromList}
                                                 />
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -300,6 +304,7 @@ ArchiveModal.propTypes = {
     selectedItems: PropTypes.array,
     lastSelectedItem: PropTypes.object,
     currentDirItems: PropTypes.array,
+    setSelectedItems: PropTypes.func,
     setTasks: PropTypes.func,
     refresh: PropTypes.func,
 };

@@ -4,7 +4,7 @@ import SuggestInput from "./SuggestInput";
 import ConflictResolutionModal from "./ConflictResolutionModal";
 import useFileList from "../hooks/useFileList";
 import { getParentPath, checkConflicts } from "../utils/func";
-import moveFile from "../utils/move";
+import moveItems from "../utils/move";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
@@ -51,7 +51,7 @@ function MoveModal({
     }, [targetPath]);
 
     const handleMove = async (items) => {
-        const error = await moveFile(items);
+        const error = await moveItems(items);
         setError(error);
         setTargetPath("");
         refresh();
@@ -100,10 +100,10 @@ function MoveModal({
             setLoading(true);
         }
 
-        const items = itemsToMove.map((file) => {
+        const items = itemsToMove.map((item) => {
             return {
-                ...file,
-                destPath: targetPath.replace(/\/$/, "") + "/" + file.name,
+                ...item,
+                destPath: targetPath.replace(/\/$/, "") + "/" + item.name,
                 uploadDir: targetPath.replace(/\/$/, ""),
             };
         });
@@ -129,11 +129,22 @@ function MoveModal({
                     onConfirm={() => handleConfirm()}
                     comfirmText="Move"
                     size="large"
-                    title={<h5 className="modal-title">Move File</h5>}
+                    title={
+                        <div className="d-flex modal-title">
+                            <h5 className="">
+                                Move{" "}
+                                {itemsToMove.length > 1
+                                    ? itemsToMove.length + " items"
+                                    : '"' + itemsToMove[0].name + '"'}
+                            </h5>
+                        </div>
+                    }
                     text={
                         <div>
                             <div className="mb-3">
-                                <label className="form-label fw-semibold">Destination path:</label>
+                                <label className="form-label fw-semibold">
+                                    Enter Destination Path:
+                                </label>
                                 <SuggestInput
                                     value={targetPath}
                                     onChange={(val) => handleChange(val)}
@@ -141,7 +152,7 @@ function MoveModal({
                                 />
                             </div>
                             <div className="mb-3">
-                                <label className="form-label text-muted">Choose destination:</label>
+                                <label className="form-label">or select a directory below:</label>
                                 <div className="form-text">{suggestDir}</div>
                                 {loading ? (
                                     <div className="d-flex align-items-center gap-2">
@@ -152,18 +163,18 @@ function MoveModal({
                                         <span className="text-secondary">{loadingText}</span>
                                     </div>
                                 ) : (
-                                    currentItems.length > 0 && (
-                                        <ul className="list-group mt-2 shadow-sm">
-                                            {suggestDir !== "/" && (
-                                                <li
-                                                    className="list-group-item list-group-item-action"
-                                                    onClick={() => handleSelectSuggestion("..")}
-                                                >
-                                                    <BsArrowBarUp className="me-2" />
-                                                    ..
-                                                </li>
-                                            )}
-                                            {suggestions.map(
+                                    <ul className="list-group mt-2 shadow-sm">
+                                        {suggestDir !== "/" && (
+                                            <li
+                                                className="list-group-item list-group-item-action"
+                                                onClick={() => handleSelectSuggestion("..")}
+                                            >
+                                                <BsArrowBarUp className="me-2" />
+                                                ..
+                                            </li>
+                                        )}
+                                        {currentItems.length > 0 &&
+                                            suggestions.map(
                                                 (item, i) =>
                                                     item.is_dir && (
                                                         <li
@@ -178,8 +189,7 @@ function MoveModal({
                                                         </li>
                                                     )
                                             )}
-                                        </ul>
-                                    )
+                                    </ul>
                                 )}
                             </div>
                         </div>

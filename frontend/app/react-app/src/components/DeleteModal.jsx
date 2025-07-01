@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
-import removeFiles from "../utils/remove";
+import removeItems from "../utils/remove";
 import PropTypes from "prop-types";
 
 function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refresh }) {
@@ -13,7 +13,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refresh }) {
     }, [itemsToDelete]);
 
     const deleteFile = async () => {
-        const error = await removeFiles(itemsToDelete, refresh);
+        const error = await removeItems(itemsToDelete, refresh);
         setError(error);
         setItemsToDelete([]);
         setShowModal(false);

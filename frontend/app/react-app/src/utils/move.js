@@ -1,13 +1,13 @@
 import { API_URL } from "./config";
 
-async function moveFile(files) {
+async function moveItems(files) {
     if (!files) {
         return "Please input Gfarm path";
     }
     let res = null;
-    console.debug("moveFile", files);
+    console.debug("move", files);
     for (const file of files) {
-        console.debug("moveFile", file.path, "to", file.destPath);
+        console.debug("move", file.path, "to", file.destPath);
         const data = JSON.stringify(
             {
                 source: file.path,
@@ -34,9 +34,10 @@ async function moveFile(files) {
         } catch (error) {
             console.error(error);
             res = error.message;
+            // SetError(res);
         }
     }
     return res;
 }
 
-export default moveFile;
+export default moveItems;

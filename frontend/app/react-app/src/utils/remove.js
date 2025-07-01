@@ -1,7 +1,7 @@
 import { encodePath } from "./func";
 import { API_URL } from "./config";
 
-async function removeFile(path, isFile = true) {
+async function removeItem(path, isFile = true) {
     if (!path) {
         alert("Please input Gfarm path");
     }
@@ -26,13 +26,13 @@ async function removeFile(path, isFile = true) {
     }
 }
 
-export default async function removeFiles(files, refresh) {
+export default async function removeItems(files, refresh) {
     if (!files) {
         return;
     }
 
     for (const file of files) {
-        const error = await removeFile(file.path, file.is_file);
+        const error = await removeItem(file.path, file.is_file);
         if (error) {
             return error;
         }

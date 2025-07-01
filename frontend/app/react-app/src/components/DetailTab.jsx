@@ -47,7 +47,7 @@ function DetailTab({ item, active }) {
                             <td>
                                 <strong>Size:</strong>
                             </td>
-                            <td>{formatFileSize(detailContent.Size, item.is_dir)}</td>
+                            <td>{formatFileSize(detailContent.Size, false)}</td>
                         </tr>
                         <tr>
                             <td>

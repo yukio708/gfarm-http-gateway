@@ -199,7 +199,7 @@ async function upload(files, setTasks) {
             value: 0,
             done: false,
             type: "upload",
-            status: "uploading",
+            status: "upload",
             message: "waiting to upload...",
             onCancel: () => {},
         };
