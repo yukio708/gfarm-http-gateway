@@ -250,6 +250,9 @@ function HomePage({ user }) {
                         permission={(item) => {
                             handleShowDetail(item, "acl");
                         }}
+                        share={(item) => {
+                            handleShowDetail(item, "share");
+                        }}
                         showSidePanel={showSidePanel}
                     />
                 </div>

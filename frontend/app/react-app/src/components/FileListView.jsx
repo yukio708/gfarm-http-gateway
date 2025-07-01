@@ -29,6 +29,7 @@ function FileListView({
     remove,
     showDetail,
     permission,
+    share,
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
@@ -264,6 +265,7 @@ function FileListView({
                                     remove={remove}
                                     showDetail={showDetail}
                                     permission={permission}
+                                    share={share}
                                 />
                             </td>
                         </tr>
@@ -290,4 +292,5 @@ FileListView.propTypes = {
     remove: PropTypes.func,
     showDetail: PropTypes.func,
     permission: PropTypes.func,
+    share: PropTypes.func,
 };

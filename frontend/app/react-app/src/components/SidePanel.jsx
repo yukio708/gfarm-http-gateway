@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "../css/SidePanel.css";
 import ACLTab from "./ACLTab";
 import DetailTab from "./DetailTab";
+import ShareTab from "./ShareTab";
 import PropTypes from "prop-types";
 
 function SidePanel({ show, item, onHide, showTab = "detail" }) {
@@ -35,6 +36,14 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
                             className={`nav-link ${activeTab === "acl" ? "active" : ""}`}
                             onClick={() => setActiveTab("acl")}
                         >
+                            ACL
+                        </button>
+                    </li>
+                    <li className="nav-item">
+                        <button
+                            className={`nav-link ${activeTab === "share" ? "active" : ""}`}
+                            onClick={() => setActiveTab("share")}
+                        >
                             Share
                         </button>
                     </li>
@@ -43,6 +52,7 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
             <div className="px-3 py-2 overflow-auto" style={{ maxHeight: "calc(100% - 100px)" }}>
                 {show && <DetailTab item={item} active={activeTab === "detail"} />}
                 {show && <ACLTab item={item} active={activeTab === "acl"} />}
+                {show && <ShareTab item={item} active={activeTab === "share"} />}
             </div>
         </div>
     );

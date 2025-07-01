@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import SuggestInput from "./SuggestInput";
 import { set_acl, get_acl } from "../utils/acl";
 import { getUsers, getGroups } from "../utils/getNameList";
@@ -8,8 +8,6 @@ function ACLTab({ item, active }) {
     const [entries, setEntries] = useState([]);
     const [userList, setUserList] = useState([]);
     const [groupList, setGroupList] = useState([]);
-    const copyRef = useRef(null);
-    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         async function fetchSuggestions() {
@@ -83,45 +81,11 @@ function ACLTab({ item, active }) {
         setEntries(updated);
     };
 
-    const handleCopy = () => {
-        if (copyRef.current) {
-            navigator.clipboard.writeText(copyRef.current.value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000); // reset after 2s
-        }
-    };
-
     if (!active) return <></>;
 
     return (
         <div data-testid="acl-tab">
-            {item && (
-                <div className="my-2">
-                    <label className="form-label fw-bold">Link</label>
-                    <div className="input-group input-group-sm">
-                        <input
-                            ref={copyRef}
-                            type="text"
-                            className="form-control"
-                            readOnly
-                            value={
-                                item.is_dir
-                                    ? `${window.location.origin}/#${item.path}`
-                                    : `${window.location.origin}/file${item.path}`
-                            }
-                        />
-                        <button
-                            className="btn btn-outline-secondary"
-                            type="button"
-                            onClick={handleCopy}
-                        >
-                            {copied ? "Copied!" : "Copy"}
-                        </button>
-                    </div>
-                </div>
-            )}
-            <label className="form-label fw-bold mt-2">ACL</label>
-            <div className="d-flex flex-column" style={{ maxHeight: "70vh" }}>
+            <div className="d-flex flex-column mt-4" style={{ maxHeight: "70vh" }}>
                 <div className="flex-grow-1 overflow-auto pe-1" style={{ minHeight: 0 }}>
                     {entries.map((entry, i) => (
                         <div key={`acinfo-${i}`} className="border rounded p-2 mb-2">

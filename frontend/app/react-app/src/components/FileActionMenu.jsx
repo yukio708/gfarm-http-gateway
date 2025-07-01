@@ -8,12 +8,13 @@ import {
     BsFiles,
     BsDownload,
     BsTrash,
+    BsKey,
     BsShare,
     BsArchive,
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, gfptar }) {
+function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, archiveItems }) {
     if (selectedItems.length === 0) return null;
 
     return (
@@ -44,7 +45,7 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => gfptar()}>
+                    <button className="dropdown-item" onClick={() => archiveItems()}>
                         <BsArchive className="me-2" /> gfptar
                     </button>
                 </li>
@@ -53,7 +54,17 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
     );
 }
 
-function ItemMenu({ item, download, display, move, rename, remove, showDetail, permission }) {
+function ItemMenu({
+    item,
+    download,
+    display,
+    move,
+    rename,
+    remove,
+    showDetail,
+    permission,
+    share,
+}) {
     return (
         <div className="dropdown">
             <button
@@ -104,6 +115,11 @@ function ItemMenu({ item, download, display, move, rename, remove, showDetail, p
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => permission(item)}>
+                        <BsKey className="me-2" /> Access Control
+                    </button>
+                </li>
+                <li>
+                    <button className="dropdown-item" onClick={() => share(item)}>
                         <BsShare className="me-2" /> Share
                     </button>
                 </li>
@@ -118,6 +134,7 @@ FileActionMenu.propTypes = {
     downloadItems: PropTypes.func,
     removeItems: PropTypes.func,
     moveItems: PropTypes.func,
+    archiveItems: PropTypes.func,
     selectedItems: PropTypes.array,
 };
 
@@ -130,4 +147,5 @@ ItemMenu.propTypes = {
     remove: PropTypes.func,
     showDetail: PropTypes.func,
     permission: PropTypes.func,
+    share: PropTypes.func,
 };
