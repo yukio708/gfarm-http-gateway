@@ -11,9 +11,9 @@ function DateFilter({ dateFilter, setDateFilter }) {
         options.find((opt) => opt.value === dateFilter)?.label || "Filter by Modified";
 
     return (
-        <div className="dropdown">
+        <div className="btn-group" role="group">
             <button
-                className="btn btn-outline-secondary dropdown-toggle btn-sm"
+                className="btn btn-sm dropdown-toggle btn-outline-secondary"
                 type="button"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"

@@ -135,28 +135,32 @@ function FileListView({
 
     return (
         <div>
-            <div className="d-flex flex-wrap align-items-center gap-2 m-2">
-                <FileTypeFilter
-                    parentName={parentName}
-                    fileTypes={fileTypes}
-                    filterTypes={filterTypes}
-                    setFilterTypes={setFilterTypes}
-                />
-                <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
+            <div className="d-flex flex-wrap  mb-1">
+                <div className="btn-group me-4" role="group">
+                    <FileTypeFilter
+                        parentName={parentName}
+                        fileTypes={fileTypes}
+                        filterTypes={filterTypes}
+                        setFilterTypes={setFilterTypes}
+                    />
+                    <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
+                </div>
 
-                <UploadMenu
-                    onUpload={upload}
-                    onCreate={createNewDir}
-                    uploadDir={currentDir}
-                    currentItems={currentItems}
-                />
-                <FileActionMenu
-                    selectedItems={selectedItems}
-                    removeItems={remove}
-                    downloadItems={download}
-                    moveItems={move}
-                    archiveItems={gfptar}
-                />
+                <div className="d-flex gap-2">
+                    <UploadMenu
+                        onUpload={upload}
+                        onCreate={createNewDir}
+                        uploadDir={currentDir}
+                        currentItems={currentItems}
+                    />
+                    <FileActionMenu
+                        selectedItems={selectedItems}
+                        removeItems={remove}
+                        downloadItems={download}
+                        moveItems={move}
+                        archiveItems={gfptar}
+                    />
+                </div>
             </div>
             <table className="file-table">
                 <thead style={{ position: "sticky", top: 0 }}>

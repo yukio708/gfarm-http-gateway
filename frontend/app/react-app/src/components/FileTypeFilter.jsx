@@ -18,9 +18,9 @@ function FileTypeFilter({ parentName, fileTypes, filterTypes, setFilterTypes }) 
             : "Filter by type";
 
     return (
-        <div className="dropdown">
+        <div className="btn-group" role="group">
             <button
-                className="btn btn-outline-secondary dropdown-toggle btn-sm"
+                className="btn btn-sm dropdown-toggle btn-outline-secondary"
                 type="button"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"

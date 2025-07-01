@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { CollectPathsFromFiles, checkConflicts } from "../utils/func";
 import ConflictResolutionModal from "./ConflictResolutionModal";
-import { BsFileEarmarkArrowUp, BsFolder, BsFolderPlus } from "react-icons/bs";
+import { BsFileEarmarkArrowUp, BsFolder, BsFolderPlus, BsUpload } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
@@ -49,11 +49,12 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
             <div className="dropdown">
                 <button
                     type="button"
-                    className="btn btn-secondary btn-sm dropdown-toggle"
+                    className="btn btn-info btn-sm dropdown-toggle"
                     id="uploadDropdown"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                 >
+                    <BsUpload className="me-2" />
                     Upload
                 </button>
                 <ul className="dropdown-menu" aria-labelledby="uploadDropdown">
