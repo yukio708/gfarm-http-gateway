@@ -72,7 +72,7 @@ function HomePage({ user }) {
             } else if (info.is_sym) {
                 addNotification(info.name, `Link not found`, "warning");
             } else {
-                jumpDirectory(info.linkname);
+                jumpDirectory(info.path);
             }
         } catch (err) {
             addNotification(`${err.name} : ${err.message}`);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNotifications } from "../context/NotificationContext";
 import { formatFileSize } from "../utils/func";
 import getAttribute from "../utils/getAttribute";
+import getSymlink from "../utils/getSymlink";
 import PropTypes from "prop-types";
 
 function DetailTab({ item, active }) {
@@ -11,17 +12,22 @@ function DetailTab({ item, active }) {
     useEffect(() => {
         if (!item) return;
 
-        const showDetail = async (itempath) => {
+        const showDetail = async (item) => {
             try {
-                const detail = await getAttribute(itempath);
+                const detail = await getAttribute(item.path);
                 console.debug("detail:", detail);
+                if (item.is_sym) {
+                    const info = await getSymlink(item.path);
+                    detail.LinkPath = info.path;
+                }
+
                 setDetailContent(detail);
             } catch (err) {
                 console.error("getAttribute failed:", err);
                 addNotification("Detail", `${err.name} : ${err.message}`, "error");
             }
         };
-        showDetail(item.path);
+        showDetail(item);
     }, [item]);
 
     if (!active) return <></>;
@@ -37,6 +43,14 @@ function DetailTab({ item, active }) {
                             </td>
                             <td>{detailContent.File}</td>
                         </tr>
+                        {detailContent.LinkPath && (
+                            <tr>
+                                <td>
+                                    <strong>Link Path:</strong>
+                                </td>
+                                <td>{detailContent.LinkPath}</td>
+                            </tr>
+                        )}
                         <tr>
                             <td>
                                 <strong>File Type:</strong>
