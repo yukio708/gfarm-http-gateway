@@ -48,7 +48,11 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         const response = await fetch(dlurl, request);
 
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            const error = await response.json();
+            const message = JSON.stringify(error.detail);
+            throw new Error(`${response.status} ${message}`, {
+                cause: response.status,
+            });
         }
 
         const decoder = new TextDecoder("utf-8");
@@ -98,7 +102,7 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         refresh();
     } catch (err) {
         const isAbort = err.name === "AbortError";
-        const message = isAbort ? "Download cancelled" : `${err.name}: ${err.message}`;
+        const message = isAbort ? "Download cancelled" : `${err.name} : ${err.message}`;
         setTasks((prev) =>
             prev.map((task) =>
                 task.taskId === taskId

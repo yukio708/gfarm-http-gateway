@@ -116,8 +116,8 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
                     const detail = xhr.response?.detail;
                     const stderr = detail?.stderr ? JSON.stringify(detail.stderr) : null;
                     const message = stderr
-                        ? `Error: HTTP ${xhr.status}: ${xhr.statusText}, stderr=${stderr}`
-                        : `Error: HTTP ${xhr.status}: ${xhr.statusText}, detail=${JSON.stringify(detail)}`;
+                        ? `${xhr.status}: ${stderr}`
+                        : `${xhr.status}: ${JSON.stringify(detail)}`;
                     setTasks((prev) =>
                         prev.map((task) =>
                             task.taskId === taskId ? { ...task, status: "error", message } : task
@@ -147,14 +147,14 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
         });
     } catch (error) {
         console.error("Cannot upload:", error);
-
+        const message = `${error.name} : ${error.message}`;
         setTasks((prev) =>
             prev.map((task) =>
                 task.taskId === taskId
                     ? {
                           ...task,
                           status: "error",
-                          message: error,
+                          message,
                           done: true,
                       }
                     : task

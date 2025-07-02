@@ -18,7 +18,7 @@ function DetailTab({ item, active }) {
                 setDetailContent(detail);
             } catch (err) {
                 console.error("getAttribute failed:", err);
-                addNotification(err.message);
+                addNotification("Detail", `${err.name} : ${err.message}`, "error");
             }
         };
         showDetail(item.path);

@@ -15,14 +15,15 @@ async function removeItem(path, isFile = true) {
             method: "DELETE",
         });
         if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`HTTP ${response.status}: ${text}`);
+            const error = await response.json();
+            const message = JSON.stringify(error.detail);
+            throw new Error(`${response.status} ${message}`);
         }
         console.debug("Success (removed)");
         return null;
     } catch (error) {
         console.error(error);
-        return error.message;
+        return `${error.name} : ${error.message}`;
     }
 }
 

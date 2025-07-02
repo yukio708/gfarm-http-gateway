@@ -2,7 +2,7 @@ import { API_URL } from "./config";
 
 async function moveItems(files, setError) {
     if (!files) {
-        setError("Please input Gfarm path");
+        setError("no files");
     }
     console.debug("move", files);
     for (const file of files) {
@@ -25,14 +25,15 @@ async function moveItems(files, setError) {
                 },
                 body: data,
             });
-            const text = await response.text();
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${text}`);
+                const error = await response.json();
+                const message = JSON.stringify(error.detail);
+                throw new Error(`${response.status} ${message}`);
             }
-            console.debug(`Success (moved)`, text);
+            console.debug(`Success (moved)`);
         } catch (error) {
             console.error(error);
-            setError(error.message);
+            setError(`${error.name} : ${error.message}`);
         }
     }
 }

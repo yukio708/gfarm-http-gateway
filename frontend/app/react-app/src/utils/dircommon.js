@@ -10,18 +10,19 @@ async function dirCommon(path, method, message, params = null) {
                 method: method,
             });
             if (!response.ok) {
-                const text = await response.text();
-                throw new Error(`HTTP ${response.status}: ${text}`);
+                const error = await response.json();
+                const message = JSON.stringify(error.detail);
+                throw new Error(`HTTP ${response.status}: ${message}`);
             }
             console.debug(`dirCommon: Success (${message})`);
             return null;
         } catch (error) {
             console.error(error);
             console.debug(`dirCommon: ${error}`);
-            return error.message;
+            return `${error.name} : ${error.message}`;
         }
     } else {
-        return "Please input Gfarm path";
+        return "no path";
     }
 }
 

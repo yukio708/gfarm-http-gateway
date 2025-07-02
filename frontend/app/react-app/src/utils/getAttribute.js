@@ -6,10 +6,11 @@ async function getAttribute(filepath) {
     const fullpath = `${API_URL}/attr${epath}`;
 
     const response = await fetch(fullpath);
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.text()}`);
-    }
     const json = await response.json();
+    if (!response.ok) {
+        const message = JSON.stringify(json.detail);
+        throw new Error(`HTTP ${response.status}: ${message}`);
+    }
     return json;
 }
 

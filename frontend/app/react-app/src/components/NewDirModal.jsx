@@ -10,14 +10,15 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
 
     const handleCreateDir = async () => {
         if (dirname === "") {
-            alert("Please input Directory Name");
+            addNotification("Create", "Directory name is empty", "warning");
+            setShowModal(false);
             return;
         }
         const path = currentDir.replace(/\/$/, "") + "/" + dirname;
         const error = await createDir(path);
         setShowModal(false);
         setDirname("");
-        if (error) addNotification(error);
+        if (error) addNotification("Create", error, "error");
         refresh();
     };
 
@@ -37,7 +38,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
                         className="form-control"
                         value={dirname}
                         onChange={(e) => setDirname(e.target.value)}
-                        placeholder="Enter folder name"
+                        placeholder="Enter directory name"
                     />
                 }
             />

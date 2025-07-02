@@ -61,7 +61,10 @@ function ArchiveModal({
     useEffect(() => {
         if (listStatus.length > 0) {
             if (listStatus[0].status === "error") {
-                addNotification(listStatus[0].message);
+                addNotification("Gfptar", listStatus[0].message, "error");
+                console.error("useEffect gfptar failed", listStatus[0].message);
+            } else if (listStatus[0].status === "completed") {
+                setListStatus([]);
             } else if (listStatus[0].message) {
                 const [file_type, path] = listStatus[0].message.trim().split(" ", 2);
                 setIndirList((prev) => [
@@ -94,7 +97,6 @@ function ArchiveModal({
             command === "list" ? setListStatus : setTasks,
             refresh
         );
-        setListStatus([]);
         if (command !== "list") {
             setIndirList([]);
             setSelectedItems([]);

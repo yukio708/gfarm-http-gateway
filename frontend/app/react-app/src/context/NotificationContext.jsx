@@ -10,9 +10,9 @@ export function useNotifications() {
 export function NotificationProvider({ children }) {
     const [notifications, setNotifications] = useState([]);
 
-    const addNotification = (message, type = "warning") => {
+    const addNotification = (name, message, type = "warning") => {
         const id = Date.now() + Math.random();
-        const notification = { id, message, type };
+        const notification = { id, name, message, type };
 
         setNotifications((prev) => [...prev, notification]);
 
@@ -34,18 +34,24 @@ export function NotificationProvider({ children }) {
                 {notifications.map((n) => (
                     <div
                         key={n.id}
-                        className={`toast show mb-2 ${n.type === "error" ? "bg-danger text-white" : "bg-warning"}`}
+                        className={`toast show mb-2 ${
+                            n.type === "error"
+                                ? "bg-danger text-white"
+                                : n.type === "warning"
+                                  ? "bg-warning"
+                                  : "bg-info"
+                        }`}
                         role="alert"
                         style={{ minWidth: "250px" }}
                     >
                         <div className="d-flex justify-content-between align-items-center px-2 py-1">
-                            <div>{n.message}</div>
-                            {n.type === "error" && (
-                                <button
-                                    className="btn-close btn-close-white ms-2"
-                                    onClick={() => removeNotification(n.id)}
-                                />
-                            )}
+                            <div>
+                                {n.name} : {n.message}
+                            </div>
+                            <button
+                                className="btn-close btn-close-white ms-2"
+                                onClick={() => removeNotification(n.id)}
+                            />
                         </div>
                     </div>
                 ))}

@@ -48,7 +48,7 @@ function MoveModal({ showModal, setShowModal, currentDir, itemsToMove, setItemsT
     useEffect(() => {
         if (error) {
             console.debug("error", error);
-            addNotification(error, "error");
+            addNotification("Move", error, "error");
         }
     }, [error]);
 

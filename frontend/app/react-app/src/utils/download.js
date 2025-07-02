@@ -35,8 +35,11 @@ async function downloadFile(dlurl, defaultFilename, controller, request, setTask
     try {
         const response = await fetch(dlurl, request);
 
+        console.debug("response", response);
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            const error = await response.json();
+            const message = JSON.stringify(error.detail);
+            throw new Error(`${response.status} ${message}`);
         }
 
         const contentType = response.headers.get("Content-Type");

@@ -21,7 +21,7 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
     useEffect(() => {
         if (error) {
             console.debug("error", error);
-            addNotification(error, "error");
+            addNotification("Rename", error, "error");
         }
     }, [error]);
 

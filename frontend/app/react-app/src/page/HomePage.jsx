@@ -76,12 +76,12 @@ function HomePage({ user }) {
             if (info.is_file) {
                 handleDisplayFile(info.path);
             } else if (info.is_sym) {
-                alert("Link not found");
+                addNotification(info.name, `Link not found`, "warning");
             } else {
                 jumpDirectory(info.linkname);
             }
         } catch (err) {
-            addNotification(err.message);
+            addNotification(`${err.name} : ${err.message}`);
         }
     };
 
