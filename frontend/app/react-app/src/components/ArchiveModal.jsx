@@ -44,7 +44,6 @@ function ArchiveModal({
     }, [showModal]);
 
     useEffect(() => {
-        console.log("destDir", destDir);
         if (
             (compressMode === "create" || activeTab === "extract") &&
             currentItems.some((item) => item.path === destDir)

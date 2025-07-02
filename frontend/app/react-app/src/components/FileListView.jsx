@@ -85,7 +85,6 @@ function FileListView({
     };
 
     useEffect(() => {
-        console.log("FileListView useEffect selectedItems", selectedItems);
         if (headerCheckboxRef.current) {
             if (selectedItems.length === 0) {
                 headerCheckboxRef.current.indeterminate = false;

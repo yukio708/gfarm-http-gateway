@@ -13,7 +13,7 @@ export async function getUsers() {
                 cachedUsers.users = data.list;
             }
             cachedUsers.lastFetch = now;
-            console.log("data", data);
+            console.debug("data", data);
         } catch (err) {
             console.error("Failed to fetch users:", err);
         }

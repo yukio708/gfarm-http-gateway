@@ -38,7 +38,7 @@ function useProgressTasks(setRefreshKey) {
             setIsUploading(false);
 
             await Promise.allSettled(allUploads);
-            console.log("done!");
+            console.debug("done!");
             setRefreshKey((prev) => !prev);
         };
         worker();
