@@ -9,17 +9,24 @@ import moveItems from "../utils/move";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function MoveModal({ showModal, setShowModal, currentDir, itemsToMove, setItemsToMove, refresh }) {
+function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
+    const [showModal, setShowModal] = useState(false);
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
     const { currentItems, listGetError } = useFileList(suggestDir, suggestDir);
     const [loading, setLoading] = useState(true);
     const [loadingText, setLoadingText] = useState("Loading suggestions...");
     const [showConflictModal, setShowConflictModal] = useState(false);
-    const [pendingConfirm, setPendingConfirm] = useState(false);
+    const [pendingItems, setPendingItems] = useState([]);
     const suggestions = currentItems.filter((file) => file.is_dir);
     const [error, setError] = useState(null);
     const { addNotification } = useNotifications();
+
+    useEffect(() => {
+        if (itemsToMove.length > 0) {
+            setShowModal(true);
+        }
+    }, [itemsToMove]);
 
     useEffect(() => {
         if (listGetError) {
@@ -59,18 +66,17 @@ function MoveModal({ showModal, setShowModal, currentDir, itemsToMove, setItemsT
     };
 
     useEffect(() => {
-        if (!loading && pendingConfirm) {
-            setPendingConfirm(false);
-            const res = checkConflicts(itemsToMove, currentItems);
+        if (!loading && pendingItems.length > 0) {
+            const res = checkConflicts(pendingItems, currentItems);
             console.debug("res", res);
             if (res.hasConflict) {
                 setItemsToMove(res.incomingItems);
                 setShowConflictModal(true);
                 return;
             }
-            handleMove(itemsToMove);
+            handleMove(pendingItems);
         }
-    }, [loading, pendingConfirm]);
+    }, [loading, pendingItems]);
 
     const handleChange = (input) => {
         setTargetPath(input);
@@ -109,14 +115,13 @@ function MoveModal({ showModal, setShowModal, currentDir, itemsToMove, setItemsT
             };
         });
 
-        setItemsToMove(items);
-        setPendingConfirm(true);
+        setPendingItems(items);
     };
 
     const handleCancel = () => {
         setTargetPath("");
+        setPendingItems([]);
         setItemsToMove([]);
-        setShowModal(false);
         if (showConflictModal) {
             setShowConflictModal(false);
         }

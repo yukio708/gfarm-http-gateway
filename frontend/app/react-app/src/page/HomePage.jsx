@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import FileListView from "../components/FileListView";
 import CurrentDirView from "../components/CurrentDirView";
@@ -12,9 +12,8 @@ import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
 import ArchiveModal from "../components/ArchiveModal";
 import useFileList from "../hooks/useFileList";
+import useProgressTasks from "../hooks/useProgressTasks";
 import { useNotifications } from "../context/NotificationContext";
-import upload from "../utils/upload";
-import download from "../utils/download";
 import displayFile from "../utils/display";
 import getSymlink from "../utils/getSymlink";
 import ErrorPage from "./ErrorPage";
@@ -28,18 +27,20 @@ function HomePage({ user }) {
     const { currentItems, listGetError } = useFileList(currentDir, refreshKey);
     const [selectedItems, setSelectedItems] = useState([]);
     const [lastSelectedItem, setLastSelectedItem] = useState(null);
-    const [itemsToDelete, setItemsToDelete] = useState([]);
-    const [itemsToMove, setItemsToMove] = useState([]);
-    const [tasks, setTasks] = useState([]);
-    const [taskCount, setTaskCount] = useState(0);
-    const uploadQueueRef = useRef([]);
-    const [isUploading, setIsUploading] = useState(false);
-    const downloadQueueRef = useRef([]);
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [showProgressView, setShowProgressView] = useState(false);
+    const {
+        tasks,
+        showProgressView,
+        itemsToMove,
+        itemsToDelete,
+        setTasks,
+        setShowProgressView,
+        addItemsToUpload,
+        addItemsToDownload,
+        setItemsToMove,
+        setItemsToDelete,
+    } = useProgressTasks(setRefreshKey);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
     const [showRenameModal, setShowRenameModal] = useState(false);
-    const [showMoveModal, setShowMoveModal] = useState(false);
     const [showGfptarModal, setShowGfptarModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
     const { addNotification } = useNotifications();
@@ -49,13 +50,6 @@ function HomePage({ user }) {
             prev.filter((selected) => currentItems.some((item) => item.path === selected.path))
         );
     }, [currentItems]);
-
-    useEffect(() => {
-        if (taskCount < tasks.length) {
-            setShowProgressView(true);
-        }
-        setTaskCount(tasks.length);
-    }, [tasks]);
 
     const jumpDirectory = (newdir) => {
         if (currentDir === newdir) {
@@ -93,66 +87,6 @@ function HomePage({ user }) {
         } else {
             handleSymlink(path);
         }
-    };
-
-    const addItemsToDownload = (items) => {
-        console.debug("addItemsToDownload: items:", items);
-        downloadQueueRef.current.push(items);
-        setIsDownloading(true);
-    };
-
-    const addFilesToUpload = (newItems) => {
-        uploadQueueRef.current.push(newItems);
-        setIsUploading(true);
-        console.debug("addFilesToUpload", newItems);
-    };
-
-    const handleUpload = async () => {
-        setTasks((prev) => prev.filter((t) => !t.done));
-        const worker = async () => {
-            const allUploads = [];
-            while (uploadQueueRef.current.length) {
-                const uploadFiles = uploadQueueRef.current.shift();
-                const promise = upload(uploadFiles, setTasks);
-                allUploads.push(promise);
-            }
-            setIsUploading(false);
-
-            await Promise.allSettled(allUploads);
-            console.log("done!");
-            setRefreshKey((prev) => !prev);
-        };
-        worker();
-    };
-
-    useEffect(() => {
-        console.debug("isUploading", isUploading);
-        if (isUploading) {
-            handleUpload();
-        }
-    }, [isUploading]);
-
-    const handleDownload = async () => {
-        const worker = async () => {
-            setTasks((prev) => prev.filter((t) => !t.done));
-            while (downloadQueueRef.current.length) {
-                const files = downloadQueueRef.current.shift();
-                download(files, setTasks);
-            }
-            setIsDownloading(false);
-        };
-        await worker();
-    };
-
-    useEffect(() => {
-        if (isDownloading) {
-            handleDownload();
-        }
-    }, [isDownloading]);
-
-    const addItemsToMove = (items) => {
-        setItemsToMove(items);
-        setShowMoveModal(true);
     };
 
     const handleShowDetail = (item, tab) => {
@@ -209,13 +143,13 @@ function HomePage({ user }) {
                         setLastSelectedItem={setLastSelectedItem}
                         handleItemClick={handleItemClick}
                         download={addItemsToDownload}
-                        upload={addFilesToUpload}
+                        upload={addItemsToUpload}
                         showDetail={(item) => {
                             handleShowDetail(item, "detail");
                         }}
                         display={handleDisplayFile}
                         remove={setItemsToDelete}
-                        move={addItemsToMove}
+                        move={setItemsToMove}
                         rename={handleRename}
                         permission={(item) => {
                             handleShowDetail(item, "acl");
@@ -260,7 +194,7 @@ function HomePage({ user }) {
                 </button>
             )}
             <UploadDropZone
-                onUpload={addFilesToUpload}
+                onUpload={addItemsToUpload}
                 uploadDir={currentDir}
                 currentItems={currentItems}
             />
@@ -298,8 +232,6 @@ function HomePage({ user }) {
                 }}
             />
             <MoveModal
-                showModal={showMoveModal}
-                setShowModal={setShowMoveModal}
                 itemsToMove={itemsToMove}
                 setItemsToMove={setItemsToMove}
                 currentDir={currentDir}
