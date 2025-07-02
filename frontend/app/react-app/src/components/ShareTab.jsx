@@ -2,14 +2,16 @@ import React, { useState, useRef } from "react";
 import PropTypes from "prop-types";
 
 function ShareTab({ item, active }) {
-    const copyRef = useRef(null);
-    const [copied, setCopied] = useState(false);
+    const copyLinkRef = useRef(null);
+    const copyDownloadLinkRef = useRef(null);
+    const [copiedLink, setCopiedLink] = useState(false);
+    const [copiedDownload, setCopiedDownload] = useState(false);
 
-    const handleCopy = () => {
-        if (copyRef.current) {
-            navigator.clipboard.writeText(copyRef.current.value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000); // reset after 2s
+    const handleCopy = (ref, setCopiedFn) => {
+        if (ref?.current) {
+            navigator.clipboard.writeText(ref.current.value);
+            setCopiedFn(true);
+            setTimeout(() => setCopiedFn(false), 2000);
         }
     };
 
@@ -19,27 +21,46 @@ function ShareTab({ item, active }) {
         <div data-testid="share-tab">
             {item && (
                 <div className="my-2">
-                    <label className="form-label fw-bold">Link</label>
+                    <label className="form-label fw-bold">Open in Web App</label>
                     <div className="input-group input-group-sm">
                         <input
-                            ref={copyRef}
+                            ref={copyLinkRef}
                             type="text"
                             className="form-control"
                             readOnly
-                            value={
-                                item.is_dir
-                                    ? `${window.location.origin}/#${item.path}`
-                                    : `${window.location.origin}/file${item.path}`
-                            }
+                            value={`${window.location.origin}/#${item.path}`}
                         />
                         <button
                             className="btn btn-outline-secondary"
                             type="button"
-                            onClick={handleCopy}
+                            onClick={() => handleCopy(copyLinkRef, setCopiedLink)}
                         >
-                            {copied ? "Copied!" : "Copy"}
+                            {copiedLink ? "Copied!" : "Copy"}
                         </button>
                     </div>
+                    {item.is_file && (
+                        <div className="mt-2">
+                            <label className="form-label fw-bold">View File</label>
+                            <div className="input-group input-group-sm">
+                                <input
+                                    ref={copyDownloadLinkRef}
+                                    type="text"
+                                    className="form-control"
+                                    readOnly
+                                    value={`${window.location.origin}/file${item.path}`}
+                                />
+                                <button
+                                    className="btn btn-outline-secondary"
+                                    type="button"
+                                    onClick={() =>
+                                        handleCopy(copyDownloadLinkRef, setCopiedDownload)
+                                    }
+                                >
+                                    {copiedDownload ? "Copied!" : "Copy"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

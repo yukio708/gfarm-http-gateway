@@ -16,6 +16,7 @@ import useProgressTasks from "../hooks/useProgressTasks";
 import { useNotifications } from "../context/NotificationContext";
 import displayFile from "../utils/display";
 import getSymlink from "../utils/getSymlink";
+import { getParentPath } from "../utils/func";
 import ErrorPage from "./ErrorPage";
 import PropTypes from "prop-types";
 
@@ -49,6 +50,14 @@ function HomePage({ user }) {
         setSelectedItems((prev) =>
             prev.filter((selected) => currentItems.some((item) => item.path === selected.path))
         );
+        if (currentItems.length === 1) {
+            if (currentDir === currentItems[0].path) {
+                setLastSelectedItem(currentItems[0]);
+                setSelectedItems([currentItems[0]]);
+                navigate(getParentPath(currentDir));
+                setShowSidePanel({ show: true, tab: "detail" });
+            }
+        }
     }, [currentItems]);
 
     const jumpDirectory = (newdir) => {
