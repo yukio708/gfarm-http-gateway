@@ -20,7 +20,6 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
     const [showConflictModal, setShowConflictModal] = useState(false);
     const [pendingItems, setPendingItems] = useState([]);
     const suggestions = currentItems.filter((file) => file.is_dir);
-    const [error, setError] = useState(null);
     const { addNotification } = useNotifications();
 
     useEffect(() => {
@@ -53,12 +52,10 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
         }
     }, [targetPath]);
 
-    useEffect(() => {
-        if (error) {
-            console.debug("error", error);
-            addNotification("Move", error, "error");
-        }
-    }, [error]);
+    const setError = (error) => {
+        console.debug("error", error);
+        addNotification("Move", error, "error");
+    };
 
     const handleMove = async (items) => {
         setIsMoving(true);

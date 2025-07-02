@@ -7,7 +7,6 @@ import PropTypes from "prop-types";
 
 function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
     const [newName, setNewName] = useState("");
-    const [error, setError] = useState(null);
     const { addNotification } = useNotifications();
 
     useEffect(() => {
@@ -18,12 +17,10 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
         }
     }, [showModal]);
 
-    useEffect(() => {
-        if (error) {
-            console.debug("error", error);
-            addNotification("Rename", error, "error");
-        }
-    }, [error]);
+    const setError = (error) => {
+        console.debug("error", error);
+        addNotification("Rename", error, "error");
+    };
 
     const handleRename = async () => {
         if (!renameItem) return;
