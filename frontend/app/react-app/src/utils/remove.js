@@ -28,7 +28,7 @@ async function removeItem(path, isFile = true) {
 
 export default async function removeItems(files, refresh) {
     if (!files) {
-        return;
+        return null;
     }
 
     for (const file of files) {
@@ -38,4 +38,5 @@ export default async function removeItems(files, refresh) {
         }
     }
     refresh();
+    return null;
 }

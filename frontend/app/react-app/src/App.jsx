@@ -5,6 +5,7 @@ import LoginPage from "./page/LoginPage";
 import useUserInfo from "./hooks/useUserInfo";
 import { getIconCSS } from "./utils/getFileCategory";
 import { loadExternalCss } from "./utils/func";
+import { NotificationProvider } from "./context/NotificationContext";
 
 function App() {
     const [cssLoading, setCssLoading] = useState(true);
@@ -26,11 +27,13 @@ function App() {
         return <LoginPage />;
     }
     return (
-        <HashRouter>
-            <Routes>
-                <Route path="/*" element={<HomePage user={user} />} />
-            </Routes>
-        </HashRouter>
+        <NotificationProvider>
+            <HashRouter>
+                <Routes>
+                    <Route path="/*" element={<HomePage user={user} />} />
+                </Routes>
+            </HashRouter>
+        </NotificationProvider>
     );
 }
 

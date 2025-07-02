@@ -1,0 +1,59 @@
+import React, { createContext, useState, useContext } from "react";
+import PropTypes from "prop-types";
+
+const NotificationContext = createContext();
+
+export function useNotifications() {
+    return useContext(NotificationContext);
+}
+
+export function NotificationProvider({ children }) {
+    const [notifications, setNotifications] = useState([]);
+
+    const addNotification = (message, type = "warning") => {
+        const id = Date.now() + Math.random();
+        const notification = { id, message, type };
+
+        setNotifications((prev) => [...prev, notification]);
+
+        if (type === "warning") {
+            setTimeout(() => {
+                setNotifications((prev) => prev.filter((n) => n.id !== id));
+            }, 10000);
+        }
+    };
+
+    const removeNotification = (id) => {
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+    };
+
+    return (
+        <NotificationContext.Provider value={{ addNotification, removeNotification }}>
+            {children}
+            <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 9999 }}>
+                {notifications.map((n) => (
+                    <div
+                        key={n.id}
+                        className={`toast show mb-2 ${n.type === "error" ? "bg-danger text-white" : "bg-warning"}`}
+                        role="alert"
+                        style={{ minWidth: "250px" }}
+                    >
+                        <div className="d-flex justify-content-between align-items-center px-2 py-1">
+                            <div>{n.message}</div>
+                            {n.type === "error" && (
+                                <button
+                                    className="btn-close btn-close-white ms-2"
+                                    onClick={() => removeNotification(n.id)}
+                                />
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </NotificationContext.Provider>
+    );
+}
+
+NotificationProvider.propTypes = {
+    children: PropTypes.element,
+};

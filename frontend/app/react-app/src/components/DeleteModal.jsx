@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
+import { useNotifications } from "../context/NotificationContext";
 import removeItems from "../utils/remove";
 import PropTypes from "prop-types";
 
-function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refresh }) {
+function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
     const [showModal, setShowModal] = useState(false);
+    const { addNotification } = useNotifications();
 
     useEffect(() => {
         if (itemsToDelete.length > 0) {
@@ -14,7 +16,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, setError, refresh }) {
 
     const deleteFile = async () => {
         const error = await removeItems(itemsToDelete, refresh);
-        setError(error);
+        if (error) addNotification(error);
         setItemsToDelete([]);
         setShowModal(false);
     };
@@ -56,6 +58,5 @@ export default DeleteModal;
 DeleteModal.propTypes = {
     itemsToDelete: PropTypes.array,
     setItemsToDelete: PropTypes.func,
-    setError: PropTypes.func,
     refresh: PropTypes.func,
 };

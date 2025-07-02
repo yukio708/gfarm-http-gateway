@@ -3,6 +3,7 @@ import ModalWindow from "./Modal";
 import SuggestInput from "./SuggestInput";
 import MiniFileListView from "./MiniFileListView";
 import useFileList from "../hooks/useFileList";
+import { useNotifications } from "../context/NotificationContext";
 import gfptar from "../utils/archive";
 import PropTypes from "prop-types";
 
@@ -30,6 +31,7 @@ function ArchiveModal({
     const [indirList, setIndirList] = useState([]);
     const [selectedFromList, setSelectedFromList] = useState([]);
     const suggestions = currentItems.filter((file) => file.is_dir);
+    const { addNotification } = useNotifications();
 
     useEffect(() => {
         setTargetItems(selectedItems);
@@ -58,7 +60,9 @@ function ArchiveModal({
 
     useEffect(() => {
         if (listStatus.length > 0) {
-            if (listStatus[0].message) {
+            if (listStatus[0].status === "error") {
+                addNotification(listStatus[0].message);
+            } else if (listStatus[0].message) {
                 const [file_type, path] = listStatus[0].message.trim().split(" ", 2);
                 setIndirList((prev) => [
                     ...prev,

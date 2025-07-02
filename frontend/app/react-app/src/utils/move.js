@@ -1,10 +1,9 @@
 import { API_URL } from "./config";
 
-async function moveItems(files) {
+async function moveItems(files, setError) {
     if (!files) {
-        return "Please input Gfarm path";
+        setError("Please input Gfarm path");
     }
-    let res = null;
     console.debug("move", files);
     for (const file of files) {
         console.debug("move", file.path, "to", file.destPath);
@@ -33,11 +32,9 @@ async function moveItems(files) {
             console.debug(`Success (moved)`, text);
         } catch (error) {
             console.error(error);
-            res = error.message;
-            // SetError(res);
+            setError(error.message);
         }
     }
-    return res;
 }
 
 export default moveItems;

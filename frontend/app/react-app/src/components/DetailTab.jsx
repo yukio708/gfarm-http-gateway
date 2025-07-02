@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { useNotifications } from "../context/NotificationContext";
 import { formatFileSize } from "../utils/func";
 import getAttribute from "../utils/getAttribute";
 import PropTypes from "prop-types";
 
 function DetailTab({ item, active }) {
     const [detailContent, setDetailContent] = useState(null);
-    const [error, setError] = useState(null);
+    const { addNotification } = useNotifications();
 
     useEffect(() => {
         if (!item) return;
@@ -17,7 +18,7 @@ function DetailTab({ item, active }) {
                 setDetailContent(detail);
             } catch (err) {
                 console.error("getAttribute failed:", err);
-                setError(err);
+                addNotification(err.message);
             }
         };
         showDetail(item.path);
@@ -27,7 +28,6 @@ function DetailTab({ item, active }) {
 
     return (
         <div>
-            {error && <div className="alert alert-danger">{error}</div>}
             {detailContent && (
                 <table className="table table-striped mt-4">
                     <tbody>

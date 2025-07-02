@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import ModalWindow from "./Modal";
+import { useNotifications } from "../context/NotificationContext";
 import { createDir } from "../utils/dircommon";
 import PropTypes from "prop-types";
 
-function NewDirModal({ showModal, setShowModal, currentDir, setError, refresh }) {
+function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
     const [dirname, setDirname] = useState("");
+    const { addNotification } = useNotifications();
 
     const handleCreateDir = async () => {
         if (dirname === "") {
@@ -15,7 +17,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, setError, refresh })
         const error = await createDir(path);
         setShowModal(false);
         setDirname("");
-        setError(error);
+        if (error) addNotification(error);
         refresh();
     };
 
@@ -49,6 +51,5 @@ NewDirModal.propTypes = {
     showModal: PropTypes.bool,
     setShowModal: PropTypes.func,
     currentDir: PropTypes.string,
-    setError: PropTypes.func,
     refresh: PropTypes.func,
 };

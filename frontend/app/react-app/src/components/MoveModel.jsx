@@ -3,20 +3,13 @@ import ModalWindow from "./Modal";
 import SuggestInput from "./SuggestInput";
 import ConflictResolutionModal from "./ConflictResolutionModal";
 import useFileList from "../hooks/useFileList";
+import { useNotifications } from "../context/NotificationContext";
 import { getParentPath, checkConflicts } from "../utils/func";
 import moveItems from "../utils/move";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function MoveModal({
-    showModal,
-    setShowModal,
-    currentDir,
-    itemsToMove,
-    setItemsToMove,
-    setError,
-    refresh,
-}) {
+function MoveModal({ showModal, setShowModal, currentDir, itemsToMove, setItemsToMove, refresh }) {
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
     const { currentItems, listGetError } = useFileList(suggestDir, suggestDir);
@@ -25,6 +18,8 @@ function MoveModal({
     const [showConflictModal, setShowConflictModal] = useState(false);
     const [pendingConfirm, setPendingConfirm] = useState(false);
     const suggestions = currentItems.filter((file) => file.is_dir);
+    const [error, setError] = useState(null);
+    const { addNotification } = useNotifications();
 
     useEffect(() => {
         if (listGetError) {
@@ -50,9 +45,15 @@ function MoveModal({
         }
     }, [targetPath]);
 
+    useEffect(() => {
+        if (error) {
+            console.debug("error", error);
+            addNotification(error, "error");
+        }
+    }, [error]);
+
     const handleMove = async (items) => {
-        const error = await moveItems(items);
-        setError(error);
+        await moveItems(items, setError);
         setTargetPath("");
         refresh();
     };
@@ -222,6 +223,5 @@ MoveModal.propTypes = {
     currentDir: PropTypes.string,
     itemsToMove: PropTypes.array,
     setItemsToMove: PropTypes.func,
-    setError: PropTypes.func,
     refresh: PropTypes.func,
 };

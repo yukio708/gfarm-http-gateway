@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
+import { useNotifications } from "../context/NotificationContext";
 import { getParentPath, checkFileName } from "../utils/func";
 import moveItems from "../utils/move";
 import PropTypes from "prop-types";
 
-function RenameModal({ showModal, setShowModal, renameItem, setError, refresh }) {
+function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
     const [newName, setNewName] = useState("");
+    const [error, setError] = useState(null);
+    const { addNotification } = useNotifications();
 
     useEffect(() => {
         if (showModal) {
@@ -15,13 +18,22 @@ function RenameModal({ showModal, setShowModal, renameItem, setError, refresh })
         }
     }, [showModal]);
 
+    useEffect(() => {
+        if (error) {
+            console.debug("error", error);
+            addNotification(error, "error");
+        }
+    }, [error]);
+
     const handleRename = async () => {
         if (!renameItem) return;
         if (!newName) return;
         const trimmedName = newName.trim();
 
         if (!checkFileName(trimmedName)) {
-            setError('Invalid name. Avoid characters like <>:"/\\|?* or ending with space/dot.');
+            addNotification(
+                'Invalid name. Avoid characters like <>:"/\\|?* or ending with space/dot.'
+            );
             setShowModal(false);
             setNewName("");
             return;
@@ -34,10 +46,9 @@ function RenameModal({ showModal, setShowModal, renameItem, setError, refresh })
             destPath: destpath,
         };
 
-        const error = await moveItems([item]);
+        await moveItems([item], setError);
         setShowModal(false);
         setNewName("");
-        setError(error);
         refresh();
     };
 
@@ -74,6 +85,5 @@ RenameModal.propTypes = {
     showModal: PropTypes.bool,
     setShowModal: PropTypes.func,
     renameItem: PropTypes.object,
-    setError: PropTypes.func,
     refresh: PropTypes.func,
 };

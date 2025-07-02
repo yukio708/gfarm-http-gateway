@@ -12,19 +12,18 @@ import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
 import ArchiveModal from "../components/ArchiveModal";
 import useFileList from "../hooks/useFileList";
+import { useNotifications } from "../context/NotificationContext";
 import upload from "../utils/upload";
 import download from "../utils/download";
 import displayFile from "../utils/display";
 import getSymlink from "../utils/getSymlink";
 import ErrorPage from "./ErrorPage";
-
 import PropTypes from "prop-types";
 
 function HomePage({ user }) {
     const location = useLocation();
     const navigate = useNavigate();
     const currentDir = decodeURIComponent(location.pathname);
-    const [error, setError] = useState(null);
     const [refreshKey, setRefreshKey] = useState(false);
     const { currentItems, listGetError } = useFileList(currentDir, refreshKey);
     const [selectedItems, setSelectedItems] = useState([]);
@@ -43,6 +42,7 @@ function HomePage({ user }) {
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [showGfptarModal, setShowGfptarModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
+    const { addNotification } = useNotifications();
 
     useEffect(() => {
         setSelectedItems((prev) =>
@@ -81,7 +81,7 @@ function HomePage({ user }) {
                 jumpDirectory(info.linkname);
             }
         } catch (err) {
-            setError(err.message);
+            addNotification(err.message);
         }
     };
 
@@ -199,17 +199,6 @@ function HomePage({ user }) {
                 </div>
             </div>
             <div className="row">
-                {error && (
-                    <div className="alert alert-danger d-flex justify-content-between">
-                        <div>{error}</div>
-                        <button
-                            className="btn btn-close"
-                            onClick={() => {
-                                setError(null);
-                            }}
-                        ></button>
-                    </div>
-                )}
                 <div className="col">
                     <FileListView
                         parentName="HomePage"
@@ -278,7 +267,6 @@ function HomePage({ user }) {
             <DeleteModal
                 itemsToDelete={itemsToDelete}
                 setItemsToDelete={setItemsToDelete}
-                setError={setError}
                 refresh={() => {
                     setSelectedItems((prev) =>
                         prev.filter((item) =>
@@ -293,7 +281,6 @@ function HomePage({ user }) {
                 showModal={showNewDirModal}
                 setShowModal={setShowNewDirModal}
                 currentDir={currentDir}
-                setError={setError}
                 refresh={() => {
                     setRefreshKey((prev) => !prev);
                 }}
@@ -302,7 +289,6 @@ function HomePage({ user }) {
                 showModal={showRenameModal}
                 setShowModal={setShowRenameModal}
                 renameItem={lastSelectedItem}
-                setError={setError}
                 refresh={() => {
                     setSelectedItems((prev) =>
                         prev.filter((item) => lastSelectedItem.path !== item.path)
@@ -317,7 +303,6 @@ function HomePage({ user }) {
                 itemsToMove={itemsToMove}
                 setItemsToMove={setItemsToMove}
                 currentDir={currentDir}
-                setError={setError}
                 refresh={() => {
                     setSelectedItems((prev) =>
                         prev.filter((file) =>
@@ -336,7 +321,6 @@ function HomePage({ user }) {
                 lastSelectedItem={lastSelectedItem}
                 currentDirItems={currentItems}
                 currentDir={currentDir}
-                setError={setError}
                 setTasks={setTasks}
                 refresh={() => {
                     setRefreshKey((prev) => !prev);

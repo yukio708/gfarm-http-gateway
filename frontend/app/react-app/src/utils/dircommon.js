@@ -21,7 +21,7 @@ async function dirCommon(path, method, message, params = null) {
             return error.message;
         }
     } else {
-        alert("Please input Gfarm path");
+        return "Please input Gfarm path";
     }
 }
 
