@@ -11,6 +11,7 @@ import PropTypes from "prop-types";
 
 function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
     const [showModal, setShowModal] = useState(false);
+    const [isMoving, setIsMoving] = useState(false);
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
     const { currentItems, listGetError } = useFileList(suggestDir, suggestDir);
@@ -60,7 +61,9 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
     }, [error]);
 
     const handleMove = async (items) => {
+        setIsMoving(true);
         await moveItems(items, setError);
+        setIsMoving(false);
         setTargetPath("");
         refresh();
     };
@@ -119,12 +122,13 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
     };
 
     const handleCancel = () => {
-        setTargetPath("");
-        setPendingItems([]);
-        setItemsToMove([]);
         if (showConflictModal) {
             setShowConflictModal(false);
         }
+        setShowModal(false);
+        setTargetPath("");
+        setPendingItems([]);
+        setItemsToMove([]);
     };
 
     return (
@@ -215,6 +219,15 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                         handleMove(items);
                     }}
                 />
+            )}
+            {isMoving && (
+                <div
+                    className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-50"
+                    style={{ zIndex: 1050 }}
+                >
+                    <div className="spinner-border text-primary" role="status"></div>
+                    <div>Moving files... please wait</div>
+                </div>
             )}
         </div>
     );
