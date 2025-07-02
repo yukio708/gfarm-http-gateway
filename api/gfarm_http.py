@@ -1638,7 +1638,7 @@ class Gfls_Entry:
             "uname": self.uname,
             "gname": self.gname,
             "size": self.size,
-            "mtime_str": self.mtime_str,
+            "mtime": self.mtime,
             "name": self.name,
             "path": self.path
         }

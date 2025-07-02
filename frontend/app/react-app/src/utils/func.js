@@ -29,16 +29,6 @@ export const getDeepestDirs = (dirSet) => {
     return result;
 };
 
-const mtime_str_options = {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    year: "numeric",
-    hour12: false,
-};
-
 export const CollectPathsFromItems = async (items) => {
     const files = [];
 
@@ -46,14 +36,13 @@ export const CollectPathsFromItems = async (items) => {
         return new Promise((resolve) => {
             if (item.isFile) {
                 item.file((file) => {
-                    const date = new Date(file.lastModified);
                     files.push({
                         path: path + file.name,
                         dirPath: path,
                         name: file.name,
                         is_file: true,
                         is_dir: false,
-                        mtime_str: date.toLocaleString("en-US", mtime_str_options),
+                        mtime: file.lastModified / 1000,
                         size: file.size,
                         file: file,
                     });
@@ -76,7 +65,7 @@ export const CollectPathsFromItems = async (items) => {
                             name: item.name,
                             is_file: false,
                             is_dir: true,
-                            mtime_str: "unknown",
+                            mtime: null,
                             size: null,
                         });
                     }
@@ -106,14 +95,13 @@ export const CollectPathsFromFiles = (files) => {
         const dirPath = file.webkitRelativePath
             ? file.webkitRelativePath.substring(0, file.webkitRelativePath.lastIndexOf("/")) + "/"
             : "";
-        const date = new Date(file.lastModified);
         return {
             path: dirPath + file.name,
             dirPath: dirPath,
             name: file.name,
             is_file: !file.isDirectory,
             is_dir: file.isDirectory,
-            mtime_str: date.toLocaleString("en-US", mtime_str_options),
+            mtime: file.lastModified / 1000,
             size: file.size,
             file: file,
         };
@@ -137,6 +125,15 @@ export const formatFileSize = (filesize, is_dir) => {
 
     const sizestr = parseFloat((filesize / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
     return sizestr;
+};
+
+export const getTimeStr = (time) => {
+    if (!time) return "unknown";
+    try {
+        return new Date(time * 1000).toLocaleString();
+    } catch {
+        return "unknown";
+    }
 };
 
 export const loadExternalCss = (url) => {
@@ -186,7 +183,7 @@ export const filterItems = (items, filterTypes, dateFilter) => {
             isTypeMatch = filterTypes.includes(ext);
         }
 
-        const updated = new Date(file.mtime_str);
+        const updated = new Date(file.mtime);
         if (dateFilter == "today") {
             const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             console.debug("today: start", start);
@@ -253,9 +250,9 @@ export const sortItemsByUpdateDate = (a, b, sortDirection) => {
         return a.is_dir ? -1 : 1;
     }
     if (sortDirection === "asc") {
-        return new Date(a.mtime_str) - new Date(b.mtime_str);
+        return a.mtime - b.mtime;
     } else {
-        return new Date(b.mtime_str) - new Date(a.mtime_str);
+        return b.mtime - a.mtime;
     }
 };
 
@@ -282,7 +279,7 @@ export const checkConflicts = (incomingItems, currentItems) => {
                     is_conflicted: true,
                     parent_is_conflicted: true,
                     current_size: currentDir.size,
-                    current_mtime_str: currentDir.mtime_str,
+                    current_mtime: currentDir.mtime,
                 };
             }
         } else {
@@ -294,7 +291,7 @@ export const checkConflicts = (incomingItems, currentItems) => {
                     is_conflicted: true,
                     parent_is_conflicted: false,
                     current_size: current.size || null,
-                    current_mtime_str: current.mtime_str,
+                    current_mtime: current.mtime,
                 };
             }
         }

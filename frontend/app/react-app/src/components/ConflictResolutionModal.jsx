@@ -1,6 +1,12 @@
 import React from "react";
 import ModalWindow from "./Modal";
-import { getParentPath, suggestNewName, formatFileSize, getUniqueConflicts } from "../utils/func";
+import {
+    getParentPath,
+    suggestNewName,
+    formatFileSize,
+    getTimeStr,
+    getUniqueConflicts,
+} from "../utils/func";
 import { BsFileEarmark, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
@@ -171,7 +177,7 @@ function ConflictResolutionModal({
                                                         {formatFileSize(item.size, item.is_dir)}
                                                     </div>
                                                     <div className="small">
-                                                        Modified: {item.mtime_str}
+                                                        Modified: {getTimeStr(item.mtime)}
                                                     </div>
                                                 </div>
                                             </div>
@@ -200,7 +206,7 @@ function ConflictResolutionModal({
                                                         )}
                                                     </div>
                                                     <div className="small">
-                                                        Modified: {item.current_mtime_str}
+                                                        Modified: {getTimeStr(item.current_mtime)}
                                                     </div>
                                                 </div>
                                             </div>

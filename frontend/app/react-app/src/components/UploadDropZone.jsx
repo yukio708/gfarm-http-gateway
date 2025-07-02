@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
 import ConflictResolutionModal from "./ConflictResolutionModal";
-import { CollectPathsFromItems, formatFileSize, checkConflicts } from "../utils/func";
+import { CollectPathsFromItems, formatFileSize, getTimeStr, checkConflicts } from "../utils/func";
 import "../css/DropZone.css";
 import PropTypes from "prop-types";
 
@@ -93,6 +93,7 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
                         <li key={idx}>
                             <strong>{item.path}</strong> —{" "}
                             {formatFileSize(item.size, item.is_dir) || "unknown size"}
+                            {getTimeStr(item.mtime)}
                         </li>
                     ))}
             </ul>

@@ -11,6 +11,7 @@ import {
     sortItemsBySize,
     sortItemsByUpdateDate,
     formatFileSize,
+    getTimeStr,
 } from "../utils/func";
 import "../css/FileListView.css";
 import { BsArrowUpShort, BsArrowDownShort } from "react-icons/bs";
@@ -275,7 +276,7 @@ function FileListView({
                                     handleItemClick(item.path, item.is_file, item.is_dir)
                                 }
                             >
-                                {item.mtime_str}
+                                {getTimeStr(item.mtime)}
                             </td>
                             <td>
                                 <ItemMenu
