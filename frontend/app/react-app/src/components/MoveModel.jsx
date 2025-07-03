@@ -19,6 +19,7 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
     const [loadingText, setLoadingText] = useState("Loading suggestions...");
     const [showConflictModal, setShowConflictModal] = useState(false);
     const [pendingItems, setPendingItems] = useState([]);
+    const [pendingConfirm, setPendingConfirm] = useState(false);
     const suggestions = currentItems.filter((file) => file.is_dir);
     const { addNotification } = useNotifications();
 
@@ -66,17 +67,18 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
     };
 
     useEffect(() => {
-        if (!loading && pendingItems.length > 0) {
+        if (!loading && pendingConfirm) {
             const res = checkConflicts(pendingItems, currentItems);
             console.debug("res", res);
+            setPendingConfirm(false);
             if (res.hasConflict) {
-                setItemsToMove(res.incomingItems);
+                setPendingItems(res.incomingItems);
                 setShowConflictModal(true);
                 return;
             }
             handleMove(pendingItems);
         }
-    }, [loading, pendingItems]);
+    }, [loading, pendingConfirm]);
 
     const handleChange = (input) => {
         setTargetPath(input);
@@ -99,6 +101,7 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
         setShowModal(false);
         if (targetPath === currentDir) {
             setTargetPath("");
+            setPendingItems([]);
             refresh();
             return;
         }
@@ -116,6 +119,7 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
         });
 
         setPendingItems(items);
+        setPendingConfirm(true);
     };
 
     const handleCancel = () => {
@@ -140,9 +144,9 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                         <div className="d-flex modal-title">
                             <h5 className="">
                                 Move{" "}
-                                {itemsToMove.length > 1
-                                    ? itemsToMove.length + " items"
-                                    : '"' + itemsToMove[0].name + '"'}
+                                {itemsToMove.length === 1
+                                    ? '"' + itemsToMove[0].name + '"'
+                                    : itemsToMove.length + " items"}
                             </h5>
                         </div>
                     }
@@ -205,8 +209,8 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
             )}
             {showConflictModal && (
                 <ConflictResolutionModal
-                    incomingItems={itemsToMove}
-                    setIncomingItems={setItemsToMove}
+                    incomingItems={pendingItems}
+                    setIncomingItems={setPendingItems}
                     existingNames={currentItems.map((item) => item.name)}
                     onCancel={() => {
                         handleCancel();

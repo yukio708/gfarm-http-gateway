@@ -12,6 +12,7 @@ function useProgressTasks(setRefreshKey) {
     const [isUploading, setIsUploading] = useState(false);
     const downloadQueueRef = useRef([]);
     const [isDownloading, setIsDownloading] = useState(false);
+    const isRunningRef = useRef(false);
 
     useEffect(() => {
         if (taskCount < tasks.length) {
@@ -27,21 +28,23 @@ function useProgressTasks(setRefreshKey) {
     };
 
     const handleUpload = async () => {
+        if (isRunningRef.current) {
+            console.debug("handleUpload is already running");
+            return;
+        }
+        isRunningRef.current = true;
         setTasks((prev) => prev.filter((t) => !t.done));
         const worker = async () => {
-            const allUploads = [];
             while (uploadQueueRef.current.length) {
                 const uploadFiles = uploadQueueRef.current.shift();
-                const promise = upload(uploadFiles, setTasks);
-                allUploads.push(promise);
+                await upload(uploadFiles, setTasks);
             }
             setIsUploading(false);
-
-            await Promise.allSettled(allUploads);
+            isRunningRef.current = false;
             console.debug("done!");
-            setRefreshKey((prev) => !prev);
         };
-        worker();
+        await worker();
+        setRefreshKey((prev) => !prev);
     };
 
     useEffect(() => {

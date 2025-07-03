@@ -42,7 +42,7 @@ export const CollectPathsFromItems = async (items) => {
                         name: file.name,
                         is_file: true,
                         is_dir: false,
-                        mtime: file.lastModified / 1000,
+                        mtime: Math.floor(file.lastModified / 1000),
                         size: file.size,
                         file: file,
                     });
@@ -101,7 +101,7 @@ export const CollectPathsFromFiles = (files) => {
             name: file.name,
             is_file: !file.isDirectory,
             is_dir: file.isDirectory,
-            mtime: file.lastModified / 1000,
+            mtime: Math.floor(file.lastModified / 1000),
             size: file.size,
             file: file,
         };

@@ -43,7 +43,6 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
     const epath = encodePath(fullpath);
     const uploadUrl = `${API_URL}/file` + epath;
     console.debug("uploadUrl:", uploadUrl);
-    const mtime = Math.floor(file.file.lastModified / 1000); // msec. -> sec.
 
     try {
         const xhr = new XMLHttpRequest();
@@ -77,7 +76,7 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
         );
 
         xhr.setRequestHeader("Content-Type", file.file.type);
-        xhr.setRequestHeader("X-File-Timestamp", mtime);
+        xhr.setRequestHeader("X-File-Timestamp", file.mtime);
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {
                 const percent = Math.floor((event.loaded / event.total) * 100);
@@ -143,6 +142,7 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
                 console.error("Network error");
                 reject(new Error("Network error"));
             };
+            console.debug(">>>> Actually uploading:", fullpath, "mtime:", file.mtime);
             xhr.send(file.file);
         });
     } catch (error) {
@@ -181,7 +181,7 @@ async function runWithLimit(tasks, limit = 10) {
         }
     }
 
-    return Promise.allSettled(results);
+    return Promise.all(results);
 }
 
 async function upload(files, setTasks) {
@@ -205,18 +205,16 @@ async function upload(files, setTasks) {
         };
         return { file, fullpath, taskId, task: newTask };
     });
-
     setTasks((prev) => [...prev, ...tasks.map((entry) => entry.task)]);
 
     const uploadFunctions = tasks.map(({ file, fullpath, taskId }) => {
         return () =>
             uploadFile(file, fullpath, taskId, dirSet, setTasks).catch((err) => {
                 console.error("uploadFile failed:", err);
-                // Don't re-throw — swallow the error to avoid crashing runWithLimit
             });
     });
 
-    return runWithLimit(uploadFunctions, PARALLEL_LIMIT);
+    await runWithLimit(uploadFunctions, PARALLEL_LIMIT);
 }
 
 export default upload;
