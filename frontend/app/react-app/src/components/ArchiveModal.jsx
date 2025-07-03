@@ -18,7 +18,7 @@ function ArchiveModal({
     setTasks,
     refresh,
 }) {
-    const [activeTab, setActiveTab] = useState("compress");
+    const [activeTab, setActiveTab] = useState("archive");
     const [compressMode, setCompressMode] = useState("create");
     const [suggestDir, setSuggestDir] = useState("");
     const [destDir, setDestDir] = useState("");
@@ -87,8 +87,8 @@ function ArchiveModal({
     const handleGfptar = async (command) => {
         await gfptar(
             command,
-            activeTab === "compress" ? targetDir : lastSelectedItem.path,
-            activeTab === "compress"
+            activeTab === "archive" ? targetDir : lastSelectedItem.path,
+            activeTab === "archive"
                 ? targetItems.map((item) => item.name)
                 : selectedFromList.map((item) => item.path),
             destDir,
@@ -99,13 +99,15 @@ function ArchiveModal({
         if (command !== "list") {
             setIndirList([]);
             setSelectedItems([]);
+            setOptions("");
+            setActiveTab("archive");
         }
     };
 
     const handleConfirm = () => {
         setShowModal(false);
 
-        handleGfptar(activeTab === "compress" ? compressMode : activeTab);
+        handleGfptar(activeTab === "archive" ? compressMode : activeTab);
     };
 
     const handleCancel = () => {
@@ -114,7 +116,9 @@ function ArchiveModal({
         setTargetItems([]);
         setListStatus([]);
         setIndirList([]);
+        setOptions("");
         setShowModal(false);
+        setActiveTab("archive");
     };
 
     return (
@@ -132,10 +136,10 @@ function ArchiveModal({
                                 <ul className="nav nav-tabs">
                                     <li className="nav-item">
                                         <button
-                                            className={`nav-link ${activeTab === "compress" ? "active" : ""}`}
-                                            onClick={() => setActiveTab("compress")}
+                                            className={`nav-link ${activeTab === "archive" ? "active" : ""}`}
+                                            onClick={() => setActiveTab("archive")}
                                         >
-                                            Compress
+                                            Archive
                                         </button>
                                     </li>
                                     <li className="nav-item">
@@ -150,7 +154,11 @@ function ArchiveModal({
                             </div>
 
                             <div className="mb-3">
-                                <label className="form-label fw-bold">Export Directory</label>
+                                <label className="form-label fw-bold">
+                                    {activeTab === "archive"
+                                        ? "Output Archive Directory"
+                                        : "Output Directory"}
+                                </label>
                                 <SuggestInput
                                     value={destDir}
                                     onChange={(val) => handleChange(val)}
@@ -158,7 +166,7 @@ function ArchiveModal({
                                 />
                                 {error && <div className="form-text alert-danger">{error}</div>}
                             </div>
-                            {activeTab === "compress" && (
+                            {activeTab === "archive" && (
                                 <div>
                                     <div className="mb-3">
                                         <label className="form-label fw-bold me-2">Operation</label>
@@ -216,12 +224,12 @@ function ArchiveModal({
                                     </div>
                                     <div className="mb-3 d-flex">
                                         <label className="form-label fw-bold me-4">
-                                            Target Directory
+                                            Base Directory
                                         </label>
                                         <div className="form-text">{targetDir}</div>
                                     </div>
 
-                                    <label className="form-label fw-bold">Target Items</label>
+                                    <label className="form-label fw-bold">Members</label>
                                     <div
                                         className="mb-3 overflow-auto"
                                         style={{
@@ -242,7 +250,7 @@ function ArchiveModal({
                                 <div>
                                     <div className="mb-2 d-flex">
                                         <label className="form-label fw-bold me-4">
-                                            Target File
+                                            Input Archive Directory
                                         </label>
                                         <div className="form-text">{lastSelectedItem.name}</div>
                                     </div>
