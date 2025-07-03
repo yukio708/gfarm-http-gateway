@@ -142,7 +142,6 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
                 console.error("Network error");
                 reject(new Error("Network error"));
             };
-            console.debug(">>>> Actually uploading:", fullpath, "mtime:", file.mtime);
             xhr.send(file.file);
         });
     } catch (error) {
@@ -188,6 +187,28 @@ async function upload(files, setTasks) {
     const dirSet = new Set();
     dirSet.add("/");
 
+    if (!files || files.length === 0) return;
+
+    const epath = encodePath(files[0].uploadDir);
+    const fullpath = `${API_URL}/dir${epath}?effperm=on`;
+    let error = null;
+    try {
+        const response = await fetch(fullpath);
+        if (!response.ok) {
+            const error = await response.json();
+            const message = JSON.stringify(error.detail);
+            throw new Error(`${response.status} ${message}`);
+        }
+        const data = await response.json();
+        if (data[0].perms.includes("w")) {
+            console.debug("permission check", files[0].uploadDir, data[0].perms.includes("w"));
+        } else {
+            throw new Error(`403 Permission denied : ${files[0].uploadDir}`);
+        }
+    } catch (err) {
+        error = `${err.name}: ${err.message}`;
+    }
+
     const tasks = files.map((file) => {
         const fullpath = file.destPath;
         const taskId = fullpath + Date.now();
@@ -199,13 +220,14 @@ async function upload(files, setTasks) {
             value: 0,
             done: false,
             type: "upload",
-            status: "upload",
-            message: "waiting to upload...",
+            status: error ? "error" : "upload",
+            message: error ? error : "waiting to upload...",
             onCancel: () => {},
         };
         return { file, fullpath, taskId, task: newTask };
     });
     setTasks((prev) => [...prev, ...tasks.map((entry) => entry.task)]);
+    if (error) return;
 
     const uploadFunctions = tasks.map(({ file, fullpath, taskId }) => {
         return () =>

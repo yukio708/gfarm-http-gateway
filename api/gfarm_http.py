@@ -1640,7 +1640,8 @@ class Gfls_Entry:
             "size": self.size,
             "mtime": self.mtime,
             "name": self.name,
-            "path": self.path
+            "path": self.path,
+            "perms": self.perms
         }
 
     def parse(line,
@@ -2494,12 +2495,12 @@ async def file_import(gfarm_path: str,
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, request.method, apiname, opname, gfarm_path)
 
-    if not await can_access(env, dirname, "w"):
-        code = 403
-        message = f"Permission denied path={dirname}"
-        stdout = ""
-        elist = []
-        raise gfarm_http_error(opname, code, message, stdout, elist)
+    # if not await can_access(env, dirname, "w"):
+    #     code = 403
+    #     message = f"Permission denied path={dirname}"
+    #     stdout = ""
+    #     elist = []
+    #     raise gfarm_http_error(opname, code, message, stdout, elist)
 
     # NOTE: MAXNAMLEN == 255
     filename_prefix = filename[:128]
