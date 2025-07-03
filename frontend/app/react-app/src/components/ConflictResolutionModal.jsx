@@ -41,7 +41,7 @@ function ConflictResolutionModal({
                     const newName = suggestNewName(item.name, existingNames);
                     return {
                         ...item,
-                        destPath: getParentPath(item.destPath) + newName,
+                        destPath: getParentPath(item.destPath).replace(/\/$/, "") + "/" + newName,
                     };
                 }
             }
