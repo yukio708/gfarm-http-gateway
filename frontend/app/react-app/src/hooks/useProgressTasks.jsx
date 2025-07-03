@@ -9,10 +9,11 @@ function useProgressTasks(setRefreshKey, addNotification) {
     const [itemsToDelete, setItemsToDelete] = useState([]);
     const [itemsToMove, setItemsToMove] = useState([]);
     const uploadQueueRef = useRef([]);
-    const [isUploading, setIsUploading] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const downloadQueueRef = useRef([]);
-    const [isDownloading, setIsDownloading] = useState(false);
-    const isRunningRef = useRef(false);
+    const [downloading, setDownloading] = useState(false);
+    const isUploadingRef = useRef(false);
+    const isDownloadingRef = useRef(false);
 
     useEffect(() => {
         if (taskCount < tasks.length) {
@@ -23,24 +24,24 @@ function useProgressTasks(setRefreshKey, addNotification) {
 
     const addItemsToUpload = (newItems) => {
         uploadQueueRef.current.push(newItems);
-        setIsUploading(true);
+        setUploading(true);
         console.debug("addFilesToUpload", newItems);
     };
 
     const handleUpload = async () => {
-        if (isRunningRef.current) {
+        setUploading(false);
+        if (isUploadingRef.current) {
             console.debug("handleUpload is already running");
             return;
         }
-        isRunningRef.current = true;
+        isUploadingRef.current = true;
         setTasks((prev) => prev.filter((t) => !t.done));
         const worker = async () => {
             while (uploadQueueRef.current.length) {
                 const uploadFiles = uploadQueueRef.current.shift();
                 await upload(uploadFiles, setTasks);
             }
-            setIsUploading(false);
-            isRunningRef.current = false;
+            isUploadingRef.current = false;
             console.debug("done!");
         };
         await worker();
@@ -48,16 +49,16 @@ function useProgressTasks(setRefreshKey, addNotification) {
     };
 
     useEffect(() => {
-        console.debug("isUploading", isUploading);
-        if (isUploading) {
+        console.debug("Uploading", uploading);
+        if (uploading) {
             handleUpload();
         }
-    }, [isUploading]);
+    }, [uploading]);
 
     const addItemsToDownload = (items) => {
         console.debug("addItemsToDownload: items:", items);
         downloadQueueRef.current.push(items);
-        setIsDownloading(true);
+        setDownloading(true);
     };
 
     const setError = (error) => {
@@ -66,22 +67,28 @@ function useProgressTasks(setRefreshKey, addNotification) {
     };
 
     const handleDownload = async () => {
+        setDownloading(false);
+        if (isDownloadingRef.current) {
+            console.debug("handleDownload is already running");
+            return;
+        }
+        isDownloadingRef.current = true;
         const worker = async () => {
             setTasks((prev) => prev.filter((t) => !t.done));
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
                 download(files, setError);
             }
-            setIsDownloading(false);
+            isDownloadingRef.current = false;
         };
         await worker();
     };
 
     useEffect(() => {
-        if (isDownloading) {
+        if (downloading) {
             handleDownload();
         }
-    }, [isDownloading]);
+    }, [downloading]);
 
     return {
         tasks,
