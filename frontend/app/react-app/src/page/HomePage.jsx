@@ -26,6 +26,7 @@ function HomePage({ user }) {
     const currentDir = decodeURIComponent(location.pathname);
     const [refreshKey, setRefreshKey] = useState(false);
     const { currentItems, listGetError } = useFileList(currentDir, refreshKey);
+    const { addNotification } = useNotifications();
     const [selectedItems, setSelectedItems] = useState([]);
     const [lastSelectedItem, setLastSelectedItem] = useState(null);
     const {
@@ -39,12 +40,11 @@ function HomePage({ user }) {
         addItemsToDownload,
         setItemsToMove,
         setItemsToDelete,
-    } = useProgressTasks(setRefreshKey);
+    } = useProgressTasks(setRefreshKey, addNotification);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
     const [showRenameModal, setShowRenameModal] = useState(false);
     const [showGfptarModal, setShowGfptarModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
-    const { addNotification } = useNotifications();
 
     useEffect(() => {
         setSelectedItems((prev) =>

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import upload from "../utils/upload";
 import download from "../utils/download";
 
-function useProgressTasks(setRefreshKey) {
+function useProgressTasks(setRefreshKey, addNotification) {
     const [tasks, setTasks] = useState([]);
     const [taskCount, setTaskCount] = useState(0);
     const [showProgressView, setShowProgressView] = useState(false);
@@ -60,12 +60,17 @@ function useProgressTasks(setRefreshKey) {
         setIsDownloading(true);
     };
 
+    const setError = (error) => {
+        console.debug("error", error);
+        addNotification("Move", error, "error");
+    };
+
     const handleDownload = async () => {
         const worker = async () => {
             setTasks((prev) => prev.filter((t) => !t.done));
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
-                download(files, setTasks);
+                download(files, setError);
             }
             setIsDownloading(false);
         };
