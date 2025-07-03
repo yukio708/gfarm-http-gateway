@@ -119,9 +119,6 @@ function FileListView({
 
     const toggleSortDirection = (column) => {
         setSortDirection((prevSort) => {
-            // if (prevSort.column === column && prevSort.order === 'desc') {
-            //     return {column:'null', order:null};
-            // }
             return {
                 column,
                 order: prevSort.column === column && prevSort.order === "asc" ? "desc" : "asc",
@@ -147,12 +144,14 @@ function FileListView({
                 </div>
 
                 <div className="d-flex gap-2">
-                    <UploadMenu
-                        onUpload={upload}
-                        onCreate={createNewDir}
-                        uploadDir={currentDir}
-                        currentItems={currentItems}
-                    />
+                    {selectedItems.length === 0 && (
+                        <UploadMenu
+                            onUpload={upload}
+                            onCreate={createNewDir}
+                            uploadDir={currentDir}
+                            currentItems={currentItems}
+                        />
+                    )}
                     <FileActionMenu
                         selectedItems={selectedItems}
                         removeItems={remove}

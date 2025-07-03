@@ -22,18 +22,24 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
             {/* Inline buttons on md+ screens */}
             <div className="d-none d-md-flex btn-group" role="group">
                 <button
-                    className="btn btn-info btn-sm"
+                    className="btn btn-outline-primary btn-sm"
                     onClick={() => downloadItems(selectedItems)}
                 >
                     <BsDownload className="me-2" /> Download
                 </button>
-                <button className="btn btn-info btn-sm" onClick={() => removeItems(selectedItems)}>
+                <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => removeItems(selectedItems)}
+                >
                     <BsTrash className="me-2" /> Delete
                 </button>
-                <button className="btn btn-info btn-sm" onClick={() => moveItems(selectedItems)}>
+                <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => moveItems(selectedItems)}
+                >
                     <BsArrowRightSquare className="me-2" /> Move
                 </button>
-                <button className="btn btn-info btn-sm" onClick={() => archiveItems()}>
+                <button className="btn btn-outline-primary btn-sm" onClick={() => archiveItems()}>
                     <BsArchive className="me-2" /> gfptar
                 </button>
             </div>
@@ -41,7 +47,7 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
             {/* Dropdown on small screens */}
             <div className="dropdown d-md-none">
                 <button
-                    className="btn btn-info btn-sm dropdown-toggle"
+                    className="btn btn-outline-primary btn-sm dropdown-toggle"
                     type="button"
                     id="fileActionsDropdown"
                     data-bs-toggle="dropdown"

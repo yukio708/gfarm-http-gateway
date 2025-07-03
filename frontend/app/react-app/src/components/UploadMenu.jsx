@@ -49,7 +49,7 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
             <div className="dropdown">
                 <button
                     type="button"
-                    className="btn btn-info btn-sm dropdown-toggle"
+                    className="btn btn-outline-primary btn-sm dropdown-toggle"
                     id="uploadDropdown"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
