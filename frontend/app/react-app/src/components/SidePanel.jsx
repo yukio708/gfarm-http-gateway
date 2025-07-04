@@ -3,6 +3,7 @@ import "../css/SidePanel.css";
 import ACLTab from "./ACLTab";
 import DetailTab from "./DetailTab";
 import URLTab from "./URLTab";
+import PermsTab from "./PermsTab";
 import PropTypes from "prop-types";
 
 function SidePanel({ show, item, onHide, showTab = "detail" }) {
@@ -59,6 +60,7 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
             </div>
             <div className="px-3 py-2 overflow-auto" style={{ maxHeight: "calc(100% - 100px)" }}>
                 {show && <DetailTab item={item} active={activeTab === "detail"} />}
+                {show && <PermsTab item={item} active={activeTab === "perms"} />}
                 {show && <ACLTab item={item} active={activeTab === "acl"} />}
                 {show && <URLTab item={item} active={activeTab === "url"} />}
             </div>

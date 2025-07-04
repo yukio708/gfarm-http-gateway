@@ -21,7 +21,7 @@ function URLTab({ item, active }) {
     return (
         <div data-testid="share-tab">
             {item && (
-                <div className="my-2">
+                <div className="mt-3">
                     <label className="form-label fw-bold">Link in Web App</label>
                     <div className="input-group input-group-sm">
                         <input
