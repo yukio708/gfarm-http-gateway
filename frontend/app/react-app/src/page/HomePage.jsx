@@ -22,7 +22,7 @@ import { getParentPath } from "../utils/func";
 import ErrorPage from "./ErrorPage";
 import PropTypes from "prop-types";
 
-function HomePage({ user }) {
+function HomePage({ user, home_directory }) {
     const navigate = useNavigate();
     const { pathHead, gfarmPath: currentDir } = useGetPath(ROUTE_STORAGE);
     const [refreshKey, setRefreshKey] = useState(false);
@@ -110,7 +110,7 @@ function HomePage({ user }) {
     };
 
     if (listGetError) {
-        return <ErrorPage error={listGetError} />;
+        return <ErrorPage error={listGetError} home_directory={home_directory} />;
     }
 
     return (
@@ -276,4 +276,5 @@ export default HomePage;
 
 HomePage.propTypes = {
     user: PropTypes.string,
+    home_directory: PropTypes.string,
 };

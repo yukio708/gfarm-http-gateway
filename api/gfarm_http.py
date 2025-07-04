@@ -71,7 +71,7 @@ PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
 
 
 TMPDIR = "/tmp/gfarm-http"
-
+STORAGE_URL_PREFIX = "#/stg"
 
 #############################################################################
 # Configuration variables
@@ -814,6 +814,7 @@ async def user_info(request: Request,
                     authorization: Union[str, None] = Header(default=None)):
     access_token = await get_access_token(request)
     user = None
+    name = None
     if access_token:
         user = get_user_from_access_token(access_token)
     else:
@@ -825,9 +826,10 @@ async def user_info(request: Request,
         username = await get_username(env)
         if username:
             name, _, home_directory, _ = await gfuser_info(env, username)
-    return JSONResponse(content={"username": name,
-                                 "loginname": user,
-                                 "home_directory": home_directory})
+            return JSONResponse(content={"username": name,
+                                         "loginname": user,
+                                         "home_directory": home_directory})
+    raise HTTPException(status_code=401, detail="failed to get user info")
 
 
 @app.get("/login")
@@ -964,8 +966,8 @@ async def get_next_url(request: Request,
         username = await get_username(env)
         if username is None:
             return request.url_for("index").path
-        _, _, home_directory, _ = await gfuser_info(env, username)
-        return request.url_for("index").path + "#" + home_directory
+        _, _, home, _ = await gfuser_info(env, username)
+        return request.url_for("index").path + STORAGE_URL_PREFIX + home
     return url
 
 

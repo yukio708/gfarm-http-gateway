@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./page/HomePage";
 import LoginPage from "./page/LoginPage";
+import ErrorPage from "./page/ErrorPage";
 import DownloadHandler from "./page/DownloadHandler";
 import IndexHandler from "./page/IndexHandler";
 import useUserInfo from "./hooks/useUserInfo";
@@ -40,9 +41,15 @@ function App() {
                     />
                     <Route
                         path={`${ROUTE_STORAGE}/*`}
-                        element={<HomePage user={userinfo.username} />}
+                        element={
+                            <HomePage
+                                user={userinfo.username}
+                                home_directory={userinfo.home_directory}
+                            />
+                        }
                     />
                     <Route path={`${ROUTE_DOWNLOAD}/*`} element={<DownloadHandler />} />
+                    <Route path="*" element={<ErrorPage error={"Page not fould"} />} />
                 </Routes>
             </HashRouter>
         </NotificationProvider>

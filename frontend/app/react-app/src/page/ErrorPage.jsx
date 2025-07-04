@@ -1,8 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { ROUTE_STORAGE } from "../utils/config";
 import PropTypes from "prop-types";
 
-function ErrorPage({ error }) {
+function ErrorPage({ error, home_directory }) {
     const reload = () => {
         window.location.reload();
     };
@@ -17,7 +18,7 @@ function ErrorPage({ error }) {
                 </a>
             </p>
             <p>
-                <Link to="/">Return to home</Link>
+                <Link to={`${ROUTE_STORAGE}${home_directory || ""}`}>Return to home</Link>
             </p>
         </div>
     );
@@ -27,4 +28,5 @@ export default ErrorPage;
 
 ErrorPage.propTypes = {
     error: PropTypes.string,
+    home_directory: PropTypes.string,
 };
