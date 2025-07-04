@@ -190,7 +190,7 @@ async function upload(files, setTasks) {
     if (!files || files.length === 0) return;
 
     const epath = encodePath(files[0].uploadDir);
-    const fullpath = `${API_URL}/dir${epath}?effperm=on`;
+    const fullpath = `${API_URL}/dir${epath}?show_hidden=on&effperm=on`;
     let error = null;
     try {
         const response = await fetch(fullpath);

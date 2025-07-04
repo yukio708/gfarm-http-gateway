@@ -1,54 +1,29 @@
-.dropdown svg {
-    cursor: pointer; /* Change cursor to pointer */
-}
-
-.file-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.file-table th,
-.file-table td {
-    padding: 8px 12px;
-    text-align: left;
-}
-
-.file-table th {
-    background-color: #f0f0f0;
-    font-weight: bold;
-}
-
-.file-table tbody tr:hover {
-    background-color: #f0f0f0;
+.file-table {cursor: pointer;
+    /* Change cursor to pointer */
 }
 
 .file-table th:nth-child(1), /* Input column */
 .file-table td:nth-child(1) {
-    width: 50px;
-    cursor: pointer; /* Change cursor to pointer */
+    width: 30px;
 }
 
 .file-table td:nth-child(2) { /* Icon column */
-    width: 20px;
-    cursor: pointer; /* Change cursor to pointer */
+    width: 40px;
 }
 
 .file-table th:nth-child(2), /* Name column */
 .file-table td:nth-child(3) {
-    width: auto; /* Or a specific width */
-    cursor: pointer; /* Change cursor to pointer */
+    width: auto;
 }
 
 .file-table th:nth-child(3), /* Size column */
 .file-table td:nth-child(4) {
-    width: 150px;
-    cursor: pointer; /* Change cursor to pointer */
+    width: 10%;
 }
 
 .file-table th:nth-child(4), /* Date column */
 .file-table td:nth-child(5) {
-    width: 220px;
-    cursor: pointer; /* Change cursor to pointer */
+    width: 10%;
 }
 
 .file-table th:nth-child(5), /* Menu column */

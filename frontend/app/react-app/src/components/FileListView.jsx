@@ -161,10 +161,10 @@ function FileListView({
                     />
                 </div>
             </div>
-            <table className="file-table">
-                <thead style={{ position: "sticky", top: 0 }}>
+            <table className="table table-hover file-table">
+                <thead className="table-secondary" style={{ position: "sticky", top: 0 }}>
                     <tr>
-                        <th>
+                        <th className="align-middle">
                             <input
                                 type="checkbox"
                                 className="form-check-input"
@@ -198,100 +198,84 @@ function FileListView({
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedItems.map((item) => (
-                        <tr key={item.path}>
-                            <td>
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    id={"checkbox-" + item.name}
-                                    onChange={(event) =>
-                                        handleSelectItem(event.target.checked, item)
-                                    }
-                                    checked={selectedItems.some(
-                                        (selected) => selected.path === item.path
-                                    )}
-                                />
-                            </td>
-                            <td>
-                                <FileIcon
-                                    filename={item.name}
-                                    is_dir={item.is_dir}
-                                    is_sym={item.is_sym}
-                                    size={"1.8rem"}
-                                    onClick={() =>
-                                        handleSelectItem(
-                                            !selectedItems.some(
-                                                (selected) => selected.path === item.path
-                                            ),
-                                            item
-                                        )
-                                    }
+                    {sortedItems.map((item) => {
+                        const isSelected = selectedItems.some(
+                            (selected) => selected.path === item.path
+                        );
+                        return (
+                            <tr
+                                key={item.path}
+                                className={`align-middle ${isSelected ? "table-active" : ""}`}
+                            >
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        id={"checkbox-" + item.name}
+                                        onChange={(event) =>
+                                            handleSelectItem(event.target.checked, item)
+                                        }
+                                        checked={isSelected}
+                                    />
+                                </td>
+                                <td>
+                                    <span className="me-2">
+                                        <FileIcon
+                                            filename={item.name}
+                                            is_dir={item.is_dir}
+                                            is_sym={item.is_sym}
+                                            size={"1.8rem"}
+                                            onClick={() => handleSelectItem(!isSelected, item)}
+                                            onDoubleClick={() =>
+                                                handleItemClick(
+                                                    item.path,
+                                                    item.is_file,
+                                                    item.is_dir
+                                                )
+                                            }
+                                        />
+                                    </span>
+                                </td>
+                                <td
+                                    onClick={() => handleSelectItem(!isSelected, item)}
                                     onDoubleClick={() =>
                                         handleItemClick(item.path, item.is_file, item.is_dir)
                                     }
-                                />
-                            </td>
-                            <td
-                                onClick={() =>
-                                    handleSelectItem(
-                                        !selectedItems.some(
-                                            (selected) => selected.path === item.path
-                                        ),
-                                        item
-                                    )
-                                }
-                                onDoubleClick={() =>
-                                    handleItemClick(item.path, item.is_file, item.is_dir)
-                                }
-                            >
-                                {item.name}
-                            </td>
-                            <td
-                                onClick={() =>
-                                    handleSelectItem(
-                                        !selectedItems.some(
-                                            (selected) => selected.path === item.path
-                                        ),
-                                        item
-                                    )
-                                }
-                                onDoubleClick={() =>
-                                    handleItemClick(item.path, item.is_file, item.is_dir)
-                                }
-                            >
-                                {getSize(item.size, item.is_dir)}
-                            </td>
-                            <td
-                                onClick={() =>
-                                    handleSelectItem(
-                                        !selectedItems.some(
-                                            (selected) => selected.path === item.path
-                                        ),
-                                        item
-                                    )
-                                }
-                                onDoubleClick={() =>
-                                    handleItemClick(item.path, item.is_file, item.is_dir)
-                                }
-                            >
-                                {getTimeStr(item.mtime)}
-                            </td>
-                            <td>
-                                <ItemMenu
-                                    item={item}
-                                    download={download}
-                                    display={display}
-                                    move={move}
-                                    rename={rename}
-                                    remove={remove}
-                                    showDetail={showDetail}
-                                    permission={permission}
-                                    share={share}
-                                />
-                            </td>
-                        </tr>
-                    ))}
+                                >
+                                    {item.name}
+                                </td>
+                                <td
+                                    onClick={() => handleSelectItem(!isSelected, item)}
+                                    onDoubleClick={() =>
+                                        handleItemClick(item.path, item.is_file, item.is_dir)
+                                    }
+                                >
+                                    {getSize(item.size, item.is_dir)}
+                                </td>
+                                <td
+                                    onClick={() => handleSelectItem(!isSelected, item)}
+                                    onDoubleClick={() =>
+                                        handleItemClick(item.path, item.is_file, item.is_dir)
+                                    }
+                                >
+                                    {getTimeStr(item.mtime)}
+                                </td>
+                                <td>
+                                    <ItemMenu
+                                        item={item}
+                                        download={download}
+                                        display={display}
+                                        move={move}
+                                        rename={rename}
+                                        remove={remove}
+                                        showDetail={showDetail}
+                                        permission={permission}
+                                        share={share}
+                                    />
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
