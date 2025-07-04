@@ -17,7 +17,7 @@ export async function get_login_status() {
         const res = await fetch(`${API_URL}/user_info`, { method: "GET" });
         if (!res.ok) throw new Error("not logged in");
         const data = await res.json();
-        return data.username;
+        return data;
     } catch (err) {
         console.error("Error fetching /user_info:", err);
         return null;

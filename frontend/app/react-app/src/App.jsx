@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./page/HomePage";
 import LoginPage from "./page/LoginPage";
 import DownloadHandler from "./page/DownloadHandler";
+import IndexHandler from "./page/IndexHandler";
 import useUserInfo from "./hooks/useUserInfo";
 import { getIconCSS } from "./utils/getFileCategory";
 import { ROUTE_STORAGE, ROUTE_DOWNLOAD } from "./utils/config";
@@ -11,7 +12,7 @@ import { NotificationProvider } from "./context/NotificationContext";
 
 function App() {
     const [cssLoading, setCssLoading] = useState(true);
-    const { user, userLoading } = useUserInfo();
+    const { userinfo, loading } = useUserInfo();
 
     useEffect(() => {
         const loadCSS = async () => {
@@ -22,17 +23,25 @@ function App() {
         loadCSS();
     }, []);
 
-    if (cssLoading || userLoading) {
+    if (cssLoading || loading) {
         return <p>...</p>;
     }
-    if (!user) {
+    if (!userinfo) {
         return <LoginPage />;
     }
+    console.debug("user_info", userinfo);
     return (
         <NotificationProvider>
             <HashRouter>
                 <Routes>
-                    <Route path={`${ROUTE_STORAGE}/*`} element={<HomePage user={user} />} />
+                    <Route
+                        path="/"
+                        element={<IndexHandler home_directory={userinfo.home_directory} />}
+                    />
+                    <Route
+                        path={`${ROUTE_STORAGE}/*`}
+                        element={<HomePage user={userinfo.username} />}
+                    />
                     <Route path={`${ROUTE_DOWNLOAD}/*`} element={<DownloadHandler />} />
                 </Routes>
             </HashRouter>

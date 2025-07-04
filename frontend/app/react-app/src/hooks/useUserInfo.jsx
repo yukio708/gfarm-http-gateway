@@ -1,21 +1,22 @@
-import { useState, useEffect } from 'react';
-import { get_login_status } from '../utils/getUserInfo';
+import { useState, useEffect } from "react";
+import { get_login_status } from "../utils/getUserInfo";
 
 function userUserInfo() {
-    const [user, setUser] = useState([]);
+    const [userinfo, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-  
+
     useEffect(() => {
         const get_username = async () => {
-            const name = await get_login_status();
-            setUser(name);
+            const data = await get_login_status();
+            setUser(data);
             setLoading(false);
+            console.debug("user_info", data);
         };
-  
+
         get_username();
     }, []);
-  
-    return { user, loading };
+
+    return { userinfo, loading };
 }
 
 export default userUserInfo;

@@ -810,7 +810,8 @@ async def index(request: Request,
 
 
 @app.get("/user_info")
-async def user_info(request: Request):
+async def user_info(request: Request,
+                    authorization: Union[str, None] = Header(default=None)):
     access_token = await get_access_token(request)
     user = None
     if access_token:
@@ -819,7 +820,14 @@ async def user_info(request: Request):
         user_passwd = get_user_passwd(request)
         if user_passwd:
             user, _ = user_passwd
-    return JSONResponse(content={"username": user})
+    if user:
+        env = await set_env(request, authorization)
+        username = await get_username(env)
+        if username:
+            name, _, home_directory, _ = await gfuser_info(env, username)
+    return JSONResponse(content={"username": name,
+                                 "loginname": user,
+                                 "home_directory": home_directory})
 
 
 @app.get("/login")
