@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "../css/SidePanel.css";
 import ACLTab from "./ACLTab";
 import DetailTab from "./DetailTab";
-import ShareTab from "./ShareTab";
+import URLTab from "./URLTab";
 import PropTypes from "prop-types";
 
 function SidePanel({ show, item, onHide, showTab = "detail" }) {
@@ -33,6 +33,14 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
                     </li>
                     <li className="nav-item">
                         <button
+                            className={`nav-link ${activeTab === "perms" ? "active" : ""}`}
+                            onClick={() => setActiveTab("perms")}
+                        >
+                            Perms
+                        </button>
+                    </li>
+                    <li className="nav-item">
+                        <button
                             className={`nav-link ${activeTab === "acl" ? "active" : ""}`}
                             onClick={() => setActiveTab("acl")}
                         >
@@ -41,10 +49,10 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
                     </li>
                     <li className="nav-item">
                         <button
-                            className={`nav-link ${activeTab === "share" ? "active" : ""}`}
-                            onClick={() => setActiveTab("share")}
+                            className={`nav-link ${activeTab === "url" ? "active" : ""}`}
+                            onClick={() => setActiveTab("url")}
                         >
-                            Share
+                            URL
                         </button>
                     </li>
                 </ul>
@@ -52,7 +60,7 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
             <div className="px-3 py-2 overflow-auto" style={{ maxHeight: "calc(100% - 100px)" }}>
                 {show && <DetailTab item={item} active={activeTab === "detail"} />}
                 {show && <ACLTab item={item} active={activeTab === "acl"} />}
-                {show && <ShareTab item={item} active={activeTab === "share"} />}
+                {show && <URLTab item={item} active={activeTab === "url"} />}
             </div>
         </div>
     );

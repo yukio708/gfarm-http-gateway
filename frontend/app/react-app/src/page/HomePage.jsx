@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import FileListView from "../components/FileListView";
 import CurrentDirView from "../components/CurrentDirView";
 import SidePanel from "../components/SidePanel";
@@ -13,7 +13,9 @@ import MoveModal from "../components/MoveModel";
 import ArchiveModal from "../components/ArchiveModal";
 import useFileList from "../hooks/useFileList";
 import useProgressTasks from "../hooks/useProgressTasks";
+import useGetPath from "../hooks/useGetPath";
 import { useNotifications } from "../context/NotificationContext";
+import { ROUTE_STORAGE } from "../utils/config";
 import displayFile from "../utils/display";
 import getSymlink from "../utils/getSymlink";
 import { getParentPath } from "../utils/func";
@@ -21,9 +23,8 @@ import ErrorPage from "./ErrorPage";
 import PropTypes from "prop-types";
 
 function HomePage({ user }) {
-    const location = useLocation();
     const navigate = useNavigate();
-    const currentDir = decodeURIComponent(location.pathname);
+    const { pathHead, gfarmPath: currentDir } = useGetPath(ROUTE_STORAGE);
     const [refreshKey, setRefreshKey] = useState(false);
     const { currentItems, listGetError } = useFileList(currentDir, refreshKey);
     const { addNotification } = useNotifications();
@@ -64,7 +65,7 @@ function HomePage({ user }) {
         if (currentDir === newdir) {
             setRefreshKey((prev) => !prev);
         } else {
-            navigate(newdir);
+            navigate(pathHead + newdir);
         }
     };
 

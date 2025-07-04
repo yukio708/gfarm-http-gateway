@@ -1,14 +1,14 @@
 import { encodePath } from "./func";
 import { API_URL } from "./config";
 
-function displayFile(path) {
+function displayFile(path, self = false) {
     if (!path) {
         alert("Please input Gfarm path");
         return;
     }
     const epath = encodePath(path);
     const url = `${API_URL}/file${epath}`;
-    window.open(url, "_blank");
+    window.open(url, self ? "_self" : "_blank");
     console.debug("displayFile: url:", url);
 }
 

@@ -149,18 +149,18 @@ function ItemMenu({
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => remove([item])}>
-                        <BsTrash className="me-2" /> Delete
+                    <button className="dropdown-item" onClick={() => permission(item)}>
+                        <BsKey className="me-2" /> Permissions
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => permission(item)}>
-                        <BsKey className="me-2" /> Access Control
+                    <button className="dropdown-item" onClick={() => remove([item])}>
+                        <BsTrash className="me-2" /> ACL
                     </button>
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => share(item)}>
-                        <BsShare className="me-2" /> Share
+                        <BsShare className="me-2" /> URL
                     </button>
                 </li>
             </ul>

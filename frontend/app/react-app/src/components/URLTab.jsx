@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
+import { ROUTE_STORAGE, ROUTE_DOWNLOAD } from "../utils/config";
 import PropTypes from "prop-types";
 
-function ShareTab({ item, active }) {
+function URLTab({ item, active }) {
     const copyLinkRef = useRef(null);
     const copyDownloadLinkRef = useRef(null);
     const [copiedLink, setCopiedLink] = useState(false);
@@ -21,14 +22,14 @@ function ShareTab({ item, active }) {
         <div data-testid="share-tab">
             {item && (
                 <div className="my-2">
-                    <label className="form-label fw-bold">Open in Web App</label>
+                    <label className="form-label fw-bold">Link in Web App</label>
                     <div className="input-group input-group-sm">
                         <input
                             ref={copyLinkRef}
                             type="text"
                             className="form-control"
                             readOnly
-                            value={`${window.location.origin}/#${item.path}`}
+                            value={`${window.location.origin}/#${ROUTE_STORAGE}${item.path}`}
                         />
                         <button
                             className="btn btn-outline-secondary"
@@ -40,7 +41,26 @@ function ShareTab({ item, active }) {
                     </div>
                     {item.is_file && (
                         <div className="mt-2">
-                            <label className="form-label fw-bold">View File</label>
+                            <label className="form-label fw-bold">Download Link</label>
+                            <div className="input-group input-group-sm">
+                                <input
+                                    ref={copyDownloadLinkRef}
+                                    type="text"
+                                    className="form-control"
+                                    readOnly
+                                    value={`${window.location.origin}/#${ROUTE_DOWNLOAD}${item.path}`}
+                                />
+                                <button
+                                    className="btn btn-outline-secondary"
+                                    type="button"
+                                    onClick={() =>
+                                        handleCopy(copyDownloadLinkRef, setCopiedDownload)
+                                    }
+                                >
+                                    {copiedDownload ? "Copied!" : "Copy"}
+                                </button>
+                            </div>
+                            <label className="form-label fw-bold mt-2">Resource Path for API</label>
                             <div className="input-group input-group-sm">
                                 <input
                                     ref={copyDownloadLinkRef}
@@ -67,9 +87,9 @@ function ShareTab({ item, active }) {
     );
 }
 
-ShareTab.propTypes = {
+URLTab.propTypes = {
     item: PropTypes.object,
     active: PropTypes.bool,
 };
 
-export default ShareTab;
+export default URLTab;
