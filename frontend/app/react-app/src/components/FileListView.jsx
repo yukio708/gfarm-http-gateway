@@ -23,7 +23,7 @@ function FileListView({
     currentItems,
     selectedItems,
     setSelectedItems,
-    lastSelectedItem,
+    activeItem,
     setLastSelectedItem,
     ItemMenuActions,
     UploadMenuActions,
@@ -189,8 +189,7 @@ function FileListView({
                         const isSelected = selectedItems.some(
                             (selected) => selected.path === item.path
                         );
-                        const isLastSelected =
-                            lastSelectedItem && lastSelectedItem.path === item.path;
+                        const isLastSelected = activeItem && activeItem.path === item.path;
                         return (
                             <tr
                                 key={item.path}
@@ -269,7 +268,7 @@ FileListView.propTypes = {
     currentItems: PropTypes.array,
     selectedItems: PropTypes.array,
     setSelectedItems: PropTypes.func,
-    lastSelectedItem: PropTypes.object,
+    activeItem: PropTypes.object,
     setLastSelectedItem: PropTypes.func,
     ItemMenuActions: PropTypes.array,
     UploadMenuActions: PropTypes.array,

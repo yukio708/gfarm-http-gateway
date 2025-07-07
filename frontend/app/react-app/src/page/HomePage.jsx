@@ -195,12 +195,12 @@ function HomePage({ user, home_directory }) {
                         currentItems={currentItems}
                         selectedItems={selectedItems}
                         setSelectedItems={setSelectedItems}
-                        lastSelectedItem={lastSelectedItem}
                         setLastSelectedItem={setLastSelectedItem}
+                        activeItem={showSidePanel.show ? lastSelectedItem : null}
+                        handleItemClick={handleItemClick}
                         ItemMenuActions={ItemMenuActions}
                         UploadMenuActions={UploadMenuActions}
                         SelectedMenuActions={SelectedMenuActions}
-                        handleItemClick={handleItemClick}
                     />
                 </div>
             </div>
