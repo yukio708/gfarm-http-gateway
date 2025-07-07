@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import changeMode from "../utils/changeMode";
+import getAttribute from "../utils/getAttribute";
 import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
 
@@ -38,7 +39,21 @@ function PermsTab({ item, active }) {
         special: { sticky: false },
     });
 
-    if (!item) return null;
+    useEffect(() => {
+        if (!item || !active) return;
+
+        const getMode = async (item) => {
+            try {
+                const detail = await getAttribute(item.path);
+                console.debug("detail:", detail);
+                setOctal(detail.Mode);
+            } catch (err) {
+                console.error("getAttribute failed:", err);
+                addNotification("GetMode", `${err.name} : ${err.message}`, "error");
+            }
+        };
+        getMode(item);
+    }, [item, active]);
 
     useEffect(() => {
         const parsed = parseOctal(octal);
@@ -85,46 +100,65 @@ function PermsTab({ item, active }) {
                     placeholder="e.g. 755"
                 />
             </div>
-            <div>
-                {["owner", "group", "other"].map((name) => {
-                    return (
-                        <div key={name}>
-                            <strong className="me-2">{name}</strong>
-                            {["r", "w", "x"].map((perm) => (
-                                <div className="form-check form-check-inline" key={perm}>
-                                    <input
-                                        className="form-check-input"
-                                        type="checkbox"
-                                        checked={permissions[name][perm]}
-                                        onChange={() => toggle(name, perm)}
-                                        id={`perm-${name}-${perm}`}
-                                    />
-                                    <label
-                                        className="form-check-label"
-                                        htmlFor={`perm-${name}-${perm}`}
-                                    >
-                                        {perm.toUpperCase()}
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-                    );
-                })}
-            </div>
+
             <div className="mt-2">
-                <strong>Special:</strong>
-                <label key={"sticky"} className="mx-1">
-                    <input
-                        type="checkbox"
-                        checked={permissions.special.sticky}
-                        onChange={() => toggleSpecial("sticky")}
-                    />
-                    {" sticky"}
-                </label>
+                <table className="table table-sm">
+                    <thead>
+                        <tr>
+                            <th colSpan="4" className="fw-bold">
+                                or select permissions below
+                            </th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th>R</th>
+                            <th>W</th>
+                            <th>X</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {["owner", "group", "other"].map((name) => (
+                            <tr key={name}>
+                                <th scope="row" className="text-capitalize">
+                                    {name}
+                                </th>
+                                {["r", "w", "x"].map((perm) => (
+                                    <td key={perm}>
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            checked={permissions[name][perm]}
+                                            onChange={() => toggle(name, perm)}
+                                            id={`perm-${name}-${perm}`}
+                                        />
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                        <tr>
+                            <th></th>
+                            <td colSpan={3}></td>
+                        </tr>
+                        <tr>
+                            <th>Sticky</th>
+                            <td colSpan={3}>
+                                <input
+                                    type="checkbox"
+                                    className="form-check-input"
+                                    checked={permissions.special.sticky}
+                                    onChange={() => toggleSpecial("sticky")}
+                                />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <button className="btn btn-sm btn-primary mt-3" onClick={handleApply}>
-                Apply
-            </button>
+
+            <div className="text-end mt-4">
+                <button className="btn btn-sm btn-primary" onClick={handleApply}>
+                    Apply
+                </button>
+            </div>
         </div>
     );
 }

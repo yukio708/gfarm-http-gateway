@@ -66,7 +66,7 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
             buffer += decoder.decode(value, { stream: true });
 
             let lines = buffer.split("\n");
-            buffer = lines.pop(); // Save last partial line back to buffer
+            buffer = lines.pop();
             for (const line of lines) {
                 if (line.trim() === "") continue;
                 try {

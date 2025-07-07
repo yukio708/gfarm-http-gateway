@@ -10,7 +10,7 @@ function DetailTab({ item, active }) {
     const { addNotification } = useNotifications();
 
     useEffect(() => {
-        if (!item) return;
+        if (!item || !active) return;
 
         const showDetail = async (item) => {
             try {
@@ -28,7 +28,7 @@ function DetailTab({ item, active }) {
             }
         };
         showDetail(item);
-    }, [item]);
+    }, [item, active]);
 
     if (!active) return <></>;
 

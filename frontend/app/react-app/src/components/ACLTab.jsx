@@ -25,7 +25,7 @@ function ACLTab({ item, active }) {
     }, []);
 
     useEffect(() => {
-        if (!item) return;
+        if (!item || !active) return;
 
         const fetchACL = async () => {
             const res = await get_acl(item.path);
@@ -44,7 +44,7 @@ function ACLTab({ item, active }) {
         };
 
         fetchACL();
-    }, [item]);
+    }, [item, active]);
 
     const updateEntry = async () => {
         const res = await set_acl(item.path, entries);
@@ -104,60 +104,51 @@ function ACLTab({ item, active }) {
                             )}
                             <div className="row mb-2">
                                 <div className="col-5">
-                                    <label className="form-label fw-bold">Type</label>
                                     {entry.base ? (
-                                        <select
-                                            className="form-select form-select-sm"
+                                        <input
+                                            className="form-control"
                                             value={entry.acl_type}
                                             disabled
-                                        >
-                                            <option value="user">User</option>
-                                            <option value="group">Group</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                        />
                                     ) : (
-                                        <select
-                                            className="form-select form-select-sm"
-                                            value={entry.acl_type}
-                                            onChange={(e) =>
-                                                handleChange(i, "acl_type", e.target.value)
-                                            }
-                                        >
-                                            <option value="user">User</option>
-                                            <option value="group">Group</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                        <div>
+                                            <label className="form-label fw-bold">Type</label>
+                                            <select
+                                                className="form-select"
+                                                value={entry.acl_type}
+                                                onChange={(e) =>
+                                                    handleChange(i, "acl_type", e.target.value)
+                                                }
+                                            >
+                                                <option value="user">User</option>
+                                                <option value="group">Group</option>
+                                                {entry.is_default && (
+                                                    <option value="other">Other</option>
+                                                )}
+                                            </select>
+                                        </div>
                                     )}
                                 </div>
                                 <div className="col-7">
-                                    <label className="form-label fw-bold">Name</label>
                                     {entry.base ? (
-                                        <input
-                                            type="text"
-                                            className="form-control form-control-sm"
-                                            value={
-                                                entry.acl_type === "user"
-                                                    ? "owner"
-                                                    : entry.acl_type === "group"
-                                                      ? "owner's group"
-                                                      : ""
-                                            }
-                                            disabled
-                                        />
+                                        <></>
                                     ) : (
-                                        <SuggestInput
-                                            value={entry.acl_name}
-                                            onChange={(val) => handleChange(i, "acl_name", val)}
-                                            suggestions={
-                                                entry.acl_type === "user" ? userList : groupList
-                                            }
-                                            disabled={entry.acl_type === "other"}
-                                        />
+                                        <div>
+                                            <label className="form-label fw-bold">Name</label>
+                                            <SuggestInput
+                                                value={entry.acl_name}
+                                                onChange={(val) => handleChange(i, "acl_name", val)}
+                                                suggestions={
+                                                    entry.acl_type === "user" ? userList : groupList
+                                                }
+                                                disabled={entry.acl_type === "other"}
+                                            />
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="mb-2">
+                            <div>
                                 <label className="form-label fw-bold me-2">Permissions</label>
                                 {["r", "w", "x"].map((perm) => (
                                     <div className="form-check form-check-inline" key={perm}>
@@ -181,7 +172,7 @@ function ACLTab({ item, active }) {
                             </div>
 
                             {!entry.base && item.is_dir && (
-                                <div className="mb-2">
+                                <div>
                                     <label className="form-label fw-bold me-2">Default</label>
                                     <div className="form-check form-check-inline">
                                         <input
