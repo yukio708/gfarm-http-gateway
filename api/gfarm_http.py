@@ -71,7 +71,7 @@ PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
 
 
 TMPDIR = "/tmp/gfarm-http"
-STORAGE_URL_PREFIX = "#/stg"
+STORAGE_URL_PREFIX = "#/ui"
 
 #############################################################################
 # Configuration variables
@@ -2389,17 +2389,17 @@ class PathList(BaseModel):
 
 
 @app.post("/zip")
-async def zip_export(pathlist: PathList,
-                     request: Request,
+async def zip_export(request: Request,
+                     pathes: List[str] = Form(...),
                      authorization: Union[str, None] = Header(default=None)):
     opname = "gfzip"
     apiname = "/zip"
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, request.method, apiname, opname, pathlist.pathes)
+    log_operation(env, request.method, apiname, opname, pathes)
     filedatas = []
-    for filepath in pathlist.pathes:
+    for filepath in pathes:
         existing, is_file, _ = await file_size(env, filepath)
         if not existing:
             code = 404
