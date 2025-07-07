@@ -2710,7 +2710,9 @@ async def file_copy(copy_data: Move,
         return_code_mv = await p_mv.wait()
 
         if return_code_mv == 0:
-            yield json.dumps({"done": True}) + "\n"
+            yield json.dumps({"copied": copied,
+                              "total": size,
+                              "done": True}) + "\n"
         else:
             p_clean = await gfrm(env, tmppath, force=True)
             await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
