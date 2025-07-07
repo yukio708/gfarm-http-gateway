@@ -8,9 +8,10 @@ import {
     BsFiles,
     BsDownload,
     BsTrash,
-    BsKey,
-    BsShare,
     BsArchive,
+    BsCardChecklist,
+    BsShieldLock,
+    BsLink45Deg,
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
@@ -151,17 +152,17 @@ function ItemMenu({
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => permission(item)}>
-                        <BsKey className="me-2" /> Permissions
+                        <BsShieldLock className="me-2" /> Permissions
                     </button>
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => accessControl(item)}>
-                        <BsKey className="me-2" /> ACL
+                        <BsCardChecklist className="me-2" /> ACL
                     </button>
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => share(item)}>
-                        <BsShare className="me-2" /> URL
+                        <BsLink45Deg className="me-2" /> URL
                     </button>
                 </li>
                 <li>
