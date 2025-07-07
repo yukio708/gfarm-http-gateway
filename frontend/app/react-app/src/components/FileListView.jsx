@@ -23,21 +23,12 @@ function FileListView({
     currentItems,
     selectedItems,
     setSelectedItems,
+    lastSelectedItem,
     setLastSelectedItem,
+    ItemMenuActions,
+    UploadMenuActions,
+    SelectedMenuActions,
     handleItemClick,
-    download,
-    upload,
-    display,
-    move,
-    rename,
-    remove,
-    copy,
-    showDetail,
-    permission,
-    accessControl,
-    share,
-    gfptar,
-    createNewDir,
 }) {
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
@@ -148,19 +139,13 @@ function FileListView({
                 <div className="d-flex gap-2">
                     {selectedItems.length === 0 && (
                         <UploadMenu
-                            onUpload={upload}
-                            onCreate={createNewDir}
+                            onUpload={UploadMenuActions.upload}
+                            onCreate={UploadMenuActions.create}
                             uploadDir={currentDir}
                             currentItems={currentItems}
                         />
                     )}
-                    <FileActionMenu
-                        selectedItems={selectedItems}
-                        removeItems={remove}
-                        downloadItems={download}
-                        moveItems={move}
-                        archiveItems={gfptar}
-                    />
+                    <FileActionMenu selectedItems={selectedItems} actions={SelectedMenuActions} />
                 </div>
             </div>
             <table className="table table-hover file-table">
@@ -204,10 +189,12 @@ function FileListView({
                         const isSelected = selectedItems.some(
                             (selected) => selected.path === item.path
                         );
+                        const isLastSelected =
+                            lastSelectedItem && lastSelectedItem.path === item.path;
                         return (
                             <tr
                                 key={item.path}
-                                className={`align-middle ${isSelected ? "table-active" : ""}`}
+                                className={`align-middle ${isLastSelected ? "table-active" : ""}`}
                             >
                                 <td>
                                     <input
@@ -263,19 +250,7 @@ function FileListView({
                                     {getTimeStr(item.mtime)}
                                 </td>
                                 <td>
-                                    <ItemMenu
-                                        item={item}
-                                        download={download}
-                                        display={display}
-                                        move={move}
-                                        rename={rename}
-                                        copy={copy}
-                                        remove={remove}
-                                        showDetail={showDetail}
-                                        permission={permission}
-                                        accessControl={accessControl}
-                                        share={share}
-                                    />
+                                    <ItemMenu item={item} actions={ItemMenuActions} />
                                 </td>
                             </tr>
                         );
@@ -294,19 +269,10 @@ FileListView.propTypes = {
     currentItems: PropTypes.array,
     selectedItems: PropTypes.array,
     setSelectedItems: PropTypes.func,
+    lastSelectedItem: PropTypes.object,
     setLastSelectedItem: PropTypes.func,
+    ItemMenuActions: PropTypes.array,
+    UploadMenuActions: PropTypes.array,
+    SelectedMenuActions: PropTypes.array,
     handleItemClick: PropTypes.func,
-    download: PropTypes.func,
-    upload: PropTypes.func,
-    display: PropTypes.func,
-    move: PropTypes.func,
-    rename: PropTypes.func,
-    copy: PropTypes.func,
-    remove: PropTypes.func,
-    showDetail: PropTypes.func,
-    permission: PropTypes.func,
-    accessControl: PropTypes.func,
-    share: PropTypes.func,
-    gfptar: PropTypes.func,
-    createNewDir: PropTypes.func,
 };

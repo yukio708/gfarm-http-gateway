@@ -117,6 +117,43 @@ function HomePage({ user, home_directory }) {
         );
     };
 
+    const ItemMenuActions = {
+        download: addItemsToDownload,
+        showDetail: (item) => {
+            handleShowDetail(item, "detail");
+        },
+        display: handleDisplayFile,
+        remove: setItemsToDelete,
+        move: setItemsToMove,
+        rename: handleRename,
+        copy: handleCopy,
+        permission: (item) => {
+            handleShowDetail(item, "perms");
+        },
+        accessControl: (item) => {
+            handleShowDetail(item, "acl");
+        },
+        share: (item) => {
+            handleShowDetail(item, "url");
+        },
+    };
+
+    const UploadMenuActions = {
+        upload: addItemsToUpload,
+        create: () => {
+            setShowNewDirModal(true);
+        },
+    };
+
+    const SelectedMenuActions = {
+        download: addItemsToDownload,
+        remove: setItemsToDelete,
+        move: setItemsToMove,
+        archive: () => {
+            setShowGfptarModal(true);
+        },
+    };
+
     if (listGetError) {
         return <ErrorPage error={listGetError} home_directory={home_directory} />;
     }
@@ -158,34 +195,12 @@ function HomePage({ user, home_directory }) {
                         currentItems={currentItems}
                         selectedItems={selectedItems}
                         setSelectedItems={setSelectedItems}
+                        lastSelectedItem={lastSelectedItem}
                         setLastSelectedItem={setLastSelectedItem}
+                        ItemMenuActions={ItemMenuActions}
+                        UploadMenuActions={UploadMenuActions}
+                        SelectedMenuActions={SelectedMenuActions}
                         handleItemClick={handleItemClick}
-                        download={addItemsToDownload}
-                        upload={addItemsToUpload}
-                        showDetail={(item) => {
-                            handleShowDetail(item, "detail");
-                        }}
-                        display={handleDisplayFile}
-                        remove={setItemsToDelete}
-                        move={setItemsToMove}
-                        rename={handleRename}
-                        copy={handleCopy}
-                        permission={(item) => {
-                            handleShowDetail(item, "perms");
-                        }}
-                        accessControl={(item) => {
-                            handleShowDetail(item, "acl");
-                        }}
-                        share={(item) => {
-                            handleShowDetail(item, "url");
-                        }}
-                        showSidePanel={showSidePanel}
-                        createNewDir={() => {
-                            setShowNewDirModal(true);
-                        }}
-                        gfptar={() => {
-                            setShowGfptarModal(true);
-                        }}
                     />
                 </div>
             </div>

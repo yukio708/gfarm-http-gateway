@@ -15,7 +15,7 @@ import {
 } from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, archiveItems }) {
+function FileActionMenu({ actions, selectedItems }) {
     if (selectedItems.length === 0) return null;
 
     return (
@@ -24,23 +24,26 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
             <div className="d-none d-md-flex btn-group" role="group">
                 <button
                     className="btn btn-outline-primary btn-sm"
-                    onClick={() => downloadItems(selectedItems)}
+                    onClick={() => actions.download(selectedItems)}
                 >
                     <BsDownload className="me-2" /> Download
                 </button>
                 <button
                     className="btn btn-outline-primary btn-sm"
-                    onClick={() => removeItems(selectedItems)}
+                    onClick={() => actions.remove(selectedItems)}
                 >
                     <BsTrash className="me-2" /> Delete
                 </button>
                 <button
                     className="btn btn-outline-primary btn-sm"
-                    onClick={() => moveItems(selectedItems)}
+                    onClick={() => actions.move(selectedItems)}
                 >
                     <BsArrowRightSquare className="me-2" /> Move
                 </button>
-                <button className="btn btn-outline-primary btn-sm" onClick={() => archiveItems()}>
+                <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => actions.archive()}
+                >
                     <BsArchive className="me-2" /> gfptar
                 </button>
             </div>
@@ -60,7 +63,7 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
                     <li>
                         <button
                             className="dropdown-item"
-                            onClick={() => downloadItems(selectedItems)}
+                            onClick={() => actions.download(selectedItems)}
                         >
                             <BsDownload className="me-2" /> Download
                         </button>
@@ -68,18 +71,21 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
                     <li>
                         <button
                             className="dropdown-item"
-                            onClick={() => removeItems(selectedItems)}
+                            onClick={() => actions.remove(selectedItems)}
                         >
                             <BsTrash className="me-2" /> Delete
                         </button>
                     </li>
                     <li>
-                        <button className="dropdown-item" onClick={() => moveItems(selectedItems)}>
+                        <button
+                            className="dropdown-item"
+                            onClick={() => actions.move(selectedItems)}
+                        >
                             <BsArrowRightSquare className="me-2" /> Move
                         </button>
                     </li>
                     <li>
-                        <button className="dropdown-item" onClick={() => archiveItems()}>
+                        <button className="dropdown-item" onClick={() => actions.archive()}>
                             <BsArchive className="me-2" /> gfptar
                         </button>
                     </li>
@@ -95,19 +101,7 @@ function FileActionMenu({ downloadItems, removeItems, moveItems, selectedItems, 
     );
 }
 
-function ItemMenu({
-    item,
-    download,
-    display,
-    move,
-    rename,
-    copy,
-    remove,
-    showDetail,
-    permission,
-    accessControl,
-    share,
-}) {
+function ItemMenu({ item, actions }) {
     return (
         <div className="dropdown">
             <button
@@ -120,54 +114,57 @@ function ItemMenu({
             </button>
             <ul className="dropdown-menu">
                 <li>
-                    <button className="dropdown-item" onClick={() => showDetail(item)}>
+                    <button className="dropdown-item" onClick={() => actions.showDetail(item)}>
                         <BsInfoCircle className="me-2" /> Detail
                     </button>
                 </li>
                 {item.is_file && (
                     <li>
-                        <button className="dropdown-item" onClick={() => display(item.path)}>
+                        <button
+                            className="dropdown-item"
+                            onClick={() => actions.display(item.path)}
+                        >
                             <BsEye className="me-2" /> View
                         </button>
                     </li>
                 )}
                 <li>
-                    <button className="dropdown-item" onClick={() => rename(item)}>
+                    <button className="dropdown-item" onClick={() => actions.rename(item)}>
                         <BsPencil className="me-2" /> Rename
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => move([item])}>
+                    <button className="dropdown-item" onClick={() => actions.move([item])}>
                         <BsArrowRightSquare className="me-2" /> Move
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => copy(item)}>
+                    <button className="dropdown-item" onClick={() => actions.copy(item)}>
                         <BsFiles className="me-2" /> Copy
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => download([item])}>
+                    <button className="dropdown-item" onClick={() => actions.download([item])}>
                         <BsDownload className="me-2" /> Download
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => permission(item)}>
+                    <button className="dropdown-item" onClick={() => actions.permission(item)}>
                         <BsShieldLock className="me-2" /> Permissions
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => accessControl(item)}>
+                    <button className="dropdown-item" onClick={() => actions.accessControl(item)}>
                         <BsCardChecklist className="me-2" /> ACL
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => share(item)}>
+                    <button className="dropdown-item" onClick={() => actions.share(item)}>
                         <BsLink45Deg className="me-2" /> URL
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => remove([item])}>
+                    <button className="dropdown-item" onClick={() => actions.remove([item])}>
                         <BsTrash className="me-2" /> Delete
                     </button>
                 </li>
@@ -179,23 +176,11 @@ function ItemMenu({
 export { FileActionMenu, ItemMenu };
 
 FileActionMenu.propTypes = {
-    downloadItems: PropTypes.func,
-    removeItems: PropTypes.func,
-    moveItems: PropTypes.func,
-    archiveItems: PropTypes.func,
     selectedItems: PropTypes.array,
+    actions: PropTypes.array,
 };
 
 ItemMenu.propTypes = {
     item: PropTypes.object,
-    download: PropTypes.func,
-    display: PropTypes.func,
-    move: PropTypes.func,
-    rename: PropTypes.func,
-    copy: PropTypes.func,
-    remove: PropTypes.func,
-    showDetail: PropTypes.func,
-    permission: PropTypes.func,
-    accessControl: PropTypes.func,
-    share: PropTypes.func,
+    actions: PropTypes.array,
 };
