@@ -29,7 +29,7 @@ function URLTab({ item, active }) {
                             type="text"
                             className="form-control"
                             readOnly
-                            value={`${window.location.origin}/#${ROUTE_STORAGE}${item.path}`}
+                            value={`${window.location.origin}${window.location.pathname}#${ROUTE_STORAGE}${item.path}`}
                         />
                         <button
                             className="btn btn-outline-secondary"
@@ -48,7 +48,7 @@ function URLTab({ item, active }) {
                                     type="text"
                                     className="form-control"
                                     readOnly
-                                    value={`${window.location.origin}/#${ROUTE_DOWNLOAD}${item.path}`}
+                                    value={`${window.location.origin}${window.location.pathname}#${ROUTE_DOWNLOAD}${item.path}`}
                                 />
                                 <button
                                     className="btn btn-outline-secondary"
@@ -67,7 +67,7 @@ function URLTab({ item, active }) {
                                     type="text"
                                     className="form-control"
                                     readOnly
-                                    value={`${window.location.origin}/file${item.path}`}
+                                    value={`${window.location.origin}${window.location.pathname}file${item.path}`}
                                 />
                                 <button
                                     className="btn btn-outline-secondary"

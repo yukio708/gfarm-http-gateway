@@ -56,7 +56,7 @@ function HomePage({ user, home_directory }) {
             if (currentDir === currentItems[0].path) {
                 setLastSelectedItem(currentItems[0]);
                 setSelectedItems([currentItems[0]]);
-                navigate(getParentPath(currentDir));
+                navigate(pathHead + getParentPath(currentDir));
                 setShowSidePanel({ show: true, tab: "detail" });
             }
         }
