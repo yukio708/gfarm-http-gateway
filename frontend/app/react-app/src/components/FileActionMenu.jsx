@@ -103,6 +103,7 @@ function ItemMenu({
     remove,
     showDetail,
     permission,
+    accessControl,
     share,
 }) {
     return (
@@ -154,13 +155,18 @@ function ItemMenu({
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => remove([item])}>
-                        <BsTrash className="me-2" /> ACL
+                    <button className="dropdown-item" onClick={() => accessControl(item)}>
+                        <BsKey className="me-2" /> ACL
                     </button>
                 </li>
                 <li>
                     <button className="dropdown-item" onClick={() => share(item)}>
                         <BsShare className="me-2" /> URL
+                    </button>
+                </li>
+                <li>
+                    <button className="dropdown-item" onClick={() => remove([item])}>
+                        <BsTrash className="me-2" /> Delete
                     </button>
                 </li>
             </ul>
@@ -187,5 +193,6 @@ ItemMenu.propTypes = {
     remove: PropTypes.func,
     showDetail: PropTypes.func,
     permission: PropTypes.func,
+    accessControl: PropTypes.func,
     share: PropTypes.func,
 };

@@ -3,8 +3,8 @@ import { API_URL } from "./config";
 
 function displayFile(path, self = false) {
     if (!path) {
-        alert("Please input Gfarm path");
-        return;
+        console.error("path is empty");
+        return "path is empty";
     }
     const epath = encodePath(path);
     const url = `${API_URL}/file${epath}`;

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import SuggestInput from "./SuggestInput";
 import { set_acl, get_acl } from "../utils/acl";
 import { getUsers, getGroups } from "../utils/getNameList";
+import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
 
 function ACLTab({ item, active }) {
+    const { addNotification } = useNotifications();
     const [entries, setEntries] = useState([]);
     const [userList, setUserList] = useState([]);
     const [groupList, setGroupList] = useState([]);
@@ -29,6 +31,7 @@ function ACLTab({ item, active }) {
             const res = await get_acl(item.path);
             if (res.error) {
                 console.error(res);
+                addNotification("GetACL", res.error, "error");
             } else {
                 const acl = res.data.acl.map((acinfo) => {
                     if (acinfo.acl_name === null && !acinfo.is_default) {
@@ -47,6 +50,7 @@ function ACLTab({ item, active }) {
         const res = await set_acl(item.path, entries);
         if (res !== "") {
             console.error(res);
+            addNotification("SetACL", res, "error");
         }
     };
 

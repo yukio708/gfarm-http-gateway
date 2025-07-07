@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import changeMode from "../utils/changeMode";
+import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
 
 function parseOctal(octalStr) {
@@ -27,6 +29,7 @@ function permissionsToOctal(p) {
 }
 
 function PermsTab({ item, active }) {
+    const { addNotification } = useNotifications();
     const [octal, setOctal] = useState("644");
     const [permissions, setPermissions] = useState({
         owner: { r: true, w: true, x: false },
@@ -61,9 +64,11 @@ function PermsTab({ item, active }) {
         }));
     };
 
-    const handleApply = () => {
+    const handleApply = async () => {
         console.log("Apply chmod for", item.path, "to", octal);
         // call API
+        const error = await changeMode(item.path, octal);
+        if (error) addNotification("ChangeMode", error, "error");
     };
 
     if (!active) return <></>;

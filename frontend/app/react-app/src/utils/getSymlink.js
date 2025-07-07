@@ -6,7 +6,9 @@ async function getSymlink(symlink) {
     const fullpath = `${API_URL}/symlink${epath}`;
     const response = await fetch(fullpath);
     if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        const error = await response.json();
+        const message = JSON.stringify(error.detail);
+        throw new Error(`${response.status} ${message}`);
     }
     const data = await response.json();
     return data;

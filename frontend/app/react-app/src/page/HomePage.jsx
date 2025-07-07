@@ -85,7 +85,7 @@ function HomePage({ user, home_directory }) {
                 jumpDirectory(info.path);
             }
         } catch (err) {
-            addNotification(`${err.name} : ${err.message}`);
+            addNotification(symlink, `${err.name} : ${err.message}`, "error");
         }
     };
 
@@ -162,10 +162,13 @@ function HomePage({ user, home_directory }) {
                         move={setItemsToMove}
                         rename={handleRename}
                         permission={(item) => {
+                            handleShowDetail(item, "perms");
+                        }}
+                        accessControl={(item) => {
                             handleShowDetail(item, "acl");
                         }}
                         share={(item) => {
-                            handleShowDetail(item, "share");
+                            handleShowDetail(item, "url");
                         }}
                         showSidePanel={showSidePanel}
                         createNewDir={() => {

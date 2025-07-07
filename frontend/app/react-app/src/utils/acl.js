@@ -11,11 +11,13 @@ export async function set_acl(path, acl) {
             body: JSON.stringify({ acl }),
         });
         if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
+            const error = await response.json();
+            const message = JSON.stringify(error.detail);
+            throw new Error(`${response.status} ${message}`);
         }
         return "";
     } catch (err) {
-        return "Failed to set ACL for " + path + " : " + err.message;
+        return err.message;
     }
 }
 
@@ -25,11 +27,13 @@ export async function get_acl(path) {
     try {
         const response = await fetch(fullpath);
         if (!response.ok) {
-            throw new Error(`Error: ${response.status}`);
+            const error = await response.json();
+            const message = JSON.stringify(error.detail);
+            throw new Error(`${response.status} ${message}`);
         }
         const data = await response.json();
         return { data, error: null };
     } catch (err) {
-        return { data: null, error: "Failed to get ACL for " + path + " : " + err.message };
+        return { data: null, error: err.message };
     }
 }

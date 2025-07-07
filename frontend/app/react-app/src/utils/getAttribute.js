@@ -9,7 +9,7 @@ async function getAttribute(filepath) {
     const json = await response.json();
     if (!response.ok) {
         const message = JSON.stringify(json.detail);
-        throw new Error(`HTTP ${response.status}: ${message}`);
+        throw new Error(`${response.status} ${message}`);
     }
     return json;
 }

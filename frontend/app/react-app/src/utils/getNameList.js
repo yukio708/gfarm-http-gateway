@@ -7,8 +7,12 @@ export async function getUsers() {
     const now = Date.now();
     if (now - cachedUsers.lastFetch > FETCH_INTERVAL) {
         try {
-            const res = await fetch(`${API_URL}/users`);
-            const data = await res.json();
+            const response = await fetch(`${API_URL}/users`);
+            const data = await response.json();
+            if (!response.ok) {
+                const message = JSON.stringify(data.detail);
+                throw new Error(`${response.status} ${message}`);
+            }
             if (data.list) {
                 cachedUsers.users = data.list;
             }
@@ -25,8 +29,12 @@ export async function getGroups() {
     const now = Date.now();
     if (now - cachedGroups.lastFetch > FETCH_INTERVAL) {
         try {
-            const res = await fetch(`${API_URL}/groups`);
-            const data = await res.json();
+            const response = await fetch(`${API_URL}/groups`);
+            const data = await response.json();
+            if (!response.ok) {
+                const message = JSON.stringify(data.detail);
+                throw new Error(`${response.status} ${message}`);
+            }
             if (data.list) {
                 cachedGroups.groups = data.list;
             }

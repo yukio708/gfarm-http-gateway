@@ -33,6 +33,7 @@ function FileListView({
     remove,
     showDetail,
     permission,
+    accessControl,
     share,
     gfptar,
     createNewDir,
@@ -270,6 +271,7 @@ function FileListView({
                                         remove={remove}
                                         showDetail={showDetail}
                                         permission={permission}
+                                        accessControl={accessControl}
                                         share={share}
                                     />
                                 </td>
@@ -300,6 +302,7 @@ FileListView.propTypes = {
     remove: PropTypes.func,
     showDetail: PropTypes.func,
     permission: PropTypes.func,
+    accessControl: PropTypes.func,
     share: PropTypes.func,
     gfptar: PropTypes.func,
     createNewDir: PropTypes.func,
