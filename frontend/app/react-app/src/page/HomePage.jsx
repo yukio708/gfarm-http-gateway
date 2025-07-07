@@ -41,6 +41,7 @@ function HomePage({ user, home_directory }) {
         addItemsToDownload,
         setItemsToMove,
         setItemsToDelete,
+        setItemtoCopy,
     } = useProgressTasks(setRefreshKey, addNotification);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
     const [showRenameModal, setShowRenameModal] = useState(false);
@@ -109,6 +110,13 @@ function HomePage({ user, home_directory }) {
         setShowRenameModal(true);
     };
 
+    const handleCopy = async (item) => {
+        setItemtoCopy(
+            item,
+            currentItems.map((item) => item.name)
+        );
+    };
+
     if (listGetError) {
         return <ErrorPage error={listGetError} home_directory={home_directory} />;
     }
@@ -161,6 +169,7 @@ function HomePage({ user, home_directory }) {
                         remove={setItemsToDelete}
                         move={setItemsToMove}
                         rename={handleRename}
+                        copy={handleCopy}
                         permission={(item) => {
                             handleShowDetail(item, "perms");
                         }}

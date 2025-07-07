@@ -1,0 +1,138 @@
+import { API_URL } from "./config";
+
+function getProgress(copied, total) {
+    if (!total || total === 0) return undefined;
+    if (!copied || copied === 0) return undefined;
+    return Math.floor((copied / total) * 100);
+}
+
+async function copyFile(srcpath, destpath, setTasks) {
+    const dlurl = `${API_URL}/copy`;
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const filename = destpath.split("/").pop();
+    const request = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+            {
+                source: srcpath,
+                destination: destpath,
+            },
+            null,
+            2
+        ),
+        signal,
+    };
+
+    const taskId = filename + Date.now();
+    const displayname = filename.length > 20 ? filename.slice(0, 10) + "..." : filename;
+
+    const startTime = Date.now();
+    const newTask = {
+        taskId,
+        name: displayname,
+        value: 0,
+        type: "copy",
+        status: "copy",
+        message: "",
+        onCancel: () => {
+            controller.abort();
+            console.debug("cancel:", filename);
+        },
+    };
+    setTasks((prev) => [...prev, newTask]);
+
+    try {
+        const response = await fetch(dlurl, request);
+
+        console.debug("response", response);
+        if (!response.ok) {
+            const error = await response.json();
+            const message = JSON.stringify(error.detail);
+            throw new Error(`${response.status} ${message}`);
+        }
+
+        const decoder = new TextDecoder("utf-8");
+        const reader = response.body.getReader();
+        let buffer = "";
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            let lines = buffer.split("\n");
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (line.trim() === "") continue;
+                let json = "";
+                try {
+                    json = JSON.parse(line);
+                } catch (err) {
+                    console.warn("Failed to parse line:", line, err);
+                    continue;
+                }
+                if (json.done) {
+                    console.debug("Copy complete");
+                    break;
+                }
+                if (json.error) {
+                    throw new Error(`500 ${json.error}`);
+                }
+                const copied = json.copied;
+                const total = json.total;
+
+                const percent = getProgress(copied, total);
+                const elapsed = Date.now() - startTime; // msec.
+                const speed = Math.round((copied / elapsed) * 1000);
+                const sec = Math.floor(elapsed / 1000);
+                const message = percent
+                    ? `${percent} % | ${sec} sec | ${speed} bytes/sec`
+                    : `${sec} sec | ${speed} bytes/sec`;
+
+                setTasks((prev) =>
+                    prev.map((task) =>
+                        task.taskId === taskId ? { ...task, value: percent, message } : task
+                    )
+                );
+            }
+        }
+
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.taskId === taskId
+                    ? {
+                          ...task,
+                          status: "completed",
+                          message: "",
+                          value: 100,
+                          done: true,
+                      }
+                    : task
+            )
+        );
+    } catch (err) {
+        const isAbort = err.name === "AbortError";
+        const message = isAbort ? "Copy cancelled" : `${err.name}: ${err.message}`;
+        setTasks((prev) =>
+            prev.map((task) =>
+                task.taskId === taskId
+                    ? {
+                          ...task,
+                          status: isAbort ? "cancelled" : "error",
+                          message,
+                          done: true,
+                      }
+                    : task
+            )
+        );
+        if (isAbort) {
+            console.warn("Copy cancelled", err);
+        } else {
+            console.error("Copy failed", err);
+        }
+    }
+}
+
+export default copyFile;

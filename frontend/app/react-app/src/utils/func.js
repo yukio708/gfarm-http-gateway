@@ -329,11 +329,20 @@ export const suggestNewName = (name, existingNames) => {
     const base = extIndex !== -1 ? name.slice(0, extIndex) : name;
     const ext = extIndex !== -1 ? name.slice(extIndex) : "";
 
-    let i = 1;
-    let newName = `${base} (${i})${ext}`;
-    while (existingNames.includes(newName)) {
-        i++;
-        newName = `${base} (${i})${ext}`;
+    const match = base.match(/^(.*?)(?: \((\d+)\))?$/);
+    const baseName = match[1];
+    let startNum = match[2] ? parseInt(match[2], 10) + 1 : 1;
+
+    let newName = `${baseName} (${startNum})${ext}`;
+    const existing = new Set(existingNames);
+
+    if (!existing.has(name)) {
+        return name;
+    }
+
+    while (existing.has(newName)) {
+        startNum++;
+        newName = `${baseName} (${startNum})${ext}`;
     }
     return newName;
 };

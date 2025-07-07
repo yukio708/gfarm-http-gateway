@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import upload from "../utils/upload";
 import download from "../utils/download";
+import copyFile from "../utils/copy";
+import { getParentPath, suggestNewName } from "../utils/func";
 
 function useProgressTasks(setRefreshKey, addNotification) {
     const [tasks, setTasks] = useState([]);
@@ -90,6 +92,15 @@ function useProgressTasks(setRefreshKey, addNotification) {
         }
     }, [downloading]);
 
+    const setItemtoCopy = async (item, existingNames) => {
+        const destpath =
+            getParentPath(item.path).replace(/\/$/, "") +
+            "/" +
+            suggestNewName(item.name, existingNames);
+        await copyFile(item.path, destpath, setTasks);
+        setRefreshKey((prev) => !prev);
+    };
+
     return {
         tasks,
         showProgressView,
@@ -101,6 +112,7 @@ function useProgressTasks(setRefreshKey, addNotification) {
         addItemsToDownload,
         setItemsToMove,
         setItemsToDelete,
+        setItemtoCopy,
     };
 }
 

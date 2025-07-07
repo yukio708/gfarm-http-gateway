@@ -1950,7 +1950,7 @@ async def get_groupuser(env, groupname):
     return parts[1:]
 
 
-async def file_size(env, path):
+async def file_size(env, path, extend=False):
     metadata = False
     proc = await gfstat(env, path, metadata)
     elist = []
@@ -1969,7 +1969,10 @@ async def file_size(env, path):
         is_file = (st.Filetype == "regular file")
         size = st.Size
     logger.debug(f"file_size: {existing}, {is_file}, {size}")
-    return existing, is_file, size
+    if extend:
+        return existing, is_file, size, int(st.ModifySecound)
+    else:
+        return existing, is_file, size
 
 
 async def can_access(env, path, check_perm="w"):
@@ -2602,6 +2605,120 @@ class Move(BaseModel):
             ]
         }
     }
+
+
+@app.post("/copy")
+async def file_copy(copy_data: Move,
+                    request: Request,
+                    authorization: Union[str, None] = Header(default=None)):
+    opname = "gfexport"
+    apiname = "/copy"
+    gfarm_path = fullpath(copy_data.source)
+    dest_path = fullpath(copy_data.destination)
+    dest_dir = os.path.dirname(dest_path)
+    dest_filename = os.path.basename(dest_path)
+
+    env = await set_env(request, authorization)
+    user = get_user_from_env(env)
+    ipaddr = get_client_ip_from_env(env)
+    elist = []
+
+    log_operation(env, request.method, apiname, opname, gfarm_path)
+
+    existing, is_file, size, mtime = await file_size(env, gfarm_path, True)
+    if not existing:
+        code = 404
+        message = "The requested URL does not exist."
+        stdout = ""
+        elist = []
+        raise gfarm_http_error(opname, code, message, stdout, elist)
+    if not is_file:
+        code = 415
+        message = "The requested URL does not represent a file."
+        stdout = ""
+        elist = []
+        raise gfarm_http_error(opname, code, message, stdout, elist)
+
+    filename_prefix = dest_filename[:128]
+    randstr = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    tmpname = f"gfarm-http.copy.{filename_prefix}.{randstr}"
+    tmppath = os.path.join(dest_dir, tmpname)
+
+    p_export = await gfexport(env, gfarm_path)
+    stderr_export = asyncio.create_task(log_stderr("gfexport", p_export, elist))
+    first_byte = await p_export.stdout.read(1)
+    if not first_byte:
+        if ASYNC_GFEXPORT:
+            await stderr_export
+        if await can_access(env, gfarm_path, "r"):
+            code = 403
+        else:
+            code = 500
+        message = f"Cannot read: path={gfarm_path}"
+        stdout = ""
+        raise gfarm_http_error(opname, code, message, stdout, elist)
+
+    p_reg = await gfreg(env, tmppath, mtime)
+    stderr_reg = asyncio.create_task(log_stderr("gfreg", p_reg, elist))
+    opname = "gfreg"
+    log_operation(env, request.method, apiname, opname, gfarm_path)
+
+    async def progress_generator():
+        copied = 1
+        p_reg.stdin.write(first_byte)
+        await p_reg.stdin.drain()
+        yield json.dumps({"copied": copied, "total": size}) + "\n"
+        try:
+            while True:
+                chunk = await p_export.stdout.read(BUFSIZE)
+                if not chunk:
+                    break
+                p_reg.stdin.write(chunk)
+                await p_reg.stdin.drain()
+                copied += len(chunk)
+                # yield JSON line
+                yield json.dumps({"copied": copied, "total": size}) + "\n"
+        except Exception as e:
+            yield json.dumps({"error": "I/O error"}) + "\n"
+            raise e
+        finally:
+            p_reg.stdin.close()
+
+        await stderr_export
+        await stderr_reg
+        return_code_export = await p_export.wait()
+        return_code_reg = await p_reg.wait()
+
+        if return_code_export != 0 or return_code_reg != 0:
+            logger.debug(f"{ipaddr}:0 user={user}, cmd=",
+                         "gfexport" if return_code_export != 0 else "gfreg"
+                         f", path={tmppath}, "
+                         f"return={return_code_export | return_code_reg}")
+            # cleanup
+            p_clean = await gfrm(env, tmppath, force=True)
+            await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
+            await p_clean.wait()
+            yield json.dumps({"error": "copy failed"}) + "\n"
+            return
+
+        # final move
+        p_mv = await gfmv(env, tmppath, dest_path)
+        stderr_mv = asyncio.create_task(log_stderr("gfmv", p_mv, elist))
+        opname = "gfmv"
+        log_operation(env, request.method, apiname, opname, gfarm_path)
+        await stderr_mv
+        return_code_mv = await p_mv.wait()
+
+        if return_code_mv == 0:
+            yield json.dumps({"done": True}) + "\n"
+        else:
+            p_clean = await gfrm(env, tmppath, force=True)
+            await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
+            await p_clean.wait()
+            yield json.dumps({"error": "move failed"}) + "\n"
+
+    return StreamingResponse(progress_generator(),
+                             media_type="application/json")
 
 
 @app.post("/move")

@@ -101,6 +101,7 @@ function ItemMenu({
     display,
     move,
     rename,
+    copy,
     remove,
     showDetail,
     permission,
@@ -141,7 +142,7 @@ function ItemMenu({
                     </button>
                 </li>
                 <li>
-                    <button className="dropdown-item" onClick={() => {}}>
+                    <button className="dropdown-item" onClick={() => copy(item)}>
                         <BsFiles className="me-2" /> Copy
                     </button>
                 </li>
@@ -191,6 +192,7 @@ ItemMenu.propTypes = {
     display: PropTypes.func,
     move: PropTypes.func,
     rename: PropTypes.func,
+    copy: PropTypes.func,
     remove: PropTypes.func,
     showDetail: PropTypes.func,
     permission: PropTypes.func,
