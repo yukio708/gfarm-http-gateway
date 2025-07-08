@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNotifications } from "../context/NotificationContext";
 import { formatFileSize } from "../utils/func";
 import getAttribute from "../utils/getAttribute";
-import getSymlink from "../utils/getSymlink";
+import { getSymlink } from "../utils/symlink";
 import PropTypes from "prop-types";
 
 function DetailTab({ item, active }) {

@@ -1768,6 +1768,21 @@ async def gfrmdir(env, path):
         stderr=asyncio.subprocess.PIPE)
 
 
+async def gfln(env, srcpath, linkpath, symlink):
+    args = []
+    if symlink:
+        args.append("-s")
+    args.append(srcpath)
+    args.append(linkpath)
+
+    return await asyncio.create_subprocess_exec(
+        'gfln', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+
 async def gfstat(env, path, metadata):
     if metadata:
         args = ['-M', path]
@@ -2194,6 +2209,38 @@ async def get_symlink(gfarm_path: str,
         raise gfarm_http_error(opname, code, message, "", elist)
 
 
+class FileOperation(BaseModel):
+    source: str
+    destination: str
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "source": "/tmp/testfile1",
+                    "destination": "/tmp/testfile2",
+                }
+            ]
+        }
+    }
+
+
+@app.post("/symlink")
+async def symlink_create(
+        symlink_data: FileOperation,
+        request: Request,
+        symlink: bool = True,
+        authorization: Union[str, None] = Header(default=None)):
+    opname = "gfln"
+    apiname = "/symlink"
+    gfarm_path = fullpath(symlink_data.source)
+    symlink_path = fullpath(symlink_data.destination)
+    env = await set_env(request, authorization)
+    log_operation(env, request.method, apiname, opname, gfarm_path)
+    proc = await gfln(env, gfarm_path, symlink_path, symlink)
+    return await gfarm_command_standard_response(env, proc, opname)
+
+
 @app.put("/dir/{gfarm_path:path}")
 async def dir_create(gfarm_path: str,
                      request: Request,
@@ -2591,24 +2638,8 @@ async def file_remove(gfarm_path: str,
     return await gfarm_command_standard_response(env, p, opname)
 
 
-class Move(BaseModel):
-    source: str
-    destination: str
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "source": "/tmp/testfile1",
-                    "destination": "/tmp/testfile2",
-                }
-            ]
-        }
-    }
-
-
 @app.post("/copy")
-async def file_copy(copy_data: Move,
+async def file_copy(copy_data: FileOperation,
                     request: Request,
                     authorization: Union[str, None] = Header(default=None)):
     opname = "gfexport"
@@ -2725,7 +2756,7 @@ async def file_copy(copy_data: Move,
 
 @app.post("/move")
 async def move_rename(request: Request,
-                      move_data: Move,
+                      move_data: FileOperation,
                       authorization: Union[str, None] = Header(default=None),
                       x_csrf_token: Union[str, None] = Header(default=None)):
     check_csrf(request, x_csrf_token)

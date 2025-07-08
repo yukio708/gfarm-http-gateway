@@ -1,10 +1,16 @@
 import React, { useRef, useState } from "react";
 import { CollectPathsFromFiles, checkConflicts } from "../utils/func";
 import ConflictResolutionModal from "./ConflictResolutionModal";
-import { BsFileEarmarkArrowUp, BsFolder, BsFolderPlus, BsUpload } from "react-icons/bs";
+import {
+    BsFileEarmarkArrowUp,
+    BsFolder,
+    BsFolderPlus,
+    BsUpload,
+    BsLink45Deg,
+} from "react-icons/bs";
 import PropTypes from "prop-types";
 
-function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
+function UploadMenu({ actions, uploadDir, currentItems }) {
     const fileInputRef = useRef(null);
     const folderInputRef = useRef(null);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -31,7 +37,7 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
                 e.target.value = null;
                 return;
             }
-            onUpload(res.incomingItems);
+            actions.upload(res.incomingItems);
         }
         e.target.value = null;
     };
@@ -40,7 +46,7 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
         setShowConfirm(false);
         if (incomingItems.length > 0) {
             console.debug("incomingItems:", incomingItems);
-            onUpload(incomingItems);
+            actions.upload(incomingItems);
         }
     };
 
@@ -68,7 +74,7 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
                             onClick={() => fileInputRef.current?.click()}
                         >
                             <BsFileEarmarkArrowUp className="me-2" />
-                            File upload
+                            File
                         </button>
                     </li>
                     <li>
@@ -78,19 +84,29 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
                             onClick={() => folderInputRef.current?.click()}
                         >
                             <BsFolder className="me-2" />
-                            Folder upload
+                            Folder
                         </button>
                     </li>
                     <li>
                         <hr className="dropdown-divider" />
                     </li>
                     <li>
-                        <h1 className="dropdown-header">Create new</h1>
+                        <h1 className="dropdown-header">Create</h1>
                     </li>
                     <li>
-                        <button type="button" className="dropdown-item" onClick={onCreate}>
+                        <button type="button" className="dropdown-item" onClick={actions.create}>
                             <BsFolderPlus className="me-2" />
-                            New folder
+                            Folder
+                        </button>
+                    </li>
+                    <li>
+                        <button
+                            type="button"
+                            className="dropdown-item"
+                            onClick={actions.create_symlink}
+                        >
+                            <BsLink45Deg className="me-2" />
+                            Symlink
                         </button>
                     </li>
                 </ul>
@@ -129,8 +145,7 @@ function UploadMenu({ onUpload, onCreate, uploadDir, currentItems }) {
 export default UploadMenu;
 
 UploadMenu.propTypes = {
-    onUpload: PropTypes.func,
-    onCreate: PropTypes.func,
+    actions: PropTypes.array,
     uploadDir: PropTypes.string,
     currentItems: PropTypes.array,
 };

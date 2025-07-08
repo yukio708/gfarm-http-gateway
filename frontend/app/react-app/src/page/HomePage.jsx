@@ -6,6 +6,7 @@ import SidePanel from "../components/SidePanel";
 import ProgressView from "../components/ProgressView";
 import DeleteModal from "../components/DeleteModal";
 import NewDirModal from "../components/NewDirModal";
+import NewSymlinkModal from "../components/NewSymlinkModal";
 import RenameModal from "../components/RenameModal";
 import UploadDropZone from "../components/UploadDropZone";
 import UserMenu from "../components/UserMenu";
@@ -17,7 +18,7 @@ import useGetPath from "../hooks/useGetPath";
 import { useNotifications } from "../context/NotificationContext";
 import { ROUTE_STORAGE } from "../utils/config";
 import displayFile from "../utils/display";
-import getSymlink from "../utils/getSymlink";
+import { getSymlink } from "../utils/symlink";
 import { getParentPath } from "../utils/func";
 import ErrorPage from "./ErrorPage";
 import PropTypes from "prop-types";
@@ -44,6 +45,7 @@ function HomePage({ user, home_directory }) {
         setItemtoCopy,
     } = useProgressTasks(setRefreshKey, addNotification);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
+    const [showSymlinkModal, setShowSymlinkModal] = useState(false);
     const [showRenameModal, setShowRenameModal] = useState(false);
     const [showGfptarModal, setShowGfptarModal] = useState(false);
     const [showSidePanel, setShowSidePanel] = useState({ show: false, tab: "detail" });
@@ -136,12 +138,20 @@ function HomePage({ user, home_directory }) {
         share: (item) => {
             handleShowDetail(item, "url");
         },
+        create_symlink: (item) => {
+            setLastSelectedItem(item);
+            setShowSymlinkModal(true);
+        },
     };
 
     const UploadMenuActions = {
         upload: addItemsToUpload,
         create: () => {
             setShowNewDirModal(true);
+        },
+        create_symlink: () => {
+            setLastSelectedItem(null);
+            setShowSymlinkModal(true);
         },
     };
 
@@ -255,6 +265,13 @@ function HomePage({ user, home_directory }) {
                 refresh={() => {
                     setRefreshKey((prev) => !prev);
                 }}
+            />
+            <NewSymlinkModal
+                showModal={showSymlinkModal}
+                setShowModal={setShowSymlinkModal}
+                currentDir={currentDir}
+                targetItem={lastSelectedItem}
+                refresh={() => setRefreshKey((prev) => !prev)}
             />
             <RenameModal
                 showModal={showRenameModal}

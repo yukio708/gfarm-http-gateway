@@ -149,6 +149,11 @@ function ItemMenu({ item, actions }) {
                     </button>
                 </li>
                 <li>
+                    <button className="dropdown-item" onClick={() => actions.create_symlink(item)}>
+                        <BsLink45Deg className="me-2" /> Create Symlink
+                    </button>
+                </li>
+                <li>
                     <button className="dropdown-item" onClick={() => actions.permission(item)}>
                         <BsShieldLock className="me-2" /> Permissions
                     </button>

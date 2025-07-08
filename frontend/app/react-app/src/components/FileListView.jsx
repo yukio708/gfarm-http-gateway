@@ -139,8 +139,7 @@ function FileListView({
                 <div className="d-flex gap-2">
                     {selectedItems.length === 0 && (
                         <UploadMenu
-                            onUpload={UploadMenuActions.upload}
-                            onCreate={UploadMenuActions.create}
+                            actions={UploadMenuActions}
                             uploadDir={currentDir}
                             currentItems={currentItems}
                         />
