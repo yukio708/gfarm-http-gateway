@@ -1581,22 +1581,21 @@ class Gfls_Entry:
             mtime_str: Union[str, None] = None,
             mode_str: Union[str, None] = None,
             perms: Union[str, None] = None):
-        self.dirname = dirname
         self.name = name
         self.nlink = nlink
         self.uname = uname
         self.gname = gname
         self.size = size
         self.perms = perms
+        self.set_dirname(dirname)
         self.set_mtime(mtime_str)
         self.set_mode(mode_str)
         self.set_linkname(name, self.is_sym)
-        if dirname is not None and name is not None:
-            self.path = os.path.join(self.dirname, self.name)
 
     def set_dirname(self, dirname):
         self.dirname = dirname
-        self.path = os.path.join(self.dirname, self.name)
+        if dirname is not None and self.name is not None:
+            self.path = os.path.join(self.dirname, self.name)
 
     def set_mode(self, mode_str):
         self.mode_str = mode_str
@@ -1683,20 +1682,15 @@ class Gfls_Entry:
             mtime_str = f"{month} {day} {time} {year}"
         else:
             mtime_str = f"{month} {day} {time}"
-        if is_file:
-            name = os.path.basename(parts.pop(0))
-        else:
-            name = parts.pop(0)
 
-        return Gfls_Entry(name,
-                          nlink,
-                          uname,
-                          gname,
-                          size,
-                          dirname,
-                          mtime_str,
-                          mode_str,
-                          perms)
+        name = parts.pop(0)
+        new_entry = Gfls_Entry(name, nlink, uname, gname,
+                               size, dirname, mtime_str, mode_str, perms)
+
+        if is_file:
+            new_entry.name = os.path.basename(new_entry.name)
+
+        return new_entry
 
 
 async def gfls_generator(
@@ -2233,8 +2227,8 @@ async def symlink_create(
         authorization: Union[str, None] = Header(default=None)):
     opname = "gfln"
     apiname = "/symlink"
-    gfarm_path = fullpath(symlink_data.source)
-    symlink_path = fullpath(symlink_data.destination)
+    gfarm_path = symlink_data.source
+    symlink_path = symlink_data.destination
     env = await set_env(request, authorization)
     log_operation(env, request.method, apiname, opname, gfarm_path)
     proc = await gfln(env, gfarm_path, symlink_path, symlink)
@@ -2644,8 +2638,8 @@ async def file_copy(copy_data: FileOperation,
                     authorization: Union[str, None] = Header(default=None)):
     opname = "gfexport"
     apiname = "/copy"
-    gfarm_path = fullpath(copy_data.source)
-    dest_path = fullpath(copy_data.destination)
+    gfarm_path = copy_data.source
+    dest_path = copy_data.destination
     dest_dir = os.path.dirname(dest_path)
     dest_filename = os.path.basename(dest_path)
 
