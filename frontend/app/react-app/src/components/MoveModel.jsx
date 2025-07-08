@@ -49,7 +49,6 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
         if (targetPath.endsWith("/")) {
             setLoading(true);
             setSuggestDir(targetPath);
-            setLoading(true);
         }
     }, [targetPath]);
 
