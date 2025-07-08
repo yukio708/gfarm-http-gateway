@@ -19,9 +19,13 @@ function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText
         }
     }, []);
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (onConfirm) {
-            onConfirm();
+            const res = await onConfirm();
+            console.debug("handleConfirm", res);
+            if (res === true || res === undefined) {
+                modalInstance.current.hide();
+            }
         }
     };
 
@@ -48,12 +52,7 @@ function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText
                         >
                             {cancelText || "Cancel"}
                         </button>
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={handleConfirm}
-                            data-bs-dismiss="modal"
-                        >
+                        <button type="button" className="btn btn-primary" onClick={handleConfirm}>
                             {comfirmText || "Confirm"}
                         </button>
                     </div>
