@@ -3,7 +3,7 @@ import ModalWindow from "./Modal";
 import { useNotifications } from "../context/NotificationContext";
 import useFileList from "../hooks/useFileList";
 import SuggestInput from "./SuggestInput";
-import { checkConflicts, getParentPath } from "../utils/func";
+import { getParentPath } from "../utils/func";
 import { setSymlink } from "../utils/symlink";
 import PropTypes from "prop-types";
 
@@ -47,21 +47,28 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
         }
     }, [linkPath]);
 
-    const handleCreate = async () => {
+    const handleCreate = () => {
         if (!linkPath || !sourcePath) {
             addNotification("Create Symlink", "All fields are required.", "error");
             return false;
         }
-        const res = checkConflicts([{ name: linkPath }], currentItems);
-        if (res.hasConflict) {
-            addNotification("Create Symlink", "The same name exists alredy", "error");
+        if (error) {
+            addNotification("Create Symlink", "alredy exists", "error");
             return false;
         }
-        setIsCreating(true);
-        const error = await setSymlink(sourcePath, linkPath);
-        if (error) addNotification("Create Symlink", error, "error");
-        refresh();
-        setIsCreating(false);
+        const createSymlink = async () => {
+            setIsCreating(true);
+            try {
+                await setSymlink(sourcePath, linkPath);
+            } catch (err) {
+                console.error("setSymlink failed:", err);
+                addNotification("Create Symlink", `${err.name} : ${err.message}`, "error");
+            }
+            refresh();
+            setIsCreating(false);
+            setShowModal(false);
+        };
+        createSymlink();
         return true;
     };
 

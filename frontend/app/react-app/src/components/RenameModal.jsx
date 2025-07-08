@@ -22,35 +22,41 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
         addNotification("Rename", error, "error");
     };
 
-    const handleRename = async () => {
-        if (!renameItem) return;
-        if (!newName) return;
+    const handleRename = () => {
+        if (!renameItem || !newName) {
+            setShowModal(false);
+            setNewName("");
+            return true;
+        }
         const trimmedName = newName.trim();
 
         if (!checkFileName(trimmedName)) {
             addNotification(
-                'Invalid name. Avoid characters like <>:"/\\|?* or ending with space/dot.'
+                "Rename",
+                'Invalid name. Avoid characters like <>:"/\\|?* or ending with space/dot.',
+                "error"
             );
-            setShowModal(false);
-            setNewName("");
-            return;
+            return false;
         }
 
-        const destpath =
-            getParentPath(renameItem.path).replace(/\/$/, "") +
-            "/" +
-            trimmedName.replace(/\/+/, "/");
-        console.log("destpath", destpath);
+        const rename = async () => {
+            const destpath =
+                getParentPath(renameItem.path).replace(/\/$/, "") +
+                "/" +
+                trimmedName.replace(/\/+/, "/");
+            console.log("destpath", destpath);
 
-        const item = {
-            ...renameItem,
-            destPath: destpath,
+            const item = {
+                ...renameItem,
+                destPath: destpath,
+            };
+
+            await moveItems([item], setError);
+            setShowModal(false);
+            setNewName("");
+            refresh();
         };
-
-        await moveItems([item], setError);
-        setShowModal(false);
-        setNewName("");
-        refresh();
+        rename();
     };
 
     return (

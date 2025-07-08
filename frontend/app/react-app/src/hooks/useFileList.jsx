@@ -6,6 +6,8 @@ function useFileList(dirPath, reload) {
     const [listGetError, setListGetError] = useState(null);
 
     useEffect(() => {
+        if (!dirPath) return;
+
         const fetchFiles = async () => {
             setListGetError(null);
             const data = await getList(dirPath);

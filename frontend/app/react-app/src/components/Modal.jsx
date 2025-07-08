@@ -19,9 +19,9 @@ function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText
         }
     }, []);
 
-    const handleConfirm = async () => {
+    const handleConfirm = () => {
         if (onConfirm) {
-            const res = await onConfirm();
+            const res = onConfirm();
             console.debug("handleConfirm", res);
             if (res === true || res === undefined) {
                 modalInstance.current.hide();

@@ -8,17 +8,20 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
     const [dirname, setDirname] = useState("");
     const { addNotification } = useNotifications();
 
-    const handleCreateDir = async () => {
+    const handleCreateDir = () => {
         if (dirname === "") {
             addNotification("Create", "Directory name is empty", "warning");
             return false;
         }
-        const path = currentDir.replace(/\/$/, "") + "/" + dirname;
-        const error = await createDir(path);
-        setShowModal(false);
-        setDirname("");
-        if (error) addNotification("Create", error, "error");
-        refresh();
+        const create = async () => {
+            const path = currentDir.replace(/\/$/, "") + "/" + dirname;
+            const error = await createDir(path);
+            setShowModal(false);
+            setDirname("");
+            if (error) addNotification("Create", error, "error");
+            refresh();
+        };
+        create();
         return true;
     };
 

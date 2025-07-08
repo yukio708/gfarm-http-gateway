@@ -22,7 +22,7 @@ function ArchiveModal({
     const [compressMode, setCompressMode] = useState("create");
     const [suggestDir, setSuggestDir] = useState("");
     const [destDir, setDestDir] = useState("");
-    const { currentItems } = useFileList(suggestDir, suggestDir);
+    const { currentItems } = useFileList(suggestDir, "");
     const [error, setError] = useState(null);
     const [targetDir, setTargetDir] = useState([]);
     const [targetItems, setTargetItems] = useState([]);
