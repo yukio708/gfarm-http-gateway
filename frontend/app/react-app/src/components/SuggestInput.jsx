@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 
-function SuggestInput({ value, onChange, suggestions, disabled = false }) {
+function SuggestInput({ value, onChange, suggestions, placeholder = null, disabled = false }) {
     const [focused, setFocused] = useState(false);
     const [filtered, setFiltered] = useState([]);
     const [highlight, setHighlight] = useState(0);
@@ -48,6 +48,7 @@ function SuggestInput({ value, onChange, suggestions, disabled = false }) {
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={disabled}
+                placeholder={placeholder ? placeholder : ""}
             />
             {focused && filtered.length > 0 && (
                 <ul
@@ -77,5 +78,6 @@ SuggestInput.propTypes = {
     value: PropTypes.string,
     onChange: PropTypes.func,
     suggestions: PropTypes.array,
+    placeholder: PropTypes.string,
     disabled: PropTypes.bool,
 };
