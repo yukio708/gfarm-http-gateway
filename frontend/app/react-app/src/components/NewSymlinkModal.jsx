@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ModalWindow from "./Modal";
+import { useShowHidden } from "../context/ShowHiddenContext";
 import { useNotifications } from "../context/NotificationContext";
 import useFileList from "../hooks/useFileList";
 import SuggestInput from "./SuggestInput";
@@ -8,11 +9,12 @@ import { setSymlink } from "../utils/symlink";
 import PropTypes from "prop-types";
 
 function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refresh }) {
+    const { showHidden } = useShowHidden();
     const [linkPath, setLinkPath] = useState("");
     const [sourcePath, setSourcePath] = useState("");
     const [uploadDir, setUploadDir] = useState(currentDir);
     const [suggestDir, setSuggestDir] = useState(null);
-    const { currentItems } = useFileList(uploadDir, "");
+    const { currentItems } = useFileList(uploadDir, "", showHidden);
     const { currentItems: suggestions } = useFileList(suggestDir, "");
     const suggestionDirs = currentItems.filter((file) => file.is_dir);
     const [isCreating, setIsCreating] = useState(false);

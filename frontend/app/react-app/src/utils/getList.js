@@ -1,9 +1,9 @@
 import { encodePath } from "./func";
 import { API_URL } from "./config";
 
-async function getList(dirPath) {
+async function getList(dirPath, showHidden) {
     const epath = encodePath(dirPath);
-    const fullpath = `${API_URL}/dir${epath}?show_hidden=on&long_format=on&time_format=full&output_format=json`;
+    const fullpath = `${API_URL}/dir${epath}?show_hidden=${showHidden ? "on" : "off"}&long_format=on&time_format=full&output_format=json`;
     try {
         const response = await fetch(fullpath);
         if (!response.ok) {

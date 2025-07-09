@@ -19,17 +19,20 @@ function UserMenu() {
             </button>
             <ul className="dropdown-menu dropdown-menu-end">
                 <li>
-                    <a className="dropdown-item" href={`${API_URL}/logout`}>
-                        Logout
-                    </a>
-                </li>
-                <li>
                     <a
                         className="dropdown-item"
                         data-bs-toggle="modal"
                         data-bs-target="#settingsModal"
                     >
                         Settings
+                    </a>
+                </li>
+                <li>
+                    <div className="dropdown-divider"></div>
+                </li>
+                <li>
+                    <a className="dropdown-item" href={`${API_URL}/logout`}>
+                        Logout
                     </a>
                 </li>
             </ul>

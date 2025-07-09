@@ -17,6 +17,7 @@ import useFileList from "../hooks/useFileList";
 import useProgressTasks from "../hooks/useProgressTasks";
 import useGetPath from "../hooks/useGetPath";
 import { useUserInfo } from "../context/UserInfoContext";
+import { useShowHidden } from "../context/ShowHiddenContext";
 import { useNotifications } from "../context/NotificationContext";
 import { ROUTE_STORAGE } from "../utils/config";
 import displayFile from "../utils/display";
@@ -27,10 +28,11 @@ import PropTypes from "prop-types";
 
 function HomePage() {
     const { userInfo, loading } = useUserInfo();
+    const { showHidden } = useShowHidden();
     const navigate = useNavigate();
     const { pathHead, gfarmPath: currentDir } = useGetPath(ROUTE_STORAGE);
     const [refreshKey, setRefreshKey] = useState(false);
-    const { currentItems, listGetError } = useFileList(currentDir, refreshKey);
+    const { currentItems, listGetError } = useFileList(currentDir, refreshKey, showHidden);
     const { addNotification } = useNotifications();
     const [selectedItems, setSelectedItems] = useState([]);
     const [lastSelectedItem, setLastSelectedItem] = useState(null);

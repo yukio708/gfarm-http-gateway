@@ -44,6 +44,18 @@ function SettingsModal({ id = "settingsModal" }) {
                             </select>
                         </div>
 
+                        <div className="mb-3">
+                            <label className="form-label fw-bold">View mode</label>
+                            <select
+                                className="form-select"
+                                value={viewMode}
+                                onChange={(e) => setViewMode(e.target.value)}
+                            >
+                                <option value="list">List view</option>
+                                <option value="icon">Icon view</option>
+                            </select>
+                        </div>
+
                         <div className="form-check mb-3">
                             <input
                                 className="form-check-input"
@@ -55,18 +67,6 @@ function SettingsModal({ id = "settingsModal" }) {
                             <label className="form-check-label" htmlFor="showHiddenCheck">
                                 Show hidden files
                             </label>
-                        </div>
-
-                        <div className="mb-3">
-                            <label className="form-label fw-bold">View mode</label>
-                            <select
-                                className="form-select"
-                                value={viewMode}
-                                onChange={(e) => setViewMode(e.target.value)}
-                            >
-                                <option value="list">List view</option>
-                                <option value="icon">Icon view</option>
-                            </select>
                         </div>
                     </div>
 

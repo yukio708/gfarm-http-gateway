@@ -3,6 +3,7 @@ import ModalWindow from "./Modal";
 import SuggestInput from "./SuggestInput";
 import ConflictResolutionModal from "./ConflictResolutionModal";
 import useFileList from "../hooks/useFileList";
+import { useShowHidden } from "../context/ShowHiddenContext";
 import { useNotifications } from "../context/NotificationContext";
 import { getParentPath, checkConflicts } from "../utils/func";
 import moveItems from "../utils/move";
@@ -10,11 +11,12 @@ import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
+    const { showHidden } = useShowHidden();
     const [showModal, setShowModal] = useState(false);
     const [isMoving, setIsMoving] = useState(false);
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
-    const { currentItems, listGetError } = useFileList(suggestDir, suggestDir);
+    const { currentItems, listGetError } = useFileList(suggestDir, "", showHidden);
     const [loading, setLoading] = useState(true);
     const [loadingText, setLoadingText] = useState("Loading suggestions...");
     const [showConflictModal, setShowConflictModal] = useState(false);
