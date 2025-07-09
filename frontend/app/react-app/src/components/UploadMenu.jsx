@@ -61,7 +61,7 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                     aria-expanded="false"
                 >
                     <BsUpload className="me-2" />
-                    Upload
+                    New
                 </button>
                 <ul className="dropdown-menu" aria-labelledby="uploadDropdown">
                     <li>
