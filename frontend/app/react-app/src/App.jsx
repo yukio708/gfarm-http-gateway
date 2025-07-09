@@ -5,16 +5,15 @@ import LoginPage from "./page/LoginPage";
 import ErrorPage from "./page/ErrorPage";
 import DownloadHandler from "./page/DownloadHandler";
 import IndexHandler from "./page/IndexHandler";
-import useUserInfo from "./hooks/useUserInfo";
 import { getIconCSS } from "./utils/getFileCategory";
 import { ROUTE_STORAGE, ROUTE_DOWNLOAD } from "./utils/config";
 import { loadExternalCss } from "./utils/func";
 import { NotificationProvider } from "./context/NotificationContext";
+import { UserInfoProvider } from "./context/UserInfoContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
     const [cssLoading, setCssLoading] = useState(true);
-    const { userinfo, loading } = useUserInfo();
 
     useEffect(() => {
         const loadCSS = async () => {
@@ -25,37 +24,25 @@ function App() {
         loadCSS();
     }, []);
 
-    if (cssLoading || loading) {
+    if (cssLoading) {
         return <p>...</p>;
     }
-    if (!userinfo) {
-        return <LoginPage />;
-    }
-    console.debug("user_info", userinfo);
     return (
-        <ThemeProvider>
-            <NotificationProvider>
-                <HashRouter>
-                    <Routes>
-                        <Route
-                            path="/"
-                            element={<IndexHandler home_directory={userinfo.home_directory} />}
-                        />
-                        <Route
-                            path={`${ROUTE_STORAGE}/*`}
-                            element={
-                                <HomePage
-                                    user={userinfo.username}
-                                    home_directory={userinfo.home_directory}
-                                />
-                            }
-                        />
-                        <Route path={`${ROUTE_DOWNLOAD}/*`} element={<DownloadHandler />} />
-                        <Route path="*" element={<ErrorPage error={"Page not fould"} />} />
-                    </Routes>
-                </HashRouter>
-            </NotificationProvider>
-        </ThemeProvider>
+        <UserInfoProvider>
+            <ThemeProvider>
+                <NotificationProvider>
+                    <HashRouter>
+                        <Routes>
+                            <Route path="/" element={<IndexHandler />} />
+                            <Route path={`${ROUTE_STORAGE}/*`} element={<HomePage />} />
+                            <Route path={`${ROUTE_DOWNLOAD}/*`} element={<DownloadHandler />} />
+                            <Route path="*" element={<ErrorPage error={"Page not fould"} />} />
+                            <Route path="/login" element={<LoginPage />} />
+                        </Routes>
+                    </HashRouter>
+                </NotificationProvider>
+            </ThemeProvider>
+        </UserInfoProvider>
     );
 }
 

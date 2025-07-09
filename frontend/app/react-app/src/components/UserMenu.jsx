@@ -2,9 +2,11 @@
 import PropTypes from "prop-types";
 import React from "react";
 import { API_URL } from "../utils/config";
+import { useUserInfo } from "../context/UserInfoContext";
 import { ThemeSwitcher } from "./Custom";
 
-function UserMenu({ user }) {
+function UserMenu() {
+    const { userInfo } = useUserInfo();
     return (
         <div className="dropdown">
             <button
@@ -14,7 +16,7 @@ function UserMenu({ user }) {
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
             >
-                {user || "None"}
+                {userInfo ? userInfo.username : "None"}
             </button>
             <ul className="dropdown-menu dropdown-menu-end">
                 <li>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import FileListView from "../components/FileListView";
 import CurrentDirView from "../components/CurrentDirView";
 import SidePanel from "../components/SidePanel";
@@ -15,6 +15,7 @@ import ArchiveModal from "../components/ArchiveModal";
 import useFileList from "../hooks/useFileList";
 import useProgressTasks from "../hooks/useProgressTasks";
 import useGetPath from "../hooks/useGetPath";
+import { useUserInfo } from "../context/UserInfoContext";
 import { useNotifications } from "../context/NotificationContext";
 import { ROUTE_STORAGE } from "../utils/config";
 import displayFile from "../utils/display";
@@ -23,7 +24,8 @@ import { getParentPath } from "../utils/func";
 import ErrorPage from "./ErrorPage";
 import PropTypes from "prop-types";
 
-function HomePage({ user, home_directory }) {
+function HomePage() {
+    const { userInfo, loading } = useUserInfo();
     const navigate = useNavigate();
     const { pathHead, gfarmPath: currentDir } = useGetPath(ROUTE_STORAGE);
     const [refreshKey, setRefreshKey] = useState(false);
@@ -164,8 +166,11 @@ function HomePage({ user, home_directory }) {
         },
     };
 
+    if (loading) return <p>...</p>;
+    if (!userInfo) return <Navigate to="/login" replace />;
+
     if (listGetError) {
-        return <ErrorPage error={listGetError} home_directory={home_directory} />;
+        return <ErrorPage error={listGetError} />;
     }
 
     return (
@@ -182,7 +187,7 @@ function HomePage({ user, home_directory }) {
                                 className="d-inline-block align-text-top"
                             />
                             <div className="ms-2 d-flex gap-2">
-                                <UserMenu user={user} />
+                                <UserMenu />
                             </div>
                         </div>
                     </nav>

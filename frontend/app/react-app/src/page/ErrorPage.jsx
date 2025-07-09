@@ -1,9 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ROUTE_STORAGE } from "../utils/config";
+import { useUserInfo } from "../context/UserInfoContext";
 import PropTypes from "prop-types";
 
-function ErrorPage({ error, home_directory }) {
+function ErrorPage({ error }) {
+    const { userInfo } = useUserInfo();
     const reload = () => {
         window.location.reload();
     };
@@ -18,7 +20,9 @@ function ErrorPage({ error, home_directory }) {
                 </a>
             </p>
             <p>
-                <Link to={`${ROUTE_STORAGE}${home_directory || ""}`}>Return to home</Link>
+                <Link to={`${ROUTE_STORAGE}${userInfo ? userInfo.home_directory || "" : ""}`}>
+                    Return to home
+                </Link>
             </p>
         </div>
     );

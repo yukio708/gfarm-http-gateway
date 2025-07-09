@@ -61,5 +61,5 @@ export function NotificationProvider({ children }) {
 }
 
 NotificationProvider.propTypes = {
-    children: PropTypes.element,
+    children: PropTypes.node,
 };

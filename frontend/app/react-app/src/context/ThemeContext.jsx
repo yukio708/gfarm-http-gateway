@@ -42,5 +42,5 @@ export function ThemeProvider({ children }) {
 }
 
 ThemeProvider.propTypes = {
-    children: PropTypes.element,
+    children: PropTypes.node,
 };
