@@ -148,7 +148,7 @@ function FileListView({
                 </div>
             </div>
             <table className="table table-hover file-table">
-                <thead className="table-secondary" style={{ position: "sticky", top: 0 }}>
+                <thead style={{ position: "sticky", top: 0 }}>
                     <tr>
                         <th className="align-middle">
                             <input

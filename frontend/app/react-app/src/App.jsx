@@ -10,6 +10,7 @@ import { getIconCSS } from "./utils/getFileCategory";
 import { ROUTE_STORAGE, ROUTE_DOWNLOAD } from "./utils/config";
 import { loadExternalCss } from "./utils/func";
 import { NotificationProvider } from "./context/NotificationContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
     const [cssLoading, setCssLoading] = useState(true);
@@ -32,27 +33,29 @@ function App() {
     }
     console.debug("user_info", userinfo);
     return (
-        <NotificationProvider>
-            <HashRouter>
-                <Routes>
-                    <Route
-                        path="/"
-                        element={<IndexHandler home_directory={userinfo.home_directory} />}
-                    />
-                    <Route
-                        path={`${ROUTE_STORAGE}/*`}
-                        element={
-                            <HomePage
-                                user={userinfo.username}
-                                home_directory={userinfo.home_directory}
-                            />
-                        }
-                    />
-                    <Route path={`${ROUTE_DOWNLOAD}/*`} element={<DownloadHandler />} />
-                    <Route path="*" element={<ErrorPage error={"Page not fould"} />} />
-                </Routes>
-            </HashRouter>
-        </NotificationProvider>
+        <ThemeProvider>
+            <NotificationProvider>
+                <HashRouter>
+                    <Routes>
+                        <Route
+                            path="/"
+                            element={<IndexHandler home_directory={userinfo.home_directory} />}
+                        />
+                        <Route
+                            path={`${ROUTE_STORAGE}/*`}
+                            element={
+                                <HomePage
+                                    user={userinfo.username}
+                                    home_directory={userinfo.home_directory}
+                                />
+                            }
+                        />
+                        <Route path={`${ROUTE_DOWNLOAD}/*`} element={<DownloadHandler />} />
+                        <Route path="*" element={<ErrorPage error={"Page not fould"} />} />
+                    </Routes>
+                </HashRouter>
+            </NotificationProvider>
+        </ThemeProvider>
     );
 }
 

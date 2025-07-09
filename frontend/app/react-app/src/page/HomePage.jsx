@@ -169,10 +169,10 @@ function HomePage({ user, home_directory }) {
     }
 
     return (
-        <div className="container-fluid">
+        <div className="container-fluid bg-body">
             <div className="row">
                 <div className="col">
-                    <nav className="navbar bg-body-tertiary">
+                    <nav className={`navbar`}>
                         <div className="container-fluid">
                             <img
                                 src="./assets/Gfarm_logo_tate_color.svg"

@@ -2,6 +2,7 @@
 import PropTypes from "prop-types";
 import React from "react";
 import { API_URL } from "../utils/config";
+import { ThemeSwitcher } from "./Custom";
 
 function UserMenu({ user }) {
     return (
@@ -20,6 +21,9 @@ function UserMenu({ user }) {
                     <a className="dropdown-item" href={`${API_URL}/logout`}>
                         Logout
                     </a>
+                </li>
+                <li>
+                    <ThemeSwitcher />
                 </li>
             </ul>
         </div>
