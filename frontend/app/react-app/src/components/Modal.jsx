@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import PropTypes from "prop-types";
 
-function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText, size }) {
+function ModalWindow({ onCancel, onConfirm, title, body, cancelText, comfirmText, size }) {
     const modalRef = useRef(null);
     const modalInstance = useRef(null);
     const size_class = size == "large" ? "modal-lg" : "";
@@ -42,7 +42,7 @@ function ModalWindow({ onCancel, onConfirm, title, text, cancelText, comfirmText
                             data-bs-dismiss="modal"
                         ></button>
                     </div>
-                    <div className="modal-body">{text}</div>
+                    <div className="modal-body">{body}</div>
                     <div className="modal-footer">
                         <button
                             type="button"
@@ -68,7 +68,7 @@ ModalWindow.propTypes = {
     onCancel: PropTypes.func,
     onConfirm: PropTypes.func,
     title: PropTypes.string,
-    text: PropTypes.string,
+    body: PropTypes.string,
     cancelText: PropTypes.string,
     comfirmText: PropTypes.string,
     size: PropTypes.string,

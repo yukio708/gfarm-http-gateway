@@ -85,7 +85,7 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                     onConfirm={handleCreate}
                     comfirmText="Create"
                     title={<h5 className="modal-title">New Symlink</h5>}
-                    text={
+                    body={
                         <div>
                             <div className="mb-3">
                                 <label className="form-label fw-bold">Link Path</label>

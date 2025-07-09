@@ -41,7 +41,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
                             </p>
                         </div>
                     }
-                    text={
+                    body={
                         <div>
                             <ul>
                                 {itemsToDelete.map((file, idx) => (

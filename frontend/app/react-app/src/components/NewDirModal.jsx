@@ -35,7 +35,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
                 onConfirm={handleCreateDir}
                 comfirmText="Create"
                 title={<h5 className="modal-title">Create New Directory</h5>}
-                text={
+                body={
                     <input
                         type="text"
                         className="form-control"

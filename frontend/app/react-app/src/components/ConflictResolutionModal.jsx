@@ -86,7 +86,7 @@ function ConflictResolutionModal({
             onConfirm={handleResolve}
             size="large"
             title={<h5 className="modal-title">File Name Conflict</h5>}
-            text={
+            body={
                 <div>
                     <div className="mb-2">
                         Choose which files to keep. <br />

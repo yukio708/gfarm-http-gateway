@@ -130,7 +130,7 @@ function ArchiveModal({
                     comfirmText="Run"
                     size="large"
                     title={<h5 className="modal-title">Gfptar</h5>}
-                    text={
+                    body={
                         <div>
                             <div className="mb-3">
                                 <ul className="nav nav-tabs">

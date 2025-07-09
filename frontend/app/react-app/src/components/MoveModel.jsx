@@ -149,7 +149,7 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                             </h5>
                         </div>
                     }
-                    text={
+                    body={
                         <div>
                             <div className="mb-3">
                                 <label className="form-label fw-semibold">
