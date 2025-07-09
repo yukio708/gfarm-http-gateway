@@ -11,6 +11,8 @@ import { loadExternalCss } from "./utils/func";
 import { NotificationProvider } from "./context/NotificationContext";
 import { UserInfoProvider } from "./context/UserInfoContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { ShowHiddenProvider } from "./context/ShowHiddenContext";
+import { ViewModeProvider } from "./context/ViewModeContext";
 
 function App() {
     const [cssLoading, setCssLoading] = useState(true);
@@ -31,15 +33,25 @@ function App() {
         <UserInfoProvider>
             <ThemeProvider>
                 <NotificationProvider>
-                    <HashRouter>
-                        <Routes>
-                            <Route path="/" element={<IndexHandler />} />
-                            <Route path={`${ROUTE_STORAGE}/*`} element={<HomePage />} />
-                            <Route path={`${ROUTE_DOWNLOAD}/*`} element={<DownloadHandler />} />
-                            <Route path="*" element={<ErrorPage error={"Page not fould"} />} />
-                            <Route path="/login" element={<LoginPage />} />
-                        </Routes>
-                    </HashRouter>
+                    <ShowHiddenProvider>
+                        <ViewModeProvider>
+                            <HashRouter>
+                                <Routes>
+                                    <Route path="/" element={<IndexHandler />} />
+                                    <Route path={`${ROUTE_STORAGE}/*`} element={<HomePage />} />
+                                    <Route
+                                        path={`${ROUTE_DOWNLOAD}/*`}
+                                        element={<DownloadHandler />}
+                                    />
+                                    <Route
+                                        path="*"
+                                        element={<ErrorPage error={"Page not fould"} />}
+                                    />
+                                    <Route path="/login" element={<LoginPage />} />
+                                </Routes>
+                            </HashRouter>
+                        </ViewModeProvider>
+                    </ShowHiddenProvider>
                 </NotificationProvider>
             </ThemeProvider>
         </UserInfoProvider>

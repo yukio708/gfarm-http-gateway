@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import React from "react";
 import { API_URL } from "../utils/config";
 import { useUserInfo } from "../context/UserInfoContext";
-import { ThemeSwitcher } from "./Custom";
 
 function UserMenu() {
     const { userInfo } = useUserInfo();
@@ -25,7 +24,13 @@ function UserMenu() {
                     </a>
                 </li>
                 <li>
-                    <ThemeSwitcher />
+                    <a
+                        className="dropdown-item"
+                        data-bs-toggle="modal"
+                        data-bs-target="#settingsModal"
+                    >
+                        Settings
+                    </a>
                 </li>
             </ul>
         </div>

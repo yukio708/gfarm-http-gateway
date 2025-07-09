@@ -38,7 +38,7 @@ export function ThemeProvider({ children }) {
         }
     };
 
-    return <ThemeContext.Provider value={{ theme, setDarkMode }}>{children}</ThemeContext.Provider>;
+    return <ThemeContext value={{ theme, setTheme, setDarkMode }}>{children}</ThemeContext>;
 }
 
 ThemeProvider.propTypes = {

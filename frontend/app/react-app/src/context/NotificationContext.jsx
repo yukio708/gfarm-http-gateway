@@ -28,7 +28,7 @@ export function NotificationProvider({ children }) {
     };
 
     return (
-        <NotificationContext.Provider value={{ addNotification, removeNotification }}>
+        <NotificationContext value={{ addNotification, removeNotification }}>
             {children}
             <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 9999 }}>
                 {notifications.map((n) => (
@@ -56,7 +56,7 @@ export function NotificationProvider({ children }) {
                     </div>
                 ))}
             </div>
-        </NotificationContext.Provider>
+        </NotificationContext>
     );
 }
 

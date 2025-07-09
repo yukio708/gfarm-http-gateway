@@ -12,6 +12,7 @@ import UploadDropZone from "../components/UploadDropZone";
 import UserMenu from "../components/UserMenu";
 import MoveModal from "../components/MoveModel";
 import ArchiveModal from "../components/ArchiveModal";
+import SettingsModal from "../components/SettingsModal";
 import useFileList from "../hooks/useFileList";
 import useProgressTasks from "../hooks/useProgressTasks";
 import useGetPath from "../hooks/useGetPath";
@@ -317,6 +318,7 @@ function HomePage() {
                     setRefreshKey((prev) => !prev);
                 }}
             />
+            <SettingsModal />
         </div>
     );
 }
