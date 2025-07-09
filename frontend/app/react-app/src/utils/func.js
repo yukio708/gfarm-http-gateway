@@ -12,6 +12,31 @@ export const getParentPath = (path) => {
     return "/" + parts.join("/");
 };
 
+export const joinPaths = (...parts) => {
+    return parts
+        .map((part, i) => {
+            if (i === 0) return part.trim().replace(/[/]*$/g, "");
+            return part.trim().replace(/(^[/]*|[/]*$)/g, "");
+        })
+        .filter(Boolean)
+        .join("/");
+};
+
+export const normalizePath = (path) => {
+    const segments = path.split("/");
+    const stack = [];
+
+    for (const segment of segments) {
+        if (segment === "..") {
+            stack.pop();
+        } else if (segment !== "." && segment !== "") {
+            stack.push(segment);
+        }
+    }
+
+    return "/" + stack.join("/");
+};
+
 export const getDeepestDirs = (dirSet) => {
     const result = [];
 

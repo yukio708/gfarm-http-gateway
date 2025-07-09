@@ -4,12 +4,13 @@ import { useShowHidden } from "../context/ShowHiddenContext";
 import { useNotifications } from "../context/NotificationContext";
 import useFileList from "../hooks/useFileList";
 import SuggestInput from "./SuggestInput";
-import { getParentPath } from "../utils/func";
+import { getParentPath, joinPaths, normalizePath } from "../utils/func";
 import { setSymlink } from "../utils/symlink";
 import PropTypes from "prop-types";
 
 function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refresh }) {
     const { showHidden } = useShowHidden();
+    const [linkName, setLinkName] = useState("");
     const [linkPath, setLinkPath] = useState("");
     const [sourcePath, setSourcePath] = useState("");
     const [uploadDir, setUploadDir] = useState(currentDir);
@@ -23,7 +24,7 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
 
     useEffect(() => {
         setUploadDir(currentDir);
-        setLinkPath(currentDir.replace(/\/$/, "") + "/");
+        setLinkName(currentDir.replace(/\/$/, "") + "/");
         if (targetItem) {
             setSourcePath(targetItem.path);
         } else {
@@ -38,16 +39,29 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
     }, [sourcePath]);
 
     useEffect(() => {
-        if (currentItems.some((item) => item.path === linkPath)) {
-            setError("! already exists !");
-        } else {
-            setError(null);
-        }
-        if (linkPath) {
-            const parent = getParentPath(linkPath);
+        if (linkName) {
+            let fullpath = linkName;
+            if (!linkName.startsWith("/")) {
+                fullpath = normalizePath(joinPaths(currentDir, linkName));
+                console.debug("linkName", linkName);
+                console.debug("currentDir", currentDir);
+                console.debug("fullpath", fullpath);
+            }
+            setLinkPath(fullpath);
+            const parent = getParentPath(fullpath);
             if (uploadDir !== parent) setUploadDir(parent);
         }
-    }, [linkPath]);
+    }, [linkName]);
+
+    useEffect(() => {
+        if (linkPath) {
+            if (currentItems.some((item) => item.path === linkPath)) {
+                setError("! already exists !");
+            } else {
+                setError(null);
+            }
+        }
+    }, [currentItems, linkPath]);
 
     const handleCreate = () => {
         if (!linkPath || !sourcePath) {
@@ -80,6 +94,7 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                 <ModalWindow
                     onCancel={() => {
                         setShowModal(false);
+                        setLinkName("");
                         setLinkPath("");
                         setSourcePath("");
                         setUploadDir("");
@@ -90,10 +105,10 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                     body={
                         <div>
                             <div className="mb-3">
-                                <label className="form-label fw-bold">Link Path</label>
+                                <label className="form-label fw-bold">Link Name</label>
                                 <SuggestInput
-                                    value={linkPath}
-                                    onChange={(value) => setLinkPath(value)}
+                                    value={linkName}
+                                    onChange={(value) => setLinkName(value)}
                                     suggestions={suggestionDirs.map((item) => item.path)}
                                     placeholder="Enter link path"
                                 />
@@ -101,7 +116,7 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                             </div>
                             {targetItem ? (
                                 <div className="mt-3">
-                                    <label className="form-label fw-bold">Source Path</label>
+                                    <label className="form-label fw-bold">Target</label>
                                     <input
                                         type="text"
                                         className="form-control"
@@ -111,7 +126,7 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                                 </div>
                             ) : (
                                 <div className="mt-3">
-                                    <label className="form-label fw-bold">Source Path</label>
+                                    <label className="form-label fw-bold">Target</label>
                                     <SuggestInput
                                         value={sourcePath}
                                         onChange={(value) => setSourcePath(value)}
