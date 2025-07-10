@@ -5,7 +5,8 @@ import { useUserInfo } from "../context/UserInfoContext";
 import PropTypes from "prop-types";
 
 function IndexHandler() {
-    const { userInfo } = useUserInfo();
+    const { userInfo, loading } = useUserInfo();
+    if (loading) return <p>...</p>;
     return (
         <Navigate to={`${ROUTE_STORAGE}${userInfo ? userInfo.home_directory || "" : ""}`} replace />
     );

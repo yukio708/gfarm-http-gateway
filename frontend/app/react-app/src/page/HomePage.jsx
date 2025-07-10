@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import FileListView from "../components/FileListView";
 import CurrentDirView from "../components/CurrentDirView";
 import SidePanel from "../components/SidePanel";
@@ -23,6 +23,7 @@ import { ROUTE_STORAGE } from "../utils/config";
 import displayFile from "../utils/display";
 import { getSymlink } from "../utils/symlink";
 import { getParentPath } from "../utils/func";
+import LoginPage from "./LoginPage";
 import ErrorPage from "./ErrorPage";
 import PropTypes from "prop-types";
 
@@ -170,7 +171,7 @@ function HomePage() {
     };
 
     if (loading) return <p>...</p>;
-    if (!userInfo) return <Navigate to="/login" replace />;
+    if (!userInfo) return <LoginPage />;
 
     if (listGetError) {
         return <ErrorPage error={listGetError} />;

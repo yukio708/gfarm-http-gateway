@@ -3,6 +3,7 @@ import ModalWindow from "./Modal";
 import SuggestInput from "./SuggestInput";
 import MiniFileListView from "./MiniFileListView";
 import useFileList from "../hooks/useFileList";
+import { useShowHidden } from "../context/ShowHiddenContext";
 import { useNotifications } from "../context/NotificationContext";
 import gfptar from "../utils/archive";
 import PropTypes from "prop-types";
@@ -18,11 +19,12 @@ function ArchiveModal({
     setTasks,
     refresh,
 }) {
+    const { showHidden } = useShowHidden();
     const [activeTab, setActiveTab] = useState("archive");
     const [compressMode, setCompressMode] = useState("create");
     const [suggestDir, setSuggestDir] = useState("");
     const [destDir, setDestDir] = useState("");
-    const { currentItems } = useFileList(suggestDir, "");
+    const { currentItems } = useFileList(suggestDir, "", showHidden);
     const [error, setError] = useState(null);
     const [targetDir, setTargetDir] = useState([]);
     const [targetItems, setTargetItems] = useState([]);
