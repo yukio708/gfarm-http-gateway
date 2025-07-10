@@ -1,5 +1,4 @@
 import React from "react";
-import { BsHouse } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function CurrentDirView({ currentDir, onNavigate }) {
@@ -16,7 +15,13 @@ function CurrentDirView({ currentDir, onNavigate }) {
                             onNavigate("/");
                         }}
                     >
-                        <BsHouse size="1.0rem" />
+                        <img
+                            src="./assets/Gfarm_logo_tate_color.svg"
+                            alt="Logo"
+                            width="30"
+                            height="30"
+                            className="d-inline-block align-text-top"
+                        />
                     </button>
                 </li>
                 {parts.map((part, index) => {

@@ -14,8 +14,9 @@ import {
     getTimeStr,
 } from "../utils/func";
 import { useViewMode } from "../context/ViewModeContext";
+import { useUserInfo } from "../context/UserInfoContext";
 import "../css/FileListView.css";
-import { BsArrowUpShort, BsArrowDownShort, BsListTask, BsGrid } from "react-icons/bs";
+import { BsArrowUpShort, BsArrowDownShort, BsListTask, BsGrid, BsHouse } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function ListView({
@@ -171,6 +172,7 @@ function FileListView({
     handleItemClick,
 }) {
     const { viewMode, setViewMode } = useViewMode();
+    const { userInfo } = useUserInfo();
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
     const [dateFilter, setDateFilter] = useState("all");
@@ -263,6 +265,13 @@ function FileListView({
     return (
         <div>
             <div className="d-flex flex-wrap  mb-1">
+                <button
+                    className="btn me-2"
+                    type="button"
+                    onClick={() => handleItemClick(userInfo.home_directory, false, true)}
+                >
+                    <BsHouse />
+                </button>
                 <div className="btn-group me-4" role="group">
                     <FileTypeFilter
                         parentName={parentName}

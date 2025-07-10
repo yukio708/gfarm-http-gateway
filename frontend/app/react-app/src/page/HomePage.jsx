@@ -183,27 +183,12 @@ function HomePage() {
                 <div className="col">
                     <nav className={`navbar`}>
                         <div className="container-fluid">
-                            <img
-                                src="./assets/Gfarm_logo_tate_color.svg"
-                                alt="Logo"
-                                width="30"
-                                height="30"
-                                className="d-inline-block align-text-top"
-                            />
+                            <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
                             <div className="ms-2 d-flex gap-2">
                                 <UserMenu />
                             </div>
                         </div>
                     </nav>
-                </div>
-            </div>
-            <div className="row">
-                <div className="col">
-                    <div className="d-flex">
-                        <div className="mx-3">
-                            <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
-                        </div>
-                    </div>
                 </div>
             </div>
             <div className="row">
