@@ -1,4 +1,5 @@
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 /*
 class Tar(BaseModel):
@@ -37,6 +38,7 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         type: "gfptar",
         status: command,
         message: "",
+        indirList: [],
         onCancel: () => {
             controller.abort();
             console.debug("cancel:", taskId);
@@ -49,8 +51,8 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
 
         if (!response.ok) {
             const error = await response.json();
-            const message = JSON.stringify(error.detail);
-            throw new Error(`${response.status} ${message}`, {
+            const message = get_error_message(response.status, error.detail);
+            throw new Error(message, {
                 cause: response.status,
             });
         }
@@ -71,14 +73,20 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
                 if (line.trim() === "") continue;
                 try {
                     const json = JSON.parse(line);
-                    // console.log("Streamed message:", json.message);
 
                     setTasks((prev) =>
-                        prev.map((task) =>
-                            task.taskId === taskId
-                                ? { ...task, value: undefined, message: json.message }
-                                : task
-                        )
+                        prev.map((task) => {
+                            const indirList = task.indirList;
+                            if (command === "list") indirList.push(json.message);
+                            return task.taskId === taskId
+                                ? {
+                                      ...task,
+                                      value: undefined,
+                                      message: json.message,
+                                      indirList,
+                                  }
+                                : task;
+                        })
                     );
                 } catch (err) {
                     console.warn("Failed to parse line:", line, err);

@@ -61,23 +61,27 @@ function ArchiveModal({
 
     useEffect(() => {
         if (listStatus.length > 0) {
-            if (listStatus[0].status === "error") {
-                addNotification("Gfptar", listStatus[0].message, "error");
-                console.error("useEffect gfptar failed", listStatus[0].message);
-            } else if (listStatus[0].status === "completed") {
-                setListStatus([]);
-            } else if (listStatus[0].message) {
-                const [file_type, path] = listStatus[0].message.trim().split(" ", 2);
-                setIndirList((prev) => [
-                    ...prev,
-                    {
+            if (listStatus[0].indirList) {
+                const indirList = [];
+                console.debug(listStatus[0].message);
+                for (const item of listStatus[0].indirList) {
+                    const [file_type, path] = item.trim().split(" ", 2);
+                    indirList.push({
                         is_dir: file_type === "D",
                         is_file: file_type === "F",
                         is_sym: file_type === "S",
                         path,
                         name: path,
-                    },
-                ]);
+                    });
+                }
+                setIndirList(indirList);
+            }
+
+            if (listStatus[0].status === "error") {
+                addNotification("Gfptar", listStatus[0].message, "error");
+                console.error("useEffect gfptar failed", listStatus[0].message);
+            } else if (listStatus[0].status === "completed") {
+                setListStatus([]);
             }
         }
     }, [listStatus]);
