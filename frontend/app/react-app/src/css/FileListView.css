@@ -30,3 +30,13 @@
 .file-table td:nth-child(6) {
     width: 50px;
 }
+
+.file-item {
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.file-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+}

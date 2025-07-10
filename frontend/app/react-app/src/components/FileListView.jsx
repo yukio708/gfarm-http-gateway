@@ -13,9 +13,149 @@ import {
     formatFileSize,
     getTimeStr,
 } from "../utils/func";
+import { useViewMode } from "../context/ViewModeContext";
 import "../css/FileListView.css";
-import { BsArrowUpShort, BsArrowDownShort } from "react-icons/bs";
+import { BsArrowUpShort, BsArrowDownShort, BsListTask, BsGrid } from "react-icons/bs";
 import PropTypes from "prop-types";
+
+function ListView({
+    sortedItems,
+    selectedItems,
+    activeItem,
+    ItemMenuActions,
+    handleItemClick,
+    handleSelectItem,
+}) {
+    return (
+        <>
+            {sortedItems.map((item) => {
+                const isSelected = selectedItems.some((selected) => selected.path === item.path);
+                const isLastSelected = activeItem && activeItem.path === item.path;
+                return (
+                    <tr
+                        key={item.path}
+                        className={`align-middle ${isLastSelected ? "table-active" : ""}`}
+                    >
+                        <td>
+                            <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id={"checkbox-" + item.name}
+                                onChange={(event) => handleSelectItem(event.target.checked, item)}
+                                checked={isSelected}
+                            />
+                        </td>
+                        <td
+                            onClick={() => handleSelectItem(!isSelected, item)}
+                            onDoubleClick={() =>
+                                handleItemClick(item.path, item.is_file, item.is_dir)
+                            }
+                        >
+                            <span className="me-2">
+                                <FileIcon
+                                    filename={item.name}
+                                    is_dir={item.is_dir}
+                                    is_sym={item.is_sym}
+                                    size={"1.8rem"}
+                                />
+                            </span>
+                        </td>
+                        <td
+                            onClick={() => handleSelectItem(!isSelected, item)}
+                            onDoubleClick={() =>
+                                handleItemClick(item.path, item.is_file, item.is_dir)
+                            }
+                        >
+                            {item.name}
+                        </td>
+                        <td
+                            onClick={() => handleSelectItem(!isSelected, item)}
+                            onDoubleClick={() =>
+                                handleItemClick(item.path, item.is_file, item.is_dir)
+                            }
+                        >
+                            {formatFileSize(item.size, item.is_dir)}
+                        </td>
+                        <td
+                            onClick={() => handleSelectItem(!isSelected, item)}
+                            onDoubleClick={() =>
+                                handleItemClick(item.path, item.is_file, item.is_dir)
+                            }
+                        >
+                            {getTimeStr(item.mtime)}
+                        </td>
+                        <td>
+                            <ItemMenu item={item} actions={ItemMenuActions} />
+                        </td>
+                    </tr>
+                );
+            })}
+        </>
+    );
+}
+
+function IconView({
+    sortedItems,
+    selectedItems,
+    activeItem,
+    ItemMenuActions,
+    handleItemClick,
+    handleSelectItem,
+}) {
+    return (
+        <tr>
+            <td colSpan="5">
+                <div className="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+                    {sortedItems.map((item) => {
+                        const isSelected = selectedItems.some(
+                            (selected) => selected.path === item.path
+                        );
+                        const isLastSelected = activeItem && activeItem.path === item.path;
+
+                        return (
+                            <div
+                                key={item.path}
+                                className={`file-item position-relative ${isLastSelected ? "bg-primary-subtle" : ""}`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    className="form-check-input position-absolute top-0 start-0 m-1"
+                                    checked={isSelected}
+                                    onChange={(e) => handleSelectItem(e.target.checked, item)}
+                                />
+                                <div
+                                    className="file-icon text-center mt-2"
+                                    onClick={() => handleSelectItem(!isSelected, item)}
+                                    onDoubleClick={() =>
+                                        handleItemClick(item.path, item.is_file, item.is_dir)
+                                    }
+                                >
+                                    <FileIcon
+                                        filename={item.name}
+                                        is_dir={item.is_dir}
+                                        is_sym={item.is_sym}
+                                        size="3rem"
+                                    />
+                                </div>
+                                <div className="file-name text-center mt-1">{item.name}</div>
+                                <div
+                                    className="text-muted text-center"
+                                    style={{ fontSize: "0.8rem" }}
+                                >
+                                    {formatFileSize(item.size, item.is_dir)} |{" "}
+                                    {getTimeStr(item.mtime)}
+                                </div>
+                                <div className="position-absolute bottom-0 end-0 m-1">
+                                    <ItemMenu item={item} actions={ItemMenuActions} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </td>
+        </tr>
+    );
+}
 
 function FileListView({
     parentName,
@@ -30,6 +170,7 @@ function FileListView({
     SelectedMenuActions,
     handleItemClick,
 }) {
+    const { viewMode, setViewMode } = useViewMode();
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
     const [dateFilter, setDateFilter] = useState("all");
@@ -119,10 +260,6 @@ function FileListView({
         });
     };
 
-    const getSize = (filesize, is_dir) => {
-        return <>{formatFileSize(filesize, is_dir)}</>;
-    };
-
     return (
         <div>
             <div className="d-flex flex-wrap  mb-1">
@@ -147,7 +284,7 @@ function FileListView({
                     <FileActionMenu selectedItems={selectedItems} actions={SelectedMenuActions} />
                 </div>
             </div>
-            <table className="table table-hover file-table">
+            <table className={`table file-table ${viewMode === "list" ? "table-hover" : ""}`}>
                 <thead style={{ position: "sticky", top: 0 }}>
                     <tr>
                         <th className="align-middle">
@@ -180,79 +317,31 @@ function FileListView({
                         >
                             Modified {sortDirection.column === "updatedate" && getSortIcon()}
                         </th>
-                        <th></th>
+                        <th onClick={() => setViewMode(viewMode === "list" ? "icon" : "list")}>
+                            {viewMode === "list" ? <BsGrid /> : <BsListTask />}
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedItems.map((item) => {
-                        const isSelected = selectedItems.some(
-                            (selected) => selected.path === item.path
-                        );
-                        const isLastSelected = activeItem && activeItem.path === item.path;
-                        return (
-                            <tr
-                                key={item.path}
-                                className={`align-middle ${isLastSelected ? "table-active" : ""}`}
-                            >
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        id={"checkbox-" + item.name}
-                                        onChange={(event) =>
-                                            handleSelectItem(event.target.checked, item)
-                                        }
-                                        checked={isSelected}
-                                    />
-                                </td>
-                                <td>
-                                    <span className="me-2">
-                                        <FileIcon
-                                            filename={item.name}
-                                            is_dir={item.is_dir}
-                                            is_sym={item.is_sym}
-                                            size={"1.8rem"}
-                                            onClick={() => handleSelectItem(!isSelected, item)}
-                                            onDoubleClick={() =>
-                                                handleItemClick(
-                                                    item.path,
-                                                    item.is_file,
-                                                    item.is_dir
-                                                )
-                                            }
-                                        />
-                                    </span>
-                                </td>
-                                <td
-                                    onClick={() => handleSelectItem(!isSelected, item)}
-                                    onDoubleClick={() =>
-                                        handleItemClick(item.path, item.is_file, item.is_dir)
-                                    }
-                                >
-                                    {item.name}
-                                </td>
-                                <td
-                                    onClick={() => handleSelectItem(!isSelected, item)}
-                                    onDoubleClick={() =>
-                                        handleItemClick(item.path, item.is_file, item.is_dir)
-                                    }
-                                >
-                                    {getSize(item.size, item.is_dir)}
-                                </td>
-                                <td
-                                    onClick={() => handleSelectItem(!isSelected, item)}
-                                    onDoubleClick={() =>
-                                        handleItemClick(item.path, item.is_file, item.is_dir)
-                                    }
-                                >
-                                    {getTimeStr(item.mtime)}
-                                </td>
-                                <td>
-                                    <ItemMenu item={item} actions={ItemMenuActions} />
-                                </td>
-                            </tr>
-                        );
-                    })}
+                    {viewMode === "list" ? (
+                        <ListView
+                            sortedItems={sortedItems}
+                            selectedItems={selectedItems}
+                            activeItem={activeItem}
+                            ItemMenuActions={ItemMenuActions}
+                            handleItemClick={handleItemClick}
+                            handleSelectItem={handleSelectItem}
+                        />
+                    ) : (
+                        <IconView
+                            sortedItems={sortedItems}
+                            selectedItems={selectedItems}
+                            activeItem={activeItem}
+                            ItemMenuActions={ItemMenuActions}
+                            handleItemClick={handleItemClick}
+                            handleSelectItem={handleSelectItem}
+                        />
+                    )}
                 </tbody>
             </table>
         </div>
@@ -273,4 +362,22 @@ FileListView.propTypes = {
     UploadMenuActions: PropTypes.array,
     SelectedMenuActions: PropTypes.array,
     handleItemClick: PropTypes.func,
+};
+
+ListView.propTypes = {
+    sortedItems: PropTypes.array,
+    selectedItems: PropTypes.array,
+    activeItem: PropTypes.object,
+    ItemMenuActions: PropTypes.array,
+    handleItemClick: PropTypes.func,
+    handleSelectItem: PropTypes.func,
+};
+
+IconView.propTypes = {
+    sortedItems: PropTypes.array,
+    selectedItems: PropTypes.array,
+    activeItem: PropTypes.object,
+    ItemMenuActions: PropTypes.array,
+    handleItemClick: PropTypes.func,
+    handleSelectItem: PropTypes.func,
 };
