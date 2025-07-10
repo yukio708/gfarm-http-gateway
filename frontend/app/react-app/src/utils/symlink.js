@@ -1,5 +1,6 @@
 import { encodePath } from "./func";
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 async function getSymlink(symlink) {
     const epath = encodePath(symlink);
@@ -7,8 +8,8 @@ async function getSymlink(symlink) {
     const response = await fetch(fullpath);
     if (!response.ok) {
         const error = await response.json();
-        const message = JSON.stringify(error.detail);
-        throw new Error(`${response.status} ${message}`);
+        const message = get_error_message(response.status, error.detail);
+        throw new Error(message);
     }
     const data = await response.json();
     return data;
@@ -23,8 +24,8 @@ async function setSymlink(source, destination) {
     });
     if (!response.ok) {
         const error = await response.json();
-        const message = JSON.stringify(error.detail);
-        throw new Error(`${response.status} ${message}`);
+        const message = get_error_message(response.status, error.detail);
+        throw new Error(message);
     }
     return "";
 }

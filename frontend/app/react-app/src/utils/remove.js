@@ -1,5 +1,6 @@
 import { encodePath } from "./func";
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 async function removeItem(path, isFile = true) {
     if (!path) {
@@ -16,8 +17,8 @@ async function removeItem(path, isFile = true) {
         });
         if (!response.ok) {
             const error = await response.json();
-            const message = JSON.stringify(error.detail);
-            throw new Error(`${response.status} ${message}`);
+            const message = get_error_message(response.status, error.detail);
+            throw new Error(message);
         }
         console.debug("Success (removed)");
         return null;

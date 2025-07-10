@@ -1,4 +1,5 @@
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 async function moveItems(files, setError) {
     if (!files) {
@@ -27,8 +28,8 @@ async function moveItems(files, setError) {
             });
             if (!response.ok) {
                 const error = await response.json();
-                const message = JSON.stringify(error.detail);
-                throw new Error(`${response.status} ${message}`);
+                const message = get_error_message(response.status, error.detail);
+                throw new Error(message);
             }
             console.debug(`Success (moved)`);
         } catch (error) {

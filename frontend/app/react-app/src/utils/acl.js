@@ -1,5 +1,6 @@
 import { encodePath } from "./func";
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 export async function set_acl(path, acl) {
     const epath = encodePath(path);
@@ -12,12 +13,12 @@ export async function set_acl(path, acl) {
         });
         if (!response.ok) {
             const error = await response.json();
-            const message = JSON.stringify(error.detail);
-            throw new Error(`${response.status} ${message}`);
+            const message = get_error_message(response.status, error.detail);
+            throw new Error(message);
         }
         return "";
     } catch (err) {
-        return err.message;
+        return `${err.name} : ${err.message}`;
     }
 }
 
@@ -28,12 +29,12 @@ export async function get_acl(path) {
         const response = await fetch(fullpath);
         if (!response.ok) {
             const error = await response.json();
-            const message = JSON.stringify(error.detail);
-            throw new Error(`${response.status} ${message}`);
+            const message = get_error_message(response.status, error.detail);
+            throw new Error(message);
         }
         const data = await response.json();
         return { data, error: null };
     } catch (err) {
-        return { data: null, error: err.message };
+        return { data: null, error: `${err.name} : ${err.message}` };
     }
 }

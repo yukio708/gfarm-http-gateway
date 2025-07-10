@@ -1515,7 +1515,7 @@ def sync_gfexport(env, path):
         env=env,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL)
+        stderr=subprocess.DEVNULL), args
 
 
 async def gfexport(env, path):
@@ -1525,7 +1525,7 @@ async def gfexport(env, path):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE), args
 
 
 async def gfreg(env, path, mtime):
@@ -1539,7 +1539,7 @@ async def gfreg(env, path, mtime):
         env=env,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE), args
 
 
 async def gfls(env,
@@ -1864,7 +1864,7 @@ async def gfptar(env,
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE), args
 
 
 async def gfuser(env, username: str = None, cmd: str = None):
@@ -1878,7 +1878,7 @@ async def gfuser(env, username: str = None, cmd: str = None):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE), args
 
 
 async def gfgroup(env, groupname: str = None, cmd: str = None):
@@ -1892,7 +1892,7 @@ async def gfgroup(env, groupname: str = None, cmd: str = None):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE), args
 
 
 async def gfsetfacl(env, path,
@@ -1917,7 +1917,7 @@ async def gfsetfacl(env, path,
         env=env,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE), args
 
 
 async def gfgetfacl(env, path):
@@ -1927,7 +1927,7 @@ async def gfgetfacl(env, path):
         env=env,
         stdin=asyncio.subprocess.DEVNULL,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE)
+        stderr=asyncio.subprocess.PIPE), args
 
 
 async def get_username(env):
@@ -1944,7 +1944,7 @@ async def get_username(env):
 
 
 async def get_groupuser(env, groupname):
-    p = await gfgroup(env, groupname)
+    p, _ = await gfgroup(env, groupname)
     elist = []
     stderr_task = asyncio.create_task(log_stderr("gfgroup", p, elist))
     data = await p.stdout.read()
@@ -1995,7 +1995,7 @@ async def can_access(env, path, check_perm="w"):
 
 
 async def gfuser_info(env, gfarm_username):
-    proc = await gfuser(env, gfarm_username, "l")
+    proc, _ = await gfuser(env, gfarm_username, "l")
     elist = []
     stderr_task = asyncio.create_task(log_stderr("gfuser", proc, elist))
     res = await proc.stdout.read()
@@ -2071,11 +2071,11 @@ async def gfarm_command_standard_response(env, proc, command):
         errstr = str(elist)
         last_e = last_emsg(elist)
         if "authentication error" in errstr:
-            code = 401
+            code = status.HTTP_401_UNAUTHORIZED
             message = "Authentication error"
         else:
-            code = 500
-            message = "Error"
+            code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            message = "Internal Server Error"
         logger.opt(depth=1).debug(
             f"{ipaddr}:0 user={user}, cmd={command}, return={return_code},"
             f" last_emsg={last_e}")
@@ -2122,8 +2122,8 @@ async def dir_list(gfarm_path: str,
     log_operation(env, request.method, apiname, opname, gfarm_path)
     existing, is_file, _ = await file_size(env, gfarm_path)
     if not existing:
-        code = 404
-        message = f"gfls error: path={gfarm_path}"
+        code = status.HTTP_404_NOT_FOUND
+        message = f"The requested path does not exist: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, "", elist)
 
@@ -2142,8 +2142,8 @@ async def dir_list(gfarm_path: str,
             else:
                 json_data.append(entry)
     except RuntimeError as e:
-        code = 500
-        message = f"gfls error: path={gfarm_path}"
+        code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        message = f"Failed to execute gfls: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, str(e), elist)
 
@@ -2169,7 +2169,7 @@ async def get_symlink(gfarm_path: str,
         async def get_info(env, path, depth) -> Gfls_Entry:
             if depth > RECURSIVE_MAX_DEPTH:
                 raise RuntimeError(
-                    "Reached maximum symlink follow limit ({depth})")
+                    f"Reached maximum symlink follow limit ({depth})")
             existing, is_file, _ = await file_size(env, path)
 
             if existing:
@@ -2192,13 +2192,13 @@ async def get_symlink(gfarm_path: str,
                      f"stdout={lastentry.json_dump()}")
         return JSONResponse(content=lastentry.json_dump())
     except RuntimeError as e:
-        code = 500
-        message = f"gfls error: path={gfarm_path}"
+        code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        message = f"Failed to execute gfls: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, str(e), elist)
     except FileNotFoundError:
-        code = 404
-        message = f"gfls error: path={gfarm_path}"
+        code = status.HTTP_404_NOT_FOUND
+        message = f"The requested path does not exist: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, "", elist)
 
@@ -2287,13 +2287,13 @@ async def file_export(gfarm_path: str,
     log_operation(env, request.method, apiname, opname, gfarm_path)
     existing, is_file, size = await file_size(env, gfarm_path)
     if not existing:
-        code = 404
+        code = status.HTTP_404_NOT_FOUND
         message = "The requested URL does not exist."
         stdout = ""
         elist = []
         raise gfarm_http_error(opname, code, message, stdout, elist)
     if not is_file:
-        code = 415
+        code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
         message = "The requested URL does not represent a file."
         stdout = ""
         elist = []
@@ -2304,12 +2304,12 @@ async def file_export(gfarm_path: str,
 
     env = await set_env(request, authorization)  # may refresh
     if ASYNC_GFEXPORT:
-        p = await gfexport(env, gfarm_path)
+        p, args = await gfexport(env, gfarm_path)
         elist = []
         stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
     else:
         # stderr is not supported
-        p = sync_gfexport(env, gfarm_path)
+        p, args = sync_gfexport(env, gfarm_path)
 
     # size > 0
     if ASYNC_GFEXPORT:
@@ -2320,10 +2320,11 @@ async def file_export(gfarm_path: str,
         if ASYNC_GFEXPORT:
             await stderr_task
         if await can_access(env, gfarm_path, "r"):
-            code = 403
+            code = status.HTTP_403_FORBIDDEN
+            message = f"Cannot read: path={gfarm_path}"
         else:
-            code = 500
-        message = f"Cannot read: path={gfarm_path}"
+            code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            message = f"Failed to execute: gfexport {' '.join(args)}"
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
@@ -2446,7 +2447,7 @@ async def zip_export(request: Request,
     for filepath in pathes:
         existing, is_file, _ = await file_size(env, filepath)
         if not existing:
-            code = 404
+            code = status.HTTP_404_NOT_FOUND
             message = f"The requested URL does not exist: {filepath}"
             stdout = ""
             elist = []
@@ -2474,7 +2475,7 @@ async def zip_export(request: Request,
         else:
             try:
                 env = await set_env(request, authorization)
-                proc = await gfexport(env, entry.path)
+                proc, _ = await gfexport(env, entry.path)
                 elist = []
                 stderr_task = asyncio.create_task(
                     log_stderr(opname, proc, elist))
@@ -2489,7 +2490,7 @@ async def zip_export(request: Request,
                 if return_code != 0:
                     raise
             except Exception as e:
-                message = f"zip create error: path={entry.path}: {e}"
+                message = f"zip create error: path={entry.path}: {str(e)}"
                 logger.debug(
                     f"{ipaddr}:0 user={user}, cmd={opname}, " +
                     f" message={message}")
@@ -2549,13 +2550,6 @@ async def file_import(gfarm_path: str,
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, request.method, apiname, opname, gfarm_path)
 
-    # if not await can_access(env, dirname, "w"):
-    #     code = 403
-    #     message = f"Permission denied path={dirname}"
-    #     stdout = ""
-    #     elist = []
-    #     raise gfarm_http_error(opname, code, message, stdout, elist)
-
     # NOTE: MAXNAMLEN == 255
     filename_prefix = filename[:128]
 
@@ -2564,7 +2558,7 @@ async def file_import(gfarm_path: str,
     tmpname = "gfarm-http.upload." + filename_prefix + "." + randstr
     tmppath = os.path.join(dirname, tmpname)
 
-    p = await gfreg(env, tmppath, x_file_timestamp)
+    p, args = await gfreg(env, tmppath, x_file_timestamp)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
     error = None
@@ -2606,11 +2600,11 @@ async def file_import(gfarm_path: str,
     logger.debug(f"{ipaddr}:0 user={user}, cmd={gfrm_cmd}, path={tmppath},"
                  f" return={return_code}")
 
-    code = 500
+    code = status.HTTP_500_INTERNAL_SERVER_ERROR
     if error:
         message = f"I/O error({str(error)}): path={gfarm_path}"
     else:
-        message = f"gfreg error: path={gfarm_path}"
+        message = f"Failed to execute: gfreg {' '.join(args)}"
     stdout = ""
     raise gfarm_http_error(opname, code, message, stdout, elist)
 
@@ -2652,13 +2646,13 @@ async def file_copy(copy_data: FileOperation,
 
     existing, is_file, size, mtime = await file_size(env, gfarm_path, True)
     if not existing:
-        code = 404
+        code = status.HTTP_404_NOT_FOUND
         message = "The requested URL does not exist."
         stdout = ""
         elist = []
         raise gfarm_http_error(opname, code, message, stdout, elist)
     if not is_file:
-        code = 415
+        code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
         message = "The requested URL does not represent a file."
         stdout = ""
         elist = []
@@ -2669,21 +2663,21 @@ async def file_copy(copy_data: FileOperation,
     tmpname = f"gfarm-http.copy.{filename_prefix}.{randstr}"
     tmppath = os.path.join(dest_dir, tmpname)
 
-    p_export = await gfexport(env, gfarm_path)
+    p_export, args = await gfexport(env, gfarm_path)
     stderr_export = asyncio.create_task(log_stderr("gfexport", p_export, elist))
     first_byte = await p_export.stdout.read(1)
     if not first_byte:
-        if ASYNC_GFEXPORT:
-            await stderr_export
+        await stderr_export
         if await can_access(env, gfarm_path, "r"):
-            code = 403
+            code = status.HTTP_403_FORBIDDEN
+            message = f"Cannot read: {gfarm_path}"
         else:
-            code = 500
-        message = f"Cannot read: path={gfarm_path}"
+            code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            message = f"Failed to execute: gfexport {' '.join(args)}"
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
-    p_reg = await gfreg(env, tmppath, mtime)
+    p_reg, _ = await gfreg(env, tmppath, mtime)
     stderr_reg = asyncio.create_task(log_stderr("gfreg", p_reg, elist))
     opname = "gfreg"
     log_operation(env, request.method, apiname, opname, gfarm_path)
@@ -2787,12 +2781,12 @@ async def get_attr(gfarm_path: str,
     if return_code != 0:
         errstr = str(elist)
         if "authentication error" in errstr:
-            code = 401
+            code = status.HTTP_401_UNAUTHORIZED
             message = "Authentication error"
             raise gfarm_http_error(opname, code, message, stdout, elist)
         else:
-            code = 500
-            message = "Error"
+            code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            message = "Intarnal Server Error"
             raise gfarm_http_error(opname, code, message, stdout, elist)
     st = parse_gfstat(stdout)
     logger.debug("Stat=\n" + pf(st.model_dump()))
@@ -2841,7 +2835,7 @@ async def get_acl(gfarm_path: str,
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, request.method, apiname, opname, "")
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
-    proc = await gfgetfacl(env, gfarm_path)
+    proc, args = await gfgetfacl(env, gfarm_path)
     elist = []
     stderr_task = asyncio.create_task(log_stderr("gfgetfacl", proc, elist))
     data = await proc.stdout.read()
@@ -2850,12 +2844,12 @@ async def get_acl(gfarm_path: str,
     return_code = await proc.wait()
     if return_code != 0:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        message = "failed to execute gfgetfacl"
+        message = f"Failed to execute: gfgetfacl {' '.join(args)}"
         raise gfarm_http_error(opname, code, message, stdout, elist)
     acl = parse_gfgetfacl(stdout)
     if acl is None:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        message = "failed to parse gfgetfacl"
+        message = f"Failed to parse {stdout}"
         raise gfarm_http_error(opname, code, message, stdout, elist)
     return JSONResponse(content=acl.model_dump())
 
@@ -2876,14 +2870,14 @@ async def set_acl(gfarm_path: str,
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
     log_operation(env, request.method, apiname, opname, acl)
     acl_str = acl.make_acl_str("\n") + "\n"
-    proc = await gfsetfacl(env, gfarm_path, _b=True, acl_file="-")
+    proc, args = await gfsetfacl(env, gfarm_path, _b=True, acl_file="-")
     stdout, _ = await proc.communicate(input=acl_str.encode())
     elist = []
     stdout = stdout.decode()
     return_code = await proc.wait()
     if return_code != 0:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        message = "failed to execute gfsetfacl"
+        message = f"Failed to execute: gfsetfacl {' '.join(args)}"
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
 
@@ -2900,7 +2894,7 @@ async def get_name_list(request: Request,
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname},")
     log_operation(env, request.method, apiname, opname, "")
 
-    proc = await exec_func(env)
+    proc, args = await exec_func(env)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, proc, elist))
     data = await proc.stdout.read()
@@ -2910,7 +2904,7 @@ async def get_name_list(request: Request,
 
     if return_code != 0:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        message = f"failed to execute {opname}"
+        message = f"Failed to execute: {opname} {' '.join(args)}"
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
     items = [line.strip() for line in stdout.splitlines() if line.strip()]
@@ -2967,7 +2961,7 @@ class Tar(BaseModel):
 
 
 @app.post("/gfptar")
-async def compress_or_extract(
+async def archive_files(
         request: Request,
         tar_data: Tar,
         authorization: Union[str, None] = Header(default=None)):
@@ -3000,28 +2994,28 @@ async def compress_or_extract(
     if cmd == 'c' or cmd == 'x':
         if existing:
             code = status.HTTP_403_FORBIDDEN
-            message = f"destination path already exists : path={outdir}"
+            message = f"Output directory already exists : path={outdir}"
             stdout = ""
             raise gfarm_http_error(opname, code, message, stdout, [])
     else:
         if not existing:
             code = status.HTTP_404_NOT_FOUND
             if cmd == 't':
-                message = f"destination path dosn't exist : path={outdir}"
+                message = f"Input directory does not exist : path={basedir}"
             else:
-                message = f"source path dosn't exist : path={basedir}"
+                message = f"Output directory does not exist : path={outdir}"
             stdout = ""
             raise gfarm_http_error(opname, code, message, stdout, [])
 
-    p = await gfptar(env, cmd, outdir, basedir, src, options)
+    p, args = await gfptar(env, cmd, outdir, basedir, src, options)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, p, elist))
 
     first_byte = await p.stdout.read(1)
     if not first_byte:
         await stderr_task
-        code = 500
-        message = f"Cannot read: path={basedir} {src}"
+        code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        message = f"Failed to execute: gfptar {' '.join(args)}"
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
@@ -3051,11 +3045,9 @@ async def compress_or_extract(
             await stderr_task
             return_code = await p.wait()
             if return_code != 0:
-                # error!
-                code = status.HTTP_500_INTERNAL_SERVER_ERROR
-                message = f"path={outdir}"
                 stdout = buffer.decode("utf-8", errors="replace").strip()
-                raise gfarm_http_error(opname, code, message, stdout, elist)
+                logger.error(
+                    f"{ipaddr}:0 user={user}, cmd={opname}, {stdout}")
         except asyncio.CancelledError:
             p.terminate()
             logger.error(

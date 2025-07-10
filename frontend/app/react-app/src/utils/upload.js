@@ -1,6 +1,7 @@
 import { encodePath, getParentPath } from "./func";
 import { createDir } from "./dircommon";
 import { API_URL, PARALLEL_LIMIT } from "./config";
+import get_error_message from "./error";
 
 // file: file + File
 async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
@@ -113,10 +114,7 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
                     resolve();
                 } else {
                     const detail = xhr.response?.detail;
-                    const stderr = detail?.stderr ? JSON.stringify(detail.stderr) : null;
-                    const message = stderr
-                        ? `${xhr.status}: ${stderr}`
-                        : `${xhr.status}: ${JSON.stringify(detail)}`;
+                    const message = get_error_message(xhr.status, detail);
                     setTasks((prev) =>
                         prev.map((task) =>
                             task.taskId === taskId ? { ...task, status: "error", message } : task
@@ -196,14 +194,15 @@ async function upload(files, setTasks) {
         const response = await fetch(fullpath);
         if (!response.ok) {
             const error = await response.json();
-            const message = JSON.stringify(error.detail);
-            throw new Error(`${response.status} ${message}`);
+            const message = get_error_message(response.status, error.detail);
+            throw new Error(message);
         }
         const data = await response.json();
         if (data[0].perms.includes("w")) {
             console.debug("permission check", files[0].uploadDir, data[0].perms.includes("w"));
         } else {
-            throw new Error(`403 Permission denied : ${files[0].uploadDir}`);
+            const message = get_error_message(403, `Permission denied : ${files[0].uploadDir}`);
+            throw new Error(message);
         }
     } catch (err) {
         error = `${err.name}: ${err.message}`;
@@ -218,7 +217,7 @@ async function upload(files, setTasks) {
             taskId,
             name: displayname,
             value: 0,
-            done: false,
+            done: error ? true : false,
             type: "upload",
             status: error ? "error" : "upload",
             message: error ? error : "waiting to upload...",

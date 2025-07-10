@@ -1,5 +1,6 @@
 import { encodePath } from "./func";
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 async function dirCommon(path, method, message, params = null) {
     if (!path) {
@@ -13,14 +14,14 @@ async function dirCommon(path, method, message, params = null) {
         });
         if (!response.ok) {
             const error = await response.json();
-            const message = JSON.stringify(error.detail);
-            throw new Error(`HTTP ${response.status}: ${message}`);
+            console.debug(`dirCommon: ${error.detail}`);
+            const message = get_error_message(response.status, error.detail);
+            throw new Error(message);
         }
         console.debug(`dirCommon: Success (${message})`);
         return null;
     } catch (error) {
         console.error(error);
-        console.debug(`dirCommon: ${error}`);
         return `${error.name} : ${error.message}`;
     }
 }

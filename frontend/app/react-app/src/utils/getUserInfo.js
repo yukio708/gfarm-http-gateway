@@ -1,9 +1,14 @@
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 export async function get_username() {
     try {
         const res = await fetch(`${API_URL}/c/me`, { method: "GET", credentials: "include" });
-        if (!res.ok) throw new Error("not logged in");
+        if (!res.ok) {
+            const error = await res.json();
+            const message = get_error_message(res.status, error.detail);
+            throw new Error(message);
+        }
         const data = await res.text();
         return data;
     } catch (err) {
@@ -15,7 +20,11 @@ export async function get_username() {
 export async function get_login_status() {
     try {
         const res = await fetch(`${API_URL}/user_info`, { method: "GET" });
-        if (!res.ok) throw new Error("not logged in");
+        if (!res.ok) {
+            const error = await res.json();
+            const message = get_error_message(res.status, error.detail);
+            throw new Error(message);
+        }
         const data = await res.json();
         return data;
     } catch (err) {

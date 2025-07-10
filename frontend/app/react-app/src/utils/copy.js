@@ -1,4 +1,5 @@
 import { API_URL } from "./config";
+import get_error_message from "./error";
 
 function getProgress(copied, total) {
     if (!total || total === 0) return undefined;
@@ -49,8 +50,8 @@ async function copyFile(srcpath, destpath, setTasks) {
         console.debug("response", response);
         if (!response.ok) {
             const error = await response.json();
-            const message = JSON.stringify(error.detail);
-            throw new Error(`${response.status} ${message}`);
+            const message = get_error_message(response.status, error.detail);
+            throw new Error(message);
         }
 
         const decoder = new TextDecoder("utf-8");
@@ -114,7 +115,7 @@ async function copyFile(srcpath, destpath, setTasks) {
         );
     } catch (err) {
         const isAbort = err.name === "AbortError";
-        const message = isAbort ? "Copy cancelled" : `${err.name}: ${err.message}`;
+        const message = isAbort ? "Copy cancelled" : `${err.name} : ${err.message}`;
         setTasks((prev) =>
             prev.map((task) =>
                 task.taskId === taskId

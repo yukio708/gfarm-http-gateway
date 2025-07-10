@@ -45,7 +45,7 @@ export function NotificationProvider({ children }) {
                         style={{ minWidth: "250px" }}
                     >
                         <div className="d-flex justify-content-between align-items-center px-2 py-1">
-                            <div>
+                            <div className="text-break">
                                 {n.name} : {n.message}
                             </div>
                             <button
