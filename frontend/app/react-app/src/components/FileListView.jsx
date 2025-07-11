@@ -16,7 +16,14 @@ import {
 import { useViewMode } from "../context/ViewModeContext";
 import { useUserInfo } from "../context/UserInfoContext";
 import "../css/FileListView.css";
-import { BsArrowUpShort, BsArrowDownShort, BsListTask, BsGrid, BsHouse } from "react-icons/bs";
+import {
+    BsArrowUpShort,
+    BsArrowDownShort,
+    BsListTask,
+    BsGridFill,
+    BsGrid3X3GapFill,
+    BsHouse,
+} from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function ListView({
@@ -102,11 +109,23 @@ function IconView({
     ItemMenuActions,
     handleItemClick,
     handleSelectItem,
+    iconSize,
 }) {
+    let rowColsClass = "row-cols-2";
+    let iconPixelSize = "3rem";
+
+    if (iconSize === "small") {
+        rowColsClass = "row-cols-3 row-cols-md-6 row-cols-lg-8";
+        iconPixelSize = "1.5rem";
+    } else {
+        rowColsClass = "row-cols-2 row-cols-md-4 row-cols-lg-6";
+        iconPixelSize = "3rem";
+    }
+
     return (
         <tr>
-            <td colSpan="5">
-                <div className="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+            <td colSpan="6">
+                <div className={`row g-3 ${rowColsClass}`}>
                     {sortedItems.map((item) => {
                         const isSelected = selectedItems.some(
                             (selected) => selected.path === item.path
@@ -136,7 +155,7 @@ function IconView({
                                         filename={item.name}
                                         is_dir={item.is_dir}
                                         is_sym={item.is_sym}
-                                        size="3rem"
+                                        size={iconPixelSize}
                                     />
                                 </div>
                                 <div className="file-name text-center mt-1">{item.name}</div>
@@ -260,6 +279,26 @@ function FileListView({
         });
     };
 
+    const toggleViewMode = (mode) => {
+        if (mode === "list") {
+            return "icon_rg";
+        } else if (mode === "icon_rg") {
+            return "icon_sm";
+        } else {
+            return "list";
+        }
+    };
+
+    const toggleViewModeIcon = (mode) => {
+        if (mode === "list") {
+            return <BsGridFill />;
+        } else if (mode === "icon_rg") {
+            return <BsGrid3X3GapFill />;
+        } else {
+            return <BsListTask />;
+        }
+    };
+
     return (
         <div>
             <div className="d-flex flex-wrap  mb-1">
@@ -324,8 +363,8 @@ function FileListView({
                         >
                             Modified {getSortIcon("updatedate")}
                         </th>
-                        <th onClick={() => setViewMode(viewMode === "list" ? "icon" : "list")}>
-                            {viewMode === "list" ? <BsGrid /> : <BsListTask />}
+                        <th onClick={() => setViewMode(toggleViewMode(viewMode))}>
+                            {toggleViewModeIcon(viewMode)}
                         </th>
                     </tr>
                 </thead>
@@ -347,6 +386,7 @@ function FileListView({
                             ItemMenuActions={ItemMenuActions}
                             handleItemClick={handleItemClick}
                             handleSelectItem={handleSelectItem}
+                            iconSize={viewMode === "icon_rg" ? "regular" : "small"}
                         />
                     )}
                 </tbody>
@@ -387,4 +427,5 @@ IconView.propTypes = {
     ItemMenuActions: PropTypes.array,
     handleItemClick: PropTypes.func,
     handleSelectItem: PropTypes.func,
+    iconSize: PropTypes.string,
 };

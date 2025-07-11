@@ -58,7 +58,8 @@ function SettingsModal({ id = "settingsModal" }) {
                                 onChange={(e) => setViewMode(e.target.value)}
                             >
                                 <option value="list">List view</option>
-                                <option value="icon">Icon view</option>
+                                <option value="icon_rg">Icon view</option>
+                                <option value="icon_sm">Icon view (small)</option>
                             </select>
                         </div>
 
