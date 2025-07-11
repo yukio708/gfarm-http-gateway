@@ -160,12 +160,13 @@ function ArchiveModal({
                             </div>
 
                             <div className="mb-3">
-                                <label className="form-label fw-bold">
+                                <div htmlFor="outdir-input" className="form-label fw-bold">
                                     {activeTab === "archive"
                                         ? "Output Archive Directory"
                                         : "Output Directory"}
-                                </label>
+                                </div>
                                 <SuggestInput
+                                    id="outdir-input"
                                     value={destDir}
                                     onChange={(val) => handleChange(val)}
                                     suggestions={suggestions.map((item) => item.path)}
@@ -174,8 +175,8 @@ function ArchiveModal({
                             </div>
                             {activeTab === "archive" && (
                                 <div>
-                                    <div className="mb-3">
-                                        <label className="form-label fw-bold me-2">Operation</label>
+                                    <div className="mb-3 d-flex">
+                                        <div className="form-label fw-bold me-2">Operation</div>
                                         <div className="form-check form-check-inline">
                                             <input
                                                 className="form-check-input"
@@ -229,13 +230,13 @@ function ArchiveModal({
                                         </div>
                                     </div>
                                     <div className="mb-3 d-flex">
-                                        <label className="form-label fw-bold me-4">
+                                        <div className="form-label fw-bold me-4">
                                             Base Directory
-                                        </label>
+                                        </div>
                                         <div className="form-text">{targetDir}</div>
                                     </div>
 
-                                    <label className="form-label fw-bold">Members</label>
+                                    <div className="form-label fw-bold">Members</div>
                                     <div
                                         className="mb-3 overflow-auto"
                                         style={{
@@ -255,16 +256,16 @@ function ArchiveModal({
                             {activeTab === "extract" && (
                                 <div>
                                     <div className="mb-2 d-flex">
-                                        <label className="form-label fw-bold me-4">
+                                        <div className="form-label fw-bold me-4">
                                             Input Archive Directory
-                                        </label>
+                                        </div>
                                         <div className="form-text">{lastSelectedItem.name}</div>
                                     </div>
 
                                     <div className="mb-2">
-                                        <label className="form-label fw-bold me-2">
+                                        <div className="form-label fw-bold me-2">
                                             List of Contents
-                                        </label>
+                                        </div>
                                         <button
                                             className="btn btn-outline-secondary btn-sm"
                                             onClick={async () => {
@@ -296,8 +297,11 @@ function ArchiveModal({
                             )}
 
                             <div className="mb-3">
-                                <label className="form-label fw-bold">Options</label>
+                                <div htmlFor="option-input" className="form-label fw-bold">
+                                    Options
+                                </div>
                                 <input
+                                    id="option-input"
                                     type="text"
                                     className="form-control form-control-sm"
                                     value={options}

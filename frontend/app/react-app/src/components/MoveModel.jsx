@@ -154,17 +154,18 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                     body={
                         <div>
                             <div className="mb-3">
-                                <label className="form-label fw-semibold">
+                                <label htmlFor="move-dest-input" className="form-label fw-semibold">
                                     Enter Destination Path:
                                 </label>
                                 <SuggestInput
+                                    id="move-dest-input"
                                     value={targetPath}
                                     onChange={(val) => handleChange(val)}
                                     suggestions={suggestions.map((item) => item.path)}
                                 />
                             </div>
                             <div className="mb-3">
-                                <label className="form-label">or select a directory below:</label>
+                                <div className="form-label">or select a directory below:</div>
                                 <div className="form-text">{suggestDir}</div>
                                 {loading ? (
                                     <div className="d-flex align-items-center gap-2">

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 
-function SuggestInput({ value, onChange, suggestions, placeholder = null, disabled = false }) {
+function SuggestInput({ id, value, onChange, suggestions, placeholder = null, disabled = false }) {
     const [focused, setFocused] = useState(false);
     const [filtered, setFiltered] = useState([]);
     const [highlight, setHighlight] = useState(0);
@@ -39,6 +39,7 @@ function SuggestInput({ value, onChange, suggestions, placeholder = null, disabl
     return (
         <div style={{ position: "relative" }}>
             <input
+                id={id}
                 ref={inputRef}
                 type="text"
                 className="form-control"
@@ -75,6 +76,7 @@ function SuggestInput({ value, onChange, suggestions, placeholder = null, disabl
 export default SuggestInput;
 
 SuggestInput.propTypes = {
+    id: PropTypes.string,
     value: PropTypes.string,
     onChange: PropTypes.func,
     suggestions: PropTypes.array,

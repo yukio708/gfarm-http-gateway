@@ -72,6 +72,7 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
                 body={
                     <div>
                         <input
+                            id="rename-input"
                             type="text"
                             className="form-control"
                             value={newName}

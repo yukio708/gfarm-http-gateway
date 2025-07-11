@@ -37,6 +37,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
                 title={<h5 className="modal-title">Create New Directory</h5>}
                 body={
                     <input
+                        id="create-dir-input"
                         type="text"
                         className="form-control"
                         value={dirname}

@@ -22,9 +22,12 @@ function URLTab({ item, active }) {
         <div data-testid="share-tab">
             {item && (
                 <div className="mt-3">
-                    <label className="form-label fw-bold">Link in Web App</label>
+                    <label htmlFor="webui-path-input" className="form-label fw-bold">
+                        Link in Web App
+                    </label>
                     <div className="input-group input-group-sm">
                         <input
+                            id="webui-path-input"
                             ref={copyLinkRef}
                             type="text"
                             className="form-control"
@@ -41,9 +44,12 @@ function URLTab({ item, active }) {
                     </div>
                     {item.is_file && (
                         <div className="mt-2">
-                            <label className="form-label fw-bold">Download Link</label>
+                            <label htmlFor="download-path-input" className="form-label fw-bold">
+                                Download Link
+                            </label>
                             <div className="input-group input-group-sm">
                                 <input
+                                    id="download-path-input"
                                     ref={copyDownloadLinkRef}
                                     type="text"
                                     className="form-control"
@@ -60,9 +66,15 @@ function URLTab({ item, active }) {
                                     {copiedDownload ? "Copied!" : "Copy"}
                                 </button>
                             </div>
-                            <label className="form-label fw-bold mt-2">Resource Path for API</label>
+                            <label
+                                htmlFor="resource-path-input"
+                                className="form-label fw-bold mt-2"
+                            >
+                                Resource Path for API
+                            </label>
                             <div className="input-group input-group-sm">
                                 <input
+                                    id="resource-path-input"
                                     ref={copyDownloadLinkRef}
                                     type="text"
                                     className="form-control"

@@ -91,8 +91,11 @@ function PermsTab({ item, active }) {
     return (
         <div>
             <div className="mt-3">
-                <label className="form-label fw-bold">Input Octal:</label>
+                <label htmlFor="perms-octal-input" className="form-label fw-bold">
+                    Input Octal:
+                </label>
                 <input
+                    id="perms-octal-input"
                     type="text"
                     value={octal}
                     onChange={(e) => setOctal(e.target.value.replace(/[^\d]/g, "").slice(0, 4))}
@@ -147,6 +150,7 @@ function PermsTab({ item, active }) {
                                     className="form-check-input"
                                     checked={permissions.special.sticky}
                                     onChange={() => toggleSpecial("sticky")}
+                                    id="perm-sticky"
                                 />
                             </td>
                         </tr>

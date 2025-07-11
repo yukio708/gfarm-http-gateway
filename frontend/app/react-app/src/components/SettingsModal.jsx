@@ -33,9 +33,12 @@ function SettingsModal({ id = "settingsModal" }) {
 
                     <div className="modal-body">
                         <div className="mb-3">
-                            <label className="form-label fw-bold">Theme</label>
+                            <label htmlFor="theme-select" className="form-label fw-bold">
+                                Theme
+                            </label>
                             <select
                                 className="form-select"
+                                id="theme-select"
                                 value={theme}
                                 onChange={(e) => setTheme(e.target.value)}
                             >
@@ -45,9 +48,12 @@ function SettingsModal({ id = "settingsModal" }) {
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label fw-bold">View mode</label>
+                            <label htmlFor="view-select" className="form-label fw-bold">
+                                View mode
+                            </label>
                             <select
                                 className="form-select"
+                                id="view-select"
                                 value={viewMode}
                                 onChange={(e) => setViewMode(e.target.value)}
                             >
@@ -62,9 +68,9 @@ function SettingsModal({ id = "settingsModal" }) {
                                 type="checkbox"
                                 checked={showHidden}
                                 onChange={(e) => setShowHidden(e.target.checked)}
-                                id="showHiddenCheck"
+                                id="show-hidden-check"
                             />
-                            <label className="form-check-label" htmlFor="showHiddenCheck">
+                            <label className="form-check-label" htmlFor="show-hidden-check">
                                 Show hidden files
                             </label>
                         </div>

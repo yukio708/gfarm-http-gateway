@@ -105,8 +105,14 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                     body={
                         <div>
                             <div className="mb-3">
-                                <label className="form-label fw-bold">Link Name</label>
+                                <label
+                                    htmlFor="symlink-linkname-input"
+                                    className="form-label fw-bold"
+                                >
+                                    Link Name
+                                </label>
                                 <SuggestInput
+                                    id="symlink-linkname-input"
                                     value={linkName}
                                     onChange={(value) => setLinkName(value)}
                                     suggestions={suggestionDirs.map((item) => item.path)}
@@ -114,26 +120,30 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                                 />
                                 {error && <div className="form-text alert-danger">{error}</div>}
                             </div>
-                            {targetItem ? (
-                                <div className="mt-3">
-                                    <label className="form-label fw-bold">Target</label>
+                            <div className="mt-3">
+                                <label
+                                    htmlFor="symlink-target-input"
+                                    className="form-label fw-bold"
+                                >
+                                    Target
+                                </label>
+                                {targetItem ? (
                                     <input
+                                        id="symlink-target-input"
                                         type="text"
                                         className="form-control"
                                         value={sourcePath}
                                         disabled
                                     />
-                                </div>
-                            ) : (
-                                <div className="mt-3">
-                                    <label className="form-label fw-bold">Target</label>
+                                ) : (
                                     <SuggestInput
+                                        id="symlink-target-input"
                                         value={sourcePath}
                                         onChange={(value) => setSourcePath(value)}
                                         suggestions={suggestions.map((item) => item.path)}
                                     />
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     }
                 />

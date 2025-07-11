@@ -40,8 +40,8 @@ function ListView({
                         <td>
                             <input
                                 type="checkbox"
-                                className="form-check-input"
                                 id={"checkbox-" + item.name}
+                                className="form-check-input"
                                 onChange={(event) => handleSelectItem(event.target.checked, item)}
                                 checked={isSelected}
                             />
@@ -120,6 +120,7 @@ function IconView({
                             >
                                 <input
                                     type="checkbox"
+                                    id={"checkbox-" + item.name}
                                     className="form-check-input position-absolute top-0 start-0 m-1"
                                     checked={isSelected}
                                     onChange={(e) => handleSelectItem(e.target.checked, item)}
@@ -263,11 +264,11 @@ function FileListView({
         <div>
             <div className="d-flex flex-wrap  mb-1">
                 <button
-                    className="btn me-2"
+                    className="btn btn-sm me-2"
                     type="button"
                     onClick={() => handleItemClick(userInfo.home_directory, false, true)}
                 >
-                    <BsHouse />
+                    <BsHouse size={"1.1rem"} />
                 </button>
                 <div className="btn-group me-4" role="group">
                     <FileTypeFilter
@@ -303,7 +304,7 @@ function FileListView({
                                     selectedItems.length === sortedItems.length &&
                                     sortedItems.length > 0
                                 }
-                                data-testid="header-checkbox"
+                                id="header-checkbox"
                             />
                         </th>
                         {/* <th onClick={() => toggleSortDirection("name")}></th> */}

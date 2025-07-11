@@ -106,15 +106,22 @@ function ACLTab({ item, active }) {
                                 <div className="col-5">
                                     {entry.base ? (
                                         <input
+                                            id={`acinfo-${i}-acl_type`}
                                             className="form-control"
                                             value={entry.acl_type}
                                             disabled
                                         />
                                     ) : (
                                         <div>
-                                            <label className="form-label fw-bold">Type</label>
+                                            <label
+                                                htmlFor={`acinfo-${i}-acl_type`}
+                                                className="form-label fw-bold"
+                                            >
+                                                Type
+                                            </label>
                                             <select
                                                 className="form-select"
+                                                id={`acinfo-${i}-acl_type`}
                                                 value={entry.acl_type}
                                                 onChange={(e) =>
                                                     handleChange(i, "acl_type", e.target.value)
@@ -134,8 +141,14 @@ function ACLTab({ item, active }) {
                                         <></>
                                     ) : (
                                         <div>
-                                            <label className="form-label fw-bold">Name</label>
+                                            <label
+                                                htmlFor={`acinfo-${i}-acl_name`}
+                                                className="form-label fw-bold"
+                                            >
+                                                Name
+                                            </label>
                                             <SuggestInput
+                                                id={`acinfo-${i}-acl_name`}
                                                 value={entry.acl_name}
                                                 onChange={(val) => handleChange(i, "acl_name", val)}
                                                 suggestions={
@@ -148,8 +161,8 @@ function ACLTab({ item, active }) {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="form-label fw-bold me-2">Permissions</label>
+                            <div className="d-flex">
+                                <div className="form-label fw-bold me-2">Permissions</div>
                                 {["r", "w", "x"].map((perm) => (
                                     <div className="form-check form-check-inline" key={perm}>
                                         <input
@@ -172,8 +185,8 @@ function ACLTab({ item, active }) {
                             </div>
 
                             {!entry.base && item.is_dir && (
-                                <div>
-                                    <label className="form-label fw-bold me-2">Default</label>
+                                <div className="d-flex">
+                                    <div className="form-label fw-bold me-2">Default</div>
                                     <div className="form-check form-check-inline">
                                         <input
                                             className="form-check-input"
