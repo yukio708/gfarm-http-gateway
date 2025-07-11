@@ -1,12 +1,15 @@
 const fs = require("fs");
 const path = require("path");
 const http = require("http");
+const querystring = require("node:querystring");
 
 export const FRONTEND_URL = "http://localhost:3000";
 export const API_URL = "http://localhost:8080";
 export const DIR_LIST = path.resolve(__dirname, "data/filelist.json");
 export const ACLIST = path.resolve(__dirname, "data/aclist.json");
 export const DUMMYS = path.resolve(__dirname, "data/dummy");
+export const ROUTE_STORAGE = "/ui";
+export const ROUTE_DOWNLOAD = "/dl";
 
 export const ZIPNAME = "files.zip";
 
@@ -28,6 +31,37 @@ export async function waitForReact() {
         }
     }
     throw new Error("React app is not up!");
+}
+
+export function transformMtimeToUnix(items) {
+    if (!Array.isArray(items)) {
+        return []; // Ensure it's an array before iterating
+    }
+
+    items.forEach((item) => {
+        if (item.mtime_str) {
+            const dateObj = new Date(item.mtime_str);
+
+            // Check if the date parsing was successful
+            if (!isNaN(dateObj.getTime())) {
+                // Get Unix timestamp in seconds (standard Unix time)
+                // getTime() returns milliseconds, so divide by 1000
+                item.mtime = Math.floor(dateObj.getTime() / 1000);
+            } else {
+                console.warn(
+                    `Warning: Could not parse mtime_str: "${item.mtime_str}". 'mtime' will not be set for this item.`
+                );
+                // You might choose to set item.mtime = null; or handle errors differently
+            }
+        }
+
+        // Recursively process children if they exist
+        if (item.childlen && Array.isArray(item.childlen)) {
+            transformMtimeToUnix(item.childlen);
+        }
+    });
+
+    return items;
 }
 
 export const findChildrenByPath = (nodes, targetPath) => {
@@ -128,7 +162,7 @@ export const getFileIconDefault = (ext, is_dir, is_sym) => {
         case "gz":
             return "bi bi-file-earmark-zip";
         default:
-            return "bi bi-file-earmark-text"; // Default file icon
+            return "bi bi-file-earmark"; // Default file icon
     }
 };
 
@@ -136,18 +170,52 @@ export const getDummyFileContent = (filename) => {
     return fs.readFileSync(DUMMYS + filename, "utf8");
 };
 
+export async function freezeTime(page, isoDate) {
+    await page.addInitScript((isoDate) => {
+        const fixed = new Date(isoDate);
+        const OriginalDate = Date;
+        class MockDate extends OriginalDate {
+            constructor(...args) {
+                if (args.length === 0) return new OriginalDate(fixed);
+                return new OriginalDate(...args);
+            }
+            static now() {
+                return fixed.getTime();
+            }
+            static parse = OriginalDate.parse;
+            static UTC = OriginalDate.UTC;
+            static [Symbol.hasInstance](instance) {
+                return instance instanceof OriginalDate;
+            }
+        }
+        window.Date = MockDate;
+    }, isoDate);
+}
+
 // Route handler
 export const handleRoute = async (route, request) => {
     const url = request.url();
     const method = request.method();
     console.log("url", url);
 
+    if (fileStructureData === null) {
+        fileStructureData = transformMtimeToUnix(JSON.parse(fs.readFileSync(DIR_LIST, "utf-8")));
+    }
+
     if (url.includes("/dir/") && method === "GET") {
         console.log("/dir/", url);
-        if (fileStructureData === null) {
-            fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
-        }
         const path = url.split("/dir/", 2)[1].split("?")[0];
+        const request_url = new URL(url);
+        const effperm = request_url.searchParams.get("effperm");
+        if (effperm) {
+            await route.fulfill({
+                status: 200,
+                contentType: "application/json",
+                body: JSON.stringify([{ perms: "rwx" }]),
+            });
+            console.log("return /dir/", [{ perms: "rwx" }]);
+            return;
+        }
         const jsonData = findChildrenByPath(fileStructureData, path);
         if (jsonData !== null) {
             await route.fulfill({
@@ -175,7 +243,7 @@ export const handleRoute = async (route, request) => {
         await route.fulfill({
             status: 200,
             contentType: "application/json",
-            body: JSON.stringify({ username: "user1" }),
+            body: JSON.stringify({ username: "user1", home_directory: "/documents" }),
         });
     } else if (url.includes("/attr/")) {
         console.log("/attr/", url);
@@ -285,18 +353,16 @@ export const handleRoute = async (route, request) => {
             });
         }
     } else if (url.includes("/zip") && method === "POST") {
-        if (fileStructureData === null) {
-            fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
-        }
         console.log("/zip/", url);
-        const json = JSON.parse(request.postData());
-        const files = json["files"];
+        const postData = await request.postData();
+        const parsed = querystring.parse(postData);
+        const files = Array.isArray(parsed["pathes"]) ? parsed["pathes"] : [parsed["pathes"]];
+        console.debug("Intercepted /zip POST data:", files);
 
         const AdmZip = require("adm-zip");
         const zip = new AdmZip();
         for (const item of files) {
-            const itemPath = decodeURIComponent(item.split(":")[1]);
-            const node = findNodeByPath(fileStructureData, itemPath);
+            const node = findNodeByPath(fileStructureData, item);
 
             if (node) {
                 const entryPath = node.name;
@@ -313,12 +379,9 @@ export const handleRoute = async (route, request) => {
                     console.log(`[ROUTE MOCK] Added directory to ZIP: ${entryPath}`);
                 }
             } else {
-                console.warn(`[ROUTE MOCK] Path not found in mock data: ${itemPath}`);
-                // 存在しないパスはZIPに含めない
+                console.warn(`[ROUTE MOCK] Path not found in mock data: ${item}`);
             }
         }
-        // const zipContent = await zip.generateAsync({ type: "uint8array" });
-        // const zipContentBuffer = Buffer.from(zipContent); // 明示的にBufferに変換
         const zipContentBuffer = zip.toBuffer();
         const headers = {
             "Content-Type": "application/zip",

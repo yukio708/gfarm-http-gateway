@@ -44,7 +44,7 @@ function App() {
                                     />
                                     <Route
                                         path="*"
-                                        element={<ErrorPage error={"Page not fould"} />}
+                                        element={<ErrorPage error={"Page not found"} />}
                                     />
                                 </Routes>
                             </HashRouter>

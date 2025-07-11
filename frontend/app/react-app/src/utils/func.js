@@ -208,36 +208,23 @@ export const filterItems = (items, filterTypes, dateFilter) => {
             isTypeMatch = filterTypes.includes(ext);
         }
 
-        const updated = new Date(file.mtime);
+        const updated = file.mtime * 1000;
+        let start = null;
         if (dateFilter == "today") {
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            console.debug("today: start", start);
-            isDateMatch =
-                updated.getFullYear() === start.getFullYear() &&
-                updated.getMonth() === start.getMonth() &&
-                updated.getDate() === start.getDate();
+            start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         } else if (dateFilter === "this_month") {
-            const start = new Date(now.getFullYear(), now.getMonth(), 1);
-            console.debug("this_month: start", start);
-            isDateMatch = updated >= start;
+            start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
         } else if (dateFilter === "this_year") {
-            const start = new Date(now.getFullYear(), 0, 1);
-            console.debug("this_year: start", start);
-            isDateMatch = updated >= start;
+            start = new Date(now.getFullYear(), 0, 1).getTime();
         } else {
-            const getOptionByValue = (value) => {
-                return options.find((option) => option.value === value);
-            };
-            const selected = getOptionByValue(dateFilter);
+            const selected = options.find((option) => option.value === dateFilter);
             if (selected) {
-                const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                start.setDate(start.getDate() + selected.start);
-                console.debug(dateFilter, "start", start);
-                console.debug("updated", updated);
-                console.debug("updated >= start", updated >= start);
-
-                isDateMatch = updated >= start;
+                start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                start += selected.start * 24 * 60 * 60 * 1000; // days -> ms
             }
+        }
+        if (start !== null) {
+            isDateMatch = updated >= start;
         }
 
         return isDateMatch && isTypeMatch;

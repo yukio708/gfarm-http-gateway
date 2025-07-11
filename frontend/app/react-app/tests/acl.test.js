@@ -1,7 +1,14 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ACLIST } = require("./test_func");
+const {
+    waitForReact,
+    handleRoute,
+    API_URL,
+    FRONTEND_URL,
+    ACLIST,
+    ROUTE_STORAGE,
+} = require("./test_func");
 
 let mockAclData = null;
 
@@ -11,7 +18,9 @@ async function openSidePanel(page, fileName) {
     await expect(threeDotsButton).toBeVisible();
     await threeDotsButton.click();
 
-    const detailButton = page.locator(".dropdown-menu").getByRole("button", { name: "Share" });
+    const detailButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="acl-menu-${fileName}"]`);
     await expect(detailButton).toBeVisible();
 
     await detailButton.click();
@@ -19,10 +28,10 @@ async function openSidePanel(page, fileName) {
     await expect(page.locator(".custom-sidepanel")).toBeVisible();
 }
 
-async function assertEntry(entry, { acl_type, acl_name, acl_perms, is_default, is_dir }) {
-    await expect(entry.locator("select")).toHaveValue(acl_type);
+async function assertEntry(index, entry, { acl_type, acl_name, acl_perms, is_default, is_dir }) {
+    await expect(entry.locator(`#acinfo-${index}-acl_type`)).toHaveValue(acl_type);
     if (acl_name !== null) {
-        await expect(entry.locator(".form-control")).toHaveValue(acl_name);
+        await expect(entry.locator(`#acinfo-${index}-acl_name`)).toHaveValue(acl_name);
     }
     for (const p of ["r", "w", "x"]) {
         const box = entry.locator(`input[id*="-${p}"]`);
@@ -61,7 +70,7 @@ test("get ACL entry", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     await openSidePanel(page, targetFile);
 
@@ -71,7 +80,7 @@ test("get ACL entry", async ({ page }) => {
     for (const data of mockAclData) {
         console.debug("data", data);
         const entry = acltab.locator("div.border.rounded.p-2.mb-2").nth(count);
-        await assertEntry(entry, data);
+        await assertEntry(count, entry, data);
         count++;
     }
 });
@@ -81,7 +90,7 @@ test("add new ACL entry", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     await openSidePanel(page, targetFile);
 
@@ -114,7 +123,7 @@ test("add new ACL entry (default)", async ({ page }) => {
     const currentDirectory = "/";
     const targetFile = "documents";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     await openSidePanel(page, targetFile);
 
@@ -148,7 +157,7 @@ test("remove an ACL entry", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     await openSidePanel(page, targetFile);
 
@@ -167,42 +176,4 @@ test("remove an ACL entry", async ({ page }) => {
             mockAclData[3].acl_name
         );
     }
-});
-
-// Copy link
-test("copy link button works", async ({ page }) => {
-    const currentDirectory = "/documents";
-    const targetFile = "report.docx";
-
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
-
-    await openSidePanel(page, targetFile);
-
-    const acltab = page.locator('[data-testid="acl-tab"]');
-
-    const input = acltab.locator("input[readonly]");
-    await expect(input).toBeVisible();
-
-    await expect(input).toHaveValue(`${FRONTEND_URL}/file${currentDirectory}/${targetFile}`);
-
-    const copyButton = acltab.locator("button", { hasText: "Copy" });
-    await expect(copyButton).toBeVisible();
-});
-
-test("copy link button (directory)", async ({ page }) => {
-    const currentDirectory = "/";
-    const targetFile = "documents";
-
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
-
-    await openSidePanel(page, targetFile);
-
-    const acltab = page.locator('[data-testid="acl-tab"]');
-    const input = acltab.locator("input[readonly]");
-    await expect(input).toBeVisible();
-
-    await expect(input).toHaveValue(`${FRONTEND_URL}/#${currentDirectory}${targetFile}`);
-
-    const copyButton = acltab.locator("button", { hasText: "Copy" });
-    await expect(copyButton).toBeVisible();
 });

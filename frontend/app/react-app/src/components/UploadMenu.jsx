@@ -56,14 +56,14 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                 <button
                     type="button"
                     className="btn btn-outline-primary btn-sm dropdown-toggle"
-                    id="uploadDropdown"
+                    id="upload-dropdown"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                 >
                     <BsUpload className="me-2" />
                     New
                 </button>
-                <ul className="dropdown-menu" aria-labelledby="uploadDropdown">
+                <ul className="dropdown-menu" aria-labelledby="upload-dropdown">
                     <li>
                         <h1 className="dropdown-header">Upload</h1>
                     </li>
@@ -72,6 +72,7 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                             type="button"
                             className="dropdown-item"
                             onClick={() => fileInputRef.current?.click()}
+                            data-testid="upload-file"
                         >
                             <BsFileEarmarkArrowUp className="me-2" />
                             File
@@ -82,6 +83,7 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                             type="button"
                             className="dropdown-item"
                             onClick={() => folderInputRef.current?.click()}
+                            data-testid="upload-folder"
                         >
                             <BsFolder className="me-2" />
                             Folder
@@ -94,7 +96,12 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                         <h1 className="dropdown-header">Create</h1>
                     </li>
                     <li>
-                        <button type="button" className="dropdown-item" onClick={actions.create}>
+                        <button
+                            type="button"
+                            className="dropdown-item"
+                            onClick={actions.create}
+                            data-testid="create-folder"
+                        >
                             <BsFolderPlus className="me-2" />
                             Folder
                         </button>
@@ -104,6 +111,7 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                             type="button"
                             className="dropdown-item"
                             onClick={actions.create_symlink}
+                            data-testid="create-symlink"
                         >
                             <BsLink45Deg className="me-2" />
                             Symlink

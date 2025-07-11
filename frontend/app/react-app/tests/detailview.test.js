@@ -10,6 +10,7 @@ const {
     FRONTEND_URL,
     API_URL,
     DIR_LIST,
+    ROUTE_STORAGE,
 } = require("./test_func");
 
 let fileStructureData = null;
@@ -21,7 +22,9 @@ async function openDetailModal(page, fileName) {
     await expect(threeDotsButton).toBeVisible();
     await threeDotsButton.click();
 
-    const detailButton = page.locator(".dropdown-menu").getByRole("button", { name: "Detail" });
+    const detailButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="detail-menu-${fileName}"]`);
     await expect(detailButton).toBeVisible();
 
     await detailButton.click();
@@ -82,7 +85,7 @@ test("display file name in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
@@ -100,7 +103,7 @@ test("display file type in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
@@ -118,13 +121,13 @@ test("display file size in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
             page.locator(".table tbody tr", { hasText: "Size:" }).locator("td").nth(1)
-        ).toHaveText(getSize(expectedDetail.Size, expectedDetail.Filetype === "directory"));
+        ).toHaveText(getSize(expectedDetail.Size, false));
 
         await closeDetailModal(page);
     }
@@ -136,7 +139,7 @@ test("display permissions in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
@@ -154,7 +157,7 @@ test("display access time in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
@@ -172,7 +175,7 @@ test("display modified time in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
@@ -190,7 +193,7 @@ test("display change time in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
@@ -208,7 +211,7 @@ test("display owner uid in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);
@@ -226,7 +229,7 @@ test("display owner gid in details", async ({ page }) => {
     for (const expectedFile of expectedChildren) {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
-        await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
         await openDetailModal(page, expectedFile.name);
 
         const expectedDetail = getExpectedDetailData(testFilePath);

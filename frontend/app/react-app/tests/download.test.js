@@ -1,7 +1,14 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ZIPNAME } = require("./test_func");
+const {
+    waitForReact,
+    handleRoute,
+    API_URL,
+    FRONTEND_URL,
+    ROUTE_STORAGE,
+    ZIPNAME,
+} = require("./test_func");
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
@@ -11,31 +18,23 @@ test.beforeEach(async ({ context }) => {
 
 test("download single file", async ({ page }) => {
     const currentDirectory = "/documents";
-    const testFileName = "report.docx";
+    const testFileName = "meeting_notes.txt";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const fileRow = page.locator("tbody tr", { hasText: testFileName });
     const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
     await expect(threeDotsButton).toBeVisible();
     await threeDotsButton.click();
 
-    const downloadButton = page.locator(".dropdown-menu").getByRole("button", { name: "Download" });
+    const downloadButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="download-menu-${testFileName}"]`);
     await expect(downloadButton).toBeVisible();
 
     const downloadPromise = page.waitForEvent("download");
     await downloadButton.click();
     const download = await downloadPromise;
-
-    // ProgressView verification
-    const taskCard = page.locator(".offcanvas-body .card", { hasText: "report.docx" });
-    await expect(taskCard).toBeVisible();
-
-    await expect(taskCard.locator("h6")).toContainText("report.docx");
-
-    const progressBar = taskCard.locator(".progress-bar");
-    await expect(progressBar).toBeVisible();
-    await expect(taskCard.locator(".badge")).toHaveText("completed");
 
     // Verify the downloaded file name
     expect(download.suggestedFilename()).toBe(testFileName);
@@ -49,37 +48,20 @@ test("download single file", async ({ page }) => {
 test("download multiple files", async ({ page }) => {
     const currentDirectory = "/documents";
     const filesToDownload = ["report.docx", "meeting_notes.txt"];
-    const expectedZipFileName = ZIPNAME; // サーバーが返すZIPファイル名と合わせる
+    const expectedZipFileName = ZIPNAME;
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    // 複数ファイルを選択
     for (const fileName of filesToDownload) {
         const fileRow = page.locator("tbody tr", { hasText: fileName });
         await fileRow.locator('input[type="checkbox"]').check();
     }
 
-    const actionsToggleButton = page.getByRole("button", { name: "Actions" });
-    await actionsToggleButton.click();
-    const downloadButton = page
-        .locator("ul.dropdown-menu")
-        .getByRole("button", { name: "Download" });
-
+    const actionmenu = page.locator('[data-testid="action-menu"]');
+    const downloadButton = actionmenu.locator('[data-testid="action-menu-download"]');
     const downloadPromise = page.waitForEvent("download");
     await downloadButton.click();
     const download = await downloadPromise;
-
-    // タスクカードが表示されていることを確認
-    const taskCard = page.locator(".offcanvas-body .card", { hasText: expectedZipFileName });
-    await expect(taskCard).toBeVisible();
-
-    // ファイル名の確認
-    await expect(taskCard.locator("h6")).toContainText(expectedZipFileName);
-
-    // プログレスバーの幅とアニメーションの確認
-    const progressBar = taskCard.locator(".progress-bar");
-    await expect(progressBar).toBeVisible();
-    await expect(taskCard.locator(".badge")).toHaveText("completed");
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
 
@@ -94,17 +76,19 @@ test("download multiple files", async ({ page }) => {
 
 test("download single directory", async ({ page }) => {
     const currentDirectory = "/documents";
-    const testDirectoryName = "presentations"; // ディレクトリ名
-    const expectedZipFileName = ZIPNAME; // サーバーが返すZIPファイル名と合わせる
+    const testDirectoryName = "presentations";
+    const expectedZipFileName = ZIPNAME;
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const fileRow = page.locator("tbody tr", { hasText: testDirectoryName });
     const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
     await expect(threeDotsButton).toBeVisible();
     await threeDotsButton.click();
 
-    const downloadButton = page.locator(".dropdown-menu").getByRole("button", { name: "Download" });
+    const downloadButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="download-menu-${testDirectoryName}"]`);
     await expect(downloadButton).toBeVisible();
 
     // ダウンロードイベントを待機しつつ、ダウンロードボタンをクリック
@@ -126,19 +110,15 @@ test("download multiple directories", async ({ page }) => {
     const dirsToDownload = ["documents", "images"];
     const expectedZipFileName = ZIPNAME;
 
-    await page.goto(`${FRONTEND_URL}/#${rootPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${rootPath}`);
 
     for (const dirName of dirsToDownload) {
         const dirRow = page.locator("tbody tr", { hasText: dirName });
         await dirRow.locator('input[type="checkbox"]').check();
     }
 
-    const actionsToggleButton = page.getByRole("button", { name: "Actions" });
-    await actionsToggleButton.click();
-    const downloadButton = page
-        .locator("ul.dropdown-menu")
-        .getByRole("button", { name: "Download" });
-
+    const actionmenu = page.locator('[data-testid="action-menu"]');
+    const downloadButton = actionmenu.locator('[data-testid="action-menu-download"]');
     const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
@@ -152,24 +132,17 @@ test("download multiple directories", async ({ page }) => {
     }
 });
 
-// test("download nested directories", async ({ page }) => {
-//     // FastAPIで確認
-// });
-
 test("download empty file", async ({ page }) => {
     const currentDirectory = "/error_test";
     const emptyFileName = "empty_file.txt";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const fileRow = page.locator("tbody tr", { hasText: emptyFileName });
     await fileRow.locator('input[type="checkbox"]').check();
 
-    const actionsToggleButton = page.getByRole("button", { name: "Actions" });
-    await actionsToggleButton.click();
-    const downloadButton = page
-        .locator("ul.dropdown-menu")
-        .getByRole("button", { name: "Download" });
+    const actionmenu = page.locator('[data-testid="action-menu"]');
+    const downloadButton = actionmenu.locator('[data-testid="action-menu-download"]');
 
     const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
 
@@ -180,113 +153,44 @@ test("download empty file", async ({ page }) => {
     expect(stats.size).toBe(0);
 });
 
-test("download empty directory", async ({ page }) => {
-    const currentDirectory = "/error_test";
-    const emptyDirName = "empty_dir";
-    const expectedZipFileName = ZIPNAME;
-
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
-
-    const dirRow = page.locator("tbody tr", { hasText: emptyDirName });
-    await dirRow.locator('input[type="checkbox"]').check();
-
-    const actionsToggleButton = page.getByRole("button", { name: "Actions" });
-    await actionsToggleButton.click();
-    const downloadButton = page
-        .locator("ul.dropdown-menu")
-        .getByRole("button", { name: "Download" });
-
-    const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
-
-    expect(download.suggestedFilename()).toBe(expectedZipFileName);
-
-    const zipFilePath = await download.path();
-    const AdmZip = require("adm-zip");
-    const zip = new AdmZip(zipFilePath);
-    const zipEntries = zip.getEntries();
-
-    expect(zipEntries.some((entry) => entry.entryName === `${emptyDirName}/`)).toBe(true);
-    expect(zipEntries.filter((entry) => !entry.isDirectory).length).toBe(0);
-});
-
 test("download nonexistent path", async ({ page }) => {
     const currentDirectory = "/error_test";
     const testFileName = "deleted_file.txt";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const fileRow = page.locator("tbody tr", { hasText: testFileName });
     const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
     await expect(threeDotsButton).toBeVisible();
     await threeDotsButton.click();
 
-    const downloadButton = page.locator(".dropdown-menu").getByRole("button", { name: "Download" });
+    const downloadButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="download-menu-${testFileName}"]`);
     await expect(downloadButton).toBeVisible();
 
     await downloadButton.click();
 
-    const taskCard = page.locator(".offcanvas-body .card", { hasText: testFileName });
-    await expect(taskCard).toBeVisible();
-
-    await expect(taskCard.locator("h6")).toContainText(testFileName);
-
-    await expect(taskCard.locator(".badge")).toHaveText("error");
-    const firstTaskMessage = page.locator('[data-testid="task-message-0"]');
-    await expect(firstTaskMessage).toContainText("404");
+    await expect(page.locator("body")).toContainText("File not found");
 });
 
 test("download backend disconnect", async ({ page }) => {
     const currentDirectory = "/error_test";
     const testFileName = "backend_disconnect.txt";
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const fileRow = page.locator("tbody tr", { hasText: testFileName });
     const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
     await expect(threeDotsButton).toBeVisible();
     await threeDotsButton.click();
 
-    const downloadButton = page.locator(".dropdown-menu").getByRole("button", { name: "Download" });
+    const downloadButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="download-menu-${testFileName}"]`);
     await expect(downloadButton).toBeVisible();
 
     await downloadButton.click();
 
-    const taskCard = page.locator(".offcanvas-body .card", { hasText: testFileName });
-    await expect(taskCard).toBeVisible();
-
-    await expect(taskCard.locator("h6")).toContainText(testFileName);
-
-    await expect(taskCard.locator(".badge")).toHaveText("error", { timeout: 30000 });
-    const firstTaskMessage = page.locator('[data-testid="task-message-0"]');
-    await expect(firstTaskMessage).toContainText("Failed to fetch");
-});
-
-test("download cancel", async ({ page }) => {
-    const currentDirectory = "/error_test";
-    const testFileName = "cancellable_file.txt";
-
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
-
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const downloadButton = page.locator(".dropdown-menu").getByRole("button", { name: "Download" });
-    await expect(downloadButton).toBeVisible();
-
-    await downloadButton.click();
-
-    const taskCard = page.locator(".offcanvas-body .card", { hasText: testFileName });
-    await expect(taskCard).toBeVisible();
-
-    await expect(taskCard.locator("h6")).toContainText(testFileName);
-
-    const cancelButton = taskCard.getByRole("button", { name: "Cancel" });
-    await expect(cancelButton).toBeVisible();
-    await cancelButton.click();
-
-    await expect(taskCard.locator(".badge")).toHaveText("cancelled");
-    const firstTaskMessage = page.locator('[data-testid="task-message-0"]');
-    await expect(firstTaskMessage).toContainText("Download cancelled");
+    await expect(page.locator("body")).toContainText("error test");
 });

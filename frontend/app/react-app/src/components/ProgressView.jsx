@@ -48,7 +48,7 @@ function ProgressView({ show, onHide, tasks, setTasks }) {
             ref={canvasRef}
             aria-labelledby="transferProgressLabel"
         >
-            <div className="offcanvas-header">
+            <div className="offcanvas-header" data-testid="progress-header">
                 <h5 className="offcanvas-title" id="transferProgressLabel">
                     Transfers
                 </h5>
@@ -57,15 +57,20 @@ function ProgressView({ show, onHide, tasks, setTasks }) {
                     className="btn-close"
                     data-bs-dismiss="offcanvas"
                     aria-label="Close"
+                    data-testid="progress-header-button-close"
                 ></button>
             </div>
-            <div className="offcanvas-body">
+            <div className="offcanvas-body" data-testid="progress-view">
                 {tasks.length === 0 ? (
                     <p className="text-muted">No active transfers.</p>
                 ) : (
                     <div className="d-flex flex-column gap-3">
                         {tasks.map((task, index) => (
-                            <div className="card shadow-sm" key={`${task.name}-${index}`}>
+                            <div
+                                className="card shadow-sm"
+                                key={`${task.name}-${index}`}
+                                data-testid={`progress-card-${task.name}-${index}`}
+                            >
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <h6 className="mb-0">
@@ -144,6 +149,7 @@ function ProgressView({ show, onHide, tasks, setTasks }) {
                                                 <button
                                                     className="btn btn-primary btn-sm"
                                                     onClick={task.onCancel}
+                                                    data-testid={`progress-button-cancel-${task.name}-${index}`}
                                                 >
                                                     Cancel
                                                 </button>

@@ -87,7 +87,7 @@ function ConflictResolutionModal({
             size="large"
             title={<h5 className="modal-title">File Name Conflict</h5>}
             body={
-                <div>
+                <div data-testid="conflict-modal">
                     <div className="mb-2">
                         Choose which files to keep. <br />
                         Selecting both will rename the incoming file.
@@ -100,7 +100,7 @@ function ConflictResolutionModal({
                                 <input
                                     type="checkbox"
                                     className="form-check-input me-2"
-                                    id="selectAllCurrent"
+                                    id="select-all-current"
                                     onChange={(e) => handleSelectAll(e, "keep_current")}
                                     checked={
                                         showItems.filter(
@@ -110,7 +110,7 @@ function ConflictResolutionModal({
                                         showItems.filter((item) => item.keep_current).length
                                     }
                                 />
-                                <label className="form-check-label" htmlFor="selectAllCurrent">
+                                <label className="form-check-label" htmlFor="select-all-current">
                                     Select all current
                                 </label>
                             </div>
@@ -118,7 +118,7 @@ function ConflictResolutionModal({
                                 <input
                                     type="checkbox"
                                     className="form-check-input me-2"
-                                    id="selectAllIncoming"
+                                    id="select-all-incoming"
                                     onChange={(e) => handleSelectAll(e, "keep_incoming")}
                                     checked={
                                         showItems.filter(
@@ -128,7 +128,7 @@ function ConflictResolutionModal({
                                         showItems.filter((item) => item.keep_incoming).length
                                     }
                                 />
-                                <label className="form-check-label" htmlFor="selectAllIncoming">
+                                <label className="form-check-label" htmlFor="select-all-incoming">
                                     Select all incoming
                                 </label>
                             </div>

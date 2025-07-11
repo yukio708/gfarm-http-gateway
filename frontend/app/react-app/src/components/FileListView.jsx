@@ -306,6 +306,7 @@ function FileListView({
                     className="btn btn-sm me-2"
                     type="button"
                     onClick={() => handleItemClick(userInfo.home_directory, false, true)}
+                    data-testid="home-button"
                 >
                     <BsHouse size={"1.1rem"} />
                 </button>
@@ -344,6 +345,7 @@ function FileListView({
                                     sortedItems.length > 0
                                 }
                                 id="header-checkbox"
+                                data-testid="header-checkbox"
                             />
                         </th>
                         {/* <th onClick={() => toggleSortDirection("name")}></th> */}
@@ -363,7 +365,10 @@ function FileListView({
                         >
                             Modified {getSortIcon("updatedate")}
                         </th>
-                        <th onClick={() => setViewMode(toggleViewMode(viewMode))}>
+                        <th
+                            onClick={() => setViewMode(toggleViewMode(viewMode))}
+                            data-testid="header-viewmode"
+                        >
                             {toggleViewModeIcon(viewMode)}
                         </th>
                     </tr>

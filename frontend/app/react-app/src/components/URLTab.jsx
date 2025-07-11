@@ -19,7 +19,7 @@ function URLTab({ item, active }) {
     if (!active) return <></>;
 
     return (
-        <div data-testid="share-tab">
+        <div data-testid="url-tab">
             {item && (
                 <div className="mt-3">
                     <label htmlFor="webui-path-input" className="form-label fw-bold">

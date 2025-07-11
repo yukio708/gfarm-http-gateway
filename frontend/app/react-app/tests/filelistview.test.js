@@ -4,12 +4,15 @@ const fs = require("fs");
 const {
     waitForReact,
     findChildrenByPath,
+    transformMtimeToUnix,
     getSize,
     getFileIconDefault,
+    freezeTime,
     handleRoute,
     API_URL,
     FRONTEND_URL,
     DIR_LIST,
+    ROUTE_STORAGE,
 } = require("./test_func");
 
 let fileStructureData = null;
@@ -18,7 +21,7 @@ let fileStructureData = null;
 
 test.beforeEach(async ({ context }) => {
     await waitForReact();
-    fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
+    fileStructureData = transformMtimeToUnix(JSON.parse(fs.readFileSync(DIR_LIST, "utf-8")));
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 // File/Directory Display Test
@@ -26,7 +29,7 @@ test.beforeEach(async ({ context }) => {
 test("display file list existing path", async ({ page }) => {
     const targetPath = "/";
     const expectedChildren = findChildrenByPath(fileStructureData, targetPath);
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
     const fileTable = await page.waitForSelector(".file-table", {
         timeout: 10000,
@@ -75,32 +78,32 @@ test("display file list existing path", async ({ page }) => {
             getSize(expectedFile.size, expectedFile.is_dir)
         );
 
-        await expect(rowLocator.locator("td").nth(4)).toHaveText(expectedFile.mtime_str);
+        await expect(rowLocator.locator("td").nth(4)).toHaveText(
+            new Date(expectedFile.mtime * 1000).toLocaleString()
+        );
     }
 });
 
 test("display error on nonexistent path", async ({ page }) => {
     const nonexistentPath = "/nonexistent-directory-12345";
-    await page.goto(`${FRONTEND_URL}/#${nonexistentPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${nonexistentPath}`);
 
-    // The heading "Error!" is displayed
     await expect(page.getByRole("heading", { name: "Error!" })).toBeVisible();
 
-    // The correct error message is displayed
-    await expect(page.getByText(`Failed to fetch ${nonexistentPath} : Error: 404`)).toBeVisible();
+    await expect(page.getByText(`Error : 404`)).toBeVisible();
 
-    // "Return to home" link is visible
-    await expect(page.getByRole("link", { name: "Return to home" })).toBeVisible();
+    const reloadLink = page.getByRole("link", { name: "Reload" });
+    await expect(reloadLink).toBeVisible();
 
-    // Check if the link's 'to' attribute (href) is valid
     const homeLink = page.getByRole("link", { name: "Return to home" });
-    await expect(homeLink).toHaveAttribute("href", "#/");
+    await expect(homeLink).toBeVisible();
+    await expect(homeLink).toHaveAttribute("href", `#${ROUTE_STORAGE}/documents`);
 });
 
 test("display long file list", async ({ page }) => {
     const numberOfFiles = 1000;
 
-    await page.route("**/d/*", async (route) => {
+    await page.route("**/dir/*", async (route) => {
         const url = new URL(route.request().url());
         let requestedPath = url.pathname.substring(3);
         if (requestedPath === "") {
@@ -118,7 +121,7 @@ test("display long file list", async ({ page }) => {
                 uname: `user${i % 5}`,
                 gname: "users",
                 size: Math.floor(Math.random() * 1000000) + 1000,
-                mtime_str: `Jun ${(i % 30) + 1} 10:00:00 2025`,
+                mtime: 1748628000,
                 name: `large_file_${i}.txt`,
                 path: `${requestedPath}/large_file_${i}.txt`,
             });
@@ -131,7 +134,6 @@ test("display long file list", async ({ page }) => {
         });
     });
 
-    // Access the path where a large number of files are displayed
     await page.goto(FRONTEND_URL);
 
     await page.waitForSelector(".file-table", {
@@ -140,41 +142,22 @@ test("display long file list", async ({ page }) => {
 
     const tableHeader = page.locator("table.file-table thead tr");
 
-    // Check if all the specified number of files are displayed
     const fileItems = page.locator("tbody tr");
     await expect(fileItems).toHaveCount(numberOfFiles);
 
     const lastFileName = `large_file_${numberOfFiles - 1}.txt`;
     await page.waitForSelector(`text=${lastFileName}`);
 
-    // Scroll until the element is found
     await page.getByText(lastFileName).scrollIntoViewIfNeeded();
 
-    // Check if the last file is displayed
     await expect(page.getByText(lastFileName)).toBeVisible();
 
-    // After scrolling, make sure the header is visible, even if it should fit in the viewport
-
-    // Check if the table header is visible
     await expect(tableHeader).toBeVisible();
-
-    // Performance verification (optional but advanced test)
-
-    // const startTime = performance.now();
-    // await page.goto(FRONTEND_URL + "/d/");
-    // // Wait until the network settles down
-    // await page.waitForLoadState('networkidle');
-
-    // await expect(fileItems).toHaveCount(numberOfFiles);
-    // const endTime = performance.now();
-    // console.debug(`Rendering ${numberOfFiles} files took ${endTime - startTime} ms`);
-    // // Expect rendering within 5 seconds
-    // expect(endTime - startTime).toBeLessThan(5000);
 });
 
 test("sort by filename", async ({ page }) => {
     const targetPath = "/";
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
@@ -223,7 +206,7 @@ test("sort by filename", async ({ page }) => {
 
 test("sort by filesize", async ({ page }) => {
     const targetPath = "/";
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
@@ -264,7 +247,7 @@ test("sort by filesize", async ({ page }) => {
 
 test("sort by update date", async ({ page }) => {
     const targetPath = "/";
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
@@ -305,7 +288,7 @@ test("sort by update date", async ({ page }) => {
 
 test("filter by extension", async ({ page }) => {
     const targetPath = "/documents";
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
     const expectedTxtFiles = initialFiles.filter(
@@ -325,7 +308,7 @@ test("filter by extension", async ({ page }) => {
     const clearButton = page.locator('[data-testid="file-filter-clear-button"]');
     await expect(clearButton).toBeVisible();
 
-    const txtFilterCheckbox = page.locator("#dropdown-filter-txt");
+    const txtFilterCheckbox = page.locator("#HomePage-dropdown-filter-txt");
     await expect(txtFilterCheckbox).toBeVisible();
     await txtFilterCheckbox.check();
 
@@ -402,34 +385,9 @@ const getExpectedFilesForDateFilter = (allFiles, filterType) => {
 };
 
 test("filter by modified date (all options)", async ({ page }) => {
-    await page.addInitScript((isoDate) => {
-        const fixed = new Date(isoDate);
-        const OriginalDate = Date;
-
-        class MockDate extends OriginalDate {
-            constructor(...args) {
-                if (args.length === 0) {
-                    return new OriginalDate(fixed);
-                }
-                return new OriginalDate(...args);
-            }
-
-            static now() {
-                return fixed.getTime();
-            }
-
-            static parse = OriginalDate.parse;
-            static UTC = OriginalDate.UTC;
-            static [Symbol.hasInstance](instance) {
-                return instance instanceof OriginalDate;
-            }
-        }
-
-        window.Date = MockDate;
-    }, "2025-06-01T12:00:00Z"); // freeze time
-
+    await freezeTime(page, "2025-06-01T12:00:00Z");
     const targetPath = "/";
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
     const allFilesAtRoot = findChildrenByPath(fileStructureData, targetPath);
     const dateFilterToggleButton = page.locator('[data-testid="date-filter-dropdown"]');
@@ -479,22 +437,22 @@ test("filter by modified date (all options)", async ({ page }) => {
 });
 
 test("display current directory path", async ({ page }) => {
-    await page.goto(`${FRONTEND_URL}/#/`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/`);
 
-    const homeButton = page.locator("ol.breadcrumb button.btn.p-0").first();
-    await expect(homeButton).toBeVisible();
-    await expect(homeButton.locator("svg")).toBeVisible();
+    const rootbutton = page.locator("ol.breadcrumb button.btn.p-0").first();
+    await expect(rootbutton).toBeVisible();
+    await expect(rootbutton.getByAltText("Logo")).toBeVisible();
 
-    // home = 1
+    // root = 1
     await expect(page.locator("ol.breadcrumb li")).toHaveCount(1);
     await expect(
         page.locator("ol.breadcrumb li").filter({ hasText: "documents" })
     ).not.toBeVisible();
 
     const testPath = "/documents/presentations";
-    await page.goto(`${FRONTEND_URL}/#${testPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${testPath}`);
 
-    await expect(homeButton).toBeVisible();
+    await expect(rootbutton).toBeVisible();
 
     // "documents"
     const documentsBreadcrumb = page.locator("ol.breadcrumb li button", { hasText: "documents" });
@@ -511,36 +469,43 @@ test("display current directory path", async ({ page }) => {
     // go to "documents"
     await documentsBreadcrumb.click();
 
-    await expect(page).toHaveURL(`${FRONTEND_URL}/#/documents`);
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}/documents`);
 
     // home + "documents" = 2
     await expect(page.locator("ol.breadcrumb li")).toHaveCount(2);
     await expect(page.locator("ol.breadcrumb li button", { hasText: "documents" })).toBeVisible();
 
-    // go home
-    await homeButton.click();
+    // go root
+    await rootbutton.click();
 
-    await expect(page).toHaveURL(`${FRONTEND_URL}/#/`);
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}/`);
 
-    // home = 1
+    // root = 1
     await expect(page.locator("ol.breadcrumb li")).toHaveCount(1);
 
     // access /documents/presentations/
-    await page.goto(`${FRONTEND_URL}/#/documents/presentations/`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/documents/presentations/`);
     // /documents/presentations
     await expect(
         page.locator("ol.breadcrumb li button", { hasText: "presentations" })
     ).toBeVisible();
     // Trailing slashes are ignored
     await expect(page.locator("ol.breadcrumb li")).toHaveCount(3);
+
+    // go home
+    const homebutton = page.locator('[data-testid="home-button"]');
+    await expect(homebutton).toBeVisible();
+    await homebutton.click();
+    await expect(documentsBreadcrumb).toBeVisible();
 });
 
 test("display operation menu for a file", async ({ page }) => {
     const targetPath = "/documents";
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    const targetItem = "report.docx";
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
     // Find the line in the file to be tested
-    const reportDocxRow = page.locator("tbody tr", { hasText: "report.docx" });
+    const reportDocxRow = page.locator("tbody tr", { hasText: targetItem });
     const threeDotsButton = reportDocxRow.locator("button.btn.p-0.border-0");
 
     // Check if the three-point leader button is displayed
@@ -554,14 +519,17 @@ test("display operation menu for a file", async ({ page }) => {
     await expect(dropdownMenu).toBeVisible();
 
     // Check if each menu item is displayed
-    await expect(dropdownMenu.getByRole("button", { name: "Detail" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "View" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Rename" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Move" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Copy" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Download" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Delete" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Change Permissions" })).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="detail-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="view-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="rename-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="move-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="copy-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="download-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="symlink-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="permissions-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="acl-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="url-menu"]')).toBeVisible();
+    await expect(dropdownMenu.locator('[data-testid^="delete-menu"]')).toBeVisible();
 
     // Check if 'View' does not appear in the folder menu
     const presentationsRow = page.locator("tbody tr", { hasText: "presentations" });
@@ -569,46 +537,37 @@ test("display operation menu for a file", async ({ page }) => {
     await presentationsThreeDotsButton.click();
     const presentationsDropdownMenu = presentationsRow.locator(".dropdown-menu");
     await expect(presentationsDropdownMenu).toBeVisible();
-    await expect(presentationsDropdownMenu.getByRole("button", { name: "View" })).not.toBeVisible();
+    await expect(presentationsDropdownMenu.locator('[data-testid="view-menu"]')).not.toBeVisible();
+    await expect(presentationsDropdownMenu.locator('[data-testid="copy-menu"]')).not.toBeVisible();
 });
 
 test("display action buttons", async ({ page }) => {
     const targetPath = "/documents";
-    await page.goto(`${FRONTEND_URL}/#${targetPath}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
-    const actionsToggleButton = page.getByRole("button", { name: "Actions" });
+    const actionmenu = page.locator('[data-testid="action-menu"]');
 
     // Check that the button is not displayed
-    await expect(actionsToggleButton).not.toBeVisible();
+    await expect(actionmenu).not.toBeVisible();
 
     const firstFileCheckbox = page.locator("tbody tr").first().locator('input[type="checkbox"]');
     await firstFileCheckbox.check();
 
     // Check if the "Actions" button is displayed
-    await expect(actionsToggleButton).toBeVisible();
+    await expect(actionmenu).toBeVisible();
 
-    await actionsToggleButton.click();
-
-    // Check if the dropdown menu appears
-    const dropdownMenu = page.locator('ul.dropdown-menu[aria-labelledby="fileActionsDropdown"]');
-    await expect(dropdownMenu).toBeVisible();
-
-    await expect(dropdownMenu.getByRole("button", { name: "Download" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Delete" })).toBeVisible();
-    await expect(dropdownMenu.getByRole("button", { name: "Move" })).toBeVisible();
-
-    // Click outside the dropdown to close
-    await page.click("body", { position: { x: 10, y: 10 } });
-
-    await expect(dropdownMenu).not.toBeVisible();
+    await expect(actionmenu.locator('[data-testid="action-menu-download"]')).toBeVisible();
+    await expect(actionmenu.locator('[data-testid="action-menu-delete"]')).toBeVisible();
+    await expect(actionmenu.locator('[data-testid="action-menu-move"]')).toBeVisible();
+    await expect(actionmenu.locator('[data-testid="action-menu-gfptar"]')).toBeVisible();
 
     await firstFileCheckbox.uncheck();
 
     // Check if the component is hidden again
-    await expect(actionsToggleButton).not.toBeVisible();
+    await expect(actionmenu).not.toBeVisible();
 });
 
-test("double-clicking a file opens in new tab", async ({ page, context }) => {
+test("double-click a file opens in new tab", async ({ page, context }) => {
     context.on("page", (page) => {
         console.debug("[DEBUG] New tab opened:", page.url());
     });
@@ -617,7 +576,7 @@ test("double-clicking a file opens in new tab", async ({ page, context }) => {
     const testFileName = "report.docx";
     const testFilePath = `${currentDirectory}/${testFileName}`;
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const fileRow = page.locator("tbody tr", { hasText: testFileName });
     await expect(fileRow).toBeVisible();
@@ -637,12 +596,12 @@ test("double-clicking a file opens in new tab", async ({ page, context }) => {
 
 // Path Navigation Test
 
-test("double-clicking a directory navigates to it", async ({ page }) => {
+test("double-click a directory navigates to it", async ({ page }) => {
     const currentDirectory = "/documents";
     const testDirectoryName = "presentations";
     const expectedNewPath = `${currentDirectory}/${testDirectoryName}`;
 
-    await page.goto(`${FRONTEND_URL}/#${currentDirectory}`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     await expect(page.locator("tbody tr", { hasText: testDirectoryName })).toBeVisible();
 
@@ -651,7 +610,7 @@ test("double-clicking a directory navigates to it", async ({ page }) => {
 
     await directoryRow.dblclick();
 
-    await expect(page).toHaveURL(`${FRONTEND_URL}/#${expectedNewPath}`);
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}${expectedNewPath}`);
 
     const expectedChildrenInNewDir = findChildrenByPath(fileStructureData, expectedNewPath);
     await expect(page.locator("tbody tr")).toHaveCount(expectedChildrenInNewDir.length);
@@ -663,11 +622,33 @@ test("double-clicking a directory navigates to it", async ({ page }) => {
 });
 
 test("navigate back and forward", async ({ page }) => {
-    // TODO: 戻る・進むボタンを押して履歴移動確認
-    await page.route("**/*", handleRoute);
+    const firstPath = "/documents";
+    const secondPath = "/documents/presentations";
+
+    // Go to first directory
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${firstPath}`);
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}${firstPath}`);
+
+    // Then go to second directory
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${secondPath}`);
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}${secondPath}`);
+
+    // Go back
+    await page.goBack();
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}${firstPath}`);
+
+    // Go forward
+    await page.goForward();
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}${secondPath}`);
 });
 
-test("direct path access", async ({ page }) => {
-    // TODO: 入力ボックスにパスを入力してEnter → 該当ディレクトリに遷移するか
-    await page.route("**/*", handleRoute);
+test("home_directory path access", async ({ page }) => {
+    const targetPath = "/documents";
+
+    await page.goto(`${FRONTEND_URL}/`);
+
+    await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
+
+    // And the breadcrumb or files update
+    await expect(page.locator("ol.breadcrumb li button", { hasText: "documents" })).toBeVisible();
 });

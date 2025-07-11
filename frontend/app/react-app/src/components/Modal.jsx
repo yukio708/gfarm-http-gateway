@@ -49,10 +49,16 @@ function ModalWindow({ onCancel, onConfirm, title, body, cancelText, comfirmText
                             className="btn btn-secondary"
                             onClick={onCancel}
                             data-bs-dismiss="modal"
+                            data-testid="modal-button-cancel"
                         >
                             {cancelText || "Cancel"}
                         </button>
-                        <button type="button" className="btn btn-primary" onClick={handleConfirm}>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleConfirm}
+                            data-testid="modal-button-confirm"
+                        >
                             {comfirmText || "Confirm"}
                         </button>
                     </div>
