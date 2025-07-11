@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import FileListView from "../components/FileListView";
 import CurrentDirView from "../components/CurrentDirView";
@@ -70,112 +70,138 @@ function HomePage() {
         }
     }, [currentItems]);
 
-    const jumpDirectory = (newdir) => {
-        if (currentDir === newdir) {
-            setRefreshKey((prev) => !prev);
-        } else {
-            navigate(pathHead + newdir);
-        }
-    };
-
-    const handleDisplayFile = (path) => {
-        displayFile(path);
-    };
-
-    const handleSymlink = async (symlink) => {
-        console.debug("handleSymlink", symlink);
-        try {
-            const info = await getSymlink(symlink);
-            if (info.is_file) {
-                handleDisplayFile(info.path);
-            } else if (info.is_sym) {
-                addNotification(info.name, `Link not found`, "warning");
+    const jumpDirectory = useCallback(
+        (newdir) => {
+            if (currentDir === newdir) {
+                setRefreshKey((prev) => !prev);
             } else {
-                jumpDirectory(info.path);
+                navigate(pathHead + newdir);
             }
-        } catch (err) {
-            addNotification(symlink, `${err.name} : ${err.message}`, "error");
-        }
-    };
+        },
+        [currentDir, pathHead, navigate]
+    );
 
-    const handleItemClick = (path, is_file, is_dir) => {
-        if (is_file) {
-            handleDisplayFile(path);
-        } else if (is_dir) {
-            jumpDirectory(path);
-        } else {
-            handleSymlink(path);
-        }
-    };
+    const handleDisplayFile = useCallback((path) => {
+        displayFile(path);
+    }, []);
 
-    const handleShowDetail = (item, tab) => {
+    const handleSymlink = useCallback(
+        async (symlink) => {
+            console.debug("handleSymlink", symlink);
+            try {
+                const info = await getSymlink(symlink);
+                if (info.is_file) {
+                    handleDisplayFile(info.path);
+                } else if (info.is_sym) {
+                    addNotification(info.name, `Link not found`, "warning");
+                } else {
+                    jumpDirectory(info.path);
+                }
+            } catch (err) {
+                addNotification(symlink, `${err.name} : ${err.message}`, "error");
+            }
+        },
+        [handleDisplayFile, jumpDirectory, addNotification]
+    );
+
+    const handleItemClick = useCallback(
+        (path, is_file, is_dir) => {
+            if (is_file) {
+                handleDisplayFile(path);
+            } else if (is_dir) {
+                jumpDirectory(path);
+            } else {
+                handleSymlink(path);
+            }
+        },
+        [handleDisplayFile, jumpDirectory, handleSymlink]
+    );
+
+    const handleShowDetail = useCallback((item, tab) => {
         setLastSelectedItem(item);
         setShowSidePanel({ show: true, tab });
-    };
+    }, []);
 
-    const handleRename = (item) => {
+    const handleRename = useCallback((item) => {
         setLastSelectedItem(item);
         setShowRenameModal(true);
-    };
+    }, []);
 
-    const handleCopy = async (item) => {
-        setItemtoCopy(
-            item,
-            currentItems.map((item) => item.name)
-        );
-    };
+    const handleCopy = useCallback(
+        async (item) => {
+            setItemtoCopy(
+                item,
+                currentItems.map((item) => item.name)
+            );
+        },
+        [currentItems, setItemtoCopy]
+    );
 
-    const ItemMenuActions = {
-        download: addItemsToDownload,
-        showDetail: (item) => {
-            handleShowDetail(item, "detail");
-        },
-        display: handleDisplayFile,
-        remove: setItemsToDelete,
-        move: setItemsToMove,
-        rename: handleRename,
-        copy: handleCopy,
-        permission: (item) => {
-            handleShowDetail(item, "perms");
-        },
-        accessControl: (item) => {
-            handleShowDetail(item, "acl");
-        },
-        share: (item) => {
-            handleShowDetail(item, "url");
-        },
-        create_symlink: (item) => {
-            setLastSelectedItem(item);
-            setShowSymlinkModal(true);
-        },
-    };
+    const ItemMenuActions = useMemo(
+        () => ({
+            download: addItemsToDownload,
+            showDetail: (item) => {
+                handleShowDetail(item, "detail");
+            },
+            display: handleDisplayFile,
+            remove: setItemsToDelete,
+            move: setItemsToMove,
+            rename: handleRename,
+            copy: handleCopy,
+            permission: (item) => {
+                handleShowDetail(item, "perms");
+            },
+            accessControl: (item) => {
+                handleShowDetail(item, "acl");
+            },
+            share: (item) => {
+                handleShowDetail(item, "url");
+            },
+            create_symlink: (item) => {
+                setLastSelectedItem(item);
+                setShowSymlinkModal(true);
+            },
+        }),
+        [
+            addItemsToDownload,
+            handleShowDetail,
+            handleDisplayFile,
+            setItemsToDelete,
+            setItemsToMove,
+            handleRename,
+            handleCopy,
+        ]
+    );
 
-    const UploadMenuActions = {
-        upload: addItemsToUpload,
-        create: () => {
-            setShowNewDirModal(true);
-        },
-        create_symlink: () => {
-            setLastSelectedItem(null);
-            setShowSymlinkModal(true);
-        },
-    };
+    const UploadMenuActions = useMemo(
+        () => ({
+            upload: addItemsToUpload,
+            create: () => {
+                setShowNewDirModal(true);
+            },
+            create_symlink: () => {
+                setLastSelectedItem(null);
+                setShowSymlinkModal(true);
+            },
+        }),
+        [addItemsToUpload]
+    );
 
-    const SelectedMenuActions = {
-        download: addItemsToDownload,
-        remove: setItemsToDelete,
-        move: setItemsToMove,
-        archive: () => {
-            setShowGfptarModal(true);
-        },
-    };
+    const SelectedMenuActions = useMemo(
+        () => ({
+            download: addItemsToDownload,
+            remove: setItemsToDelete,
+            move: setItemsToMove,
+            archive: () => {
+                setShowGfptarModal(true);
+            },
+        }),
+        [addItemsToDownload, setItemsToDelete, setItemsToMove]
+    );
 
     if (loading) return <p>...</p>;
     if (!userInfo) return <LoginPage />;
-
-    if (listGetError) {
-        return <ErrorPage error={listGetError} />;
-    }
+    if (listGetError) return <ErrorPage error={listGetError} />;
 
     return (
         <div className="container-fluid bg-body">

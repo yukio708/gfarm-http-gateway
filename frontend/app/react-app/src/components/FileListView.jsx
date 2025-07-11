@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import FileIcon from "../components/FileIcon";
 import FileTypeFilter from "../components/FileTypeFilter";
 import DateFilter from "../components/DateFilter";
@@ -201,24 +201,13 @@ function FileListView({
         setSelectedItems([]);
     }, [filterTypes, dateFilter]);
 
-    const getSortIcon = () => {
-        if (sortDirection.order === "asc") {
-            return (
-                <BsArrowUpShort
-                    size="1.1rem"
-                    style={{ marginLeft: "5px" }}
-                    data-testid="sort-icon-asc"
-                />
-            );
-        } else {
-            return (
-                <BsArrowDownShort
-                    size="1.1rem"
-                    style={{ marginLeft: "5px" }}
-                    data-testid="sort-icon-desc"
-                />
-            );
-        }
+    const getSortIcon = (col) => {
+        if (sortDirection.column !== col) return null;
+        return sortDirection.order === "asc" ? (
+            <BsArrowUpShort size="1.1rem" className="ms-1" data-testid="sort-icon-asc" />
+        ) : (
+            <BsArrowDownShort size="1.1rem" className="ms-1" data-testid="sort-icon-desc" />
+        );
     };
 
     useEffect(() => {
@@ -235,23 +224,31 @@ function FileListView({
         }
     }, [selectedItems, sortedItems]);
 
-    const handleSelectAll = (event) => {
-        if (event.target.checked) {
-            setSelectedItems(sortedItems);
-        } else {
-            setSelectedItems([]);
-        }
-    };
+    const handleSelectAll = useCallback(
+        (event) => {
+            if (event.target.checked) {
+                setSelectedItems(sortedItems);
+            } else {
+                setSelectedItems([]);
+            }
+        },
+        [setSelectedItems, sortedItems]
+    );
 
-    const handleSelectItem = (checked, item) => {
-        console.debug("handleSelectItem item", item);
-        if (checked) {
-            setSelectedItems([...selectedItems, item]);
-        } else {
-            setSelectedItems((prev) => prev.filter((selected) => selected.path !== item.path));
-        }
-        setLastSelectedItem(item);
-    };
+    const handleSelectItem = useCallback(
+        (checked, item) => {
+            console.debug("handleSelectItem item", item);
+            setSelectedItems((prev) => {
+                if (checked) {
+                    return [...prev, item];
+                } else {
+                    return prev.filter((selected) => selected.path !== item.path);
+                }
+            });
+            setLastSelectedItem(item);
+        },
+        [setSelectedItems, setLastSelectedItem]
+    );
 
     const toggleSortDirection = (column) => {
         setSortDirection((prevSort) => {
@@ -315,16 +312,16 @@ function FileListView({
                             onClick={() => toggleSortDirection("name")}
                             data-testid="header-name"
                         >
-                            Name {sortDirection.column === "name" && getSortIcon()}
+                            Name {getSortIcon("name")}
                         </th>
                         <th onClick={() => toggleSortDirection("size")} data-testid="header-size">
-                            Size {sortDirection.column === "size" && getSortIcon()}
+                            Size {getSortIcon("size")}
                         </th>
                         <th
                             onClick={() => toggleSortDirection("updatedate")}
                             data-testid="header-date"
                         >
-                            Modified {sortDirection.column === "updatedate" && getSortIcon()}
+                            Modified {getSortIcon("updatedate")}
                         </th>
                         <th onClick={() => setViewMode(viewMode === "list" ? "icon" : "list")}>
                             {viewMode === "list" ? <BsGrid /> : <BsListTask />}
