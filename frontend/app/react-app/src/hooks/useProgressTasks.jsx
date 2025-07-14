@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import upload from "../utils/upload";
+import { upload, checkPermissoin } from "../utils/upload";
+import { PARALLEL_LIMIT } from "../utils/config";
 import download from "../utils/download";
 import copyFile from "../utils/copy";
 import { getParentPath, suggestNewName } from "../utils/func";
@@ -25,9 +26,49 @@ function useProgressTasks(setRefreshKey, addNotification) {
     }, [tasks]);
 
     const addItemsToUpload = (newItems) => {
-        uploadQueueRef.current.push(newItems);
+        setTasks((prev) => prev.filter((t) => !t.done || t.status === "error"));
+        const tasks = newItems.map((file) => {
+            const fullpath = file.destPath;
+            const taskId = fullpath + Date.now();
+            const displayname = file.path.length > 20 ? file.path.slice(0, 20) + "..." : file.path;
+
+            const newTask = {
+                taskId,
+                name: displayname,
+                value: 0,
+                done: false,
+                type: "upload",
+                status: "upload",
+                message: "waiting to upload...",
+                onCancel: () => {},
+            };
+            uploadQueueRef.current.push({ file, fullpath, taskId });
+            return newTask;
+        });
+        setTasks((prev) => [...prev, ...tasks]);
+
         setUploading(true);
         console.debug("addFilesToUpload", newItems);
+    };
+
+    const runWithLimit = async (tasks, limit = 10) => {
+        const results = [];
+        const queue = [];
+
+        for (const task of tasks) {
+            const p = task().then((result) => {
+                queue.splice(queue.indexOf(p), 1);
+                return result;
+            });
+            queue.push(p);
+            results.push(p);
+
+            if (queue.length >= limit) {
+                await Promise.race(queue);
+            }
+        }
+
+        return Promise.all(results);
     };
 
     const handleUpload = async () => {
@@ -37,16 +78,60 @@ function useProgressTasks(setRefreshKey, addNotification) {
             return;
         }
         isUploadingRef.current = true;
-        setTasks((prev) => prev.filter((t) => !t.done));
-        const worker = async () => {
-            while (uploadQueueRef.current.length) {
-                const uploadFiles = uploadQueueRef.current.shift();
-                await upload(uploadFiles, setTasks);
+        const uploadTasks = [];
+
+        const destDirSet = {};
+        const uploadDirSet = new Set();
+        uploadDirSet.add("/");
+        while (uploadQueueRef.current.length) {
+            const uploadItem = uploadQueueRef.current.shift();
+
+            if (!uploadItem.file) continue;
+            console.log("uploadItem", uploadItem);
+
+            let error = null;
+            if (!(uploadItem.file.uploadDir in destDirSet)) {
+                error = await checkPermissoin(uploadItem.file.uploadDir);
+                destDirSet[uploadItem.file.uploadDir] = error;
+                console.log("uploadItem.uploadDir", uploadItem.file.uploadDir);
+                console.log("destDirSet", destDirSet);
+            } else {
+                error = destDirSet[uploadItem.file.uploadDir];
             }
-            isUploadingRef.current = false;
-            console.debug("done!");
-        };
-        await worker();
+            uploadDirSet.add(uploadItem.file.uploadDir);
+
+            if (error) {
+                setTasks((prev) =>
+                    prev.map((task) =>
+                        task.taskId === uploadItem.taskId
+                            ? {
+                                  ...task,
+                                  status: "error",
+                                  message: error,
+                                  done: true,
+                              }
+                            : task
+                    )
+                );
+                continue;
+            }
+
+            uploadTasks.push(async () => {
+                return upload(
+                    uploadItem.file,
+                    uploadItem.fullpath,
+                    uploadItem.taskId,
+                    uploadDirSet,
+                    setTasks
+                ).catch((err) => {
+                    console.error("uploadFile failed:", err);
+                });
+            });
+        }
+        isUploadingRef.current = false;
+
+        await runWithLimit(uploadTasks, 1);
+        console.debug("upload done!");
         setRefreshKey((prev) => !prev);
     };
 

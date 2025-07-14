@@ -1,10 +1,10 @@
 import { encodePath, getParentPath } from "./func";
 import { createDir } from "./dircommon";
-import { API_URL, PARALLEL_LIMIT } from "./config";
+import { API_URL } from "./config";
 import get_error_message from "./error";
 
 // file: file + File
-async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
+async function upload(file, fullpath, taskId, dirSet, setTasks) {
     if (!file) {
         alert("Please select a file");
         return;
@@ -12,15 +12,15 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
     const uploaddirpath = file.is_file ? getParentPath(file.destPath) : file.destPath;
     const startTime = Date.now();
 
-    console.debug("uploaddirpath", uploaddirpath);
-    console.debug("fullpath", fullpath);
+    // console.debug("uploaddirpath", uploaddirpath);
+    // console.debug("fullpath", fullpath);
 
     // createdir
     let createDirError = null;
     if (!dirSet.has(uploaddirpath)) {
         createDirError = await createDir(uploaddirpath, "p=on");
         dirSet.add(uploaddirpath);
-        console.debug("dirSet", dirSet);
+        // console.debug("dirSet", dirSet);
     }
 
     if (file.is_dir) {
@@ -43,7 +43,7 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
 
     const epath = encodePath(fullpath);
     const uploadUrl = `${API_URL}/file` + epath;
-    console.debug("uploadUrl:", uploadUrl);
+    // console.debug("uploadUrl:", uploadUrl);
 
     try {
         const xhr = new XMLHttpRequest();
@@ -91,7 +91,7 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
                         task.taskId === taskId ? { ...task, value, message } : task
                     )
                 );
-                console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
+                // console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
             }
         };
         return new Promise((resolve, reject) => {
@@ -161,33 +161,8 @@ async function uploadFile(file, fullpath, taskId, dirSet, setTasks) {
     }
 }
 
-async function runWithLimit(tasks, limit = 10) {
-    const results = [];
-    const queue = [];
-
-    for (const task of tasks) {
-        const p = task().then((result) => {
-            queue.splice(queue.indexOf(p), 1);
-            return result;
-        });
-        queue.push(p);
-        results.push(p);
-
-        if (queue.length >= limit) {
-            await Promise.race(queue);
-        }
-    }
-
-    return Promise.all(results);
-}
-
-async function upload(files, setTasks) {
-    const dirSet = new Set();
-    dirSet.add("/");
-
-    if (!files || files.length === 0) return;
-
-    const epath = encodePath(files[0].uploadDir);
+async function checkPermissoin(uploaddir) {
+    const epath = encodePath(uploaddir);
     const fullpath = `${API_URL}/dir${epath}?show_hidden=on&effperm=on`;
     let error = null;
     try {
@@ -199,43 +174,38 @@ async function upload(files, setTasks) {
         }
         const data = await response.json();
         if (data[0].perms.includes("w")) {
-            console.debug("permission check", files[0].uploadDir, data[0].perms.includes("w"));
+            console.debug("permission check", uploaddir, data[0].perms.includes("w"));
         } else {
-            const message = get_error_message(403, `Permission denied : ${files[0].uploadDir}`);
+            const message = get_error_message(403, `Permission denied : ${uploaddir}`);
             throw new Error(message);
         }
     } catch (err) {
         error = `${err.name}: ${err.message}`;
     }
+    return error;
 
-    const tasks = files.map((file) => {
-        const fullpath = file.destPath;
-        const taskId = fullpath + Date.now();
-        const displayname = file.path.length > 20 ? file.path.slice(0, 20) + "..." : file.path;
-
-        const newTask = {
-            taskId,
-            name: displayname,
-            value: 0,
-            done: error ? true : false,
-            type: "upload",
-            status: error ? "error" : "upload",
-            message: error ? error : "waiting to upload...",
-            onCancel: () => {},
-        };
-        return { file, fullpath, taskId, task: newTask };
-    });
-    setTasks((prev) => [...prev, ...tasks.map((entry) => entry.task)]);
-    if (error) return;
-
-    const uploadFunctions = tasks.map(({ file, fullpath, taskId }) => {
-        return () =>
-            uploadFile(file, fullpath, taskId, dirSet, setTasks).catch((err) => {
-                console.error("uploadFile failed:", err);
-            });
-    });
-
-    await runWithLimit(uploadFunctions, PARALLEL_LIMIT);
+    // if (error) {
+    //     setTasks((prev) =>
+    //         prev.map((task) => ({
+    //             ...task,
+    //             status: "error",
+    //             message: error,
+    //             done: true,
+    //         }))
+    //     );
+    // }
+    // if (error) return;
 }
 
-export default upload;
+// async function upload(file, fullpath, taskId, setTasks) {
+//     const dirSet = new Set();
+//     dirSet.add("/");
+
+//     if (!file) return;
+
+//     uploadFile(file, fullpath, taskId, dirSet, setTasks).catch((err) => {
+//         console.error("uploadFile failed:", err);
+//     });
+// }
+
+export { upload, checkPermissoin };
