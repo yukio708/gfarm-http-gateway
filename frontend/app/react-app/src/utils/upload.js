@@ -87,6 +87,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
                     progressCallbeck({
                         status: "error",
                         message,
+                        done: true,
                     });
                     console.error(message);
                     reject(new Error(message));

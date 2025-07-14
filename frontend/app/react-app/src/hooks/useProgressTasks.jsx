@@ -128,6 +128,7 @@ function useProgressTasks(setRefreshKey, addNotification) {
 
     const addItemsToDownload = (items) => {
         console.debug("addItemsToDownload: items:", items);
+        setTasks((prev) => prev.filter((t) => !t.done || t.status === "error"));
         downloadQueueRef.current.push(items);
         setDownloading(true);
     };
@@ -145,7 +146,6 @@ function useProgressTasks(setRefreshKey, addNotification) {
         }
         isDownloadingRef.current = true;
         const worker = async () => {
-            setTasks((prev) => prev.filter((t) => !t.done));
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
                 download(files, setError);
@@ -165,7 +165,7 @@ function useProgressTasks(setRefreshKey, addNotification) {
         const filename = suggestNewName(item.name, existingNames);
         const destpath = getParentPath(item.path).replace(/\/$/, "") + "/" + filename;
         const taskId = filename + Date.now();
-        const displayname = filename.length > 20 ? filename.slice(0, 10) + "..." : filename;
+        const displayname = filename.length > 20 ? filename.slice(0, 20) + "..." : filename;
 
         const newTask = {
             taskId,

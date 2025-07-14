@@ -12,7 +12,7 @@ function ProgressView({ show, onHide, tasks, setTasks }) {
 
         const handleHide = () => {
             console.debug("debug handleHide");
-            setTasks((prev) => prev.filter((t) => !t.done));
+            setTasks((prev) => prev.filter((t) => !t.done || t.status === "error"));
             onHide();
         };
 
