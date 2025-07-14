@@ -10,7 +10,7 @@ function useFileList(dirPath, reload, showHidden = true) {
 
         const fetchFiles = async () => {
             setListGetError(null);
-            console.log("getList");
+            console.debug("getList");
             const data = await getList(dirPath, showHidden);
             if (Array.isArray(data)) {
                 setCurrentFiles(data.filter((file) => file.name !== "." && file.name !== ".."));

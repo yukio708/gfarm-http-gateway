@@ -9,10 +9,17 @@ class Tar(BaseModel):
     outdir: str
     options: List[str] | None
 */
-async function gfptar(command, targetDir, targetItems, destDir, options, setTasks, refresh) {
+// progressCallbeck({status, value, message, done, onCancel})
+async function gfptar(
+    command,
+    targetDir,
+    targetItems,
+    destDir,
+    options,
+    progressCallbeck,
+    refresh
+) {
     const dlurl = `${API_URL}/gfptar`;
-    const taskId = destDir + Date.now();
-    const displayname = destDir;
 
     console.debug("gfptar", options, command, destDir, "-C", targetDir, targetItems);
 
@@ -31,20 +38,12 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         signal,
     };
 
-    const newTask = {
-        taskId,
-        name: displayname,
-        value: 0,
-        type: "gfptar",
-        status: command,
-        message: "",
-        indirList: [],
+    progressCallbeck({
         onCancel: () => {
             controller.abort();
-            console.debug("cancel:", taskId);
+            console.debug("cancel:", destDir);
         },
-    };
-    setTasks((prev) => [...prev, newTask]);
+    });
 
     try {
         const response = await fetch(dlurl, request);
@@ -60,6 +59,7 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
         const decoder = new TextDecoder("utf-8");
         const reader = response.body.getReader();
         let buffer = "";
+        const indirList = [];
 
         while (true) {
             const { done, value } = await reader.read();
@@ -73,56 +73,37 @@ async function gfptar(command, targetDir, targetItems, destDir, options, setTask
                 if (line.trim() === "") continue;
                 try {
                     const json = JSON.parse(line);
-
-                    setTasks((prev) =>
-                        prev.map((task) => {
-                            const indirList = task.indirList;
-                            if (command === "list") indirList.push(json.message);
-                            return task.taskId === taskId
-                                ? {
-                                      ...task,
-                                      value: undefined,
-                                      message: json.message,
-                                      indirList,
-                                  }
-                                : task;
-                        })
-                    );
+                    if (command === "list") {
+                        indirList.push(json.message);
+                        progressCallbeck({
+                            message: indirList,
+                        });
+                    } else {
+                        progressCallbeck({
+                            value: undefined,
+                            message: json.message,
+                        });
+                    }
                 } catch (err) {
                     console.warn("Failed to parse line:", line, err);
                 }
             }
         }
-
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.taskId === taskId
-                    ? {
-                          ...task,
-                          status: "completed",
-                          message: "",
-                          value: 100,
-                          done: true,
-                      }
-                    : task
-            )
-        );
+        progressCallbeck({
+            status: "completed",
+            message: "",
+            value: 100,
+            done: true,
+        });
         refresh();
     } catch (err) {
         const isAbort = err.name === "AbortError";
         const message = isAbort ? "Download cancelled" : `${err.name} : ${err.message}`;
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.taskId === taskId
-                    ? {
-                          ...task,
-                          status: isAbort ? "cancelled" : "error",
-                          message,
-                          done: true,
-                      }
-                    : task
-            )
-        );
+        progressCallbeck({
+            status: isAbort ? "cancelled" : "error",
+            message,
+            done: true,
+        });
         if (isAbort) {
             console.warn("gfptar cancelled", err);
         } else {

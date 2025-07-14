@@ -80,8 +80,6 @@ function PermsTab({ item, active }) {
     };
 
     const handleApply = async () => {
-        console.log("Apply chmod for", item.path, "to", octal);
-        // call API
         const error = await changeMode(item.path, octal);
         if (error) addNotification("ChangeMode", error, "error");
     };

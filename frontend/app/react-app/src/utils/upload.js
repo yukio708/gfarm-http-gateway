@@ -4,7 +4,8 @@ import { API_URL } from "./config";
 import get_error_message from "./error";
 
 // file: file + File
-async function upload(file, fullpath, taskId, dirSet, setTasks) {
+// progressCallbeck({status, value, message, done, onCancel})
+async function upload(file, fullpath, dirSet, progressCallbeck) {
     if (!file) {
         alert("Please select a file");
         return;
@@ -23,20 +24,13 @@ async function upload(file, fullpath, taskId, dirSet, setTasks) {
         // console.debug("dirSet", dirSet);
     }
 
-    if (file.is_dir) {
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.taskId === taskId
-                    ? {
-                          ...task,
-                          status: createDirError ? "error" : "completed",
-                          value: 100,
-                          message: createDirError ? createDirError : "",
-                          done: true,
-                      }
-                    : task
-            )
-        );
+    if (createDirError) {
+        progressCallbeck({
+            status: createDirError ? "error" : "completed",
+            value: 100,
+            message: createDirError ? createDirError : "",
+            done: true,
+        });
 
         return;
     }
@@ -50,31 +44,17 @@ async function upload(file, fullpath, taskId, dirSet, setTasks) {
         xhr.open("PUT", uploadUrl);
         xhr.responseType = "json";
 
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.taskId === taskId
-                    ? {
-                          ...task,
-                          onCancel: () => {
-                              xhr.abort();
-                              setTasks((prev) =>
-                                  prev.map((task) =>
-                                      task.taskId === taskId
-                                          ? {
-                                                ...task,
-                                                status: "cancelled",
-                                                message: "Upload cancelled",
-                                                done: true,
-                                            }
-                                          : task
-                                  )
-                              );
-                              console.warn("cancel:", file.name);
-                          },
-                      }
-                    : task
-            )
-        );
+        progressCallbeck({
+            onCancel: () => {
+                xhr.abort();
+                progressCallbeck({
+                    status: "cancelled",
+                    message: "Upload cancelled",
+                    done: true,
+                });
+                console.warn("cancel:", file.name);
+            },
+        });
 
         xhr.setRequestHeader("Content-Type", file.file.type);
         xhr.setRequestHeader("X-File-Timestamp", file.mtime);
@@ -86,57 +66,38 @@ async function upload(file, fullpath, taskId, dirSet, setTasks) {
                 const sec = Math.floor(elapsedTime / 1000);
                 const value = percent;
                 const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
-                setTasks((prev) =>
-                    prev.map((task) =>
-                        task.taskId === taskId ? { ...task, value, message } : task
-                    )
-                );
+                progressCallbeck({ value, message });
                 // console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
             }
         };
         return new Promise((resolve, reject) => {
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    setTasks((prev) =>
-                        prev.map((task) =>
-                            task.taskId === taskId
-                                ? {
-                                      ...task,
-                                      status: "completed",
-                                      value: 100,
-                                      message: "",
-                                      done: true,
-                                  }
-                                : task
-                        )
-                    );
+                    progressCallbeck({
+                        status: "completed",
+                        value: 100,
+                        message: "",
+                        done: true,
+                    });
                     console.debug("Upload: success");
                     resolve();
                 } else {
                     const detail = xhr.response?.detail;
                     const message = get_error_message(xhr.status, detail);
-                    setTasks((prev) =>
-                        prev.map((task) =>
-                            task.taskId === taskId ? { ...task, status: "error", message } : task
-                        )
-                    );
+                    progressCallbeck({
+                        status: "error",
+                        message,
+                    });
                     console.error(message);
                     reject(new Error(message));
                 }
             };
             xhr.onerror = () => {
-                setTasks((prev) =>
-                    prev.map((task) =>
-                        task.taskId === taskId
-                            ? {
-                                  ...task,
-                                  status: "error",
-                                  message: "Network error",
-                                  done: true,
-                              }
-                            : task
-                    )
-                );
+                progressCallbeck({
+                    status: "error",
+                    message: "Network error",
+                    done: true,
+                });
                 console.error("Network error");
                 reject(new Error("Network error"));
             };
@@ -145,18 +106,11 @@ async function upload(file, fullpath, taskId, dirSet, setTasks) {
     } catch (error) {
         console.error("Cannot upload:", error);
         const message = `${error.name} : ${error.message}`;
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.taskId === taskId
-                    ? {
-                          ...task,
-                          status: "error",
-                          message,
-                          done: true,
-                      }
-                    : task
-            )
-        );
+        progressCallbeck({
+            status: "error",
+            message,
+            done: true,
+        });
         return;
     }
 }
@@ -183,29 +137,6 @@ async function checkPermissoin(uploaddir) {
         error = `${err.name}: ${err.message}`;
     }
     return error;
-
-    // if (error) {
-    //     setTasks((prev) =>
-    //         prev.map((task) => ({
-    //             ...task,
-    //             status: "error",
-    //             message: error,
-    //             done: true,
-    //         }))
-    //     );
-    // }
-    // if (error) return;
 }
-
-// async function upload(file, fullpath, taskId, setTasks) {
-//     const dirSet = new Set();
-//     dirSet.add("/");
-
-//     if (!file) return;
-
-//     uploadFile(file, fullpath, taskId, dirSet, setTasks).catch((err) => {
-//         console.error("uploadFile failed:", err);
-//     });
-// }
 
 export { upload, checkPermissoin };

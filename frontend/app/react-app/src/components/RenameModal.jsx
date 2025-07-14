@@ -44,7 +44,6 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
                 getParentPath(renameItem.path).replace(/\/$/, "") +
                 "/" +
                 trimmedName.replace(/\/+/, "/");
-            console.log("destpath", destpath);
 
             const item = {
                 ...renameItem,

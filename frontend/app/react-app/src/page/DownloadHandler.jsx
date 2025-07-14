@@ -11,7 +11,6 @@ function DownloadHandler() {
 
     useEffect(() => {
         if (!loading && userInfo) {
-            console.log("downloading", gfarmPath);
             displayFile(gfarmPath, true);
         }
     }, [loading]);

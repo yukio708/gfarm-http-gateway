@@ -48,7 +48,8 @@ function HomePage() {
         addItemsToDownload,
         setItemsToMove,
         setItemsToDelete,
-        setItemtoCopy,
+        setItemToCopy,
+        setItemForGfptar,
     } = useProgressTasks(setRefreshKey, addNotification);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
     const [showSymlinkModal, setShowSymlinkModal] = useState(false);
@@ -129,12 +130,12 @@ function HomePage() {
 
     const handleCopy = useCallback(
         async (item) => {
-            setItemtoCopy(
+            setItemToCopy(
                 item,
                 currentItems.map((item) => item.name)
             );
         },
-        [currentItems, setItemtoCopy]
+        [currentItems, setItemToCopy]
     );
 
     const ItemMenuActions = useMemo(
@@ -327,7 +328,7 @@ function HomePage() {
                 lastSelectedItem={lastSelectedItem}
                 currentDirItems={currentItems}
                 currentDir={currentDir}
-                setTasks={setTasks}
+                setItemForGfptar={setItemForGfptar}
                 refresh={() => {
                     setRefreshKey((prev) => !prev);
                 }}

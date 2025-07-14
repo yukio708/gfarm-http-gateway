@@ -7,11 +7,11 @@ function getProgress(copied, total) {
     return Math.floor((copied / total) * 100);
 }
 
-async function copyFile(srcpath, destpath, setTasks) {
+// progressCallbeck({status, value, message, done, onCancel})
+async function copyFile(srcpath, destpath, progressCallbeck) {
     const dlurl = `${API_URL}/copy`;
     const controller = new AbortController();
     const signal = controller.signal;
-    const filename = destpath.split("/").pop();
     const request = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -26,23 +26,13 @@ async function copyFile(srcpath, destpath, setTasks) {
         signal,
     };
 
-    const taskId = filename + Date.now();
-    const displayname = filename.length > 20 ? filename.slice(0, 10) + "..." : filename;
-
     const startTime = Date.now();
-    const newTask = {
-        taskId,
-        name: displayname,
-        value: 0,
-        type: "copy",
-        status: "copy",
-        message: "",
+    progressCallbeck({
         onCancel: () => {
             controller.abort();
-            console.debug("cancel:", filename);
+            console.debug("cancel:", destpath);
         },
-    };
-    setTasks((prev) => [...prev, newTask]);
+    });
 
     try {
         const response = await fetch(dlurl, request);
@@ -91,43 +81,26 @@ async function copyFile(srcpath, destpath, setTasks) {
                 const message = percent
                     ? `${percent} % | ${sec} sec | ${speed} bytes/sec`
                     : `${sec} sec | ${speed} bytes/sec`;
-
-                setTasks((prev) =>
-                    prev.map((task) =>
-                        task.taskId === taskId ? { ...task, value: percent, message } : task
-                    )
-                );
+                progressCallbeck({
+                    value: percent,
+                    message,
+                });
             }
         }
-
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.taskId === taskId
-                    ? {
-                          ...task,
-                          status: "completed",
-                          message: "",
-                          value: 100,
-                          done: true,
-                      }
-                    : task
-            )
-        );
+        progressCallbeck({
+            status: "completed",
+            message: "",
+            value: 100,
+            done: true,
+        });
     } catch (err) {
         const isAbort = err.name === "AbortError";
         const message = isAbort ? "Copy cancelled" : `${err.name} : ${err.message}`;
-        setTasks((prev) =>
-            prev.map((task) =>
-                task.taskId === taskId
-                    ? {
-                          ...task,
-                          status: isAbort ? "cancelled" : "error",
-                          message,
-                          done: true,
-                      }
-                    : task
-            )
-        );
+        progressCallbeck({
+            status: isAbort ? "cancelled" : "error",
+            message,
+            done: true,
+        });
         if (isAbort) {
             console.warn("Copy cancelled", err);
         } else {

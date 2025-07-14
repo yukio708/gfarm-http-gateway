@@ -16,7 +16,7 @@ function ArchiveModal({
     lastSelectedItem,
     currentDirItems,
     setSelectedItems,
-    setTasks,
+    setItemForGfptar,
     refresh,
 }) {
     const { showHidden } = useShowHidden();
@@ -29,7 +29,6 @@ function ArchiveModal({
     const [targetDir, setTargetDir] = useState([]);
     const [targetItems, setTargetItems] = useState([]);
     const [options, setOptions] = useState("");
-    const [listStatus, setListStatus] = useState([]);
     const [indirList, setIndirList] = useState([]);
     const [selectedFromList, setSelectedFromList] = useState([]);
     const suggestions = currentItems.filter((file) => file.is_dir);
@@ -59,50 +58,52 @@ function ArchiveModal({
         }
     }, [destDir]);
 
-    useEffect(() => {
-        if (listStatus.length > 0) {
-            if (listStatus[0].indirList) {
-                const indirList = [];
-                console.debug(listStatus[0].message);
-                for (const item of listStatus[0].indirList) {
-                    const [file_type, path] = item.trim().split(" ", 2);
-                    indirList.push({
-                        is_dir: file_type === "D",
-                        is_file: file_type === "F",
-                        is_sym: file_type === "S",
-                        path,
-                        name: path,
-                    });
-                }
-                setIndirList(indirList);
-            }
-
-            if (listStatus[0].status === "error") {
-                addNotification("Gfptar", listStatus[0].message, "error");
-                console.error("useEffect gfptar failed", listStatus[0].message);
-            } else if (listStatus[0].status === "completed") {
-                setListStatus([]);
-            }
-        }
-    }, [listStatus]);
-
     const handleChange = (input) => {
         setDestDir(input);
     };
 
     const handleGfptar = async (command) => {
-        await gfptar(
-            command,
-            activeTab === "archive" ? targetDir : lastSelectedItem.path,
-            activeTab === "archive"
-                ? targetItems.map((item) => item.name)
-                : selectedFromList.map((item) => item.path),
-            destDir,
-            options.split(" ").filter(Boolean),
-            command === "list" ? setListStatus : setTasks,
-            refresh
-        );
-        if (command !== "list") {
+        if (command === "list") {
+            await gfptar(
+                command,
+                lastSelectedItem.path,
+                selectedFromList.map((item) => item.path),
+                destDir,
+                options.split(" ").filter(Boolean),
+                ({ status, message }) => {
+                    if (status === "error") {
+                        addNotification("Gfptar", message, "error");
+                        console.error("useEffect gfptar failed", message);
+                        return;
+                    }
+                    if (message) {
+                        const indirList = [];
+                        console.debug(message);
+                        for (const item of message) {
+                            const [file_type, path] = item.trim().split(" ", 2);
+                            indirList.push({
+                                is_dir: file_type === "D",
+                                is_file: file_type === "F",
+                                is_sym: file_type === "S",
+                                path,
+                                name: path,
+                            });
+                        }
+                        setIndirList(indirList);
+                    }
+                },
+                refresh
+            );
+        } else {
+            setItemForGfptar(
+                command,
+                activeTab === "archive" ? targetDir : lastSelectedItem.path,
+                activeTab === "archive"
+                    ? targetItems.map((item) => item.name)
+                    : selectedFromList.map((item) => item.path),
+                destDir,
+                options.split(" ").filter(Boolean)
+            );
             setIndirList([]);
             setSelectedItems([]);
             setOptions("");
@@ -120,7 +121,6 @@ function ArchiveModal({
         setTargetDir("");
         setDestDir("");
         setTargetItems([]);
-        setListStatus([]);
         setIndirList([]);
         setOptions("");
         setShowModal(false);
@@ -328,6 +328,6 @@ ArchiveModal.propTypes = {
     lastSelectedItem: PropTypes.object,
     currentDirItems: PropTypes.array,
     setSelectedItems: PropTypes.func,
-    setTasks: PropTypes.func,
+    setItemForGfptar: PropTypes.func,
     refresh: PropTypes.func,
 };
