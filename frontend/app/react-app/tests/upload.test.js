@@ -296,18 +296,15 @@ test("upload cancel", async ({ page }) => {
     const testFileName = "dummy.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
 
-    await page.route(
-        new RegExp(`${API_URL}/file/${encodeURIComponent(testFileName)}`),
-        async (route) => {
-            console.log(`[ROUTE MOCK] Simulating delayed upload for: ${testFileName}`);
-            await page.waitForTimeout(1000); // 5-second delay
-            await route.fulfill({
-                status: 200,
-                contentType: "application/json",
-                body: JSON.stringify({ message: "Upload completed (mocked after delay)" }),
-            });
-        }
-    );
+    await page.route(`${API_URL}/file/${encodeURIComponent(testFileName)}`, async (route) => {
+        console.log(`[ROUTE MOCK] Simulating delayed upload for: ${testFileName}`);
+        await page.waitForTimeout(1000); // 5-second delay
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({ message: "Upload completed (mocked after delay)" }),
+        });
+    });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 

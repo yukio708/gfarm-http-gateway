@@ -1,0 +1,112 @@
+const { test, expect } = require("@playwright/test");
+
+const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ROUTE_STORAGE } = require("./test_func");
+
+async function waitForProgressView(page, expectedFileName) {
+    const progressView = page.locator('[data-testid="progress-view"]');
+
+    const taskCard = progressView.locator(`[data-testid^="progress-card-${expectedFileName}"]`);
+    await expect(taskCard).toBeVisible();
+
+    await expect(taskCard.locator("h6")).toContainText(expectedFileName);
+
+    const progressBar = taskCard.locator(".progress-bar");
+    await expect(progressBar).toBeVisible();
+    await expect(taskCard.locator(".badge")).toHaveText("completed");
+}
+
+// === Tests ===
+test.beforeEach(async ({ context }) => {
+    await waitForReact();
+    await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
+});
+
+test("copy file", async ({ page }) => {
+    const currentDirectory = "/documents";
+    const testFileName = "meeting_notes.txt";
+    const expectedTestFileName = "meeting_notes (1).txt";
+    const displayname =
+        expectedTestFileName.length > 20
+            ? expectedTestFileName.slice(0, 20) + "..."
+            : expectedTestFileName;
+
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
+
+    const fileRow = page.locator("tbody tr", { hasText: testFileName });
+    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
+    await expect(threeDotsButton).toBeVisible();
+    await threeDotsButton.click();
+
+    const copyButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="copy-menu-${testFileName}"]`);
+    await expect(copyButton).toBeVisible();
+    await copyButton.click();
+
+    await waitForProgressView(page, displayname);
+
+    const ProgressViewHeader = page.locator(".offcanvas-header", { hasText: "Transfers" });
+    const close_button = ProgressViewHeader.locator(".btn-close");
+    await close_button.click();
+    await expect(ProgressViewHeader).not.toBeVisible();
+});
+
+test("copy cancel", async ({ page }) => {
+    const currentDirectory = "/documents";
+    const testFileName = "meeting_notes.txt";
+    const expectedTestFileName = "meeting_notes (1).txt";
+    const displayname =
+        expectedTestFileName.length > 20
+            ? expectedTestFileName.slice(0, 20) + "..."
+            : expectedTestFileName;
+
+    await page.route(`${API_URL}/copy`, async (route) => {
+        console.log(`[ROUTE MOCK] Simulating delayed upload for: ${testFileName}`);
+        const headers = {
+            "content-type": "application/json",
+            "transfer-encoding": "chunked",
+        };
+        await page.waitForTimeout(1000); // 5-second delay
+        const total = 1024 * 1024 * 50;
+        const chunks = JSON.stringify({ copied: total, total, done: true }) + "\n";
+        await route.fulfill({
+            status: 200,
+            headers,
+            body: chunks,
+        });
+    });
+
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
+
+    const fileRow = page.locator("tbody tr", { hasText: testFileName });
+    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
+    await expect(threeDotsButton).toBeVisible();
+    await threeDotsButton.click();
+
+    const copyButton = page
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="copy-menu-${testFileName}"]`);
+    await expect(copyButton).toBeVisible();
+    await copyButton.click();
+
+    const progressView = page.locator('[data-testid="progress-view"]');
+    const taskCard = progressView.locator(`[data-testid^="progress-card-${displayname}"]`);
+    await expect(taskCard).toBeVisible();
+    await expect(taskCard.locator(".badge")).toHaveText("copy");
+
+    const cancelButton = taskCard.locator(`[data-testid^="progress-button-cancel-${displayname}"]`);
+    await expect(cancelButton).toBeVisible();
+    await cancelButton.click();
+
+    await expect(taskCard.locator(".badge")).toHaveText("cancelled");
+    const firstTaskMessage = taskCard.locator('[data-testid="task-message-0"]');
+    await expect(firstTaskMessage).toContainText("Copy cancelled"); // Verify cancellation message
+
+    const ProgressViewHeader = page.locator('[data-testid="progress-header"]');
+    const close_button = ProgressViewHeader.locator('[data-testid="progress-header-button-close"]');
+    await close_button.click();
+    await expect(ProgressViewHeader).not.toBeVisible();
+
+    const ProgressViewButton = page.locator(".btn", { hasText: "Show Progress" });
+    await expect(ProgressViewButton).not.toBeVisible();
+});

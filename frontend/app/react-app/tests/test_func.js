@@ -448,6 +448,31 @@ export const handleRoute = async (route, request) => {
             contentType: "application/json",
             body: JSON.stringify({ message: "ACL updated successfully" }),
         });
+    } else if (url.includes("/copy")) {
+        console.log("/copy", url);
+        const headers = {
+            "content-type": "application/json",
+            "transfer-encoding": "chunked",
+        };
+
+        let chunks = "";
+        let copied = 0;
+        const total = 1024 * 1024 * 50;
+        const chunkSize = 1024 * 500;
+
+        while (copied < total) {
+            copied += chunkSize;
+            if (copied > total) copied = total;
+            chunks += JSON.stringify({ copied, total }) + "\n";
+        }
+
+        chunks += JSON.stringify({ copied: total, total, done: true }) + "\n";
+
+        await route.fulfill({
+            status: 200,
+            headers,
+            body: chunks,
+        });
     } else {
         await route.continue();
     }
