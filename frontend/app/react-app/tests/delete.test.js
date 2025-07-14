@@ -1,7 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
 const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ROUTE_STORAGE } = require("./test_func");
-const { stdout } = require("process");
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
@@ -88,7 +87,7 @@ test("delete error", async ({ page }) => {
     const testFileName = "meeting_notes.txt";
 
     await page.route(`${API_URL}/file/**`, async (route) => {
-        console.log(`[ROUTE MOCK] Simulating delayed delete for: ${testFileName}`);
+        console.log(`[ROUTE MOCK] Simulating error for: ${testFileName}`);
         await route.fulfill({
             status: 403,
             contentType: "application/json",

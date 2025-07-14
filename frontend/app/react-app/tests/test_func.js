@@ -473,6 +473,13 @@ export const handleRoute = async (route, request) => {
             headers,
             body: chunks,
         });
+    } else if (url.includes("/move")) {
+        console.log("/move", url);
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({}),
+        });
     } else {
         await route.continue();
     }

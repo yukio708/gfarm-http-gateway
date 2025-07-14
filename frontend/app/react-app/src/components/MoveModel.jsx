@@ -152,7 +152,7 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                         </div>
                     }
                     body={
-                        <div>
+                        <div data-testid="move-modal">
                             <div className="mb-3">
                                 <label htmlFor="move-dest-input" className="form-label fw-semibold">
                                     Enter Destination Path:
@@ -227,6 +227,7 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                 <div
                     className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-50"
                     style={{ zIndex: 1050 }}
+                    data-testid="move-overlay"
                 >
                     <div className="spinner-border text-primary" role="status"></div>
                     <div>Moving files... please wait</div>

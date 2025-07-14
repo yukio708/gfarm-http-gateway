@@ -78,6 +78,34 @@
                                 "path": "/documents/presentations/q1_review.pptx"
                             }
                         ]
+                    },
+                    {
+                        "mode_str": "drwxr-xr-x",
+                        "is_file": false,
+                        "is_dir": true,
+                        "is_sym": false,
+                        "nlink": 3,
+                        "uname": "user1",
+                        "gname": "user1",
+                        "size": 4096,
+                        "mtime_str": "Jun 01 18:00:00 2025",
+                        "name": "documents",
+                        "path": "/documents/documents",
+                        "childlen" : [
+                            {
+                                "mode_str": "-rw-r--r--",
+                                "is_file": true,
+                                "is_dir": false,
+                                "is_sym": false,
+                                "nlink": 1,
+                                "uname": "user1",
+                                "gname": "users",
+                                "size": 1228800,
+                                "mtime_str": "May 15 10:30:00 2025",
+                                "name": "report.docx",
+                                "path": "/documents/documents/report.docx"
+                            }
+                        ]
                     }
                 ]
             },
