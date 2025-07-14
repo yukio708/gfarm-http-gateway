@@ -335,46 +335,6 @@ test('copy single file', async ({ page }) => {
   // TODO: ファイル1件選択 → コピー実行 → コピー先にファイル存在を確認
 });
 
-// TC-107: 複数ファイルのコピー
-test('copy multiple files', async ({ page }) => {
-  // TODO: 複数ファイル選択 → コピー → 正常コピー確認
-});
-
-// TC-108: 単体ディレクトリのコピー
-test('copy single directory', async ({ page }) => {
-  // TODO: ディレクトリ1件コピー → コピー先に同構造確認
-});
-
-// TC-109: 複数ディレクトリのコピー
-test('copy multiple directories', async ({ page }) => {
-  // TODO: 複数ディレクトリ選択 → コピー → 全部成功確認
-});
-
-// TC-110: 階層構造を保ったままコピー
-test('copy nested directories', async ({ page }) => {
-  // TODO: 多階層ディレクトリ選択 → コピー → 構造保持を確認
-});
-
-// TC-111: 空ファイルのコピー
-test('copy empty file', async ({ page }) => {
-  // TODO: 空ファイルコピー → サイズ・中身確認
-});
-
-// TC-112: 空ディレクトリのコピー
-test('copy empty directory', async ({ page }) => {
-  // TODO: 空ディレクトリコピー → コピー先に空で存在
-});
-
-// TC-113: 上書き確認が表示される
-test('copy overwrite confirmation', async ({ page }) => {
-  // TODO: 同名ファイル存在 → コピー → 上書き確認ダイアログ表示
-});
-
-// TC-114: コピー元が存在しない場合にエラー
-test('copy nonexistent source', async ({ page }) => {
-  // TODO: 存在しないパス指定 → エラー表示を確認
-});
-
 ---
 
 // --- Customization Test ---

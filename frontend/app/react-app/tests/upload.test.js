@@ -298,7 +298,7 @@ test("upload cancel", async ({ page }) => {
 
     await page.route(`${API_URL}/file/${encodeURIComponent(testFileName)}`, async (route) => {
         console.log(`[ROUTE MOCK] Simulating delayed upload for: ${testFileName}`);
-        await page.waitForTimeout(1000); // 5-second delay
+        await page.waitForTimeout(1000); // delay
         await route.fulfill({
             status: 200,
             contentType: "application/json",

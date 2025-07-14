@@ -46,7 +46,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
                         </div>
                     }
                     body={
-                        <div>
+                        <div data-testid="delete-modal">
                             <ul>
                                 {itemsToDelete.map((file, idx) => (
                                     <li key={idx}>
@@ -62,6 +62,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
                 <div
                     className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-50"
                     style={{ zIndex: 1050 }}
+                    data-testid="delete-overlay"
                 >
                     <div className="spinner-border text-danger" role="status"></div>
                     <div>Deleting files... please wait</div>

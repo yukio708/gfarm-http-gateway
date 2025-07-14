@@ -35,27 +35,22 @@ export async function waitForReact() {
 
 export function transformMtimeToUnix(items) {
     if (!Array.isArray(items)) {
-        return []; // Ensure it's an array before iterating
+        return [];
     }
 
     items.forEach((item) => {
         if (item.mtime_str) {
             const dateObj = new Date(item.mtime_str);
 
-            // Check if the date parsing was successful
             if (!isNaN(dateObj.getTime())) {
-                // Get Unix timestamp in seconds (standard Unix time)
-                // getTime() returns milliseconds, so divide by 1000
                 item.mtime = Math.floor(dateObj.getTime() / 1000);
             } else {
                 console.warn(
                     `Warning: Could not parse mtime_str: "${item.mtime_str}". 'mtime' will not be set for this item.`
                 );
-                // You might choose to set item.mtime = null; or handle errors differently
             }
         }
 
-        // Recursively process children if they exist
         if (item.childlen && Array.isArray(item.childlen)) {
             transformMtimeToUnix(item.childlen);
         }
@@ -74,7 +69,6 @@ export const findChildrenByPath = (nodes, targetPath) => {
             return node.childlen && Array.isArray(node.childlen) ? node.childlen : [];
         }
 
-        // If the current node is a directory and has child elements
         if (node.is_dir && node.childlen && Array.isArray(node.childlen)) {
             if (
                 normalizedTargetPath.startsWith(node.path + "/") ||
@@ -87,7 +81,6 @@ export const findChildrenByPath = (nodes, targetPath) => {
             }
         }
     }
-    // Return null if path is not found
     return null;
 };
 
@@ -407,6 +400,13 @@ export const handleRoute = async (route, request) => {
             status: 200,
             contentType: "application/json",
             body: JSON.stringify({ result: "ok" }),
+        });
+    } else if (url.includes("/file/") && method === "DELETE") {
+        console.log("/file/", url);
+        await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify({}),
         });
     } else if (url.includes("/dir/") && method === "PUT") {
         console.log("/dir/", url);

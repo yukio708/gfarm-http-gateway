@@ -61,12 +61,12 @@ test("copy cancel", async ({ page }) => {
             : expectedTestFileName;
 
     await page.route(`${API_URL}/copy`, async (route) => {
-        console.log(`[ROUTE MOCK] Simulating delayed upload for: ${testFileName}`);
+        console.log(`[ROUTE MOCK] Simulating delayed copy for: ${testFileName}`);
         const headers = {
             "content-type": "application/json",
             "transfer-encoding": "chunked",
         };
-        await page.waitForTimeout(1000); // 5-second delay
+        await page.waitForTimeout(1000); // delay
         const total = 1024 * 1024 * 50;
         const chunks = JSON.stringify({ copied: total, total, done: true }) + "\n";
         await route.fulfill({

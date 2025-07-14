@@ -43,6 +43,7 @@ export function NotificationProvider({ children }) {
                         }`}
                         role="alert"
                         style={{ minWidth: "250px" }}
+                        data-testid={`notification-${n.id}`}
                     >
                         <div className="d-flex justify-content-between align-items-center px-2 py-1">
                             <div className="text-break">
