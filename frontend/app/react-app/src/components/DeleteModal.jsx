@@ -15,13 +15,17 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
         }
     }, [itemsToDelete]);
 
-    const deleteFile = async () => {
-        setIsDeleting(true);
-        const error = await removeItems(itemsToDelete, refresh);
-        setIsDeleting(false);
-        if (error) addNotification("Delete", error, "error");
-        setItemsToDelete([]);
-        setShowModal(false);
+    const handleDelete = () => {
+        const deleteFile = async () => {
+            setShowModal(false);
+            setIsDeleting(true);
+            const error = await removeItems(itemsToDelete, refresh);
+            setIsDeleting(false);
+            if (error) addNotification("Delete", error, "error");
+            setItemsToDelete([]);
+        };
+        deleteFile();
+        return true;
     };
 
     return (
@@ -32,7 +36,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
                         setItemsToDelete([]);
                         setShowModal(false);
                     }}
-                    onConfirm={deleteFile}
+                    onConfirm={handleDelete}
                     comfirmText="Delete"
                     title={
                         <div>
