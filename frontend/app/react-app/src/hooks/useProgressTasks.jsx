@@ -3,6 +3,7 @@ import { upload, checkPermissoin } from "../utils/upload";
 import download from "../utils/download";
 import copyFile from "../utils/copy";
 import gfptar from "../utils/archive";
+import { PARALLEL_LIMIT } from "../utils/config";
 import { getParentPath, suggestNewName } from "../utils/func";
 
 function useProgressTasks(setRefreshKey, addNotification) {
@@ -55,6 +56,26 @@ function useProgressTasks(setRefreshKey, addNotification) {
         console.debug("addFilesToUpload", newItems);
     };
 
+    const runWithLimit = async (tasks, limit = 10) => {
+        const results = [];
+        const queue = [];
+
+        for (const task of tasks) {
+            const p = task().then((result) => {
+                queue.splice(queue.indexOf(p), 1);
+                return result;
+            });
+            queue.push(p);
+            results.push(p);
+
+            if (queue.length >= limit) {
+                await Promise.race(queue);
+            }
+        }
+
+        return Promise.all(results);
+    };
+
     const handleUpload = async () => {
         setUploading(false);
         if (isUploadingRef.current) {
@@ -63,6 +84,7 @@ function useProgressTasks(setRefreshKey, addNotification) {
         }
         isUploadingRef.current = true;
 
+        const uploadTasks = [];
         const destDirSet = {};
         const uploadDirSet = new Set();
         uploadDirSet.add("/");
@@ -96,26 +118,46 @@ function useProgressTasks(setRefreshKey, addNotification) {
                 continue;
             }
 
-            await upload(
-                uploadItem.file,
-                uploadItem.fullpath,
-                uploadDirSet,
-                ({ status, value, message, done, onCancel }) => {
-                    setTasks((prev) =>
-                        prev.map((task) =>
-                            task.taskId === uploadItem.taskId
-                                ? updateTask(task, { status, value, message, done, onCancel })
-                                : task
-                        )
-                    );
-                }
-            ).catch((err) => {
-                console.error("uploadFile failed:", err);
+            uploadTasks.push(async () => {
+                return upload(
+                    uploadItem.file,
+                    uploadItem.fullpath,
+                    uploadDirSet,
+                    ({ status, value, message, done, onCancel }) => {
+                        setTasks((prev) =>
+                            prev.map((task) =>
+                                task.taskId === uploadItem.taskId
+                                    ? updateTask(task, { status, value, message, done, onCancel })
+                                    : task
+                            )
+                        );
+                    }
+                ).catch((err) => {
+                    console.error("uploadFile failed:", err);
+                });
             });
+
+            // await upload(
+            //     uploadItem.file,
+            //     uploadItem.fullpath,
+            //     uploadDirSet,
+            //     ({ status, value, message, done, onCancel }) => {
+            //         setTasks((prev) =>
+            //             prev.map((task) =>
+            //                 task.taskId === uploadItem.taskId
+            //                     ? updateTask(task, { status, value, message, done, onCancel })
+            //                     : task
+            //             )
+            //         );
+            //     }
+            // ).catch((err) => {
+            //     console.error("uploadFile failed:", err);
+            // });
         }
         isUploadingRef.current = false;
 
-        console.debug("upload done!");
+        await runWithLimit(uploadTasks, PARALLEL_LIMIT);
+        console.debug("upload done!", uploadDirSet);
         setRefreshKey((prev) => !prev);
     };
 

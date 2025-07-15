@@ -83,13 +83,13 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
                     resolve();
                 } else {
                     const detail = xhr.response?.detail;
-                    const message = get_error_message(xhr.status, detail);
+                    const message = "Error : " + get_error_message(xhr.status, detail);
                     progressCallbeck({
                         status: "error",
                         message,
                         done: true,
                     });
-                    console.error(message);
+                    console.error("!!!", message);
                     reject(new Error(message));
                 }
             };
@@ -99,7 +99,6 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
                     message: "Network error",
                     done: true,
                 });
-                console.error("Network error");
                 reject(new Error("Network error"));
             };
             xhr.send(file.file);
