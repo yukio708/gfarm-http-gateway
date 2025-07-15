@@ -141,7 +141,7 @@ function PermsTab({ item, active }) {
                             <td colSpan={3}></td>
                         </tr>
                         <tr>
-                            <th>Sticky</th>
+                            <th>Sticky Bit</th>
                             <td colSpan={3}>
                                 <input
                                     type="checkbox"
