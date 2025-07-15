@@ -14,6 +14,7 @@ async function copyFile(srcpath, destpath, progressCallbeck) {
     const signal = controller.signal;
     const request = {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
             {

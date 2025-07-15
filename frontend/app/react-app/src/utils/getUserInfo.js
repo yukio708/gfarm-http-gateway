@@ -19,7 +19,7 @@ export async function get_username() {
 
 export async function get_login_status() {
     try {
-        const res = await fetch(`${API_URL}/user_info`, { method: "GET" });
+        const res = await fetch(`${API_URL}/user_info`, { method: "GET", credentials: "include" });
         if (!res.ok) {
             const error = await res.json();
             const message = get_error_message(res.status, error.detail);

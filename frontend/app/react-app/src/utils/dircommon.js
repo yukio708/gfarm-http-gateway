@@ -10,6 +10,7 @@ async function dirCommon(path, method, message, params = null) {
     try {
         const url = `${API_URL}/dir${epath}?${params || ""}`;
         const response = await fetch(url, {
+            credentials: "include",
             method: method,
         });
         if (!response.ok) {

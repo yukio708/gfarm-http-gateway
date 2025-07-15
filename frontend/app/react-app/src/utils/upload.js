@@ -42,6 +42,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
     try {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl);
+        xhr.withCredentials = true;
         xhr.responseType = "json";
 
         progressCallbeck({
@@ -120,7 +121,9 @@ async function checkPermissoin(uploaddir) {
     const fullpath = `${API_URL}/dir${epath}?show_hidden=on&effperm=on`;
     let error = null;
     try {
-        const response = await fetch(fullpath);
+        const response = await fetch(fullpath, {
+            credentials: "include",
+        });
         if (!response.ok) {
             const error = await response.json();
             const message = get_error_message(response.status, error.detail);

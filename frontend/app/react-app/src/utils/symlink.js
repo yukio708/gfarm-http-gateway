@@ -5,7 +5,9 @@ import get_error_message from "./error";
 async function getSymlink(symlink) {
     const epath = encodePath(symlink);
     const fullpath = `${API_URL}/symlink${epath}`;
-    const response = await fetch(fullpath);
+    const response = await fetch(fullpath, {
+        credentials: "include",
+    });
     if (!response.ok) {
         const error = await response.json();
         const message = get_error_message(response.status, error.detail);
@@ -19,6 +21,7 @@ async function setSymlink(source, destination) {
     const fullpath = `${API_URL}/symlink`;
     const response = await fetch(fullpath, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source, destination }),
     });

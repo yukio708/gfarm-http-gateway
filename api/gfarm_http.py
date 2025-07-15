@@ -680,6 +680,7 @@ async def is_expired_token(token, use_raise=False):
 async def get_token(request: Request):
     token = request.session.get("token")
     if not token:
+        logger.debug(f"!!!! token is not found. request: {vars(request)}")
         return None
     if fer:
         token = decrypt_token(request, token)

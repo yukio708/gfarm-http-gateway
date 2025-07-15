@@ -13,6 +13,7 @@ async function removeItem(path, isFile = true) {
             : `${API_URL}/file${epath}?force=on&recursive=on`;
         console.debug("delete url", url);
         const response = await fetch(url, {
+            credentials: "include",
             method: "DELETE",
         });
         if (!response.ok) {

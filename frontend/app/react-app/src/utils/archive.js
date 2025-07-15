@@ -27,6 +27,7 @@ async function gfptar(
     const signal = controller.signal;
     const request = {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             command,

@@ -6,7 +6,9 @@ async function getAttribute(filepath) {
     const epath = encodePath(filepath);
     const fullpath = `${API_URL}/attr${epath}`;
 
-    const response = await fetch(fullpath);
+    const response = await fetch(fullpath, {
+        credentials: "include",
+    });
     const json = await response.json();
     if (!response.ok) {
         const message = get_error_message(response.status, json.detail);

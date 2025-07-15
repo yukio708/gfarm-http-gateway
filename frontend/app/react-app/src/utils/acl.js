@@ -8,6 +8,7 @@ export async function set_acl(path, acl) {
     try {
         const response = await fetch(fullpath, {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ acl }),
         });
@@ -26,7 +27,9 @@ export async function get_acl(path) {
     const epath = encodePath(path);
     const fullpath = `${API_URL}/acl${epath}`;
     try {
-        const response = await fetch(fullpath);
+        const response = await fetch(fullpath, {
+            credentials: "include",
+        });
         if (!response.ok) {
             const error = await response.json();
             const message = get_error_message(response.status, error.detail);
