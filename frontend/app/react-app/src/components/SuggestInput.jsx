@@ -68,8 +68,8 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
             />
             {focused && filtered.length > 0 && (
                 <ul
-                    className="list-group position-absolute w-100"
-                    style={{ zIndex: 999, top: "100%" }}
+                    className="list-group position-absolute w-100 overflow-auto"
+                    style={{ zIndex: 999, top: "100%", maxHeight: "200px" }}
                 >
                     {filtered.map((s, i) => (
                         <li
