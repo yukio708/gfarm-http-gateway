@@ -8,7 +8,7 @@ export async function getUsers() {
     const now = Date.now();
     if (now - cachedUsers.lastFetch > FETCH_INTERVAL) {
         try {
-            const response = await fetch(`${API_URL}/users`, {
+            const response = await fetch(`${API_URL}/users?long_format=on`, {
                 credentials: "include",
             });
             const data = await response.json();

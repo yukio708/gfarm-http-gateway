@@ -5,19 +5,27 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
     const [focused, setFocused] = useState(false);
     const [filtered, setFiltered] = useState([]);
     const [highlight, setHighlight] = useState(0);
+    const [displayName, setDisplayName] = useState("");
+
     const inputRef = useRef(null);
 
     useEffect(() => {
         if (typeof value !== "string") return;
+
+        const matched = suggestions.find((s) => s.value === value);
+        setDisplayName(matched ? matched.name : value);
+    }, [value, suggestions]);
+
+    useEffect(() => {
         const f = suggestions.filter(
-            (name) =>
-                typeof name === "string" &&
-                name.toLowerCase().includes(value.toLowerCase()) &&
-                name !== value
+            (s) =>
+                typeof s.name === "string" &&
+                s.name.toLowerCase().includes(displayName.toLowerCase()) &&
+                s.value !== value
         );
         setFiltered(f);
         setHighlight(0);
-    }, [value, suggestions]);
+    }, [displayName, suggestions, value]);
 
     const handleKeyDown = (e) => {
         if (filtered.length === 0) return;
@@ -31,9 +39,16 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
         } else if (e.key === "Tab" || e.key === "Enter") {
             if (filtered.length > 0) {
                 e.preventDefault();
-                onChange(filtered[highlight]);
+                const selected = filtered[highlight];
+                setDisplayName(selected.name);
+                onChange(selected.value);
             }
         }
+    };
+
+    const handleSelect = (s) => {
+        setDisplayName(s.name);
+        onChange(s.value);
     };
 
     return (
@@ -43,10 +58,10 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
                 ref={inputRef}
                 type="text"
                 className="form-control"
-                value={value}
+                value={displayName}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setTimeout(() => setFocused(false), 100)}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => setDisplayName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={disabled}
                 placeholder={placeholder ? placeholder : ""}
@@ -56,15 +71,15 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
                     className="list-group position-absolute w-100"
                     style={{ zIndex: 999, top: "100%" }}
                 >
-                    {filtered.map((name, i) => (
+                    {filtered.map((s, i) => (
                         <li
                             key={i}
                             className={`list-group-item list-group-item-action ${
                                 i === highlight ? "active" : ""
                             }`}
-                            onMouseDown={() => onChange(name)}
+                            onMouseDown={() => handleSelect(s)}
                         >
-                            {name}
+                            {s.name}
                         </li>
                     ))}
                 </ul>
@@ -73,13 +88,18 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
     );
 }
 
-export default SuggestInput;
-
 SuggestInput.propTypes = {
     id: PropTypes.string,
     value: PropTypes.string,
     onChange: PropTypes.func,
-    suggestions: PropTypes.array,
+    suggestions: PropTypes.arrayOf(
+        PropTypes.shape({
+            name: PropTypes.string.isRequired,
+            value: PropTypes.string.isRequired,
+        })
+    ).isRequired,
     placeholder: PropTypes.string,
     disabled: PropTypes.bool,
 };
+
+export default SuggestInput;

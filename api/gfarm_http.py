@@ -2887,7 +2887,9 @@ async def get_name_list(request: Request,
                         x_csrf_token: Union[str, None],
                         opname: str,
                         apiname: str,
-                        exec_func: Callable):
+                        exec_func: Callable,
+                        command: str = None,
+                        username: str = None):
     check_csrf(request, x_csrf_token)
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
@@ -2895,7 +2897,7 @@ async def get_name_list(request: Request,
     logger.debug(f"{ipaddr}:0 user={user}, cmd={opname},")
     log_operation(env, request.method, apiname, opname, "")
 
-    proc, args = await exec_func(env)
+    proc, args = await exec_func(env, username, command)
     elist = []
     stderr_task = asyncio.create_task(log_stderr(opname, proc, elist))
     data = await proc.stdout.read()
@@ -2909,33 +2911,68 @@ async def get_name_list(request: Request,
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
     items = [line.strip() for line in stdout.splitlines() if line.strip()]
-    return JSONResponse(content={"list": items})
+    return items
 
 
 @app.get("/users")
 async def get_usernames(request: Request,
+                        long_format: bool = False,
                         authorization: Union[str, None] = Header(default=None),
                         x_csrf_token: Union[str, None] = Header(default=None)):
-    return await get_name_list(
-        request=request,
-        authorization=authorization,
-        x_csrf_token=x_csrf_token,
-        opname="gfuser",
-        apiname="/users",
-        exec_func=gfuser)
+    opname = "gfuser",
+    apiname = "/users",
+    command = "l" if long_format else None
+    name_list = await get_name_list(request=request,
+                                    authorization=authorization,
+                                    x_csrf_token=x_csrf_token,
+                                    opname=opname, apiname=apiname,
+                                    exec_func=gfuser, command=command)
+
+    if long_format:
+        name_entries = []
+        for entry in name_list:
+            parts = entry.split(':')
+            if len(parts) < 4:
+                continue
+            entry_dict = {
+                'id': parts[0],
+                'name': parts[1],
+                'home_directory': parts[2],
+                'identifier': parts[3]
+            }
+            name_entries.append(entry_dict)
+        return JSONResponse(content={"list": entry_dict})
+    else:
+        return JSONResponse(content={"list": name_list})
 
 
 @app.get("/groups")
 async def get_groups(request: Request,
+                     long_format: bool = False,
                      authorization: Union[str, None] = Header(default=None),
                      x_csrf_token: Union[str, None] = Header(default=None)):
-    return await get_name_list(
-        request=request,
-        authorization=authorization,
-        x_csrf_token=x_csrf_token,
-        opname="gfgroup",
-        apiname="/groups",
-        exec_func=gfgroup)
+    opname = "gfgroup",
+    apiname = "/groups",
+    command = "l" if long_format else None
+    name_list = await get_name_list(request=request,
+                                    authorization=authorization,
+                                    x_csrf_token=x_csrf_token,
+                                    opname=opname, apiname=apiname,
+                                    exec_func=gfuser, command=command)
+    if long_format:
+        name_entries = []
+        for entry in name_list:
+            parts = entry.split(':')
+            if len(parts) < 2:
+                continue
+            entry_dict = {
+                'group': parts[0],
+                'menbers': parts[1]
+            }
+            name_entries.append(entry_dict)
+        return JSONResponse(content={"list": entry_dict})
+    else:
+        return JSONResponse(content={"list": name_list})
 
 
 class Tar(BaseModel):

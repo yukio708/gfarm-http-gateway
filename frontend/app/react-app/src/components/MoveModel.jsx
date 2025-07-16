@@ -161,7 +161,10 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                                     id="move-dest-input"
                                     value={targetPath}
                                     onChange={(val) => handleChange(val)}
-                                    suggestions={suggestions.map((item) => item.path)}
+                                    suggestions={suggestions.map((item) => ({
+                                        name: item.path,
+                                        value: item.path,
+                                    }))}
                                 />
                             </div>
                             <div className="mb-3">

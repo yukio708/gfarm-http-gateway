@@ -115,7 +115,10 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                                     id="symlink-linkname-input"
                                     value={linkName}
                                     onChange={(value) => setLinkName(value)}
-                                    suggestions={suggestionDirs.map((item) => item.path)}
+                                    suggestions={suggestionDirs.map((item) => ({
+                                        name: item.path,
+                                        value: item.path,
+                                    }))}
                                     placeholder="Enter link path"
                                 />
                                 {error && <div className="form-text alert-danger">{error}</div>}
@@ -140,7 +143,10 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
                                         id="symlink-target-input"
                                         value={sourcePath}
                                         onChange={(value) => setSourcePath(value)}
-                                        suggestions={suggestions.map((item) => item.path)}
+                                        suggestions={suggestions.map((item) => ({
+                                            name: item.path,
+                                            value: item.path,
+                                        }))}
                                     />
                                 )}
                             </div>

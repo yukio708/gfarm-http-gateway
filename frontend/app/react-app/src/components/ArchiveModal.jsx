@@ -169,7 +169,10 @@ function ArchiveModal({
                                     id="outdir-input"
                                     value={destDir}
                                     onChange={(val) => handleChange(val)}
-                                    suggestions={suggestions.map((item) => item.path)}
+                                    suggestions={suggestions.map((item) => ({
+                                        name: item.path,
+                                        value: item.path,
+                                    }))}
                                 />
                                 {error && <div className="form-text alert-danger">{error}</div>}
                             </div>
