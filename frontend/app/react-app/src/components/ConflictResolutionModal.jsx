@@ -157,57 +157,62 @@ function ConflictResolutionModal({
                                         <div className="row">
                                             <div className="col">
                                                 <div className="form-check">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="form-check-input me-2"
-                                                        id={`current-${item.name}`}
-                                                        onChange={(e) =>
-                                                            handleCheck(e, item, "keep_current")
-                                                        }
-                                                        checked={item.keep_current}
-                                                    />
                                                     <label
                                                         className="form-check-label"
                                                         htmlFor={`current-${item.name}`}
                                                     >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="form-check-input me-2"
+                                                            id={`current-${item.name}`}
+                                                            onChange={(e) =>
+                                                                handleCheck(e, item, "keep_current")
+                                                            }
+                                                            checked={!!item.keep_current}
+                                                        />
                                                         Keep current
+                                                        <div className="small">
+                                                            Size:{" "}
+                                                            {formatFileSize(item.size, item.is_dir)}
+                                                        </div>
+                                                        <div className="small">
+                                                            Modified: {getTimeStr(item.mtime)}
+                                                        </div>
                                                     </label>
-                                                    <div className="small">
-                                                        Size:{" "}
-                                                        {formatFileSize(item.size, item.is_dir)}
-                                                    </div>
-                                                    <div className="small">
-                                                        Modified: {getTimeStr(item.mtime)}
-                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="col">
                                                 <div className="form-check">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="form-check-input me-2"
-                                                        id={`incoming-${item.name}`}
-                                                        onChange={(e) =>
-                                                            handleCheck(e, item, "keep_incoming")
-                                                        }
-                                                        checked={item.keep_incoming}
-                                                    />
                                                     <label
                                                         className="form-check-label"
                                                         htmlFor={`incoming-${item.name}`}
                                                     >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="form-check-input me-2"
+                                                            id={`incoming-${item.name}`}
+                                                            onChange={(e) =>
+                                                                handleCheck(
+                                                                    e,
+                                                                    item,
+                                                                    "keep_incoming"
+                                                                )
+                                                            }
+                                                            checked={!!item.keep_incoming}
+                                                        />
                                                         Keep incoming
+                                                        <div className="small">
+                                                            Size:{" "}
+                                                            {formatFileSize(
+                                                                item.current_size,
+                                                                item.is_dir
+                                                            )}
+                                                        </div>
+                                                        <div className="small">
+                                                            Modified:{" "}
+                                                            {getTimeStr(item.current_mtime)}
+                                                        </div>
                                                     </label>
-                                                    <div className="small">
-                                                        Size:{" "}
-                                                        {formatFileSize(
-                                                            item.current_size,
-                                                            item.is_dir
-                                                        )}
-                                                    </div>
-                                                    <div className="small">
-                                                        Modified: {getTimeStr(item.current_mtime)}
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
