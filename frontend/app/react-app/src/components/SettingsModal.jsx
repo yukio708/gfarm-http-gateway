@@ -2,12 +2,16 @@ import React from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useShowHidden } from "../context/ShowHiddenContext";
 import { useViewMode } from "../context/ViewModeContext";
+import { useDateFormat } from "../context/DateFormatContext";
+import { getTimeStr } from "../utils/func";
 import PropTypes from "prop-types";
 
 function SettingsModal({ id = "settingsModal" }) {
     const { theme, setTheme } = useTheme();
     const { showHidden, setShowHidden } = useShowHidden();
     const { viewMode, setViewMode } = useViewMode();
+    const { dateFormat, setDateFormat } = useDateFormat();
+    const now = Math.floor(Date.now() / 1000);
 
     return (
         <div
@@ -75,12 +79,22 @@ function SettingsModal({ id = "settingsModal" }) {
                                 Show hidden files
                             </label>
                         </div>
-                    </div>
 
-                    <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
-                            Close
-                        </button>
+                        <div className="mb-3">
+                            <label htmlFor="dateformat-select" className="form-label fw-bold">
+                                Date Format
+                            </label>
+                            <select
+                                className="form-select"
+                                id="dateformat-select"
+                                value={dateFormat}
+                                onChange={(e) => setDateFormat(e.target.value)}
+                            >
+                                <option value="DMY">{getTimeStr(now, "DMY")}</option>
+                                <option value="YMD">{getTimeStr(now, "YMD")}</option>
+                                <option value="MDY">{getTimeStr(now, "MDY")}</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>

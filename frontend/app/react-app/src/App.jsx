@@ -12,6 +12,7 @@ import { UserInfoProvider } from "./context/UserInfoContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ShowHiddenProvider } from "./context/ShowHiddenContext";
 import { ViewModeProvider } from "./context/ViewModeContext";
+import { DateFormatProvider } from "./context/DateFormatContext";
 
 function App() {
     const [cssLoading, setCssLoading] = useState(true);
@@ -34,20 +35,22 @@ function App() {
                 <NotificationProvider>
                     <ShowHiddenProvider>
                         <ViewModeProvider>
-                            <HashRouter>
-                                <Routes>
-                                    <Route path="/" element={<IndexHandler />} />
-                                    <Route path={`${ROUTE_STORAGE}/*`} element={<HomePage />} />
-                                    <Route
-                                        path={`${ROUTE_DOWNLOAD}/*`}
-                                        element={<DownloadHandler />}
-                                    />
-                                    <Route
-                                        path="*"
-                                        element={<ErrorPage error={"Page not found"} />}
-                                    />
-                                </Routes>
-                            </HashRouter>
+                            <DateFormatProvider>
+                                <HashRouter>
+                                    <Routes>
+                                        <Route path="/" element={<IndexHandler />} />
+                                        <Route path={`${ROUTE_STORAGE}/*`} element={<HomePage />} />
+                                        <Route
+                                            path={`${ROUTE_DOWNLOAD}/*`}
+                                            element={<DownloadHandler />}
+                                        />
+                                        <Route
+                                            path="*"
+                                            element={<ErrorPage error={"Page not found"} />}
+                                        />
+                                    </Routes>
+                                </HashRouter>
+                            </DateFormatProvider>
                         </ViewModeProvider>
                     </ShowHiddenProvider>
                 </NotificationProvider>

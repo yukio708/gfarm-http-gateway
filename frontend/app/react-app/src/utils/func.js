@@ -152,13 +152,22 @@ export const formatFileSize = (filesize, is_dir) => {
     return sizestr;
 };
 
-export const getTimeStr = (time) => {
+export const getTimeStr = (time, format = "DMY") => {
     if (!time) return "unknown";
-    try {
-        return new Date(time * 1000).toLocaleString();
-    } catch {
-        return "unknown";
+
+    let locale;
+    switch (format) {
+        case "MDY":
+            locale = "en-US"; // month-day-year
+            break;
+        case "YMD":
+            locale = "ja-JP"; // year-month-day
+            break;
+        case "DMY":
+        default:
+            locale = "en-GB"; // day-month-year
     }
+    return new Date(time * 1000).toLocaleString(locale);
 };
 
 export const loadExternalCss = (url) => {

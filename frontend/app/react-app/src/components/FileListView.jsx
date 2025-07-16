@@ -16,6 +16,7 @@ import {
 } from "../utils/func";
 import { useViewMode } from "../context/ViewModeContext";
 import { useUserInfo } from "../context/UserInfoContext";
+import { useDateFormat } from "../context/DateFormatContext";
 import "../css/FileListView.css";
 import {
     BsArrowUpShort,
@@ -36,6 +37,7 @@ function ListView({
     handleClick,
     handleSelectItem,
 }) {
+    const { dateFormat } = useDateFormat();
     return (
         <>
             {sortedItems.map((item) => {
@@ -84,7 +86,7 @@ function ListView({
                             onClick={() => handleClick(!isSelected, item)}
                             onDoubleClick={() => handleDoubleClick(item)}
                         >
-                            {getTimeStr(item.mtime)}
+                            {getTimeStr(item.mtime, dateFormat)}
                         </td>
                         <td>
                             <ItemMenu item={item} actions={ItemMenuActions} />
@@ -106,6 +108,7 @@ function IconView({
     handleSelectItem,
     iconSize,
 }) {
+    const { dateFormat } = useDateFormat();
     let rowColsClass = "row-cols-2";
     let iconPixelSize = "3rem";
 
@@ -157,7 +160,7 @@ function IconView({
                                     style={{ fontSize: "0.8rem" }}
                                 >
                                     {formatFileSize(item.size, item.is_dir)} |{" "}
-                                    {getTimeStr(item.mtime)}
+                                    {getTimeStr(item.mtime, dateFormat)}
                                 </div>
                                 <div className="position-absolute bottom-0 end-0 m-1">
                                     <ItemMenu item={item} actions={ItemMenuActions} />
