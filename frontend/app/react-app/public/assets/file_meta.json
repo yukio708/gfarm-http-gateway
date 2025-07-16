@@ -9,7 +9,7 @@
     "code": ["js", "ts", "py", "html", "css", "c", "cpp"]
   },
   "icons": {
-    "folder": "bi bi-folder",
+    "folder": "bi bi-folder-fill",
     "symlink": "bi bi-link-45deg",
     "image": "bi bi-file-earmark-image",
     "video": "bi bi-file-earmark-play",

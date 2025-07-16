@@ -1,5 +1,5 @@
-.file-table {cursor: pointer;
-    /* Change cursor to pointer */
+.file-table {
+    cursor: pointer;
 }
 
 .file-table th:nth-child(1), /* Input column */
@@ -11,23 +11,23 @@
     width: 40px;
 }
 
-.file-table th:nth-child(2), /* Name column */
-.file-table td:nth-child(3) {
+.file-table th:nth-child(2),
+.file-table td:nth-child(3) {/* Name column */
     width: auto;
 }
 
-.file-table th:nth-child(3), /* Size column */
-.file-table td:nth-child(4) {
-    width: 150px;
+.file-table th:nth-child(3),
+.file-table td:nth-child(4) {/* Size column */
+    width: 15%;
 }
 
-.file-table th:nth-child(4), /* Date column */
-.file-table td:nth-child(5) {
-    width: 220px;
+.file-table th:nth-child(4),
+.file-table td:nth-child(5) {/* Date column */
+    width: 20%;
 }
 
-.file-table th:nth-child(5), /* Menu column */
-.file-table td:nth-child(6) {
+.file-table th:nth-child(5),
+.file-table td:nth-child(6) {/* Menu column */
     width: 50px;
 }
 
@@ -39,4 +39,22 @@
 .file-item:hover {
     background: rgba(0, 0, 0, 0.05);
     cursor: pointer;
+}
+
+.icon-table {
+    cursor: pointer;
+}
+
+.icon-table th:nth-child(1),
+.icon-table td:nth-child(1) { /* Input column */
+    width: 30px;
+}
+
+.icon-table td:nth-child(2) { /* Info column */
+    width: auto;
+}
+
+.icon-table th:nth-child(3),
+.icon-table td:nth-child(3) { /* Menu column */
+    width: 50px;
 }
