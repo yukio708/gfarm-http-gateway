@@ -12,6 +12,7 @@ import {
     sortItemsByUpdateDate,
     formatFileSize,
     getTimeStr,
+    hasTouchScreen,
 } from "../utils/func";
 import { useViewMode } from "../context/ViewModeContext";
 import { useUserInfo } from "../context/UserInfoContext";
@@ -31,7 +32,8 @@ function ListView({
     selectedItems,
     activeItem,
     ItemMenuActions,
-    handleItemClick,
+    handleDoubleClick,
+    handleClick,
     handleSelectItem,
 }) {
     return (
@@ -54,10 +56,8 @@ function ListView({
                             />
                         </td>
                         <td
-                            onClick={() => handleSelectItem(!isSelected, item)}
-                            onDoubleClick={() =>
-                                handleItemClick(item.path, item.is_file, item.is_dir)
-                            }
+                            onClick={() => handleClick(!isSelected, item)}
+                            onDoubleClick={() => handleDoubleClick(item)}
                         >
                             <span className="me-2">
                                 <FileIcon
@@ -69,26 +69,20 @@ function ListView({
                             </span>
                         </td>
                         <td
-                            onClick={() => handleSelectItem(!isSelected, item)}
-                            onDoubleClick={() =>
-                                handleItemClick(item.path, item.is_file, item.is_dir)
-                            }
+                            onClick={() => handleClick(!isSelected, item)}
+                            onDoubleClick={() => handleDoubleClick(item)}
                         >
                             {item.name}
                         </td>
                         <td
-                            onClick={() => handleSelectItem(!isSelected, item)}
-                            onDoubleClick={() =>
-                                handleItemClick(item.path, item.is_file, item.is_dir)
-                            }
+                            onClick={() => handleClick(!isSelected, item)}
+                            onDoubleClick={() => handleDoubleClick(item)}
                         >
                             {formatFileSize(item.size, item.is_dir)}
                         </td>
                         <td
-                            onClick={() => handleSelectItem(!isSelected, item)}
-                            onDoubleClick={() =>
-                                handleItemClick(item.path, item.is_file, item.is_dir)
-                            }
+                            onClick={() => handleClick(!isSelected, item)}
+                            onDoubleClick={() => handleDoubleClick(item)}
                         >
                             {getTimeStr(item.mtime)}
                         </td>
@@ -107,7 +101,8 @@ function IconView({
     selectedItems,
     activeItem,
     ItemMenuActions,
-    handleItemClick,
+    handleDoubleClick,
+    handleClick,
     handleSelectItem,
     iconSize,
 }) {
@@ -146,10 +141,8 @@ function IconView({
                                 />
                                 <div
                                     className="file-icon text-center mt-2"
-                                    onClick={() => handleSelectItem(!isSelected, item)}
-                                    onDoubleClick={() =>
-                                        handleItemClick(item.path, item.is_file, item.is_dir)
-                                    }
+                                    onClick={() => handleClick(!isSelected, item)}
+                                    onDoubleClick={() => handleDoubleClick(item)}
                                 >
                                     <FileIcon
                                         filename={item.name}
@@ -193,6 +186,7 @@ function FileListView({
 }) {
     const { viewMode, setViewMode } = useViewMode();
     const { userInfo } = useUserInfo();
+    const isTouchDevice = hasTouchScreen();
     const [sortDirection, setSortDirection] = useState({ column: "name", order: "asc" });
     const [filterTypes, setFilterTypes] = useState("");
     const [dateFilter, setDateFilter] = useState("all");
@@ -268,6 +262,26 @@ function FileListView({
             setLastSelectedItem(item);
         },
         [setSelectedItems, setLastSelectedItem]
+    );
+
+    const handleClick = useCallback(
+        (checked, item) => {
+            if (isTouchDevice) {
+                handleItemClick(item.path, item.is_file, item.is_dir);
+            } else {
+                handleSelectItem(checked, item);
+            }
+        },
+        [isTouchDevice, handleItemClick, handleSelectItem]
+    );
+
+    const handleDoubleClick = useCallback(
+        (item) => {
+            if (!isTouchDevice) {
+                handleItemClick(item.path, item.is_file, item.is_dir);
+            }
+        },
+        [isTouchDevice, handleItemClick]
     );
 
     const toggleSortDirection = (column) => {
@@ -380,7 +394,8 @@ function FileListView({
                             selectedItems={selectedItems}
                             activeItem={activeItem}
                             ItemMenuActions={ItemMenuActions}
-                            handleItemClick={handleItemClick}
+                            handleClick={handleClick}
+                            handleDoubleClick={handleDoubleClick}
                             handleSelectItem={handleSelectItem}
                         />
                     ) : (
@@ -389,7 +404,8 @@ function FileListView({
                             selectedItems={selectedItems}
                             activeItem={activeItem}
                             ItemMenuActions={ItemMenuActions}
-                            handleItemClick={handleItemClick}
+                            handleClick={handleClick}
+                            handleDoubleClick={handleDoubleClick}
                             handleSelectItem={handleSelectItem}
                             iconSize={viewMode === "icon_rg" ? "regular" : "small"}
                         />
@@ -421,7 +437,8 @@ ListView.propTypes = {
     selectedItems: PropTypes.array,
     activeItem: PropTypes.object,
     ItemMenuActions: PropTypes.array,
-    handleItemClick: PropTypes.func,
+    handleClick: PropTypes.func,
+    handleDoubleClick: PropTypes.func,
     handleSelectItem: PropTypes.func,
 };
 
@@ -430,7 +447,8 @@ IconView.propTypes = {
     selectedItems: PropTypes.array,
     activeItem: PropTypes.object,
     ItemMenuActions: PropTypes.array,
-    handleItemClick: PropTypes.func,
+    handleClick: PropTypes.func,
+    handleDoubleClick: PropTypes.func,
     handleSelectItem: PropTypes.func,
     iconSize: PropTypes.string,
 };

@@ -366,3 +366,25 @@ export const checkFileName = (name) => {
         !/[. ]$/.test(name) // doesn't end with space or dot
     );
 };
+
+export const hasTouchScreen = () => {
+    if ("maxTouchPoints" in navigator) {
+        return navigator.maxTouchPoints > 0;
+    }
+    if ("msMaxTouchPoints" in navigator) {
+        return navigator.msMaxTouchPoints > 0;
+    }
+
+    const mQ = matchMedia?.("(pointer:coarse)");
+    if (mQ?.media === "(pointer:coarse)") {
+        return !!mQ.matches;
+    } else if ("orientation" in window) {
+        return true;
+    } else {
+        const UA = navigator.userAgent;
+        return (
+            /\b(BlackBerry|webOS|iPhone|IEMobile)\b/i.test(UA) ||
+            /\b(Android|Windows Phone|iPad|iPod)\b/i.test(UA)
+        );
+    }
+};
