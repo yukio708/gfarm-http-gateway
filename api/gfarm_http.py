@@ -2941,7 +2941,7 @@ async def get_usernames(request: Request,
                 'identifier': parts[3]
             }
             name_entries.append(entry_dict)
-        return JSONResponse(content={"list": entry_dict})
+        return JSONResponse(content={"list": name_entries})
     else:
         return JSONResponse(content={"list": name_list})
 
