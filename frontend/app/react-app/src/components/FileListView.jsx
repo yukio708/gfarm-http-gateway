@@ -412,15 +412,12 @@ function IconView({
     const headerCheckboxRef = useRef(null);
     const { viewMode, setViewMode } = useViewMode();
     const { dateFormat } = useDateFormat();
-    let rowColsClass = "row-cols-2";
     let iconPixelSize = "3rem";
 
+    let gridContainerClass = "grid-container grid-regular";
     if (iconSize === "small") {
-        rowColsClass = "row-cols-2 row-cols-md-6 row-cols-lg-8";
+        gridContainerClass = "grid-container grid-small";
         iconPixelSize = "1.5rem";
-    } else {
-        rowColsClass = "row-cols-2 row-cols-md-4 row-cols-lg-6";
-        iconPixelSize = "3rem";
     }
 
     useEffect(() => {
@@ -486,7 +483,7 @@ function IconView({
                     </div>
                 </div>
                 <hr className="my-2" />
-                <div className={`row ${rowColsClass}`}>
+                <div className={`${gridContainerClass}`}>
                     {sortedItems.map((item) => {
                         const isSelected = selectedItems.some(
                             (selected) => selected.path === item.path
@@ -496,7 +493,9 @@ function IconView({
                         return (
                             <div
                                 key={item.path}
-                                className={`file-item position-relative ${isLastSelected ? "file-item-active" : ""}`}
+                                className={`col file-item position-relative ${isLastSelected ? "file-item-active" : ""} ${
+                                    iconSize === "small" ? "grid-item-sm" : "grid-item"
+                                }`}
                             >
                                 <input
                                     type="checkbox"
@@ -517,10 +516,18 @@ function IconView({
                                         size={iconPixelSize}
                                     />
                                 </div>
-                                <div className="file-name text-center mt-1">{item.name}</div>
                                 <div
-                                    className="text-muted text-center"
+                                    className="file-name text-center mt-1"
+                                    onClick={() => handleClick(!isSelected, item)}
+                                    onDoubleClick={() => handleDoubleClick(item)}
+                                >
+                                    {item.name}
+                                </div>
+                                <div
+                                    className="text-muted text-center text-break px-3"
                                     style={{ fontSize: "0.8rem" }}
+                                    onClick={() => handleClick(!isSelected, item)}
+                                    onDoubleClick={() => handleDoubleClick(item)}
                                 >
                                     {formatFileSize(item.size, item.is_dir)} |{" "}
                                     {getTimeStr(item.mtime, dateFormat)}
