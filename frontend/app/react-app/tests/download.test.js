@@ -54,7 +54,7 @@ test("download multiple files", async ({ page }) => {
 
     for (const fileName of filesToDownload) {
         const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator('input[type="checkbox"]').check();
+        await fileRow.locator(`[id="checkbox-${fileName}"]`).check();
     }
 
     const actionmenu = page.locator('[data-testid="action-menu"]');
@@ -139,7 +139,7 @@ test("download empty file", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const fileRow = page.locator("tbody tr", { hasText: emptyFileName });
-    await fileRow.locator('input[type="checkbox"]').check();
+    await fileRow.locator(`[id="checkbox-${emptyFileName}"]`).check();
 
     const actionmenu = page.locator('[data-testid="action-menu"]');
     const downloadButton = actionmenu.locator('[data-testid="action-menu-download"]');

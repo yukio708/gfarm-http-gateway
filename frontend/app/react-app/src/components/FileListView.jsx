@@ -316,11 +316,11 @@ function ListView({
                                         selectedItems.length === sortedItems.length &&
                                         sortedItems.length > 0
                                     }
-                                    id="header-checkbox"
-                                    data-testid="header-checkbox"
+                                    id="header-checkbox-sm"
+                                    data-testid="header-checkbox-sm"
                                 />
                             </th>
-                            <th data-testid="header-name">
+                            <th data-testid="header-name-sm">
                                 <SortDropDownMenu
                                     sortDirection={sortDirection}
                                     setSortDirection={setSortDirection}
@@ -328,7 +328,7 @@ function ListView({
                             </th>
                             <th
                                 onClick={() => setViewMode(toggleViewMode(viewMode))}
-                                data-testid="header-viewmode"
+                                data-testid="header-viewmode-sm"
                             >
                                 {toggleViewModeIcon(viewMode)}
                             </th>
@@ -348,7 +348,7 @@ function ListView({
                                     <td>
                                         <input
                                             type="checkbox"
-                                            id={"checkbox-" + item.name}
+                                            id={"checkbox-" + item.name + "-sm"}
                                             className="form-check-input"
                                             onChange={(event) =>
                                                 handleSelectItem(event.target.checked, item)

@@ -137,7 +137,7 @@ function ArchiveModal({
                     size="large"
                     title={<h5 className="modal-title">Gfptar</h5>}
                     body={
-                        <div>
+                        <div data-testid="gfptar-modal">
                             <div className="mb-3">
                                 <ul className="nav nav-tabs">
                                     <li className="nav-item">

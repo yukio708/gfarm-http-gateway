@@ -105,7 +105,7 @@ test("move name conflict prompt", async ({ page }) => {
 
     for (const fileName of filesToMove) {
         const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator('input[type="checkbox"]').check();
+        await fileRow.locator(`[id="checkbox-${fileName}"]`).check();
     }
 
     const actionmenu = page.locator('[data-testid="action-menu"]');
