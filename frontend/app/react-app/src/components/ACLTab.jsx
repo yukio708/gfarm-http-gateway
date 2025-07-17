@@ -17,9 +17,7 @@ function ACLTab({ item, active }) {
             const groups = await getGroups();
             console.debug("users", users);
             console.debug("groups", groups);
-            setUserList(
-                users.map((entry) => ({ name: `${entry.name}(${entry.id})`, value: entry.id }))
-            );
+            setUserList(users.map((entry) => ({ name: `${entry.name}`, value: entry.id })));
             setGroupList(groups.map((entry) => ({ name: entry, value: entry })));
         }
 
