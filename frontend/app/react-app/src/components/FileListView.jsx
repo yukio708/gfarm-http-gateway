@@ -191,7 +191,7 @@ function ListView({
     return (
         <>
             <div className="d-none d-sm-block">
-                <table className={`table file-table ${viewMode === "list" ? "table-hover" : ""}`}>
+                <table className="table file-table table-hover">
                     <thead style={{ position: "sticky", top: 0 }}>
                         <tr>
                             <th className="align-middle">
@@ -303,7 +303,7 @@ function ListView({
             </div>
 
             <div className="d-block d-sm-none">
-                <table className={`table icon-table ${viewMode === "list" ? "table-hover" : ""}`}>
+                <table className="table file-table table-hover">
                     <thead style={{ position: "sticky", top: 0 }}>
                         <tr>
                             <th className="align-middle">
@@ -496,7 +496,7 @@ function IconView({
                         return (
                             <div
                                 key={item.path}
-                                className={`file-item position-relative ${isLastSelected ? "bg-primary-subtle" : ""}`}
+                                className={`file-item position-relative ${isLastSelected ? "file-item-active" : ""}`}
                             >
                                 <input
                                     type="checkbox"

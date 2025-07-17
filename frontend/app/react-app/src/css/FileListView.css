@@ -33,12 +33,24 @@
 
 .file-item {
     border-radius: 8px;
-    transition: background 0.2s;
+    transition: background-color 0.2s;
 }
 
 .file-item:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background-color: var(--bs-secondary-bg);
     cursor: pointer;
+}
+
+.file-item-active {
+    background-color: var(--bs-secondary-bg-subtle);
+}
+
+[data-bs-theme="dark"] .file-item:hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+[data-bs-theme="dark"] .file-item-active {
+    background-color: rgba(255, 255, 255, .15);
 }
 
 .icon-table {
