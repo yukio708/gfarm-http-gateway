@@ -142,7 +142,7 @@ function ConflictResolutionModal({
                                     <li key={i} className="list-group-item list-group-item-action">
                                         <div className="d-flex justify-content-between align-items-center mb-2">
                                             <div>
-                                                {item.is_dir ? (
+                                                {item.parent_is_conflicted ? (
                                                     <BsFolder className="me-2" />
                                                 ) : (
                                                     <BsFileEarmark className="me-2" />
@@ -173,10 +173,14 @@ function ConflictResolutionModal({
                                                         Keep current
                                                         <div className="small">
                                                             Size:{" "}
-                                                            {formatFileSize(item.size, item.is_dir)}
+                                                            {formatFileSize(
+                                                                item.current_size,
+                                                                item.parent_is_conflicted
+                                                            )}
                                                         </div>
                                                         <div className="small">
-                                                            Modified: {getTimeStr(item.mtime)}
+                                                            Modified:{" "}
+                                                            {getTimeStr(item.current_mtime)}
                                                         </div>
                                                     </label>
                                                 </div>
@@ -204,13 +208,12 @@ function ConflictResolutionModal({
                                                         <div className="small">
                                                             Size:{" "}
                                                             {formatFileSize(
-                                                                item.current_size,
-                                                                item.is_dir
+                                                                item.size,
+                                                                item.parent_is_conflicted
                                                             )}
                                                         </div>
                                                         <div className="small">
-                                                            Modified:{" "}
-                                                            {getTimeStr(item.current_mtime)}
+                                                            Modified: {getTimeStr(item.mtime)}
                                                         </div>
                                                     </label>
                                                 </div>
