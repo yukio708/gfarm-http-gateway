@@ -13,7 +13,7 @@ get_jwt_token() {
         local uid=$(id -u)
         jwt_path="/tmp/jwt_user_u${uid}/token.jwt"
     fi
-    
+
     if [ -f "$jwt_path" ]; then
         cat "$jwt_path"
     fi
@@ -22,10 +22,10 @@ get_jwt_token() {
 make_authenticated_curl() {
     local -a cmd=("curl")
     local -a auth_headers=()
-    
+
     # Add provided curl options
     cmd+=("$@")
-    
+
     # Handle authentication
     if [ "${GFARM_SASL_USER:-}" = "anonymous" ]; then
         # SASL ANONYMOUS - no auth needed
@@ -52,9 +52,9 @@ upload_file() {
     local url="$2"
     shift 2
     local -a curl_opts=("$@")
-    
+
     local -a headers=()
-    
+
     # Handle file timestamp
     if [ "$input_file" != "-" ]; then
         local mtime=""
@@ -67,12 +67,12 @@ upload_file() {
                 mtime=$(stat -c %Y "$input_file" 2>/dev/null || echo "")
                 ;;
         esac
-        
+
         if [ -n "$mtime" ]; then
             headers+=("-H" "X-File-Timestamp: $mtime")
         fi
     fi
-    
+
     # Use authenticated curl with upload
     make_authenticated_curl "${curl_opts[@]}" "${headers[@]}" --upload-file "$input_file" "$url"
 }
@@ -96,17 +96,17 @@ get_url_base() {
 
 build_curl_opts() {
     local opts=("--fail-with-body")
-    
+
     if [ "$opt_verbose" -eq 1 ]; then
         opts+=("-v")
     else
         opts+=("--no-progress-meter")
     fi
-    
+
     if [ "$opt_insecure" -eq 1 ]; then
         opts+=("-k")
     fi
-    
+
     echo "${opts[@]}"
 }
 
@@ -114,7 +114,7 @@ build_curl_opts() {
 cmd_ls() {
     local -a params=()
     local opt_all=0 opt_effective=0 opt_long=0 opt_recursive=0
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             -a|--all)
@@ -142,28 +142,28 @@ cmd_ls() {
                 ;;
         esac
     done
-    
+
     if [ $# -ne 1 ]; then
         ERR "Gfarm-path is required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local gfarm_path=$(echo "$1" | url_path_encode)
-    
-    [ $opt_all -eq 1 ] && params+=("a=1")
-    [ $opt_effective -eq 1 ] && params+=("e=1")
-    [ $opt_long -eq 1 ] && params+=("l=1")
-    [ $opt_recursive -eq 1 ] && params+=("R=1")
-    
+
+    [ $opt_all -eq 1 ] && params+=("show_hidden=1")
+    [ $opt_effective -eq 1 ] && params+=("effperm=1")
+    [ $opt_long -eq 1 ] && params+=("long_format=1")
+    [ $opt_recursive -eq 1 ] && params+=("recursive=1")
+
     local params_str=""
     if [ ${#params[@]} -gt 0 ]; then
         params_str="?"$(IFS='&'; echo "${params[*]}")
     fi
-    
+
     local url="${url_base}/dir/${gfarm_path}${params_str}"
     local opts=($(build_curl_opts))
-    
+
     make_authenticated_curl "${opts[@]}" "$url"
 }
 
@@ -172,15 +172,15 @@ cmd_download() {
         ERR "Both Gfarm-path and Local-path are required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local gfarm_path=$(echo "$1" | url_path_encode)
     local local_path="$2"
-    
+
     local url="${url_base}/file/${gfarm_path}"
     local opts=($(build_curl_opts))
     opts+=("-R")  # --remote-time
-    
+
     if [ "$local_path" = "-" ]; then
         make_authenticated_curl "${opts[@]}" "$url"
     else
@@ -193,14 +193,14 @@ cmd_upload() {
         ERR "Both Local-path and Gfarm-path are required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local local_path="$1"
     local gfarm_path=$(echo "$2" | url_path_encode)
-    
+
     local url="${url_base}/file/${gfarm_path}"
     local opts=($(build_curl_opts))
-    
+
     upload_file "$local_path" "$url" "${opts[@]}"
 }
 
@@ -209,13 +209,13 @@ cmd_mkdir() {
         ERR "Gfarm-path is required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local gfarm_path=$(echo "$1" | url_path_encode)
-    
+
     local url="${url_base}/dir/${gfarm_path}"
     local opts=($(build_curl_opts))
-    
+
     exec "${BIN_DIR}/jwt-curl" -X PUT "${opts[@]}" "$url"
 }
 
@@ -224,13 +224,13 @@ cmd_rm() {
         ERR "Gfarm-path is required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local gfarm_path=$(echo "$1" | url_path_encode)
-    
+
     local url="${url_base}/file/${gfarm_path}"
     local opts=($(build_curl_opts))
-    
+
     exec "${BIN_DIR}/jwt-curl" -X DELETE "${opts[@]}" "$url"
 }
 
@@ -239,13 +239,13 @@ cmd_rmdir() {
         ERR "Gfarm-path is required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local gfarm_path=$(echo "$1" | url_path_encode)
-    
+
     local url="${url_base}/dir/${gfarm_path}"
     local opts=($(build_curl_opts))
-    
+
     exec "${BIN_DIR}/jwt-curl" -X DELETE "${opts[@]}" "$url"
 }
 
@@ -254,16 +254,16 @@ cmd_chmod() {
         ERR "Both mode and Gfarm-path are required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local mode="$1"
     local gfarm_path=$(echo "$2" | url_path_encode)
-    
+
     local url="${url_base}/attr/${gfarm_path}"
     local opts=($(build_curl_opts))
-    
+
     local headers=("-X" "POST" "-d" "@-" "-H" "Content-Type: application/json")
-    
+
     make_authenticated_curl "${headers[@]}" "${opts[@]}" "$url" <<EOF
 {
   "Mode": "$mode"
@@ -276,13 +276,13 @@ cmd_stat() {
         ERR "Gfarm-path is required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local gfarm_path=$(echo "$1" | url_path_encode)
-    
+
     local url="${url_base}/attr/${gfarm_path}"
     local opts=($(build_curl_opts))
-    
+
     make_authenticated_curl "${opts[@]}" "$url"
 }
 
@@ -291,16 +291,16 @@ cmd_mv() {
         ERR "Both source and destination paths are required"
         exit 1
     fi
-    
+
     local url_base=$(get_url_base)
     local src_path=$(echo "$1" | url_path_encode)
     local dst_path="$2"
-    
+
     local url="${url_base}/file/${src_path}"
     local opts=($(build_curl_opts))
-    
+
     local headers=("-X" "PATCH" "-d" "@-" "-H" "Content-Type: application/json")
-    
+
     make_authenticated_curl "${headers[@]}" "${opts[@]}" "$url" <<EOF
 {
   "Destination": "$dst_path"
@@ -310,9 +310,9 @@ EOF
 
 cmd_whoami() {
     local url_base=$(get_url_base)
-    local url="${url_base}/whoami"
+    local url="${url_base}/conf/me"
     local opts=($(build_curl_opts))
-    
+
     make_authenticated_curl "${opts[@]}" "$url"
 }
 
