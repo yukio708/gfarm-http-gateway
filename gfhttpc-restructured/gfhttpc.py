@@ -9,19 +9,113 @@ import json
 import argparse
 import subprocess
 import urllib.parse
+import base64
+import stat
 from pathlib import Path
 
-def get_bin_dir():
-    """Get the bin directory relative to this script"""
-    return Path(__file__).parent.parent / "bin"
+def get_jwt_token():
+    """Get JWT token from file or environment"""
+    jwt_path = os.environ.get('JWT_USER_PATH')
+    if not jwt_path:
+        uid = os.getuid()
+        jwt_path = f"/tmp/jwt_user_u{uid}/token.jwt"
+    
+    if os.path.exists(jwt_path):
+        with open(jwt_path, 'r') as f:
+            return f.read().strip()
+    return None
 
-def get_jwt_curl_path():
-    """Get the jwt-curl executable path"""
-    return get_bin_dir() / "jwt-curl"
+def get_auth_headers():
+    """Get authentication headers for requests"""
+    sasl_user = os.environ.get('GFARM_SASL_USER')
+    sasl_password = os.environ.get('GFARM_SASL_PASSWORD')
+    
+    if sasl_user == "anonymous":
+        return {}
+    elif sasl_user and sasl_password:
+        auth_str = base64.b64encode(f"{sasl_user}:{sasl_password}".encode()).decode()
+        return {"Authorization": f"Basic {auth_str}"}
+    else:
+        token = get_jwt_token()
+        if token:
+            return {"Authorization": f"Bearer {token}"}
+        else:
+            print("Error: Environment variable JWT_USER_PATH (or, GFARM_SASL_USER and GFARM_SASL_PASSWORD) is required", file=sys.stderr)
+            sys.exit(1)
 
-def get_jwt_curl_upload_path():
-    """Get the jwt-curl-upload executable path"""
-    return get_bin_dir() / "jwt-curl-upload"
+def make_curl_request(url, method="GET", data=None, headers=None, output_file=None, upload_file=None, curl_opts=None):
+    """Make authenticated curl request"""
+    auth_headers = get_auth_headers()
+    
+    cmd = ["curl"]
+    
+    # Add curl options
+    if curl_opts:
+        cmd.extend(curl_opts)
+    
+    # Add authentication headers
+    for key, value in auth_headers.items():
+        cmd.extend(["-H", f"{key}: {value}"])
+    
+    # Add additional headers
+    if headers:
+        for key, value in headers.items():
+            cmd.extend(["-H", f"{key}: {value}"])
+    
+    # Set HTTP method
+    if method != "GET":
+        cmd.extend(["-X", method])
+    
+    # Add data for POST/PUT/PATCH
+    if data:
+        if isinstance(data, dict):
+            cmd.extend(["-d", json.dumps(data)])
+            cmd.extend(["-H", "Content-Type: application/json"])
+        else:
+            cmd.extend(["-d", data])
+    
+    # Handle file upload
+    if upload_file:
+        if upload_file == "-":
+            cmd.extend(["--upload-file", "-"])
+        else:
+            upload_path = Path(upload_file)
+            if upload_path.exists():
+                # Add file timestamp header
+                mtime = int(upload_path.stat().st_mtime)
+                cmd.extend(["-H", f"X-File-Timestamp: {mtime}"])
+                cmd.extend(["--upload-file", str(upload_path)])
+            else:
+                print(f"Error: File not found: {upload_file}", file=sys.stderr)
+                sys.exit(1)
+    
+    # Handle output file
+    if output_file:
+        cmd.extend(["-o", output_file])
+    
+    # Add URL
+    cmd.append(url)
+    
+    # Execute curl
+    try:
+        if sasl_user and sasl_password and sasl_user != "anonymous":
+            # Use basic auth directly in curl
+            cmd = ["curl", "-u", f"{sasl_user}:{sasl_password}"] + cmd[1:]
+            # Remove Authorization header if present
+            filtered_cmd = []
+            i = 0
+            while i < len(cmd):
+                if cmd[i] == "-H" and i + 1 < len(cmd) and cmd[i + 1].startswith("Authorization:"):
+                    i += 2  # Skip both -H and the header
+                else:
+                    filtered_cmd.append(cmd[i])
+                    i += 1
+            cmd = filtered_cmd
+        
+        subprocess.exec(cmd)
+    except Exception as e:
+        print(f"Error executing curl: {e}", file=sys.stderr)
+        sys.exit(1)
 
 def url_path_encode(path):
     """URL encode path while preserving forward slashes"""
@@ -72,9 +166,7 @@ def cmd_ls(args):
     url = f"{url_base}/dir/{gfarm_path}{params_str}"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    subprocess.exec([str(jwt_curl)] + opts + [url])
+    make_curl_request(url, curl_opts=opts)
 
 def cmd_download(args):
     """Download file from Gfarm"""
@@ -90,12 +182,11 @@ def cmd_download(args):
     
     opts = build_curl_opts(args)
     opts.append("-R")  # --remote-time
-    jwt_curl = get_jwt_curl_path()
     
     if local_path == "-":
-        subprocess.exec([str(jwt_curl)] + opts + [url])
+        make_curl_request(url, curl_opts=opts)
     else:
-        subprocess.exec([str(jwt_curl)] + opts + ["-o", local_path, url])
+        make_curl_request(url, curl_opts=opts, output_file=local_path)
 
 def cmd_upload(args):
     """Upload file to Gfarm"""
@@ -110,9 +201,7 @@ def cmd_upload(args):
     url = f"{url_base}/file/{gfarm_path}"
     
     opts = build_curl_opts(args)
-    jwt_curl_upload = get_jwt_curl_upload_path()
-    
-    subprocess.exec([str(jwt_curl_upload), local_path, url] + opts)
+    make_curl_request(url, method="PUT", curl_opts=opts, upload_file=local_path)
 
 def cmd_mkdir(args):
     """Create directory"""
@@ -126,9 +215,7 @@ def cmd_mkdir(args):
     url = f"{url_base}/dir/{gfarm_path}"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    subprocess.exec([str(jwt_curl), "-X", "PUT"] + opts + [url])
+    make_curl_request(url, method="PUT", curl_opts=opts)
 
 def cmd_rm(args):
     """Remove file"""
@@ -142,9 +229,7 @@ def cmd_rm(args):
     url = f"{url_base}/file/{gfarm_path}"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    subprocess.exec([str(jwt_curl), "-X", "DELETE"] + opts + [url])
+    make_curl_request(url, method="DELETE", curl_opts=opts)
 
 def cmd_rmdir(args):
     """Remove directory"""
@@ -158,9 +243,7 @@ def cmd_rmdir(args):
     url = f"{url_base}/dir/{gfarm_path}"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    subprocess.exec([str(jwt_curl), "-X", "DELETE"] + opts + [url])
+    make_curl_request(url, method="DELETE", curl_opts=opts)
 
 def cmd_chmod(args):
     """Change file permissions"""
@@ -175,11 +258,8 @@ def cmd_chmod(args):
     url = f"{url_base}/attr/{gfarm_path}"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    data = json.dumps({"Mode": mode})
-    
-    subprocess.exec([str(jwt_curl), "-X", "POST", "-d", data, "-H", "Content-Type: application/json"] + opts + [url])
+    data = {"Mode": mode}
+    make_curl_request(url, method="POST", data=data, curl_opts=opts)
 
 def cmd_stat(args):
     """Get file status"""
@@ -193,9 +273,7 @@ def cmd_stat(args):
     url = f"{url_base}/attr/{gfarm_path}"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    subprocess.exec([str(jwt_curl)] + opts + [url])
+    make_curl_request(url, curl_opts=opts)
 
 def cmd_mv(args):
     """Move/rename file"""
@@ -205,16 +283,13 @@ def cmd_mv(args):
     
     url_base = get_url_base()
     src_path = url_path_encode(args.path[0])
-    dst_path = url_path_encode(args.path[1])
+    dst_path = args.path[1]
     
     url = f"{url_base}/file/{src_path}"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    data = json.dumps({"Destination": args.path[1]})
-    
-    subprocess.exec([str(jwt_curl), "-X", "PATCH", "-d", data, "-H", "Content-Type: application/json"] + opts + [url])
+    data = {"Destination": dst_path}
+    make_curl_request(url, method="PATCH", data=data, curl_opts=opts)
 
 def cmd_whoami(args):
     """Show current user"""
@@ -222,9 +297,7 @@ def cmd_whoami(args):
     url = f"{url_base}/whoami"
     
     opts = build_curl_opts(args)
-    jwt_curl = get_jwt_curl_path()
-    
-    subprocess.exec([str(jwt_curl)] + opts + [url])
+    make_curl_request(url, curl_opts=opts)
 
 def main():
     parser = argparse.ArgumentParser(

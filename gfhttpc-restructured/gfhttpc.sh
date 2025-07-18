@@ -3,9 +3,79 @@
 
 set -eu
 
-# Get script directory and bin directory
+# Get script directory
 SCRIPT_DIR=$(realpath $(dirname "$0"))
-BIN_DIR="$(realpath ${SCRIPT_DIR}/../bin)"
+
+# Authentication and JWT handling functions
+get_jwt_token() {
+    local jwt_path="${JWT_USER_PATH:-}"
+    if [ -z "$jwt_path" ]; then
+        local uid=$(id -u)
+        jwt_path="/tmp/jwt_user_u${uid}/token.jwt"
+    fi
+    
+    if [ -f "$jwt_path" ]; then
+        cat "$jwt_path"
+    fi
+}
+
+make_authenticated_curl() {
+    local -a cmd=("curl")
+    local -a auth_headers=()
+    
+    # Add provided curl options
+    cmd+=("$@")
+    
+    # Handle authentication
+    if [ "${GFARM_SASL_USER:-}" = "anonymous" ]; then
+        # SASL ANONYMOUS - no auth needed
+        exec "${cmd[@]}"
+    elif [ -n "${GFARM_SASL_USER:-}" ] && [ -n "${GFARM_SASL_PASSWORD:-}" ]; then
+        # SASL Basic Auth
+        exec curl -u "${GFARM_SASL_USER}:${GFARM_SASL_PASSWORD}" "${cmd[@]:1}"
+    else
+        # JWT Token
+        local token=$(get_jwt_token)
+        if [ -n "$token" ]; then
+            auth_headers+=("-H" "Authorization: Bearer ${token}")
+            exec "${cmd[@]}" "${auth_headers[@]}"
+        else
+            ERR "Environment variable JWT_USER_PATH (or, GFARM_SASL_USER and GFARM_SASL_PASSWORD) is required"
+            exit 1
+        fi
+    fi
+}
+
+# Upload file with authentication and timestamp
+upload_file() {
+    local input_file="$1"
+    local url="$2"
+    shift 2
+    local -a curl_opts=("$@")
+    
+    local -a headers=()
+    
+    # Handle file timestamp
+    if [ "$input_file" != "-" ]; then
+        local mtime=""
+        local os_type=$(uname -s)
+        case $os_type in
+            Darwin)
+                mtime=$(stat -f %m "$input_file" 2>/dev/null || echo "")
+                ;;
+            Linux)
+                mtime=$(stat -c %Y "$input_file" 2>/dev/null || echo "")
+                ;;
+        esac
+        
+        if [ -n "$mtime" ]; then
+            headers+=("-H" "X-File-Timestamp: $mtime")
+        fi
+    fi
+    
+    # Use authenticated curl with upload
+    make_authenticated_curl "${curl_opts[@]}" "${headers[@]}" --upload-file "$input_file" "$url"
+}
 
 # Common functions
 ERR() {
@@ -94,7 +164,7 @@ cmd_ls() {
     local url="${url_base}/dir/${gfarm_path}${params_str}"
     local opts=($(build_curl_opts))
     
-    exec "${BIN_DIR}/jwt-curl" "${opts[@]}" "$url"
+    make_authenticated_curl "${opts[@]}" "$url"
 }
 
 cmd_download() {
@@ -112,9 +182,9 @@ cmd_download() {
     opts+=("-R")  # --remote-time
     
     if [ "$local_path" = "-" ]; then
-        exec "${BIN_DIR}/jwt-curl" "${opts[@]}" "$url"
+        make_authenticated_curl "${opts[@]}" "$url"
     else
-        exec "${BIN_DIR}/jwt-curl" "${opts[@]}" -o "$local_path" "$url"
+        make_authenticated_curl "${opts[@]}" -o "$local_path" "$url"
     fi
 }
 
@@ -131,7 +201,7 @@ cmd_upload() {
     local url="${url_base}/file/${gfarm_path}"
     local opts=($(build_curl_opts))
     
-    exec "${BIN_DIR}/jwt-curl-upload" "$local_path" "$url" "${opts[@]}"
+    upload_file "$local_path" "$url" "${opts[@]}"
 }
 
 cmd_mkdir() {
@@ -194,7 +264,7 @@ cmd_chmod() {
     
     local headers=("-X" "POST" "-d" "@-" "-H" "Content-Type: application/json")
     
-    exec "${BIN_DIR}/jwt-curl" "${headers[@]}" "${opts[@]}" "$url" <<EOF
+    make_authenticated_curl "${headers[@]}" "${opts[@]}" "$url" <<EOF
 {
   "Mode": "$mode"
 }
@@ -213,7 +283,7 @@ cmd_stat() {
     local url="${url_base}/attr/${gfarm_path}"
     local opts=($(build_curl_opts))
     
-    exec "${BIN_DIR}/jwt-curl" "${opts[@]}" "$url"
+    make_authenticated_curl "${opts[@]}" "$url"
 }
 
 cmd_mv() {
@@ -231,7 +301,7 @@ cmd_mv() {
     
     local headers=("-X" "PATCH" "-d" "@-" "-H" "Content-Type: application/json")
     
-    exec "${BIN_DIR}/jwt-curl" "${headers[@]}" "${opts[@]}" "$url" <<EOF
+    make_authenticated_curl "${headers[@]}" "${opts[@]}" "$url" <<EOF
 {
   "Destination": "$dst_path"
 }
@@ -243,7 +313,7 @@ cmd_whoami() {
     local url="${url_base}/whoami"
     local opts=($(build_curl_opts))
     
-    exec "${BIN_DIR}/jwt-curl" "${opts[@]}" "$url"
+    make_authenticated_curl "${opts[@]}" "$url"
 }
 
 # Help functions
