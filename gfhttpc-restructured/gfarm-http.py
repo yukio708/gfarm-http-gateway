@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gfhttpc - HTTP client for Gfarm filesystem operations
+gfarm-http - HTTP client for Gfarm filesystem operations
 """
 
 import os

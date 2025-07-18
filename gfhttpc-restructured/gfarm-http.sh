@@ -1,5 +1,5 @@
 #!/bin/bash
-# gfhttpc - HTTP client for Gfarm filesystem operations
+# gfarm-http - HTTP client for Gfarm filesystem operations
 
 set -eu
 
