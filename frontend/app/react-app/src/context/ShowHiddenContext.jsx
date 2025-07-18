@@ -8,15 +8,21 @@ export function useShowHidden() {
 }
 
 export function ShowHiddenProvider({ children }) {
-    const [showHidden, setShowHidden] = useState(false);
+    const [showHidden, setShowHidden] = useState(null);
 
     useEffect(() => {
         const savedHidden = localStorage.getItem("showHidden");
-        if (savedHidden) setShowHidden(savedHidden === "true");
+        if (savedHidden !== null) {
+            setShowHidden(savedHidden === "true");
+        } else {
+            setShowHidden(false);
+        }
     }, []);
 
     useEffect(() => {
-        localStorage.setItem("showHidden", showHidden);
+        if (showHidden !== null) {
+            localStorage.setItem("showHidden", showHidden);
+        }
     }, [showHidden]);
 
     return (

@@ -11,12 +11,12 @@ export function DateFormatProvider({ children }) {
     const [dateFormat, setDateFormat] = useState("DMY");
 
     useEffect(() => {
-        const savedDateFormat = localStorage.getItem("showHidden");
+        const savedDateFormat = localStorage.getItem("dateFormat");
         if (savedDateFormat) setDateFormat(savedDateFormat);
     }, []);
 
     useEffect(() => {
-        localStorage.setItem("showHidden", dateFormat);
+        localStorage.setItem("dateFormat", dateFormat);
     }, [dateFormat]);
 
     return (
