@@ -209,10 +209,17 @@ function HomePage() {
             <div className="row">
                 <div className="col">
                     <nav className={`navbar`}>
-                        <div className="container-fluid">
-                            <CurrentDirView currentDir={currentDir} onNavigate={jumpDirectory} />
-                            <div className="ms-2 d-flex gap-2">
-                                <UserMenu />
+                        <div className="container-fluid d-flex flex-column">
+                            <div className="d-flex justify-content-between align-items-start w-100">
+                                <div className="me-3 flex-grow-1">
+                                    <CurrentDirView
+                                        currentDir={currentDir}
+                                        onNavigate={jumpDirectory}
+                                    />
+                                </div>
+                                <div className="flex-shrink-0">
+                                    <UserMenu />
+                                </div>
                             </div>
                         </div>
                     </nav>
