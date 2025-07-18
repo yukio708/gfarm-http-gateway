@@ -47,6 +47,14 @@ function ACLTab({ item, active }) {
     }, [item, active]);
 
     const updateEntry = async () => {
+        for (const entry of entries) {
+            if (entry.base) continue;
+            if (entry.is_default) continue;
+            if (entry.acl_name) continue;
+            addNotification("SetACL", "Name is empty", "error");
+            return;
+        }
+
         const res = await set_acl(item.path, entries);
         if (res !== "") {
             console.error(res);
@@ -214,7 +222,7 @@ function ACLTab({ item, active }) {
                 </div>
                 <div className="text-end mt-3">
                     <button className="btn btn-primary btn-sm " onClick={updateEntry}>
-                        Set ACL
+                        Update
                     </button>
                 </div>
             </div>

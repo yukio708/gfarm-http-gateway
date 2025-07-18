@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import changeMode from "../utils/changeMode";
-import getAttribute from "../utils/getAttribute";
 import useGetAttr from "../hooks/useGetAttr";
 import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
@@ -156,7 +155,7 @@ function PermsTab({ item, active }) {
 
             <div className="text-end mt-4">
                 <button className="btn btn-sm btn-primary" onClick={handleApply}>
-                    Apply
+                    Update
                 </button>
             </div>
         </div>
