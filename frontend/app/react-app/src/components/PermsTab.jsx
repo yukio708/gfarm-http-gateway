@@ -133,22 +133,26 @@ function PermsTab({ item, active }) {
                                 ))}
                             </tr>
                         ))}
-                        <tr>
-                            <th></th>
-                            <td colSpan={3}></td>
-                        </tr>
-                        <tr>
-                            <th>Sticky Bit</th>
-                            <td colSpan={3}>
-                                <input
-                                    type="checkbox"
-                                    className="form-check-input"
-                                    checked={permissions.special.sticky}
-                                    onChange={() => toggleSpecial("sticky")}
-                                    id="perm-sticky"
-                                />
-                            </td>
-                        </tr>
+                        {item.is_dir && (
+                            <>
+                                <tr>
+                                    <th></th>
+                                    <td colSpan={3}></td>
+                                </tr>
+                                <tr>
+                                    <th>Sticky Bit</th>
+                                    <td colSpan={3}>
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            checked={permissions.special.sticky}
+                                            onChange={() => toggleSpecial("sticky")}
+                                            id="perm-sticky"
+                                        />
+                                    </td>
+                                </tr>
+                            </>
+                        )}
                     </tbody>
                 </table>
             </div>
