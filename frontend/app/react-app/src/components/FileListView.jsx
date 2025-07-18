@@ -376,7 +376,8 @@ function ListView({
                                                         className="text-muted"
                                                         style={{ fontSize: "0.8rem" }}
                                                     >
-                                                        {formatFileSize(item.size, item.is_dir)} |{" "}
+                                                        {formatFileSize(item.size, item.is_dir)}
+                                                        {item.is_dir ? " " : " | "}
                                                         {getTimeStr(item.mtime, dateFormat)}
                                                     </div>
                                                 </div>
@@ -529,7 +530,8 @@ function IconView({
                                     onClick={() => handleClick(!isSelected, item)}
                                     onDoubleClick={() => handleDoubleClick(item)}
                                 >
-                                    {formatFileSize(item.size, item.is_dir)} |{" "}
+                                    {formatFileSize(item.size, item.is_dir)}
+                                    {item.is_dir ? " " : " | "}
                                     {getTimeStr(item.mtime, dateFormat)}
                                 </div>
                                 <div className="position-absolute bottom-0 end-0 m-1">
