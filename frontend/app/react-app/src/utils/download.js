@@ -23,18 +23,18 @@ async function download(files, setError) {
         window.URL.revokeObjectURL(dlurl);
     } else {
         const dlurl = `${API_URL}/zip`;
-        const pathes = files.map((file) => file.path);
-        console.debug("pathes", pathes);
+        const paths = files.map((file) => file.path);
+        console.debug("paths", paths);
 
         const form = document.createElement("form");
         form.action = dlurl;
         form.method = "POST";
         form.style.display = "none";
 
-        for (const path of pathes) {
+        for (const path of paths) {
             const input = document.createElement("input");
             input.type = "hidden";
-            input.name = "pathes";
+            input.name = "paths";
             input.value = path;
             form.appendChild(input);
         }

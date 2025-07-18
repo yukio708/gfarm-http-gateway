@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import changeMode from "../utils/changeMode";
 import getAttribute from "../utils/getAttribute";
+import useGetAttr from "../hooks/useGetAttr";
 import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
 
@@ -30,6 +31,7 @@ function permissionsToOctal(p) {
 }
 
 function PermsTab({ item, active }) {
+    const { detailContent, getAttrError } = useGetAttr(item, false, false);
     const { addNotification } = useNotifications();
     const [octal, setOctal] = useState("644");
     const [permissions, setPermissions] = useState({
@@ -40,20 +42,16 @@ function PermsTab({ item, active }) {
     });
 
     useEffect(() => {
-        if (!item || !active) return;
+        if (detailContent) {
+            setOctal(detailContent.Mode);
+        }
+    }, [detailContent]);
 
-        const getMode = async (item) => {
-            try {
-                const detail = await getAttribute(item.path);
-                console.debug("detail:", detail);
-                setOctal(detail.Mode);
-            } catch (err) {
-                console.error("getAttribute failed:", err);
-                addNotification("GetMode", `${err.name} : ${err.message}`, "error");
-            }
-        };
-        getMode(item);
-    }, [item, active]);
+    useEffect(() => {
+        if (getAttrError) {
+            addNotification("GetMode", getAttrError, "error");
+        }
+    }, [getAttrError]);
 
     useEffect(() => {
         const parsed = parseOctal(octal);

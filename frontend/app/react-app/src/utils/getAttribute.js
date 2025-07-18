@@ -2,9 +2,9 @@ import { encodePath } from "./func";
 import { API_URL } from "./config";
 import get_error_message from "./error";
 
-async function getAttribute(filepath) {
+async function getAttribute(filepath, cksum) {
     const epath = encodePath(filepath);
-    const fullpath = `${API_URL}/attr${epath}`;
+    const fullpath = `${API_URL}/attr${epath}?check_sum=${cksum ? "on" : "off"}`;
 
     const response = await fetch(fullpath, {
         credentials: "include",

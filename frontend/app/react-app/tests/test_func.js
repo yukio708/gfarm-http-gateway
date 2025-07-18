@@ -349,7 +349,7 @@ export const handleRoute = async (route, request) => {
         console.log("/zip/", url);
         const postData = await request.postData();
         const parsed = querystring.parse(postData);
-        const files = Array.isArray(parsed["pathes"]) ? parsed["pathes"] : [parsed["pathes"]];
+        const files = Array.isArray(parsed["paths"]) ? parsed["paths"] : [parsed["paths"]];
         console.debug("Intercepted /zip POST data:", files);
 
         const AdmZip = require("adm-zip");

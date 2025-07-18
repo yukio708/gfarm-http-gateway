@@ -1473,6 +1473,20 @@ def parse_gfgetfacl(acl_str) -> Union[ACList, None]:
     return ACList(acl=acl)
 
 
+def parse_gfcksum(data):
+    checksums = []
+    for line in data.strip().splitlines():
+        parts = line.strip().split(maxsplit=3)
+        if len(parts) == 4 and "no checksum" not in line:
+            cksum, cksum_type, size, path = parts
+            parse_cksum_type = re.sub(r"^\((.*)\)$", r"\1", cksum_type)
+            checksums.append({"cksum": cksum,
+                              "cksum_type": parse_cksum_type,
+                              "size": size,
+                              "path": path})
+    return checksums
+
+
 #############################################################################
 async def gfwhoami(env):
     args = []
@@ -1840,6 +1854,24 @@ async def gfchmod(env, path, mode):
 #     return existing, is_file, size
 
 
+async def gfcksum(env,
+                  cmd: str = None, paths: List[str] = None, host: str = None):
+    args = []
+    if cmd:
+        args.append(f"-{cmd}")
+    if paths:
+        args.extend(paths)
+    if host:
+        args.extend(["-h", host])
+
+    return await asyncio.create_subprocess_exec(
+        'gfcksum', *args,
+        env=env,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE), args
+
+
 async def gfptar(env,
                  cmd: str,
                  outdir,
@@ -1870,9 +1902,9 @@ async def gfptar(env,
 
 async def gfuser(env, username: str = None, cmd: str = None):
     args = []
-    if cmd is not None:
+    if cmd:
         args.append(f"-{cmd}")
-    if username is not None:
+    if username:
         args.append(username)
     return await asyncio.create_subprocess_exec(
         'gfuser', *args,
@@ -2089,6 +2121,17 @@ async def gfarm_command_standard_response(env, proc, command):
         logger.opt(depth=1).debug(
             f"{ipaddr}:0 user={user}, cmd={command}, stdout={out}")
     return PlainTextResponse(content=stdout)
+
+
+async def read_proc_output(opname, proc, elist):
+    stderr_task = asyncio.create_task(log_stderr(opname, proc, elist))
+    data = await proc.stdout.read()
+    stdout = data.decode()
+    await stderr_task
+    return_code = await proc.wait()
+    if return_code != 0:
+        return None
+    return stdout
 
 
 #############################################################################
@@ -2421,13 +2464,13 @@ class ZipStreamWriter:
 
 
 class PathList(BaseModel):
-    pathes: List[str]
+    paths: List[str]
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "pathes": ["/foo", "/bar"],
+                    "paths": ["/foo", "/bar"],
                 }
             ]
         }
@@ -2436,16 +2479,16 @@ class PathList(BaseModel):
 
 @app.post("/zip")
 async def zip_export(request: Request,
-                     pathes: List[str] = Form(...),
+                     paths: List[str] = Form(...),
                      authorization: Union[str, None] = Header(default=None)):
     opname = "gfzip"
     apiname = "/zip"
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, request.method, apiname, opname, pathes)
+    log_operation(env, request.method, apiname, opname, paths)
     filedatas = []
-    for filepath in pathes:
+    for filepath in paths:
         existing, is_file, _ = await file_size(env, filepath)
         if not existing:
             code = status.HTTP_404_NOT_FOUND
@@ -2730,9 +2773,29 @@ async def file_copy(copy_data: FileOperation,
         return_code_mv = await p_mv.wait()
 
         if return_code_mv == 0:
-            yield json.dumps({"copied": copied,
-                              "total": size,
-                              "done": True}) + "\n"
+            paths = [gfarm_path, dest_path]
+            opname = "gfcksum"
+            log_operation(env, request.method, apiname, opname, gfarm_path)
+            proc_cksum, _ = await gfcksum(env, cmd="c", paths=paths)
+            stdout = await read_proc_output(opname, proc_cksum, elist)
+            error_message = None
+            if stdout is not None:
+                cksums = parse_gfcksum(stdout)
+                if len(cksums) == 2:
+                    src, dst = cksums
+                    if src["cksum"] != dst["cksum"]:
+                        error_message = (
+                            f"checksum mismatch: "
+                            f'{src["path"]}:{src["cksum"]}({src["cksum_type"]})'
+                            ' '
+                            f'{dst["path"]}:{dst["cksum"]}({dst["cksum_type"]})'
+                        )
+
+            yield json.dumps(
+                {"copied": copied,
+                 "total": size,
+                 "error": error_message,
+                 "done": True}) + "\n"
         else:
             p_clean = await gfrm(env, tmppath, force=True)
             await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
@@ -2763,35 +2826,56 @@ async def move_rename(request: Request,
 @app.get("/attr/{gfarm_path:path}")
 async def get_attr(gfarm_path: str,
                    request: Request,
+                   check_sum: bool = False,
                    authorization: Union[str, None] = Header(default=None)
                    ) -> Stat:
     opname = "gfstat"
     apiname = "/attr"
     gfarm_path = fullpath(gfarm_path)
-    env = await set_env(request, authorization)
-    log_operation(env, request.method, apiname, opname, gfarm_path)
-    metadata = True
-    proc = await gfstat(env, gfarm_path, metadata)
-
+    result_json = {}
+    stdout = ""
     elist = []
-    stderr_task = asyncio.create_task(log_stderr(opname, proc, elist))
-    data = await proc.stdout.read()
-    stdout = data.decode()
-    await stderr_task
-    return_code = await proc.wait()
-    if return_code != 0:
-        errstr = str(elist)
-        if "authentication error" in errstr:
+    try:
+        env = await set_env(request, authorization)
+        log_operation(env, request.method, apiname, opname, gfarm_path)
+        metadata = True
+        proc = await gfstat(env, gfarm_path, metadata)
+
+        stdout = await read_proc_output(opname, proc, elist)
+        if stdout is None:
+            raise Exception(str(elist))
+        st = parse_gfstat(stdout)
+        logger.debug("Stat=\n" + pf(st.model_dump()))
+        result_json = st.model_dump()
+
+        if check_sum:
+            opname = "gfcksum"
+            env = await set_env(request, authorization)  # may refresh
+            log_operation(env, request.method, apiname, opname, gfarm_path)
+            proc_cksum, args = await gfcksum(env, paths=[gfarm_path])
+
+            stdout = await read_proc_output(opname, proc_cksum, elist)
+            if stdout is None:
+                raise Exception(' '.join(args))
+            cksums = parse_gfcksum(stdout)
+            if len(cksums) > 0:
+                result_json["Cksum"] = cksums[0]["cksum"]
+                result_json["CksumType"] = cksums[0]["cksum_type"]
+            else:
+                result_json["Cksum"] = ""
+                result_json["CksumType"] = ""
+
+        return JSONResponse(content=result_json)
+
+    except Exception as err:
+        if "authentication error" in str(elist):
             code = status.HTTP_401_UNAUTHORIZED
             message = "Authentication error"
             raise gfarm_http_error(opname, code, message, stdout, elist)
         else:
             code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            message = "Intarnal Server Error"
+            message = f"Internal Server Error ({opname} {str(err)})"
             raise gfarm_http_error(opname, code, message, stdout, elist)
-    st = parse_gfstat(stdout)
-    logger.debug("Stat=\n" + pf(st.model_dump()))
-    return JSONResponse(content=st.model_dump())
 
 
 @app.post("/attr/{gfarm_path:path}")

@@ -65,12 +65,12 @@ async function copyFile(srcpath, destpath, progressCallbeck) {
                     console.warn("Failed to parse line:", line, err);
                     continue;
                 }
-                if (json.done) {
-                    console.debug("Copy complete");
-                    break;
-                }
                 if (json.error) {
                     throw new Error(`500 ${json.error}`);
+                }
+                if (json.done) {
+                    console.debug("Copy complete", json);
+                    break;
                 }
                 const copied = json.copied;
                 const total = json.total;
