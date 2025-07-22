@@ -1,110 +1,40 @@
-import React, { useEffect } from "react";
-import { useNotifications } from "../context/NotificationContext";
+import React from "react";
 import { formatFileSize } from "../utils/func";
-import useGetAttr from "../hooks/useGetAttr";
 import PropTypes from "prop-types";
 
-function DetailTab({ item, active }) {
-    const { detailContent, getAttrError } = useGetAttr(item, true, true);
-    const { addNotification } = useNotifications();
+function DetailTab({ active, detailContent }) {
+    if (!active) return null;
 
-    useEffect(() => {
-        if (getAttrError) {
-            console.error("getAttribute failed:", getAttrError);
-            addNotification("Detail", getAttrError, "error");
-        }
-    }, [getAttrError]);
-
-    if (!active) return <></>;
+    const rows = [
+        { label: "File", value: detailContent?.File || "" },
+        detailContent?.LinkPath && { label: "Link Path", value: detailContent?.LinkPath || "" },
+        { label: "File Type", value: detailContent?.Filetype || "" },
+        { label: "Size", value: formatFileSize(detailContent?.Size || 0, false) },
+        { label: "Permissions", value: detailContent?.Mode || "" },
+        { label: "Ncopy", value: detailContent?.Ncopy || "" },
+        { label: "Access", value: detailContent?.Access || "" },
+        { label: "Modify", value: detailContent?.Modify || "" },
+        { label: "Change", value: detailContent?.Change || "" },
+        { label: "Owner", value: detailContent?.Uid || "" },
+        { label: "Group", value: detailContent?.Gid || "" },
+        { label: "Cksum", value: detailContent?.Cksum || "" },
+        { label: "Cksum Type", value: detailContent?.CksumType || "" },
+    ].filter(Boolean);
 
     return (
         <div>
-            {detailContent && (
-                <table className="table table-striped table-bordered mt-4">
-                    <tbody>
-                        <tr>
+            <table className="table table-striped table-bordered mt-4">
+                <tbody>
+                    {rows.map(({ label, value }) => (
+                        <tr key={label}>
                             <td>
-                                <strong>File:</strong>
+                                <strong>{label}</strong>
                             </td>
-                            <td>{detailContent.File}</td>
+                            <td>{value}</td>
                         </tr>
-                        {detailContent.LinkPath && (
-                            <tr>
-                                <td>
-                                    <strong>Link Path</strong>
-                                </td>
-                                <td>{detailContent.LinkPath}</td>
-                            </tr>
-                        )}
-                        <tr>
-                            <td>
-                                <strong>File Type</strong>
-                            </td>
-                            <td>{detailContent.Filetype}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Size</strong>
-                            </td>
-                            <td>{formatFileSize(detailContent.Size, false)}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Permissions</strong>
-                            </td>
-                            <td>{detailContent.Mode}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Ncopy</strong>
-                            </td>
-                            <td>{detailContent.Ncopy}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Access</strong>
-                            </td>
-                            <td>{detailContent.Access}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Modify</strong>
-                            </td>
-                            <td>{detailContent.Modify}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Change</strong>
-                            </td>
-                            <td>{detailContent.Change}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Owner</strong>
-                            </td>
-                            <td>{detailContent.Uid}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Group</strong>
-                            </td>
-                            <td>{detailContent.Gid}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Cksum</strong>
-                            </td>
-                            <td>{detailContent.Cksum}</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <strong>Cksum Type</strong>
-                            </td>
-                            <td>{detailContent.CksumType}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            )}
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }
@@ -112,6 +42,6 @@ function DetailTab({ item, active }) {
 export default DetailTab;
 
 DetailTab.propTypes = {
-    item: PropTypes.object,
     active: PropTypes.bool,
+    detailContent: PropTypes.object,
 };

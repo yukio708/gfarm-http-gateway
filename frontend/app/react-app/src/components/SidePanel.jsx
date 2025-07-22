@@ -4,14 +4,39 @@ import ACLTab from "./ACLTab";
 import DetailTab from "./DetailTab";
 import URLTab from "./URLTab";
 import PermsTab from "./PermsTab";
+import useGetAttr from "../hooks/useGetAttr";
+import useGetAcl from "../hooks/useGetAcl";
+import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
 
 function SidePanel({ show, item, onHide, showTab = "detail" }) {
     const [activeTab, setActiveTab] = useState("detail");
+    const { detailContent, getAttrError, refreshAttr } = useGetAttr(item, true, true);
+    const { aclData, aclError, refreshAcl } = useGetAcl(item);
+    const { addNotification } = useNotifications();
+    const tabs = [
+        { key: "detail", label: "Detail" },
+        { key: "perms", label: "Perms" },
+        { key: "acl", label: "ACL" },
+        { key: "url", label: "URL" },
+    ];
 
     useEffect(() => {
         setActiveTab(showTab);
     }, [showTab]);
+
+    useEffect(() => {
+        if (getAttrError) {
+            console.error("getAttribute failed:", getAttrError);
+            addNotification("GetAttr", getAttrError, "error");
+        }
+    }, [getAttrError]);
+
+    useEffect(() => {
+        if (aclError) {
+            addNotification("GetACL", aclError, "error");
+        }
+    }, [aclError]);
 
     return (
         <div
@@ -24,44 +49,46 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
             </div>
             <div className="px-3 pt-2">
                 <ul className="nav nav-tabs">
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === "detail" ? "active" : ""}`}
-                            onClick={() => setActiveTab("detail")}
-                        >
-                            Detail
-                        </button>
-                    </li>
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === "perms" ? "active" : ""}`}
-                            onClick={() => setActiveTab("perms")}
-                        >
-                            Perms
-                        </button>
-                    </li>
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === "acl" ? "active" : ""}`}
-                            onClick={() => setActiveTab("acl")}
-                        >
-                            ACL
-                        </button>
-                    </li>
-                    <li className="nav-item">
-                        <button
-                            className={`nav-link ${activeTab === "url" ? "active" : ""}`}
-                            onClick={() => setActiveTab("url")}
-                        >
-                            URL
-                        </button>
-                    </li>
+                    {tabs.map(({ key, label }) => (
+                        <li className="nav-item" key={key}>
+                            <button
+                                className={`nav-link ${activeTab === key ? "active" : ""}`}
+                                onClick={() => setActiveTab(key)}
+                            >
+                                {label}
+                            </button>
+                        </li>
+                    ))}
                 </ul>
             </div>
             <div className="px-3 py-2 overflow-auto" style={{ maxHeight: "calc(100% - 100px)" }}>
-                {show && <DetailTab item={item} active={activeTab === "detail"} />}
-                {show && <PermsTab item={item} active={activeTab === "perms"} />}
-                {show && <ACLTab item={item} active={activeTab === "acl"} />}
+                {show && (
+                    <DetailTab
+                        item={item}
+                        active={activeTab === "detail"}
+                        detailContent={detailContent}
+                        refreshAttr={refreshAttr}
+                    />
+                )}
+                {show && (
+                    <PermsTab
+                        item={item}
+                        active={activeTab === "perms"}
+                        detailContent={detailContent}
+                        refreshAttr={refreshAttr}
+                        refreshAcl={refreshAcl}
+                    />
+                )}
+                {show && (
+                    <ACLTab
+                        item={item}
+                        active={activeTab === "acl"}
+                        aclData={aclData}
+                        aclError={aclError}
+                        refreshAcl={refreshAcl}
+                        refreshAttr={refreshAttr}
+                    />
+                )}
                 {show && <URLTab item={item} active={activeTab === "url"} />}
             </div>
         </div>

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import SuggestInput from "./SuggestInput";
-import { set_acl, get_acl } from "../utils/acl";
+import { set_acl } from "../utils/acl";
 import { getUsers, getGroups } from "../utils/getNameList";
 import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
 
-function ACLTab({ item, active }) {
+function ACLTab({ item, active, aclData, refreshAcl, refreshAttr }) {
     const { addNotification } = useNotifications();
     const [entries, setEntries] = useState([]);
     const [userList, setUserList] = useState([]);
@@ -25,26 +25,8 @@ function ACLTab({ item, active }) {
     }, []);
 
     useEffect(() => {
-        if (!item || !active) return;
-
-        const fetchACL = async () => {
-            const res = await get_acl(item.path);
-            if (res.error) {
-                console.error(res);
-                addNotification("GetACL", res.error, "error");
-            } else {
-                const acl = res.data.acl.map((acinfo) => {
-                    if (acinfo.acl_name === null && !acinfo.is_default) {
-                        acinfo["base"] = true;
-                    }
-                    return acinfo;
-                });
-                setEntries(acl.sort((a, b) => (a.base !== b.base ? (a.base ? -1 : 1) : 0)));
-            }
-        };
-
-        fetchACL();
-    }, [item, active]);
+        if (aclData) setEntries(aclData);
+    }, [aclData]);
 
     const updateEntry = async () => {
         for (const entry of entries) {
@@ -60,6 +42,8 @@ function ACLTab({ item, active }) {
             console.error(res);
             addNotification("SetACL", res, "error");
         }
+        refreshAcl();
+        refreshAttr();
     };
 
     const handleChange = (index, field, value) => {
@@ -93,7 +77,7 @@ function ACLTab({ item, active }) {
         setEntries(updated);
     };
 
-    if (!active) return <></>;
+    if (!active) return null;
 
     return (
         <div data-testid="acl-tab">
@@ -233,6 +217,9 @@ function ACLTab({ item, active }) {
 ACLTab.propTypes = {
     item: PropTypes.object,
     active: PropTypes.bool,
+    aclData: PropTypes.array,
+    refreshAcl: PropTypes.func,
+    refreshAttr: PropTypes.func,
 };
 
 export default ACLTab;

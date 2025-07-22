@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import changeMode from "../utils/changeMode";
-import useGetAttr from "../hooks/useGetAttr";
 import { useNotifications } from "../context/NotificationContext";
 import PropTypes from "prop-types";
 
@@ -29,8 +28,7 @@ function permissionsToOctal(p) {
     return `${special}${owner}${group}${other}`.replace(/^0+/, "") || "0";
 }
 
-function PermsTab({ item, active }) {
-    const { detailContent, getAttrError } = useGetAttr(item, false, false);
+function PermsTab({ item, active, detailContent, refreshAttr, refreshAcl }) {
     const { addNotification } = useNotifications();
     const [octal, setOctal] = useState("644");
     const [permissions, setPermissions] = useState({
@@ -47,19 +45,15 @@ function PermsTab({ item, active }) {
     }, [detailContent]);
 
     useEffect(() => {
-        if (getAttrError) {
-            addNotification("GetMode", getAttrError, "error");
-        }
-    }, [getAttrError]);
-
-    useEffect(() => {
         const parsed = parseOctal(octal);
         if (parsed) setPermissions(parsed);
     }, [octal]);
 
     useEffect(() => {
         const oct = permissionsToOctal(permissions);
-        setOctal(oct);
+        if (oct !== octal) {
+            setOctal(oct);
+        }
     }, [permissions]);
 
     const toggle = (who, perm) => {
@@ -79,9 +73,11 @@ function PermsTab({ item, active }) {
     const handleApply = async () => {
         const error = await changeMode(item.path, octal);
         if (error) addNotification("ChangeMode", error, "error");
+        refreshAttr();
+        refreshAcl();
     };
 
-    if (!active) return <></>;
+    if (!active) return null;
 
     return (
         <div>
@@ -171,4 +167,7 @@ export default PermsTab;
 PermsTab.propTypes = {
     item: PropTypes.object,
     active: PropTypes.bool,
+    detailContent: PropTypes.object,
+    refreshAttr: PropTypes.func,
+    refreshAcl: PropTypes.func,
 };
