@@ -17,7 +17,7 @@ function UserMenu() {
             >
                 {userInfo ? userInfo.username : "None"}
             </button>
-            <ul className="dropdown-menu dropdown-menu-end">
+            <ul className="dropdown-menu dropdown-menu-end" style={{ zIndex: 1050 }}>
                 <li>
                     <a
                         className="dropdown-item"

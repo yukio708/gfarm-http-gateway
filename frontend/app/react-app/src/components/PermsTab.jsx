@@ -46,7 +46,13 @@ function PermsTab({ item, active, detailContent, refreshAttr, refreshAcl }) {
 
     useEffect(() => {
         const parsed = parseOctal(octal);
-        if (parsed) setPermissions(parsed);
+        if (parsed) {
+            setPermissions((prev) => {
+                const currentOct = permissionsToOctal(prev);
+                if (currentOct === octal) return prev;
+                return parsed;
+            });
+        }
     }, [octal]);
 
     useEffect(() => {

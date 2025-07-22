@@ -192,7 +192,7 @@ function ListView({
         <>
             <div className="d-none d-sm-block">
                 <table className="table file-table table-hover">
-                    <thead style={{ position: "sticky", top: 0 }}>
+                    <thead className="bg-body sticky-top">
                         <tr>
                             <th className="align-middle">
                                 <input
@@ -304,7 +304,7 @@ function ListView({
 
             <div className="d-block d-sm-none">
                 <table className="table file-table table-hover">
-                    <thead style={{ position: "sticky", top: 0 }}>
+                    <thead className="bg-body sticky-top">
                         <tr>
                             <th className="align-middle">
                                 <input
@@ -456,34 +456,36 @@ function IconView({
     };
 
     return (
-        <div>
-            <div className="px-2 py-2 border-bottom sticky-top">
-                <div className="d-flex align-items-center justify-content-between">
-                    <div className="d-flex align-items-center">
-                        <input
-                            type="checkbox"
-                            className="form-check-input me-2"
-                            ref={headerCheckboxRef}
-                            onChange={handleSelectAll}
-                            checked={
-                                selectedItems.length === sortedItems.length &&
-                                sortedItems.length > 0
-                            }
-                        />
-                        <SortDropDownMenu
-                            sortDirection={sortDirection}
-                            setSortDirection={setSortDirection}
-                        />
-                    </div>
+        <div className="d-flex flex-column h-100">
+            <div className="px-2 border-bottom">
+                <div className="bg-body sticky-top">
+                    <div className="d-flex align-items-center justify-content-between">
+                        <div className="d-flex align-items-center">
+                            <input
+                                type="checkbox"
+                                className="form-check-input me-2"
+                                ref={headerCheckboxRef}
+                                onChange={handleSelectAll}
+                                checked={
+                                    selectedItems.length === sortedItems.length &&
+                                    sortedItems.length > 0
+                                }
+                            />
+                            <SortDropDownMenu
+                                sortDirection={sortDirection}
+                                setSortDirection={setSortDirection}
+                            />
+                        </div>
 
-                    <div
-                        onClick={() => setViewMode(toggleViewMode(viewMode))}
-                        className="ms-2 pe-3"
-                    >
-                        {toggleViewModeIcon(viewMode)}
+                        <div
+                            onClick={() => setViewMode(toggleViewMode(viewMode))}
+                            className="ms-2 pe-3"
+                        >
+                            {toggleViewModeIcon(viewMode)}
+                        </div>
                     </div>
+                    <hr className="my-2" />
                 </div>
-                <hr className="my-2" />
                 <div className={`${gridContainerClass}`}>
                     {sortedItems.map((item) => {
                         const isSelected = selectedItems.some(
@@ -651,70 +653,74 @@ function FileListView({
     );
 
     return (
-        <div>
-            <div className="d-flex mb-1">
-                <button
-                    className="btn btn-sm me-2"
-                    type="button"
-                    onClick={() => handleItemClick(userInfo.home_directory, false, true)}
-                    data-testid="home-button"
-                >
-                    <BsHouse size={"1.1rem"} />
-                </button>
-                <div className="d-flex flex-wrap">
-                    <div className="btn-group me-4" role="group">
-                        <FileTypeFilter
-                            parentName={parentName}
-                            fileTypes={fileTypes}
-                            filterTypes={filterTypes}
-                            setFilterTypes={setFilterTypes}
-                        />
-                        <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
-                    </div>
-
-                    <div className="d-flex gap-2">
-                        {selectedItems.length === 0 && (
-                            <UploadMenu
-                                actions={UploadMenuActions}
-                                uploadDir={currentDir}
-                                currentItems={currentItems}
+        <div className="d-flex flex-column h-100" style={{ zIndex: 10 }}>
+            <div className="flex-shrink-0">
+                <div className="d-flex mb-1">
+                    <button
+                        className="btn btn-sm me-2"
+                        type="button"
+                        onClick={() => handleItemClick(userInfo.home_directory, false, true)}
+                        data-testid="home-button"
+                    >
+                        <BsHouse size={"1.1rem"} />
+                    </button>
+                    <div className="d-flex flex-wrap">
+                        <div className="btn-group me-4" role="group">
+                            <FileTypeFilter
+                                parentName={parentName}
+                                fileTypes={fileTypes}
+                                filterTypes={filterTypes}
+                                setFilterTypes={setFilterTypes}
                             />
-                        )}
-                        <FileActionMenu
-                            selectedItems={selectedItems}
-                            actions={SelectedMenuActions}
-                        />
+                            <DateFilter dateFilter={dateFilter} setDateFilter={setDateFilter} />
+                        </div>
+
+                        <div className="d-flex gap-2">
+                            {selectedItems.length === 0 && (
+                                <UploadMenu
+                                    actions={UploadMenuActions}
+                                    uploadDir={currentDir}
+                                    currentItems={currentItems}
+                                />
+                            )}
+                            <FileActionMenu
+                                selectedItems={selectedItems}
+                                actions={SelectedMenuActions}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
-            {viewMode === "list" ? (
-                <ListView
-                    sortedItems={sortedItems}
-                    selectedItems={selectedItems}
-                    activeItem={activeItem}
-                    ItemMenuActions={ItemMenuActions}
-                    handleClick={handleClick}
-                    handleDoubleClick={handleDoubleClick}
-                    handleSelectItem={handleSelectItem}
-                    handleSelectAll={handleSelectAll}
-                    sortDirection={sortDirection}
-                    setSortDirection={setSortDirection}
-                />
-            ) : (
-                <IconView
-                    sortedItems={sortedItems}
-                    selectedItems={selectedItems}
-                    activeItem={activeItem}
-                    ItemMenuActions={ItemMenuActions}
-                    handleClick={handleClick}
-                    handleDoubleClick={handleDoubleClick}
-                    handleSelectItem={handleSelectItem}
-                    iconSize={viewMode === "icon_rg" ? "regular" : "small"}
-                    handleSelectAll={handleSelectAll}
-                    sortDirection={sortDirection}
-                    setSortDirection={setSortDirection}
-                />
-            )}
+            <div className="flex-grow-1 overflow-auto">
+                {viewMode === "list" ? (
+                    <ListView
+                        sortedItems={sortedItems}
+                        selectedItems={selectedItems}
+                        activeItem={activeItem}
+                        ItemMenuActions={ItemMenuActions}
+                        handleClick={handleClick}
+                        handleDoubleClick={handleDoubleClick}
+                        handleSelectItem={handleSelectItem}
+                        handleSelectAll={handleSelectAll}
+                        sortDirection={sortDirection}
+                        setSortDirection={setSortDirection}
+                    />
+                ) : (
+                    <IconView
+                        sortedItems={sortedItems}
+                        selectedItems={selectedItems}
+                        activeItem={activeItem}
+                        ItemMenuActions={ItemMenuActions}
+                        handleClick={handleClick}
+                        handleDoubleClick={handleDoubleClick}
+                        handleSelectItem={handleSelectItem}
+                        iconSize={viewMode === "icon_rg" ? "regular" : "small"}
+                        handleSelectAll={handleSelectAll}
+                        sortDirection={sortDirection}
+                        setSortDirection={setSortDirection}
+                    />
+                )}
+            </div>
         </div>
     );
 }

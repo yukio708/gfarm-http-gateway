@@ -219,51 +219,44 @@ function HomePage() {
     if (listGetError) return <ErrorPage error={listGetError} />;
 
     return (
-        <div className="container-fluid bg-body">
-            <div className="row">
-                <div className="col">
-                    <nav className={`navbar`}>
-                        <div className="container-fluid d-flex flex-column">
-                            <div className="d-flex justify-content-between align-items-start w-100">
-                                <div className="me-3 flex-grow-1">
-                                    <CurrentDirView
-                                        currentDir={currentDir}
-                                        onNavigate={jumpDirectory}
-                                    />
-                                </div>
-                                <div className="flex-shrink-0">
-                                    <UserMenu />
-                                </div>
+        <div className="container-fluid bg-body vh-100 d-flex flex-column">
+            <div className="flex-shrink-0">
+                <nav className="navbar">
+                    <div className="container-fluid d-flex flex-column">
+                        <div className="d-flex justify-content-between align-items-start w-100">
+                            <div className="me-3 flex-grow-1">
+                                <CurrentDirView
+                                    currentDir={currentDir}
+                                    onNavigate={jumpDirectory}
+                                />
+                            </div>
+                            <div className="flex-shrink-0">
+                                <UserMenu />
                             </div>
                         </div>
-                    </nav>
-                </div>
+                    </div>
+                </nav>
             </div>
-            <div className="row">
-                <div className="col">
-                    {listLoading ? (
-                        <div
-                            className="d-flex justify-content-center align-items-center"
-                            style={{ zIndex: 10 }}
-                        >
-                            <div className="spinner-border" role="status" aria-hidden="true" />
-                        </div>
-                    ) : (
-                        <FileListView
-                            parentName="HomePage"
-                            currentDir={currentDir}
-                            currentItems={currentItems}
-                            selectedItems={selectedItems}
-                            setSelectedItems={setSelectedItems}
-                            setLastSelectedItem={setLastSelectedItem}
-                            activeItem={showSidePanel.show ? lastSelectedItem : null}
-                            handleItemClick={handleItemClick}
-                            ItemMenuActions={ItemMenuActions}
-                            UploadMenuActions={UploadMenuActions}
-                            SelectedMenuActions={SelectedMenuActions}
-                        />
-                    )}
-                </div>
+            <div className="flex-grow-1 d-flex flex-column overflow-hidden">
+                {listLoading ? (
+                    <div className="d-flex justify-content-center align-items-center">
+                        <div className="spinner-border" role="status" aria-hidden="true" />
+                    </div>
+                ) : (
+                    <FileListView
+                        parentName="HomePage"
+                        currentDir={currentDir}
+                        currentItems={currentItems}
+                        selectedItems={selectedItems}
+                        setSelectedItems={setSelectedItems}
+                        setLastSelectedItem={setLastSelectedItem}
+                        activeItem={showSidePanel.show ? lastSelectedItem : null}
+                        handleItemClick={handleItemClick}
+                        ItemMenuActions={ItemMenuActions}
+                        UploadMenuActions={UploadMenuActions}
+                        SelectedMenuActions={SelectedMenuActions}
+                    />
+                )}
             </div>
             <SidePanel
                 show={showSidePanel.show}
