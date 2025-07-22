@@ -28,12 +28,16 @@ import ErrorPage from "./ErrorPage";
 import PropTypes from "prop-types";
 
 function HomePage() {
-    const { userInfo, loading } = useUserInfo();
+    const { userInfo, loading: userLoading } = useUserInfo();
     const { showHidden } = useShowHidden();
     const navigate = useNavigate();
     const { pathHead, gfarmPath: currentDir } = useGetPath(ROUTE_STORAGE);
-    const [refreshKey, setRefreshKey] = useState(false);
-    const { currentItems, listGetError } = useFileList(currentDir, refreshKey, showHidden);
+    const {
+        currentItems,
+        loading: listLoading,
+        listGetError,
+        refreshItems,
+    } = useFileList(currentDir, showHidden);
     const { addNotification } = useNotifications();
     const [selectedItems, setSelectedItems] = useState([]);
     const [lastSelectedItem, setLastSelectedItem] = useState(null);
@@ -50,7 +54,7 @@ function HomePage() {
         setItemsToDelete,
         setItemToCopy,
         setItemForGfptar,
-    } = useProgressTasks(setRefreshKey, addNotification);
+    } = useProgressTasks(refreshItems, addNotification);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
     const [showSymlinkModal, setShowSymlinkModal] = useState(false);
     const [showRenameModal, setShowRenameModal] = useState(false);
@@ -74,7 +78,7 @@ function HomePage() {
     const jumpDirectory = useCallback(
         (newdir) => {
             if (currentDir === newdir) {
-                setRefreshKey((prev) => !prev);
+                refreshItems();
             } else {
                 navigate(pathHead + newdir);
             }
@@ -200,7 +204,17 @@ function HomePage() {
         [addItemsToDownload, setItemsToDelete, setItemsToMove]
     );
 
-    if (loading) return <p>...</p>;
+    if (userLoading) {
+        return (
+            <div
+                className="d-flex justify-content-center align-items-center"
+                style={{ height: "100vh" }}
+            >
+                <div className="spinner-border" role="status" aria-hidden="true" />
+                <span className="ms-2">Loading...</span>
+            </div>
+        );
+    }
     if (!userInfo) return <LoginPage />;
     if (listGetError) return <ErrorPage error={listGetError} />;
 
@@ -227,19 +241,28 @@ function HomePage() {
             </div>
             <div className="row">
                 <div className="col">
-                    <FileListView
-                        parentName="HomePage"
-                        currentDir={currentDir}
-                        currentItems={currentItems}
-                        selectedItems={selectedItems}
-                        setSelectedItems={setSelectedItems}
-                        setLastSelectedItem={setLastSelectedItem}
-                        activeItem={showSidePanel.show ? lastSelectedItem : null}
-                        handleItemClick={handleItemClick}
-                        ItemMenuActions={ItemMenuActions}
-                        UploadMenuActions={UploadMenuActions}
-                        SelectedMenuActions={SelectedMenuActions}
-                    />
+                    {listLoading ? (
+                        <div
+                            className="d-flex justify-content-center align-items-center"
+                            style={{ zIndex: 10 }}
+                        >
+                            <div className="spinner-border" role="status" aria-hidden="true" />
+                        </div>
+                    ) : (
+                        <FileListView
+                            parentName="HomePage"
+                            currentDir={currentDir}
+                            currentItems={currentItems}
+                            selectedItems={selectedItems}
+                            setSelectedItems={setSelectedItems}
+                            setLastSelectedItem={setLastSelectedItem}
+                            activeItem={showSidePanel.show ? lastSelectedItem : null}
+                            handleItemClick={handleItemClick}
+                            ItemMenuActions={ItemMenuActions}
+                            UploadMenuActions={UploadMenuActions}
+                            SelectedMenuActions={SelectedMenuActions}
+                        />
+                    )}
                 </div>
             </div>
             <SidePanel
@@ -283,23 +306,21 @@ function HomePage() {
                         )
                     );
                     setItemsToDelete([]);
-                    setRefreshKey((prev) => !prev);
+                    refreshItems();
                 }}
             />
             <NewDirModal
                 showModal={showNewDirModal}
                 setShowModal={setShowNewDirModal}
                 currentDir={currentDir}
-                refresh={() => {
-                    setRefreshKey((prev) => !prev);
-                }}
+                refresh={() => refreshItems()}
             />
             <NewSymlinkModal
                 showModal={showSymlinkModal}
                 setShowModal={setShowSymlinkModal}
                 currentDir={currentDir}
                 targetItem={lastSelectedItem}
-                refresh={() => setRefreshKey((prev) => !prev)}
+                refresh={() => refreshItems()}
             />
             <RenameModal
                 showModal={showRenameModal}
@@ -310,7 +331,7 @@ function HomePage() {
                         prev.filter((item) => lastSelectedItem.path !== item.path)
                     );
                     setLastSelectedItem(null);
-                    setRefreshKey((prev) => !prev);
+                    refreshItems();
                 }}
             />
             <MoveModal
@@ -324,7 +345,7 @@ function HomePage() {
                         )
                     );
                     setItemsToMove([]);
-                    setRefreshKey((prev) => !prev);
+                    refreshItems();
                 }}
             />
             <ArchiveModal
@@ -336,9 +357,7 @@ function HomePage() {
                 currentDirItems={currentItems}
                 currentDir={currentDir}
                 setItemForGfptar={setItemForGfptar}
-                refresh={() => {
-                    setRefreshKey((prev) => !prev);
-                }}
+                refresh={() => refreshItems()}
             />
             <SettingsModal />
         </div>

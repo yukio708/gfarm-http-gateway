@@ -15,8 +15,8 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
     const [sourcePath, setSourcePath] = useState("");
     const [uploadDir, setUploadDir] = useState(currentDir);
     const [suggestDir, setSuggestDir] = useState(null);
-    const { currentItems } = useFileList(uploadDir, "", showHidden);
-    const { currentItems: suggestions } = useFileList(suggestDir, "");
+    const { currentItems } = useFileList(uploadDir, showHidden);
+    const { currentItems: suggestions } = useFileList(suggestDir, showHidden);
     const suggestionDirs = currentItems.filter((file) => file.is_dir);
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState(null);

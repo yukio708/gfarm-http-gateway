@@ -16,7 +16,7 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
     const [isMoving, setIsMoving] = useState(false);
     const [suggestDir, setSuggestDir] = useState("");
     const [targetPath, setTargetPath] = useState("");
-    const { currentItems, listGetError } = useFileList(suggestDir, "", showHidden);
+    const { currentItems, listGetError } = useFileList(suggestDir, showHidden);
     const [loading, setLoading] = useState(true);
     const [loadingText, setLoadingText] = useState("Loading suggestions...");
     const [showConflictModal, setShowConflictModal] = useState(false);

@@ -6,7 +6,7 @@ import gfptar from "../utils/archive";
 import { PARALLEL_LIMIT } from "../utils/config";
 import { getParentPath, suggestNewName } from "../utils/func";
 
-function useProgressTasks(setRefreshKey, addNotification) {
+function useProgressTasks(refreshItems, addNotification) {
     const [tasks, setTasks] = useState([]);
     const [showProgressView, setShowProgressView] = useState(false);
     const [itemsToDelete, setItemsToDelete] = useState([]);
@@ -158,7 +158,7 @@ function useProgressTasks(setRefreshKey, addNotification) {
 
         await runWithLimit(uploadTasks, PARALLEL_LIMIT);
         console.debug("upload done!", uploadDirSet);
-        setRefreshKey((prev) => !prev);
+        refreshItems();
     };
 
     useEffect(() => {
@@ -230,7 +230,7 @@ function useProgressTasks(setRefreshKey, addNotification) {
                 )
             );
         });
-        setRefreshKey((prev) => !prev);
+        refreshItems();
     };
 
     const setItemForGfptar = async (command, targetDir, targetItems, destDir, options) => {
@@ -263,7 +263,7 @@ function useProgressTasks(setRefreshKey, addNotification) {
                     )
                 );
             },
-            () => setRefreshKey((prev) => !prev)
+            refreshItems
         );
     };
 

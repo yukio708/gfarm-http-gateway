@@ -27,7 +27,15 @@ function App() {
     }, []);
 
     if (cssLoading) {
-        return <p>...</p>;
+        return (
+            <div
+                className="d-flex justify-content-center align-items-center"
+                style={{ height: "100vh" }}
+            >
+                <div className="spinner-border" role="status" aria-hidden="true" />
+                <span className="ms-2">Loading...</span>
+            </div>
+        );
     }
     return (
         <UserInfoProvider>
