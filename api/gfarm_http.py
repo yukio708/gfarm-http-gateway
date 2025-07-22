@@ -2883,7 +2883,10 @@ async def get_attr(gfarm_path: str,
     elist = []
     try:
         env = await set_env(request, authorization)
+        user = get_user_from_env(env)
+        ipaddr = get_client_ip_from_env(env)
         log_operation(env, request.method, apiname, opname, gfarm_path)
+        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
         metadata = True
         proc = await gfstat(env, gfarm_path, metadata, check_symlink)
 
@@ -2894,10 +2897,24 @@ async def get_attr(gfarm_path: str,
         logger.debug("Stat=\n" + pf(st.model_dump()))
         result_json = st.model_dump()
 
+        if check_symlink and st.Filetype == "symbolic link":
+            try:
+                opname = "gfls"
+                log_operation(env, request.method, apiname, opname, gfarm_path)
+                logger.debug(
+                    f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
+                lastentry = await get_lsinfo(env, gfarm_path, 0)
+                result_json["LinkPath"] = lastentry.path
+            except Exception as err:
+                logger.debug(
+                    f"{ipaddr}:0 user={user}, cmd={opname}, {str(err)}")
+
         if check_sum:
             opname = "gfcksum"
             env = await set_env(request, authorization)  # may refresh
             log_operation(env, request.method, apiname, opname, gfarm_path)
+            logger.debug(
+                f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
             proc_cksum, args = await gfcksum(env, paths=[gfarm_path])
 
             stdout = await read_proc_output(opname, proc_cksum, elist)

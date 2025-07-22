@@ -1,21 +1,14 @@
 import { useState, useEffect } from "react";
 import getAttribute from "../utils/getAttribute";
-import { getSymlink } from "../utils/symlink";
 
-function useGetAttr(item, getSymlinkPath = false, cksum = false) {
+function useGetAttr(item, getSymlinkPath = false, Checksum = false) {
     const [detailContent, setDetailContent] = useState(null);
     const [getAttrError, setGetAttrError] = useState(null);
 
     useEffect(() => {
         const showDetail = async (item) => {
             try {
-                const detail = await getAttribute(item.path, cksum);
-                console.debug("detail:", detail);
-                if (item.is_sym && getSymlinkPath) {
-                    const info = await getSymlink(item.path);
-                    detail.LinkPath = info.path;
-                }
-
+                const detail = await getAttribute(item.path, Checksum, getSymlinkPath);
                 setDetailContent(detail);
             } catch (err) {
                 console.error("getAttribute failed:", err);
