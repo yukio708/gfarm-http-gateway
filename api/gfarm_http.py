@@ -2027,6 +2027,29 @@ async def can_access(env, path, check_perm="w"):
     return False
 
 
+async def match_checksum(env, method, apiname, src, dst, elist):
+    # check sum
+    paths = [src, dst]
+    opname = "gfcksum"
+    log_operation(env, method, apiname, opname, src)
+    proc_cksum, _ = await gfcksum(env, paths=paths)
+    stdout = await read_proc_output(opname, proc_cksum, elist)
+    if stdout is None:
+        return None, "gfcksum failed"
+    cksums = parse_gfcksum(stdout)
+    if len(cksums) != 2:
+        return None, "no checksum"
+    src, dst = cksums
+    if src["cksum"] != dst["cksum"]:
+        return False, (
+            f"checksum mismatch: "
+            f'{src["path"]}:{src["cksum"]}({src["cksum_type"]})'
+            ' '
+            f'{dst["path"]}:{dst["cksum"]}({dst["cksum_type"]})'
+        )
+    return True, None
+
+
 async def gfuser_info(env, gfarm_username):
     proc, _ = await gfuser(env, gfarm_username, "l")
     elist = []
@@ -2742,7 +2765,7 @@ async def file_copy(copy_data: FileOperation,
                 # yield JSON line
                 yield json.dumps({"copied": copied, "total": size}) + "\n"
         except Exception as e:
-            yield json.dumps({"error": "I/O error"}) + "\n"
+            yield json.dumps({"error": "I/O error", "done": True}) + "\n"
             raise e
         finally:
             p_reg.stdin.close()
@@ -2751,6 +2774,19 @@ async def file_copy(copy_data: FileOperation,
         await stderr_reg
         return_code_export = await p_export.wait()
         return_code_reg = await p_reg.wait()
+
+        if return_code_reg == 0:
+            ok, error_message = await match_checksum(
+                env, request.method, apiname, gfarm_path, tmppath, elist)
+            if ok is None:
+                yield json.dumps({"warn": error_message}) + "\n"
+            elif not ok:
+                # cleanup
+                p_clean = await gfrm(env, tmppath, force=True)
+                await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
+                await p_clean.wait()
+                yield json.dumps({"error": error_message, "done": True}) + "\n"
+                return
 
         if return_code_export != 0 or return_code_reg != 0:
             logger.debug(f"{ipaddr}:0 user={user}, cmd=",
@@ -2761,7 +2797,7 @@ async def file_copy(copy_data: FileOperation,
             p_clean = await gfrm(env, tmppath, force=True)
             await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
             await p_clean.wait()
-            yield json.dumps({"error": "copy failed"}) + "\n"
+            yield json.dumps({"error": "copy failed", "done": True}) + "\n"
             return
 
         # final move
@@ -2773,28 +2809,13 @@ async def file_copy(copy_data: FileOperation,
         return_code_mv = await p_mv.wait()
 
         if return_code_mv == 0:
-            paths = [gfarm_path, dest_path]
-            opname = "gfcksum"
-            log_operation(env, request.method, apiname, opname, gfarm_path)
-            proc_cksum, _ = await gfcksum(env, cmd="c", paths=paths)
-            stdout = await read_proc_output(opname, proc_cksum, elist)
-            error_message = None
-            if stdout is not None:
-                cksums = parse_gfcksum(stdout)
-                if len(cksums) == 2:
-                    src, dst = cksums
-                    if src["cksum"] != dst["cksum"]:
-                        error_message = (
-                            f"checksum mismatch: "
-                            f'{src["path"]}:{src["cksum"]}({src["cksum_type"]})'
-                            ' '
-                            f'{dst["path"]}:{dst["cksum"]}({dst["cksum_type"]})'
-                        )
-
+            ok, error_message = await match_checksum(
+                env, request.method, apiname, gfarm_path, dest_path, elist)
             yield json.dumps(
                 {"copied": copied,
                  "total": size,
-                 "error": error_message,
+                 "warn": error_message if ok is None else None,
+                 "error": None if ok is None else error_message,
                  "done": True}) + "\n"
         else:
             p_clean = await gfrm(env, tmppath, force=True)
