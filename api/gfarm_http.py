@@ -1609,8 +1609,11 @@ class Gfls_Entry:
 
     def set_dirname(self, dirname):
         self.dirname = dirname
-        if dirname is not None and self.name is not None:
-            self.path = os.path.join(self.dirname, self.name)
+        if dirname is not None:
+            if self.name == "." or self.name is None:
+                self.path = dirname
+            else:
+                self.path = os.path.join(self.dirname, self.name)
 
     def set_mode(self, mode_str):
         self.mode_str = mode_str
@@ -2093,7 +2096,7 @@ async def get_lsinfo(env, path, depth) -> Gfls_Entry:
                         entry.linkname)
                 return await get_lsinfo(env, nextpath, depth + 1)
             return entry
-    raise FileNotFoundError("")
+    raise FileNotFoundError(path)
 
 
 #############################################################################
@@ -2905,6 +2908,8 @@ async def get_attr(gfarm_path: str,
                     f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
                 lastentry = await get_lsinfo(env, gfarm_path, 0)
                 result_json["LinkPath"] = lastentry.path
+            except FileNotFoundError as err:
+                result_json["LinkPath"] = str(err)
             except Exception as err:
                 logger.debug(
                     f"{ipaddr}:0 user={user}, cmd={opname}, {str(err)}")
