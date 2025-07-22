@@ -42,6 +42,8 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
                 const selected = filtered[highlight];
                 setDisplayName(selected.name);
                 onChange(selected.value);
+            } else {
+                onChange(displayName); // new custom input
             }
         }
     };
@@ -60,7 +62,16 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
                 className="form-control"
                 value={displayName}
                 onFocus={() => setFocused(true)}
-                onBlur={() => setTimeout(() => setFocused(false), 100)}
+                onBlur={() => {
+                    setTimeout(() => setFocused(false), 100);
+
+                    const matched = suggestions.find((s) => s.name === displayName);
+                    if (matched) {
+                        onChange(matched.value); // matched suggestion
+                    } else {
+                        onChange(displayName); // new custom input
+                    }
+                }}
                 onChange={(e) => setDisplayName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={disabled}
