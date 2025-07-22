@@ -90,7 +90,7 @@ function HomePage() {
         async (symlink) => {
             console.debug("handleSymlink", symlink);
             try {
-                const info = await getSymlink(symlink);
+                const info = await getSymlink(symlink, false);
                 if (info.is_file) {
                     handleDisplayFile(info.path);
                 } else if (info.is_sym) {

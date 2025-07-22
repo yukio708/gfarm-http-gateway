@@ -2,9 +2,9 @@ import { encodePath } from "./func";
 import { API_URL } from "./config";
 import get_error_message from "./error";
 
-async function getSymlink(symlink) {
+async function getSymlink(symlink, get_fullpath) {
     const epath = encodePath(symlink);
-    const fullpath = `${API_URL}/symlink${epath}`;
+    const fullpath = `${API_URL}/symlink${epath}?get_fullpath${get_fullpath ? "on" : "off"}`;
     const response = await fetch(fullpath, {
         credentials: "include",
     });

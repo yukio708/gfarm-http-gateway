@@ -1792,11 +1792,13 @@ async def gfln(env, srcpath, linkpath, symlink):
         stderr=asyncio.subprocess.PIPE)
 
 
-async def gfstat(env, path, metadata):
+async def gfstat(env, path, metadata, check_symlink=None):
+    args = []
     if metadata:
-        args = ['-M', path]
-    else:
-        args = [path]
+        args.append('-M')
+    if check_symlink:
+        args.append('-l')
+    args.append(path)
     return await asyncio.create_subprocess_exec(
         'gfstat', *args,
         env=env,
@@ -2071,6 +2073,29 @@ async def gfuser_info(env, gfarm_username):
     return name, authority, home_directory, identifier
 
 
+async def get_lsinfo(env, path, depth) -> Gfls_Entry:
+    if depth > RECURSIVE_MAX_DEPTH:
+        raise RuntimeError(
+            f"Reached maximum symlink follow limit ({depth})")
+    existing, is_file, _ = await file_size(env, path)
+
+    if existing:
+        async for entry in gfls_generator(env, path, is_file,
+                                          show_hidden=True):
+            entry.name = os.path.basename(path)
+            if entry.is_sym:
+                if ":" in entry.linkname or \
+                        entry.linkname.startswith("/"):
+                    nextpath = entry.linkname
+                else:
+                    nextpath = os.path.join(
+                        os.path.dirname(path),
+                        entry.linkname)
+                return await get_lsinfo(env, nextpath, depth + 1)
+            return entry
+    raise FileNotFoundError("")
+
+
 #############################################################################
 async def log_stderr(command: str,
                      process: asyncio.subprocess.Process,
@@ -2224,49 +2249,48 @@ async def dir_list(gfarm_path: str,
 @app.get("/symlink/{gfarm_path:path}")
 async def get_symlink(gfarm_path: str,
                       request: Request,
+                      get_fullpath: bool = False,
                       authorization: Union[str, None] = Header(default=None)):
-    opname = "gfls"
     apiname = "/symlink"
     gfarm_path = fullpath(gfarm_path)
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
-    log_operation(env, request.method, apiname, opname, gfarm_path)
+    elist = []
     try:
-        async def get_info(env, path, depth) -> Gfls_Entry:
-            if depth > RECURSIVE_MAX_DEPTH:
-                raise RuntimeError(
-                    f"Reached maximum symlink follow limit ({depth})")
-            existing, is_file, _ = await file_size(env, path)
+        opname = "gfstat"
+        log_operation(env, request.method, apiname, opname, gfarm_path)
+        metadata = True
+        proc = await gfstat(env, gfarm_path, metadata, False)
 
-            if existing:
-                async for entry in gfls_generator(env, path, is_file,
-                                                  show_hidden=True):
-                    entry.name = os.path.basename(path)
-                    if entry.is_sym:
-                        if ":" in entry.linkname or \
-                                entry.linkname.startswith("/"):
-                            nextpath = entry.linkname
-                        else:
-                            nextpath = os.path.join(
-                                os.path.dirname(path),
-                                entry.linkname)
-                        return await get_info(env, nextpath, depth + 1)
-                    return entry
-            raise FileNotFoundError("")
-        lastentry = await get_info(env, gfarm_path, 0)
+        stdout = await read_proc_output(opname, proc, elist)
+        if stdout is None:
+            raise Exception(str(elist))
+        st = parse_gfstat(stdout)
+        logger.debug("Stat=\n" + pf(st.model_dump()))
+        if st.Filetype == "regular file" and not get_fullpath:
+            return JSONResponse(content={
+                "name": gfarm_path,
+                "path": gfarm_path,
+                "is_file": True,
+                "is_dir": False,
+                "is_sym": True
+            })
+
+        opname = "gfls"
+        log_operation(env, request.method, apiname, opname, gfarm_path)
+
+        lastentry = await get_lsinfo(env, gfarm_path, 0)
         logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}," +
                      f"stdout={lastentry.json_dump()}")
         return JSONResponse(content=lastentry.json_dump())
     except RuntimeError as e:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
         message = f"Failed to execute gfls: path={gfarm_path}"
-        elist = []
         raise gfarm_http_error(opname, code, message, str(e), elist)
     except FileNotFoundError:
         code = status.HTTP_404_NOT_FOUND
         message = f"The requested path does not exist: path={gfarm_path}"
-        elist = []
         raise gfarm_http_error(opname, code, message, "", elist)
 
 
@@ -2848,6 +2872,7 @@ async def move_rename(request: Request,
 async def get_attr(gfarm_path: str,
                    request: Request,
                    check_sum: bool = False,
+                   check_symlink: bool = False,
                    authorization: Union[str, None] = Header(default=None)
                    ) -> Stat:
     opname = "gfstat"
@@ -2860,7 +2885,7 @@ async def get_attr(gfarm_path: str,
         env = await set_env(request, authorization)
         log_operation(env, request.method, apiname, opname, gfarm_path)
         metadata = True
-        proc = await gfstat(env, gfarm_path, metadata)
+        proc = await gfstat(env, gfarm_path, metadata, check_symlink)
 
         stdout = await read_proc_output(opname, proc, elist)
         if stdout is None:
