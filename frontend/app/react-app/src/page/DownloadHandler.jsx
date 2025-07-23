@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
-import useGetPath from "../hooks/useGetPath";
-import displayFile from "../utils/display";
-import { ROUTE_DOWNLOAD } from "../utils/config";
-import { useUserInfo } from "../context/UserInfoContext";
-import LoginPage from "../page/LoginPage";
+import useGetPath from "@hooks/useGetPath";
+import displayFile from "@utils/display";
+import { ROUTE_DOWNLOAD } from "@utils/config";
+import { useUserInfo } from "@context/UserInfoContext";
+import LoginPage from "@page/LoginPage";
 
 function DownloadHandler() {
     const { userInfo, loading } = useUserInfo();

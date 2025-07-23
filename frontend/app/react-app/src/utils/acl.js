@@ -1,6 +1,6 @@
-import { encodePath } from "./func";
-import { API_URL } from "./config";
-import get_error_message from "./error";
+import { encodePath } from "@utils/func";
+import { API_URL } from "@utils/config";
+import get_error_message from "@utils/error";
 
 export async function set_acl(path, acl) {
     const epath = encodePath(path);

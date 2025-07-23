@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { get_login_status } from "../utils/getUserInfo";
+import { get_login_status } from "@utils/getUserInfo";
 import PropTypes from "prop-types";
 
 const UserInfoContext = createContext();

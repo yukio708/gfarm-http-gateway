@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
-import { CollectPathsFromFiles, checkConflicts } from "../utils/func";
-import ConflictResolutionModal from "./ConflictResolutionModal";
+import { CollectPathsFromFiles, checkConflicts } from "@utils/func";
+import ConflictResolutionModal from "@components/Modal/ConflictResolutionModal";
 import {
     BsFileEarmarkArrowUp,
     BsFolder,

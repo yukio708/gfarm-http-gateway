@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import "../css/SidePanel.css";
-import ACLTab from "./ACLTab";
-import DetailTab from "./DetailTab";
-import URLTab from "./URLTab";
-import PermsTab from "./PermsTab";
-import useGetAttr from "../hooks/useGetAttr";
-import useGetAcl from "../hooks/useGetAcl";
-import { useNotifications } from "../context/NotificationContext";
+import "@css/SidePanel.css";
+import ACLTab from "@components/SidePanel/ACLTab";
+import DetailTab from "@components/SidePanel/DetailTab";
+import URLTab from "@components/SidePanel/URLTab";
+import PermsTab from "@components/SidePanel/PermsTab";
+import useGetAttr from "@hooks/useGetAttr";
+import useGetAcl from "@hooks/useGetAcl";
+import { useNotifications } from "@context/NotificationContext";
 import PropTypes from "prop-types";
 
 function SidePanel({ show, item, onHide, showTab = "detail" }) {

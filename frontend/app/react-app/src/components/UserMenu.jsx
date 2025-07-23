@@ -1,6 +1,6 @@
 import React from "react";
-import { API_URL } from "../utils/config";
-import { useUserInfo } from "../context/UserInfoContext";
+import { API_URL } from "@utils/config";
+import { useUserInfo } from "@context/UserInfoContext";
 import PropTypes from "prop-types";
 
 function UserMenu() {

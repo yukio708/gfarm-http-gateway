@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import SuggestInput from "./SuggestInput";
-import { set_acl } from "../utils/acl";
-import { getUsers, getGroups } from "../utils/getNameList";
-import { useNotifications } from "../context/NotificationContext";
+import SuggestInput from "@components/SuggestInput";
+import { set_acl } from "@utils/acl";
+import { getUsers, getGroups } from "@utils/getNameList";
+import { useNotifications } from "@context/NotificationContext";
 import PropTypes from "prop-types";
 
 function ACLTab({ item, active, aclData, refreshAcl, refreshAttr }) {

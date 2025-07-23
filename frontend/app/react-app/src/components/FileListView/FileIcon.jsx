@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getFileIcon } from "../utils/getFileCategory";
+import { getFileIcon } from "@utils/getFileCategory";
 import PropTypes from "prop-types";
 
 function FileIcon({ filename, is_dir, is_sym, size, onClick, onDoubleClick }) {

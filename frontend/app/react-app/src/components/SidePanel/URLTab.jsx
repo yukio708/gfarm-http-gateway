@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { ROUTE_STORAGE, ROUTE_DOWNLOAD } from "../utils/config";
+import { ROUTE_STORAGE, ROUTE_DOWNLOAD } from "@utils/config";
 import PropTypes from "prop-types";
 
 function URLTab({ item, active }) {

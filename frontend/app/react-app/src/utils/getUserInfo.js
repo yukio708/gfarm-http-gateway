@@ -1,5 +1,5 @@
-import { API_URL } from "./config";
-import get_error_message from "./error";
+import { API_URL } from "@utils/config";
+import get_error_message from "@utils/error";
 
 export async function get_username() {
     try {

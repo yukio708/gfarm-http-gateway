@@ -1,9 +1,9 @@
 import React from "react";
-import { useTheme } from "../context/ThemeContext";
-import { useShowHidden } from "../context/ShowHiddenContext";
-import { useViewMode } from "../context/ViewModeContext";
-import { useDateFormat } from "../context/DateFormatContext";
-import { getTimeStr } from "../utils/func";
+import { useTheme } from "@context/ThemeContext";
+import { useShowHidden } from "@context/ShowHiddenContext";
+import { useViewMode } from "@context/ViewModeContext";
+import { useDateFormat } from "@context/DateFormatContext";
+import { getTimeStr } from "@utils/func";
 import PropTypes from "prop-types";
 
 function SettingsModal({ id = "settingsModal" }) {

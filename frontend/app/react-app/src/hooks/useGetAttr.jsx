@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import getAttribute from "../utils/getAttribute";
+import getAttribute from "@utils/getAttribute";
 
 function useGetAttr(item, getSymlinkPath = false, Checksum = false) {
     const [detailContent, setDetailContent] = useState(null);

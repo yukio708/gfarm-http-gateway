@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import getList from "../utils/getList";
+import getList from "@utils/getList";
 
 function useFileList(dirPath, showHidden = true) {
     const [currentItems, setCurrentItems] = useState([]);

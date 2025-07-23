@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
-import ModalWindow from "./Modal";
-import { useNotifications } from "../context/NotificationContext";
-import { createDir } from "../utils/dircommon";
+import ModalWindow from "@components/Modal/Modal";
+import { useNotifications } from "@context/NotificationContext";
+import { createDir } from "@utils/dircommon";
 import PropTypes from "prop-types";
 
 function NewDirModal({ setShowModal, currentDir, refresh }) {

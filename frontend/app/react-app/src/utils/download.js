@@ -1,5 +1,5 @@
-import { encodePath } from "./func";
-import { API_URL } from "../utils/config";
+import { encodePath } from "@utils/func";
+import { API_URL } from "@utils/config";
 
 async function download(files, setError) {
     if (!files || files.length === 0) {

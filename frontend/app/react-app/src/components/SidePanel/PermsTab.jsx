@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import changeMode from "../utils/changeMode";
-import { useNotifications } from "../context/NotificationContext";
+import changeMode from "@utils/changeMode";
+import { useNotifications } from "@context/NotificationContext";
 import PropTypes from "prop-types";
 
 function parseOctal(octalStr) {

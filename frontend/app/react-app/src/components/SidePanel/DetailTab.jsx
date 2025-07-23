@@ -1,5 +1,5 @@
 import React from "react";
-import { formatFileSize } from "../utils/func";
+import { formatFileSize } from "@utils/func";
 import PropTypes from "prop-types";
 
 function DetailTab({ active, detailContent }) {

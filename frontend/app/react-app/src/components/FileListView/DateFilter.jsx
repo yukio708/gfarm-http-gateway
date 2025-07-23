@@ -1,5 +1,5 @@
 import React from "react";
-import { options } from "../utils/func";
+import { options } from "@utils/func";
 import PropTypes from "prop-types";
 
 function DateFilter({ dateFilter, setDateFilter }) {

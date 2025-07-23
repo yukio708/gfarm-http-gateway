@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import ModalWindow from "./Modal";
-import { useNotifications } from "../context/NotificationContext";
-import { getParentPath, checkFileName } from "../utils/func";
-import moveItems from "../utils/move";
+import ModalWindow from "@components/Modal/Modal";
+import { useNotifications } from "@context/NotificationContext";
+import { getParentPath, checkFileName } from "@utils/func";
+import moveItems from "@utils/move";
 import PropTypes from "prop-types";
 
 function RenameModal({ setShowModal, renameItem, refresh }) {

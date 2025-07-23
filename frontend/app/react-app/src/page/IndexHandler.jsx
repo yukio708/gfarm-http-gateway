@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { ROUTE_STORAGE } from "../utils/config";
-import { useUserInfo } from "../context/UserInfoContext";
+import { ROUTE_STORAGE } from "@utils/config";
+import { useUserInfo } from "@context/UserInfoContext";
 import PropTypes from "prop-types";
 
 function IndexHandler() {

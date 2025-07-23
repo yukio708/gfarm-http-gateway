@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import ModalWindow from "./Modal";
-import SuggestInput from "./SuggestInput";
-import MiniFileListView from "./MiniFileListView";
-import useFileList from "../hooks/useFileList";
-import { useShowHidden } from "../context/ShowHiddenContext";
-import { useNotifications } from "../context/NotificationContext";
-import gfptar from "../utils/archive";
+import ModalWindow from "@components/Modal/Modal";
+import SuggestInput from "@components/SuggestInput";
+import MiniFileListView from "@components/FileListView/MiniFileListView";
+import useFileList from "@hooks/useFileList";
+import { useShowHidden } from "@context/ShowHiddenContext";
+import { useNotifications } from "@context/NotificationContext";
+import gfptar from "@utils/archive";
 import PropTypes from "prop-types";
 
 function ArchiveModal({

@@ -1,4 +1,4 @@
-import { API_URL, ROUTE_STORAGE, ROUTE_DOWNLOAD } from "../utils/config";
+import { API_URL, ROUTE_STORAGE, ROUTE_DOWNLOAD } from "@utils/config";
 
 function LoginPage() {
     const location = window.location.href;

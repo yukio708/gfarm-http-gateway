@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import ModalWindow from "./Modal";
-import { useNotifications } from "../context/NotificationContext";
-import removeItems from "../utils/remove";
+import ModalWindow from "@components/Modal/Modal";
+import { useNotifications } from "@context/NotificationContext";
+import removeItems from "@utils/remove";
 import PropTypes from "prop-types";
 
 function DeleteModal({ setShowModal, itemsToDelete, setItemsToDelete, refresh }) {

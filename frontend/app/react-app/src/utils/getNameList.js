@@ -1,5 +1,5 @@
-import { API_URL, FETCH_INTERVAL } from "./config";
-import get_error_message from "./error";
+import { API_URL, FETCH_INTERVAL } from "@utils/config";
+import get_error_message from "@utils/error";
 
 const cachedUsers = { users: [], lastFetch: 0 };
 const cachedGroups = { groups: [], lastFetch: 0 };

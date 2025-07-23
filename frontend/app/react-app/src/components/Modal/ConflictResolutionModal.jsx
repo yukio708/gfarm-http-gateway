@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import ModalWindow from "./Modal";
+import ModalWindow from "@components/Modal/Modal";
 import {
     getParentPath,
     suggestNewName,
     formatFileSize,
     getTimeStr,
     getUniqueConflicts,
-} from "../utils/func";
+} from "@utils/func";
 import { BsFileEarmark, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 

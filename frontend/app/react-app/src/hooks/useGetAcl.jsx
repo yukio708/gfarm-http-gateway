@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { get_acl } from "../utils/acl";
+import { get_acl } from "@utils/acl";
 
 function useGetAcl(item) {
     const [aclData, setAclData] = useState([]);

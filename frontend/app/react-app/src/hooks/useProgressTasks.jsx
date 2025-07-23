@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { upload, checkPermissoin } from "../utils/upload";
-import download from "../utils/download";
-import copyFile from "../utils/copy";
-import gfptar from "../utils/archive";
-import { PARALLEL_LIMIT } from "../utils/config";
-import { getParentPath, suggestNewName } from "../utils/func";
+import { upload, checkPermissoin } from "@utils/upload";
+import download from "@utils/download";
+import copyFile from "@utils/copy";
+import gfptar from "@utils/archive";
+import { PARALLEL_LIMIT } from "@utils/config";
+import { getParentPath, suggestNewName } from "@utils/func";
 
 function useProgressTasks(refreshItems, addNotification) {
     const [tasks, setTasks] = useState([]);

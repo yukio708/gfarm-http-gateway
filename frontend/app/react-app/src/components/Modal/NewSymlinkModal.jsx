@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import ModalWindow from "./Modal";
-import { useShowHidden } from "../context/ShowHiddenContext";
-import { useNotifications } from "../context/NotificationContext";
-import useFileList from "../hooks/useFileList";
-import SuggestInput from "./SuggestInput";
-import { getParentPath, joinPaths, normalizePath } from "../utils/func";
-import { setSymlink } from "../utils/symlink";
+import ModalWindow from "@components/Modal/Modal";
+import { useShowHidden } from "@context/ShowHiddenContext";
+import { useNotifications } from "@context/NotificationContext";
+import useFileList from "@hooks/useFileList";
+import SuggestInput from "@components/SuggestInput";
+import { getParentPath, joinPaths, normalizePath } from "@utils/func";
+import { setSymlink } from "@utils/symlink";
 import PropTypes from "prop-types";
 
 function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {

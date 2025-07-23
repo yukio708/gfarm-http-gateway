@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import ModalWindow from "./Modal";
-import SuggestInput from "./SuggestInput";
-import ConflictResolutionModal from "./ConflictResolutionModal";
-import useFileList from "../hooks/useFileList";
-import { useShowHidden } from "../context/ShowHiddenContext";
-import { useNotifications } from "../context/NotificationContext";
-import { getParentPath, checkConflicts } from "../utils/func";
-import moveItems from "../utils/move";
+import ModalWindow from "@components/Modal/Modal";
+import SuggestInput from "@components/SuggestInput";
+import ConflictResolutionModal from "@components/Modal/ConflictResolutionModal";
+import useFileList from "@hooks/useFileList";
+import { useShowHidden } from "@context/ShowHiddenContext";
+import { useNotifications } from "@context/NotificationContext";
+import { getParentPath, checkConflicts } from "@utils/func";
+import moveItems from "@utils/move";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 

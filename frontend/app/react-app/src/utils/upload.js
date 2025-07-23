@@ -1,7 +1,7 @@
-import { encodePath, getParentPath } from "./func";
-import { createDir } from "./dircommon";
-import { API_URL } from "./config";
-import get_error_message from "./error";
+import { encodePath, getParentPath } from "@utils/func";
+import { createDir } from "@utils/dircommon";
+import { API_URL } from "@utils/config";
+import get_error_message from "@utils/error";
 
 // file: file + File
 // progressCallbeck({status, value, message, done, onCancel})

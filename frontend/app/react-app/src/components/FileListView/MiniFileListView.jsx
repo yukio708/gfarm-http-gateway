@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import FileIcon from "../components/FileIcon";
+import FileIcon from "@components/FileListView/FileIcon";
 import PropTypes from "prop-types";
 
 function MiniFileListView({ currentItems, selectedItems, setSelectedItems }) {

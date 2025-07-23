@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import ModalWindow from "./Modal";
-import ConflictResolutionModal from "./ConflictResolutionModal";
-import { CollectPathsFromItems, formatFileSize, getTimeStr, checkConflicts } from "../utils/func";
-import "../css/DropZone.css";
+import ModalWindow from "@components/Modal/Modal";
+import ConflictResolutionModal from "@components/Modal/ConflictResolutionModal";
+import { CollectPathsFromItems, formatFileSize, getTimeStr, checkConflicts } from "@utils/func";
+import "@css/DropZone.css";
 import PropTypes from "prop-types";
 
 function UploadDropZone({ onUpload, uploadDir, currentItems }) {

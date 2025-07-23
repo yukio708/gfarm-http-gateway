@@ -1,5 +1,5 @@
-import { encodePath } from "./func";
-import { API_URL } from "./config";
+import { encodePath } from "@utils/func";
+import { API_URL } from "@utils/config";
 
 function displayFile(path, self = false) {
     if (!path) {
