@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import PropTypes from "prop-types";
 
@@ -38,12 +38,12 @@ function ModalWindow({
         }
     }, [show]);
 
-    const handleConfirm = useCallback(() => {
+    const handleConfirm = () => {
         if (onConfirm) {
             const res = onConfirm?.();
             console.debug("handleConfirm", res);
         }
-    }, [onConfirm]);
+    };
 
     const handleCancel = () => {
         onCancel?.();
