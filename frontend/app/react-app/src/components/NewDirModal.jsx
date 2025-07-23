@@ -55,6 +55,12 @@ function NewDirModal({ setShowModal, currentDir, refresh }) {
                     console.log("dirname", dirname);
                 }}
                 placeholder="Enter directory name"
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCreateDir();
+                    }
+                }}
             />
         </ModalWindow>
     );

@@ -77,6 +77,12 @@ function RenameModal({ setShowModal, renameItem, refresh }) {
                     onChange={(e) => setNewName(e.target.value)}
                     onFocus={(e) => e.target.select()}
                     placeholder="Enter name"
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleRename();
+                        }
+                    }}
                 />
             </div>
         </ModalWindow>
