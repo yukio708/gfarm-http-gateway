@@ -30,7 +30,7 @@ function DetailTab({ active, detailContent }) {
                             <td>
                                 <strong>{label}</strong>
                             </td>
-                            <td>{value}</td>
+                            <td className="text-break">{value}</td>
                         </tr>
                     ))}
                 </tbody>
