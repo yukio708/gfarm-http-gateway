@@ -5,17 +5,16 @@ import { getParentPath, checkFileName } from "../utils/func";
 import moveItems from "../utils/move";
 import PropTypes from "prop-types";
 
-function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
-    const [newName, setNewName] = useState("");
+function RenameModal({ setShowModal, renameItem, refresh }) {
+    const [newName, setNewName] = useState(renameItem?.name || "");
+    const [visible, setVisible] = useState(true);
     const { addNotification } = useNotifications();
 
     useEffect(() => {
-        if (showModal) {
-            if (renameItem) {
-                setNewName(renameItem.name);
-            }
+        if (!visible) {
+            setShowModal(false);
         }
-    }, [showModal]);
+    }, [visible]);
 
     const setError = (error) => {
         console.debug("error", error);
@@ -24,8 +23,8 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
 
     const handleRename = () => {
         if (!renameItem || !newName) {
-            setShowModal(false);
             setNewName("");
+            setVisible(false);
             return true;
         }
         const trimmedName = newName.trim();
@@ -51,44 +50,42 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
             };
 
             await moveItems([item], setError);
-            setShowModal(false);
             setNewName("");
+            setVisible(false);
             refresh();
         };
         rename();
     };
 
     return (
-        showModal && (
-            <ModalWindow
-                onCancel={() => {
-                    setShowModal(false);
-                    setNewName("");
-                }}
-                onConfirm={handleRename}
-                comfirmText="Rename"
-                title={<h5 className="modal-title">Rename</h5>}
-            >
-                <div>
-                    <input
-                        id="rename-input"
-                        type="text"
-                        className="form-control"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        onFocus={(e) => e.target.select()}
-                        placeholder="Enter name"
-                    />
-                </div>
-            </ModalWindow>
-        )
+        <ModalWindow
+            show={visible}
+            onCancel={() => {
+                setNewName("");
+                setVisible(false);
+            }}
+            onConfirm={handleRename}
+            comfirmText="Rename"
+            title={<h5 className="modal-title">Rename</h5>}
+        >
+            <div>
+                <input
+                    id="rename-input"
+                    type="text"
+                    className="form-control"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="Enter name"
+                />
+            </div>
+        </ModalWindow>
     );
 }
 
 export default RenameModal;
 
 RenameModal.propTypes = {
-    showModal: PropTypes.bool,
     setShowModal: PropTypes.func,
     renameItem: PropTypes.object,
     refresh: PropTypes.func,

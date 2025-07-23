@@ -43,7 +43,6 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
     };
 
     const confirmUpload = (incomingItems) => {
-        setShowConfirm(false);
         if (incomingItems.length > 0) {
             console.debug("incomingItems:", incomingItems);
             actions.upload(incomingItems);
@@ -137,12 +136,11 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
             </div>
             {showConfirm && (
                 <ConflictResolutionModal
+                    setShowModal={setShowConfirm}
                     incomingItems={selectedItems}
                     setIncomingItems={setSelectedItems}
                     existingNames={currentItems.map((item) => item.name)}
-                    onCancel={() => {
-                        setShowConfirm(false);
-                    }}
+                    onCancel={() => {}}
                     onConfirm={confirmUpload}
                 />
             )}

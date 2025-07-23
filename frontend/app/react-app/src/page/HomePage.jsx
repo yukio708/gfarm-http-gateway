@@ -55,6 +55,8 @@ function HomePage() {
         setItemToCopy,
         setItemForGfptar,
     } = useProgressTasks(refreshItems, addNotification);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showMoveModal, setShowMoveModal] = useState(false);
     const [showNewDirModal, setShowNewDirModal] = useState(false);
     const [showSymlinkModal, setShowSymlinkModal] = useState(false);
     const [showRenameModal, setShowRenameModal] = useState(false);
@@ -74,6 +76,18 @@ function HomePage() {
             }
         }
     }, [currentItems]);
+
+    useEffect(() => {
+        if (itemsToDelete.length > 0) {
+            setShowDeleteModal(true);
+        }
+    }, [itemsToDelete]);
+
+    useEffect(() => {
+        if (itemsToMove.length > 0) {
+            setShowMoveModal(true);
+        }
+    }, [itemsToMove]);
 
     const jumpDirectory = useCallback(
         (newdir) => {
@@ -289,69 +303,79 @@ function HomePage() {
                 uploadDir={currentDir}
                 currentItems={currentItems}
             />
-            <DeleteModal
-                itemsToDelete={itemsToDelete}
-                setItemsToDelete={setItemsToDelete}
-                refresh={() => {
-                    setSelectedItems((prev) =>
-                        prev.filter((item) =>
-                            itemsToDelete.some((deletedItem) => deletedItem.path !== item.path)
-                        )
-                    );
-                    setItemsToDelete([]);
-                    refreshItems();
-                }}
-            />
-            <NewDirModal
-                showModal={showNewDirModal}
-                setShowModal={setShowNewDirModal}
-                currentDir={currentDir}
-                refresh={() => refreshItems()}
-            />
-            <NewSymlinkModal
-                showModal={showSymlinkModal}
-                setShowModal={setShowSymlinkModal}
-                currentDir={currentDir}
-                targetItem={lastSelectedItem}
-                refresh={() => refreshItems()}
-            />
-            <RenameModal
-                showModal={showRenameModal}
-                setShowModal={setShowRenameModal}
-                renameItem={lastSelectedItem}
-                refresh={() => {
-                    setSelectedItems((prev) =>
-                        prev.filter((item) => lastSelectedItem.path !== item.path)
-                    );
-                    setLastSelectedItem(null);
-                    refreshItems();
-                }}
-            />
-            <MoveModal
-                itemsToMove={itemsToMove}
-                setItemsToMove={setItemsToMove}
-                currentDir={currentDir}
-                refresh={() => {
-                    setSelectedItems((prev) =>
-                        prev.filter((file) =>
-                            itemsToMove.some((movedItem) => movedItem.path !== file.path)
-                        )
-                    );
-                    setItemsToMove([]);
-                    refreshItems();
-                }}
-            />
-            <ArchiveModal
-                showModal={showGfptarModal}
-                setShowModal={setShowGfptarModal}
-                selectedItems={selectedItems}
-                setSelectedItems={setSelectedItems}
-                lastSelectedItem={lastSelectedItem}
-                currentDirItems={currentItems}
-                currentDir={currentDir}
-                setItemForGfptar={setItemForGfptar}
-                refresh={() => refreshItems()}
-            />
+            {showDeleteModal && (
+                <DeleteModal
+                    setShowModal={setShowDeleteModal}
+                    itemsToDelete={itemsToDelete}
+                    setItemsToDelete={setItemsToDelete}
+                    refresh={() => {
+                        setSelectedItems((prev) =>
+                            prev.filter((item) =>
+                                itemsToDelete.some((deletedItem) => deletedItem.path !== item.path)
+                            )
+                        );
+                        setItemsToDelete([]);
+                        refreshItems();
+                    }}
+                />
+            )}
+            {showNewDirModal && (
+                <NewDirModal
+                    setShowModal={setShowNewDirModal}
+                    currentDir={currentDir}
+                    refresh={() => refreshItems()}
+                />
+            )}
+            {showSymlinkModal && (
+                <NewSymlinkModal
+                    setShowModal={setShowSymlinkModal}
+                    currentDir={currentDir}
+                    targetItem={lastSelectedItem}
+                    refresh={() => refreshItems()}
+                />
+            )}
+            {showRenameModal && (
+                <RenameModal
+                    setShowModal={setShowRenameModal}
+                    renameItem={lastSelectedItem}
+                    refresh={() => {
+                        setSelectedItems((prev) =>
+                            prev.filter((item) => lastSelectedItem.path !== item.path)
+                        );
+                        setLastSelectedItem(null);
+                        refreshItems();
+                    }}
+                />
+            )}
+            {showMoveModal && (
+                <MoveModal
+                    setShowModal={setShowMoveModal}
+                    itemsToMove={itemsToMove}
+                    setItemsToMove={setItemsToMove}
+                    currentDir={currentDir}
+                    refresh={() => {
+                        setSelectedItems((prev) =>
+                            prev.filter((file) =>
+                                itemsToMove.some((movedItem) => movedItem.path !== file.path)
+                            )
+                        );
+                        setItemsToMove([]);
+                        refreshItems();
+                    }}
+                />
+            )}
+            {showGfptarModal && (
+                <ArchiveModal
+                    setShowModal={setShowGfptarModal}
+                    selectedItems={selectedItems}
+                    setSelectedItems={setSelectedItems}
+                    lastSelectedItem={lastSelectedItem}
+                    currentDirItems={currentItems}
+                    currentDir={currentDir}
+                    setItemForGfptar={setItemForGfptar}
+                    refresh={() => refreshItems()}
+                />
+            )}
             <SettingsModal />
         </div>
     );

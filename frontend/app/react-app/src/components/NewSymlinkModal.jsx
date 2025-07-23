@@ -8,9 +8,10 @@ import { getParentPath, joinPaths, normalizePath } from "../utils/func";
 import { setSymlink } from "../utils/symlink";
 import PropTypes from "prop-types";
 
-function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refresh }) {
+function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
     const { showHidden } = useShowHidden();
-    const [linkName, setLinkName] = useState("");
+    const [visible, setVisible] = useState(true);
+    const [linkName, setLinkName] = useState(currentDir.replace(/\/$/, "") + "/");
     const [linkPath, setLinkPath] = useState("");
     const [sourcePath, setSourcePath] = useState("");
     const [uploadDir, setUploadDir] = useState(currentDir);
@@ -23,6 +24,12 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
     const { addNotification } = useNotifications();
 
     useEffect(() => {
+        if (!visible && !isCreating) {
+            setShowModal(false);
+        }
+    }, [visible, isCreating]);
+
+    useEffect(() => {
         setUploadDir(currentDir);
         setLinkName(currentDir.replace(/\/$/, "") + "/");
         if (targetItem) {
@@ -30,7 +37,7 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
         } else {
             setSuggestDir(currentDir);
         }
-    }, [showModal, targetItem, currentDir]);
+    }, [targetItem, currentDir]);
 
     useEffect(() => {
         if (sourcePath.endsWith("/")) {
@@ -82,7 +89,7 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
             }
             refresh();
             setIsCreating(false);
-            setShowModal(false);
+            setVisible(false);
         };
         createSymlink();
         return true;
@@ -90,63 +97,62 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
 
     return (
         <div>
-            {showModal && (
-                <ModalWindow
-                    onCancel={() => {
-                        setShowModal(false);
-                        setLinkName("");
-                        setLinkPath("");
-                        setSourcePath("");
-                        setUploadDir("");
-                    }}
-                    onConfirm={handleCreate}
-                    comfirmText="Create"
-                    title={<h5 className="modal-title">New Symlink</h5>}
-                >
-                    <div>
-                        <div className="mb-3">
-                            <label htmlFor="symlink-linkname-input" className="form-label fw-bold">
-                                Link Name
-                            </label>
+            <ModalWindow
+                show={visible}
+                onCancel={() => {
+                    setLinkName("");
+                    setLinkPath("");
+                    setSourcePath("");
+                    setUploadDir("");
+                    setVisible(false);
+                }}
+                onConfirm={handleCreate}
+                comfirmText="Create"
+                title={<h5 className="modal-title">New Symlink</h5>}
+            >
+                <div>
+                    <div className="mb-3">
+                        <label htmlFor="symlink-linkname-input" className="form-label fw-bold">
+                            Link Name
+                        </label>
+                        <SuggestInput
+                            id="symlink-linkname-input"
+                            value={linkName}
+                            onChange={(value) => setLinkName(value)}
+                            suggestions={suggestionDirs.map((item) => ({
+                                name: item.path,
+                                value: item.path,
+                            }))}
+                            placeholder="Enter link path"
+                        />
+                        {error && <div className="form-text alert-danger">{error}</div>}
+                    </div>
+                    <div className="mt-3">
+                        <label htmlFor="symlink-target-input" className="form-label fw-bold">
+                            Target
+                        </label>
+                        {targetItem ? (
+                            <input
+                                id="symlink-target-input"
+                                type="text"
+                                className="form-control"
+                                value={sourcePath}
+                                disabled
+                            />
+                        ) : (
                             <SuggestInput
-                                id="symlink-linkname-input"
-                                value={linkName}
-                                onChange={(value) => setLinkName(value)}
-                                suggestions={suggestionDirs.map((item) => ({
+                                id="symlink-target-input"
+                                value={sourcePath}
+                                onChange={(value) => setSourcePath(value)}
+                                suggestions={suggestions.map((item) => ({
                                     name: item.path,
                                     value: item.path,
                                 }))}
-                                placeholder="Enter link path"
                             />
-                            {error && <div className="form-text alert-danger">{error}</div>}
-                        </div>
-                        <div className="mt-3">
-                            <label htmlFor="symlink-target-input" className="form-label fw-bold">
-                                Target
-                            </label>
-                            {targetItem ? (
-                                <input
-                                    id="symlink-target-input"
-                                    type="text"
-                                    className="form-control"
-                                    value={sourcePath}
-                                    disabled
-                                />
-                            ) : (
-                                <SuggestInput
-                                    id="symlink-target-input"
-                                    value={sourcePath}
-                                    onChange={(value) => setSourcePath(value)}
-                                    suggestions={suggestions.map((item) => ({
-                                        name: item.path,
-                                        value: item.path,
-                                    }))}
-                                />
-                            )}
-                        </div>
+                        )}
                     </div>
-                </ModalWindow>
-            )}
+                </div>
+            </ModalWindow>
             {isCreating && (
                 <div
                     className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-50"
@@ -163,7 +169,6 @@ function NewSymlinkModal({ showModal, setShowModal, currentDir, targetItem, refr
 export default NewSymlinkModal;
 
 NewSymlinkModal.propTypes = {
-    showModal: PropTypes.bool,
     setShowModal: PropTypes.func,
     currentDir: PropTypes.string,
     targetItem: PropTypes.object,

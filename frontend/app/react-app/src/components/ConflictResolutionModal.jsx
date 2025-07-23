@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ModalWindow from "./Modal";
 import {
     getParentPath,
@@ -11,14 +11,22 @@ import { BsFileEarmark, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function ConflictResolutionModal({
+    setShowModal,
     onConfirm,
     onCancel,
     incomingItems,
     setIncomingItems,
     existingNames,
 }) {
+    const [visible, setVisible] = useState(true);
     const showItems = getUniqueConflicts(incomingItems);
     console.debug("showItems", showItems);
+
+    useEffect(() => {
+        if (!visible) {
+            setShowModal(false);
+        }
+    }, [visible]);
 
     const handleResolve = () => {
         const filtered = incomingItems.filter((item) => {
@@ -49,7 +57,8 @@ function ConflictResolutionModal({
         });
 
         console.debug("handleResolve resolved", resolved);
-        onConfirm(resolved);
+        setVisible(false);
+        onConfirm?.(resolved);
     };
 
     const handleCheck = (event, item, key) => {
@@ -80,9 +89,15 @@ function ConflictResolutionModal({
         );
     };
 
+    const handleCancel = () => {
+        setVisible(false);
+        onCancel?.();
+    };
+
     return (
         <ModalWindow
-            onCancel={onCancel}
+            show={visible}
+            onCancel={handleCancel}
             onConfirm={handleResolve}
             size="large"
             title={<h5 className="modal-title">File Name Conflict</h5>}
@@ -222,6 +237,7 @@ function ConflictResolutionModal({
 export default ConflictResolutionModal;
 
 ConflictResolutionModal.propTypes = {
+    setShowModal: PropTypes.func,
     onConfirm: PropTypes.func,
     onCancel: PropTypes.func,
     incomingItems: PropTypes.array,

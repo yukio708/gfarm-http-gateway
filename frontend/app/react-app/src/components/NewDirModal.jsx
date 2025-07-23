@@ -1,12 +1,19 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import ModalWindow from "./Modal";
 import { useNotifications } from "../context/NotificationContext";
 import { createDir } from "../utils/dircommon";
 import PropTypes from "prop-types";
 
-function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
+function NewDirModal({ setShowModal, currentDir, refresh }) {
     const [dirname, setDirname] = useState("");
+    const [visible, setVisible] = useState(true);
     const { addNotification } = useNotifications();
+
+    useEffect(() => {
+        if (!visible) {
+            setShowModal(false);
+        }
+    }, [visible]);
 
     const handleCreateDir = useCallback(() => {
         console.log("handleCreateDir dirname", dirname);
@@ -17,7 +24,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
         const create = async () => {
             const path = currentDir.replace(/\/$/, "") + "/" + dirname;
             const error = await createDir(path);
-            setShowModal(false);
+            setVisible(false);
             setDirname("");
             if (error) addNotification("Create", error, "error");
             refresh();
@@ -27,30 +34,29 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
     }, [dirname]);
 
     return (
-        showModal && (
-            <ModalWindow
-                onCancel={() => {
-                    setShowModal(false);
-                    setDirname("");
+        <ModalWindow
+            show={visible}
+            onCancel={() => {
+                setVisible(false);
+                setDirname("");
+            }}
+            onConfirm={handleCreateDir}
+            comfirmText="Create"
+            title={<h5 className="modal-title">Create New Directory</h5>}
+        >
+            <input
+                id="create-dir-input"
+                type="text"
+                className="form-control"
+                value={dirname}
+                onChange={(e) => {
+                    console.log(e.target.value);
+                    setDirname(e.target.value);
+                    console.log("dirname", dirname);
                 }}
-                onConfirm={handleCreateDir}
-                comfirmText="Create"
-                title={<h5 className="modal-title">Create New Directory</h5>}
-            >
-                <input
-                    id="create-dir-input"
-                    type="text"
-                    className="form-control"
-                    value={dirname}
-                    onChange={(e) => {
-                        console.log(e.target.value);
-                        setDirname(e.target.value);
-                        console.log("dirname", dirname);
-                    }}
-                    placeholder="Enter directory name"
-                />
-            </ModalWindow>
-        )
+                placeholder="Enter directory name"
+            />
+        </ModalWindow>
     );
 }
 

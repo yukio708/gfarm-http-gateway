@@ -4,20 +4,20 @@ import { useNotifications } from "../context/NotificationContext";
 import removeItems from "../utils/remove";
 import PropTypes from "prop-types";
 
-function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
-    const [showModal, setShowModal] = useState(false);
+function DeleteModal({ setShowModal, itemsToDelete, setItemsToDelete, refresh }) {
+    const [visible, setVisible] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const { addNotification } = useNotifications();
 
     useEffect(() => {
-        if (itemsToDelete.length > 0) {
-            setShowModal(true);
+        if (!visible && !isDeleting) {
+            setShowModal(false);
         }
-    }, [itemsToDelete]);
+    }, [visible, isDeleting]);
 
     const handleDelete = () => {
         const deleteFile = async () => {
-            setShowModal(false);
+            setVisible(false);
             setIsDeleting(true);
             const error = await removeItems(itemsToDelete, refresh);
             setIsDeleting(false);
@@ -30,33 +30,32 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
 
     return (
         <div>
-            {showModal && (
-                <ModalWindow
-                    onCancel={() => {
-                        setItemsToDelete([]);
-                        setShowModal(false);
-                    }}
-                    onConfirm={handleDelete}
-                    comfirmText="Delete"
-                    title={
-                        <div>
-                            <p className="modal-title">
-                                Are you sure you want to permanently delete the following files?
-                            </p>
-                        </div>
-                    }
-                >
-                    <div data-testid="delete-modal">
-                        <ul>
-                            {itemsToDelete.map((file, idx) => (
-                                <li key={idx}>
-                                    &quot;{file.name}&quot; {file.is_dir && "and its contents"}
-                                </li>
-                            ))}
-                        </ul>
+            <ModalWindow
+                show={visible}
+                onCancel={() => {
+                    setItemsToDelete([]);
+                    setVisible(false);
+                }}
+                onConfirm={handleDelete}
+                comfirmText="Delete"
+                title={
+                    <div>
+                        <p className="modal-title">
+                            Are you sure you want to permanently delete the following files?
+                        </p>
                     </div>
-                </ModalWindow>
-            )}
+                }
+            >
+                <div data-testid="delete-modal">
+                    <ul>
+                        {itemsToDelete.map((file, idx) => (
+                            <li key={idx}>
+                                &quot;{file.name}&quot; {file.is_dir && "and its contents"}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </ModalWindow>
             {isDeleting && (
                 <div
                     className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-50"
@@ -74,6 +73,7 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
 export default DeleteModal;
 
 DeleteModal.propTypes = {
+    setShowModal: PropTypes.func,
     itemsToDelete: PropTypes.array,
     setItemsToDelete: PropTypes.func,
     refresh: PropTypes.func,

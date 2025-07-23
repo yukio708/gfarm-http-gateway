@@ -9,6 +9,7 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
     const [isDragActive, setIsDragActive] = useState(false);
     const [dragging, setDragging] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [visibleModal, setVisibleModal] = useState(false);
     const [showReConfirm, setShowReConfirm] = useState(false);
     const [selectedItems, setSelectedItems] = useState(null);
     const [modalText, setModalText] = useState(null);
@@ -99,11 +100,12 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
             </ul>
         );
         setShowConfirm(true);
+        setVisibleModal(true);
     };
 
     const confirmUpload = () => {
         setIsDragActive(false);
-        setShowConfirm(false);
+        setVisibleModal(false);
         if (selectedItems.length > 0) {
             const res = checkConflicts(selectedItems, currentItems);
 
@@ -128,7 +130,7 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
 
     const cancelUpload = () => {
         setIsDragActive(false);
-        setShowConfirm(false);
+        setVisibleModal(false);
         if (showReConfirm) {
             setShowReConfirm(false);
         }
@@ -149,6 +151,7 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
             )}
             {showConfirm && (
                 <ModalWindow
+                    show={visibleModal}
                     onCancel={cancelUpload}
                     onConfirm={confirmUpload}
                     title={
