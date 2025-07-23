@@ -156,8 +156,9 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
                             Are you sure you want to upload the following files?
                         </p>
                     }
-                    body={modalText}
-                />
+                >
+                    {modalText}
+                </ModalWindow>
             )}
             {showReConfirm && (
                 <ConflictResolutionModal

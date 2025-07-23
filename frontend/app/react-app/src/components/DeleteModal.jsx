@@ -45,18 +45,17 @@ function DeleteModal({ itemsToDelete, setItemsToDelete, refresh }) {
                             </p>
                         </div>
                     }
-                    body={
-                        <div data-testid="delete-modal">
-                            <ul>
-                                {itemsToDelete.map((file, idx) => (
-                                    <li key={idx}>
-                                        &quot;{file.name}&quot; {file.is_dir && "and its contents"}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    }
-                />
+                >
+                    <div data-testid="delete-modal">
+                        <ul>
+                            {itemsToDelete.map((file, idx) => (
+                                <li key={idx}>
+                                    &quot;{file.name}&quot; {file.is_dir && "and its contents"}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </ModalWindow>
             )}
             {isDeleting && (
                 <div

@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import PropTypes from "prop-types";
 
-function ModalWindow({ onCancel, onConfirm, title, body, cancelText, comfirmText, size }) {
+function ModalWindow({ onCancel, onConfirm, title, children, cancelText, comfirmText, size }) {
     const modalRef = useRef(null);
     const modalInstance = useRef(null);
     const size_class = size == "large" ? "modal-lg" : "";
@@ -19,7 +19,7 @@ function ModalWindow({ onCancel, onConfirm, title, body, cancelText, comfirmText
         }
     }, []);
 
-    const handleConfirm = () => {
+    const handleConfirm = useCallback(() => {
         if (onConfirm) {
             const res = onConfirm();
             console.debug("handleConfirm", res);
@@ -27,7 +27,7 @@ function ModalWindow({ onCancel, onConfirm, title, body, cancelText, comfirmText
                 modalInstance.current.hide();
             }
         }
-    };
+    }, [onConfirm]);
 
     return (
         <div className="modal fade" ref={modalRef} tabIndex="-1">
@@ -42,7 +42,7 @@ function ModalWindow({ onCancel, onConfirm, title, body, cancelText, comfirmText
                             data-bs-dismiss="modal"
                         ></button>
                     </div>
-                    <div className="modal-body">{body}</div>
+                    <div className="modal-body">{children}</div>
                     <div className="modal-footer">
                         <button
                             type="button"
@@ -74,7 +74,7 @@ ModalWindow.propTypes = {
     onCancel: PropTypes.func,
     onConfirm: PropTypes.func,
     title: PropTypes.string,
-    body: PropTypes.string,
+    children: PropTypes.node,
     cancelText: PropTypes.string,
     comfirmText: PropTypes.string,
     size: PropTypes.string,

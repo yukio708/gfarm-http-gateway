@@ -151,66 +151,65 @@ function MoveModal({ currentDir, itemsToMove, setItemsToMove, refresh }) {
                             </h5>
                         </div>
                     }
-                    body={
-                        <div data-testid="move-modal">
-                            <div className="mb-3">
-                                <label htmlFor="move-dest-input" className="form-label fw-semibold">
-                                    Enter Destination Path:
-                                </label>
-                                <SuggestInput
-                                    id="move-dest-input"
-                                    value={targetPath}
-                                    onChange={(val) => handleChange(val)}
-                                    suggestions={suggestions.map((item) => ({
-                                        name: item.path,
-                                        value: item.path,
-                                    }))}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <div className="form-label">or select a directory below:</div>
-                                <div className="form-text">{suggestDir}</div>
-                                {loading ? (
-                                    <div className="d-flex align-items-center gap-2">
-                                        <div
-                                            className="spinner-border spinner-border-sm text-secondary"
-                                            role="status"
-                                        />
-                                        <span className="text-secondary">{loadingText}</span>
-                                    </div>
-                                ) : (
-                                    <ul className="list-group mt-2 shadow-sm">
-                                        {suggestDir !== "/" && (
-                                            <li
-                                                className="list-group-item list-group-item-action"
-                                                onClick={() => handleSelectSuggestion("..")}
-                                            >
-                                                <BsArrowBarUp className="me-2" />
-                                                ..
-                                            </li>
-                                        )}
-                                        {currentItems.length > 0 &&
-                                            suggestions.map(
-                                                (item, i) =>
-                                                    item.is_dir && (
-                                                        <li
-                                                            key={i}
-                                                            className="list-group-item list-group-item-action"
-                                                            onClick={() =>
-                                                                handleSelectSuggestion(item.path)
-                                                            }
-                                                        >
-                                                            <BsFolder className="me-2" />
-                                                            {item.name}
-                                                        </li>
-                                                    )
-                                            )}
-                                    </ul>
-                                )}
-                            </div>
+                >
+                    <div data-testid="move-modal">
+                        <div className="mb-3">
+                            <label htmlFor="move-dest-input" className="form-label fw-semibold">
+                                Enter Destination Path:
+                            </label>
+                            <SuggestInput
+                                id="move-dest-input"
+                                value={targetPath}
+                                onChange={(val) => handleChange(val)}
+                                suggestions={suggestions.map((item) => ({
+                                    name: item.path,
+                                    value: item.path,
+                                }))}
+                            />
                         </div>
-                    }
-                />
+                        <div className="mb-3">
+                            <div className="form-label">or select a directory below:</div>
+                            <div className="form-text">{suggestDir}</div>
+                            {loading ? (
+                                <div className="d-flex align-items-center gap-2">
+                                    <div
+                                        className="spinner-border spinner-border-sm text-secondary"
+                                        role="status"
+                                    />
+                                    <span className="text-secondary">{loadingText}</span>
+                                </div>
+                            ) : (
+                                <ul className="list-group mt-2 shadow-sm">
+                                    {suggestDir !== "/" && (
+                                        <li
+                                            className="list-group-item list-group-item-action"
+                                            onClick={() => handleSelectSuggestion("..")}
+                                        >
+                                            <BsArrowBarUp className="me-2" />
+                                            ..
+                                        </li>
+                                    )}
+                                    {currentItems.length > 0 &&
+                                        suggestions.map(
+                                            (item, i) =>
+                                                item.is_dir && (
+                                                    <li
+                                                        key={i}
+                                                        className="list-group-item list-group-item-action"
+                                                        onClick={() =>
+                                                            handleSelectSuggestion(item.path)
+                                                        }
+                                                    >
+                                                        <BsFolder className="me-2" />
+                                                        {item.name}
+                                                    </li>
+                                                )
+                                        )}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+                </ModalWindow>
             )}
             {showConflictModal && (
                 <ConflictResolutionModal

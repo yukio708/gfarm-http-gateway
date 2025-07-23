@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import ModalWindow from "./Modal";
 import { useNotifications } from "../context/NotificationContext";
 import { createDir } from "../utils/dircommon";
@@ -8,7 +8,8 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
     const [dirname, setDirname] = useState("");
     const { addNotification } = useNotifications();
 
-    const handleCreateDir = () => {
+    const handleCreateDir = useCallback(() => {
+        console.log("handleCreateDir dirname", dirname);
         if (dirname === "") {
             addNotification("Create", "Directory name is empty", "warning");
             return false;
@@ -23,7 +24,7 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
         };
         create();
         return true;
-    };
+    }, [dirname]);
 
     return (
         showModal && (
@@ -35,17 +36,20 @@ function NewDirModal({ showModal, setShowModal, currentDir, refresh }) {
                 onConfirm={handleCreateDir}
                 comfirmText="Create"
                 title={<h5 className="modal-title">Create New Directory</h5>}
-                body={
-                    <input
-                        id="create-dir-input"
-                        type="text"
-                        className="form-control"
-                        value={dirname}
-                        onChange={(e) => setDirname(e.target.value)}
-                        placeholder="Enter directory name"
-                    />
-                }
-            />
+            >
+                <input
+                    id="create-dir-input"
+                    type="text"
+                    className="form-control"
+                    value={dirname}
+                    onChange={(e) => {
+                        console.log(e.target.value);
+                        setDirname(e.target.value);
+                        console.log("dirname", dirname);
+                    }}
+                    placeholder="Enter directory name"
+                />
+            </ModalWindow>
         )
     );
 }

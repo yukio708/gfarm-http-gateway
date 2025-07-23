@@ -68,20 +68,19 @@ function RenameModal({ showModal, setShowModal, renameItem, refresh }) {
                 onConfirm={handleRename}
                 comfirmText="Rename"
                 title={<h5 className="modal-title">Rename</h5>}
-                body={
-                    <div>
-                        <input
-                            id="rename-input"
-                            type="text"
-                            className="form-control"
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            onFocus={(e) => e.target.select()}
-                            placeholder="Enter name"
-                        />
-                    </div>
-                }
-            />
+            >
+                <div>
+                    <input
+                        id="rename-input"
+                        type="text"
+                        className="form-control"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="Enter name"
+                    />
+                </div>
+            </ModalWindow>
         )
     );
 }
