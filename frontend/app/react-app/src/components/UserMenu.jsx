@@ -1,8 +1,7 @@
-// components/UserMenu.js
-import PropTypes from "prop-types";
 import React from "react";
 import { API_URL } from "../utils/config";
 import { useUserInfo } from "../context/UserInfoContext";
+import PropTypes from "prop-types";
 
 function UserMenu() {
     const { userInfo } = useUserInfo();

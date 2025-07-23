@@ -3,7 +3,7 @@ import FileIcon from "../components/FileIcon";
 import FileTypeFilter from "../components/FileTypeFilter";
 import DateFilter from "../components/DateFilter";
 import UploadMenu from "../components/UploadMenu";
-import { ItemMenu, FileActionMenu } from "../components/FileActionMenu";
+import { ItemMenu, FileActionMenu, ContextMenu } from "../components/FileActionMenu";
 import {
     filterItems,
     getFileTypes,
@@ -132,6 +132,7 @@ function ListView({
     handleSelectAll,
     sortDirection,
     setSortDirection,
+    setContextMenu,
 }) {
     const headerCheckboxRef = useRef(null);
     const { viewMode, setViewMode } = useViewMode();
@@ -250,6 +251,15 @@ function ListView({
                                 <tr
                                     key={item.path}
                                     className={`align-middle ${isLastSelected ? "table-active" : ""}`}
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        setContextMenu({
+                                            show: true,
+                                            x: e.pageX,
+                                            y: e.pageY,
+                                            item,
+                                        });
+                                    }}
                                 >
                                     <td>
                                         <input
@@ -411,6 +421,7 @@ function IconView({
     handleSelectAll,
     sortDirection,
     setSortDirection,
+    setContextMenu,
 }) {
     const headerCheckboxRef = useRef(null);
     const { viewMode, setViewMode } = useViewMode();
@@ -501,6 +512,15 @@ function IconView({
                                 className={`col file-item position-relative ${isLastSelected ? "file-item-active" : ""} ${
                                     iconSize === "small" ? "grid-item-sm" : "grid-item"
                                 }`}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    setContextMenu({
+                                        show: true,
+                                        x: e.pageX,
+                                        y: e.pageY,
+                                        item,
+                                    });
+                                }}
                             >
                                 <input
                                     type="checkbox"
@@ -590,6 +610,12 @@ function FileListView({
             }),
         [filteredItems, sortDirection]
     );
+    const [contextMenu, setContextMenu] = useState({
+        show: false,
+        x: 0,
+        y: 0,
+        item: null,
+    });
 
     useEffect(() => {
         setSelectedItems([]);
@@ -656,21 +682,7 @@ function FileListView({
     );
 
     useEffect(() => {
-        const handleDeleteKeyDown = (e) => {
-            if (e.key === "Delete") {
-                e.preventDefault();
-                SelectedMenuActions.remove(selectedItems);
-            }
-        };
-
-        window.addEventListener("keydown", handleDeleteKeyDown);
-        return () => {
-            window.removeEventListener("keydown", handleDeleteKeyDown);
-        };
-    }, [selectedItems]);
-
-    useEffect(() => {
-        const handleSelectKeyDown = (e) => {
+        const handleKeyDownWithSortedItems = (e) => {
             if (e.key === "a" || e.key === "A") {
                 if (e.ctrlKey || e.metaKey) {
                     e.preventDefault();
@@ -682,14 +694,28 @@ function FileListView({
             }
         };
 
-        window.addEventListener("keydown", handleSelectKeyDown);
+        window.addEventListener("keydown", handleKeyDownWithSortedItems);
         return () => {
-            window.removeEventListener("keydown", handleSelectKeyDown);
+            window.removeEventListener("keydown", handleKeyDownWithSortedItems);
         };
     }, [sortedItems]);
 
     useEffect(() => {
-        const handleFunctionKeyDown = (e) => {
+        const handleKeyDownWithSelectedItems = (e) => {
+            if (e.key === "Delete") {
+                e.preventDefault();
+                SelectedMenuActions.remove(selectedItems);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDownWithSelectedItems);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDownWithSelectedItems);
+        };
+    }, [selectedItems]);
+
+    useEffect(() => {
+        const handleKeyDownWithLastSelectedItem = (e) => {
             if (e.key === "F2") {
                 e.preventDefault();
                 if (lastSelectedItem) {
@@ -698,9 +724,9 @@ function FileListView({
             }
         };
 
-        window.addEventListener("keydown", handleFunctionKeyDown);
+        window.addEventListener("keydown", handleKeyDownWithLastSelectedItem);
         return () => {
-            window.removeEventListener("keydown", handleFunctionKeyDown);
+            window.removeEventListener("keydown", handleKeyDownWithLastSelectedItem);
         };
     }, [lastSelectedItem]);
 
@@ -757,6 +783,7 @@ function FileListView({
                         handleSelectAll={handleSelectAll}
                         sortDirection={sortDirection}
                         setSortDirection={setSortDirection}
+                        setContextMenu={setContextMenu}
                     />
                 ) : (
                     <IconView
@@ -772,9 +799,19 @@ function FileListView({
                         handleSelectAll={handleSelectAll}
                         sortDirection={sortDirection}
                         setSortDirection={setSortDirection}
+                        setContextMenu={setContextMenu}
                     />
                 )}
             </div>
+            {contextMenu.show && contextMenu.item && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    item={contextMenu.item}
+                    actions={ItemMenuActions} // or whatever actions you pass
+                    onClose={() => setContextMenu((prev) => ({ ...prev, show: false }))}
+                />
+            )}
         </div>
     );
 }
@@ -808,6 +845,7 @@ ListView.propTypes = {
     handleSelectAll: PropTypes.func,
     sortDirection: PropTypes.object,
     setSortDirection: PropTypes.func,
+    setContextMenu: PropTypes.func,
 };
 
 IconView.propTypes = {
@@ -823,6 +861,7 @@ IconView.propTypes = {
     handleSelectAll: PropTypes.func,
     sortDirection: PropTypes.object,
     setSortDirection: PropTypes.func,
+    setContextMenu: PropTypes.func,
 };
 
 SortDropDownMenu.propTypes = {

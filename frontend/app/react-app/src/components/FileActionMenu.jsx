@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
     BsThreeDots,
     BsInfoCircle,
@@ -19,41 +19,60 @@ import PropTypes from "prop-types";
 function FileActionMenu({ actions, selectedItems }) {
     if (selectedItems.length === 0) return null;
 
+    const rawButtons = [
+        {
+            label: (
+                <>
+                    <BsDownload className="me-2" /> Download
+                </>
+            ),
+            onClick: () => actions.download(selectedItems),
+            testid: "download",
+        },
+        {
+            label: (
+                <>
+                    <BsTrash className="me-2" /> Delete
+                </>
+            ),
+            onClick: () => actions.remove(selectedItems),
+            testid: "delete",
+        },
+        {
+            label: (
+                <>
+                    <BsArrowRightSquare className="me-2" /> Move
+                </>
+            ),
+            onClick: () => actions.move(selectedItems),
+            testid: "move",
+        },
+        {
+            label: (
+                <>
+                    <BsArchive className="me-2" /> gfptar
+                </>
+            ),
+            onClick: () => actions.archive(),
+            testid: "gfptar",
+        },
+    ];
+
     return (
         <div className="d-flex align-items-center" data-testid="action-menu">
-            {/* Inline buttons on md+ screens */}
             <div className="d-none d-md-flex btn-group" role="group">
-                <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={() => actions.download(selectedItems)}
-                    data-testid="action-menu-download"
-                >
-                    <BsDownload className="me-2" /> Download
-                </button>
-                <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={() => actions.remove(selectedItems)}
-                    data-testid="action-menu-delete"
-                >
-                    <BsTrash className="me-2" /> Delete
-                </button>
-                <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={() => actions.move(selectedItems)}
-                    data-testid="action-menu-move"
-                >
-                    <BsArrowRightSquare className="me-2" /> Move
-                </button>
-                <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={() => actions.archive()}
-                    data-testid="action-menu-gfptar"
-                >
-                    <BsArchive className="me-2" /> gfptar
-                </button>
+                {rawButtons.map(({ label, onClick, testid }) => (
+                    <button
+                        key={testid}
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={onClick}
+                        data-testid={`action-menu-${testid}`}
+                    >
+                        {label}
+                    </button>
+                ))}
             </div>
 
-            {/* Dropdown on small screens */}
             <div className="dropdown d-md-none">
                 <button
                     className="btn btn-outline-primary btn-sm dropdown-toggle"
@@ -66,55 +85,90 @@ function FileActionMenu({ actions, selectedItems }) {
                     Actions
                 </button>
                 <ul className="dropdown-menu" aria-labelledby="action-menu-dropdown">
-                    <li>
-                        <button
-                            className="dropdown-item"
-                            onClick={() => actions.download(selectedItems)}
-                            data-testid="action-menu-download-sm"
-                        >
-                            <BsDownload className="me-2" /> Download
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            className="dropdown-item"
-                            onClick={() => actions.remove(selectedItems)}
-                            data-testid="action-menu-delete-sm"
-                        >
-                            <BsTrash className="me-2" /> Delete
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            className="dropdown-item"
-                            onClick={() => actions.move(selectedItems)}
-                            data-testid="action-menu-move-sm"
-                        >
-                            <BsArrowRightSquare className="me-2" /> Move
-                        </button>
-                    </li>
-                    <li>
-                        <button
-                            className="dropdown-item"
-                            onClick={() => actions.archive()}
-                            data-testid="action-menu-gfptar-sm"
-                        >
-                            <BsArchive className="me-2" /> gfptar
-                        </button>
-                    </li>
+                    {rawButtons.map(({ label, onClick, testid }) => (
+                        <li key={testid}>
+                            <button
+                                className="dropdown-item"
+                                onClick={onClick}
+                                data-testid={`action-menu-${testid}-sm`}
+                            >
+                                {label}
+                            </button>
+                        </li>
+                    ))}
                 </ul>
             </div>
 
-            {selectedItems.length > 0 && (
-                <span className="badge bg-light text-dark ms-2">
-                    {selectedItems.length} selected
-                </span>
-            )}
+            <span className="badge bg-light text-dark ms-2">{selectedItems.length} selected</span>
         </div>
     );
 }
 
 function ItemMenu({ item, actions }) {
+    const menuItems = [
+        {
+            label: "Detail",
+            icon: <BsInfoCircle />,
+            action: () => actions.showDetail(item),
+            testid: "detail",
+        },
+        item.is_file && {
+            label: "View",
+            icon: <BsEye />,
+            action: () => actions.display(item.path),
+            testid: "view",
+        },
+        {
+            label: "Rename",
+            icon: <BsPencil />,
+            action: () => actions.rename(item),
+            testid: "rename",
+        },
+        {
+            label: "Move",
+            icon: <BsArrowRightSquare />,
+            action: () => actions.move([item]),
+            testid: "move",
+        },
+        item.is_file && {
+            label: "Copy",
+            icon: <BsFiles />,
+            action: () => actions.copy(item),
+            testid: "copy",
+        },
+        {
+            label: "Download",
+            icon: <BsDownload />,
+            action: () => actions.download([item]),
+            testid: "download",
+        },
+        {
+            label: "Create Symlink",
+            icon: <BsFileEarmarkPlus />,
+            action: () => actions.create_symlink(item),
+            testid: "symlink",
+        },
+        {
+            label: "Permissions",
+            icon: <BsShieldLock />,
+            action: () => actions.permission(item),
+            testid: "permissions",
+        },
+        {
+            label: "ACL",
+            icon: <BsCardChecklist />,
+            action: () => actions.accessControl(item),
+            testid: "acl",
+        },
+        { label: "URL", icon: <BsLink45Deg />, action: () => actions.share(item), testid: "url" },
+        {
+            label: "Delete",
+            icon: <BsTrash />,
+            action: () => actions.remove([item]),
+            testid: "delete",
+        },
+    ].filter(Boolean);
+
     return (
         <div className="dropdown">
             <button
@@ -126,115 +180,135 @@ function ItemMenu({ item, actions }) {
                 <BsThreeDots />
             </button>
             <ul className="dropdown-menu">
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.showDetail(item)}
-                        data-testid={`detail-menu-${item.name}`}
-                    >
-                        <BsInfoCircle className="me-2" /> Detail
-                    </button>
-                </li>
-                {item.is_file && (
-                    <li>
+                {menuItems.map(({ label, icon, action, testid }) => (
+                    <li key={testid}>
                         <button
                             className="dropdown-item"
-                            onClick={() => actions.display(item.path)}
-                            data-testid={`view-menu-${item.name}`}
+                            onClick={action}
+                            data-testid={`${testid}-menu-${item.name}`}
                         >
-                            <BsEye className="me-2" /> View
+                            {icon} <span className="ms-2">{label}</span>
                         </button>
                     </li>
-                )}
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.rename(item)}
-                        data-testid={`rename-menu-${item.name}`}
-                    >
-                        <BsPencil className="me-2" /> Rename
-                    </button>
-                </li>
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.move([item])}
-                        data-testid={`move-menu-${item.name}`}
-                    >
-                        <BsArrowRightSquare className="me-2" /> Move
-                    </button>
-                </li>
-                {item.is_file && (
-                    <li>
-                        <button
-                            className="dropdown-item"
-                            onClick={() => actions.copy(item)}
-                            data-testid={`copy-menu-${item.name}`}
-                        >
-                            <BsFiles className="me-2" /> Copy
-                        </button>
-                    </li>
-                )}
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.download([item])}
-                        data-testid={`download-menu-${item.name}`}
-                    >
-                        <BsDownload className="me-2" /> Download
-                    </button>
-                </li>
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.create_symlink(item)}
-                        data-testid={`symlink-menu-${item.name}`}
-                    >
-                        <BsFileEarmarkPlus className="me-2" /> Create Symlink
-                    </button>
-                </li>
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.permission(item)}
-                        data-testid={`permissions-menu-${item.name}`}
-                    >
-                        <BsShieldLock className="me-2" /> Permissions
-                    </button>
-                </li>
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.accessControl(item)}
-                        data-testid={`acl-menu-${item.name}`}
-                    >
-                        <BsCardChecklist className="me-2" /> ACL
-                    </button>
-                </li>
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.share(item)}
-                        data-testid={`url-menu-${item.name}`}
-                    >
-                        <BsLink45Deg className="me-2" /> URL
-                    </button>
-                </li>
-                <li>
-                    <button
-                        className="dropdown-item"
-                        onClick={() => actions.remove([item])}
-                        data-testid={`delete-menu-${item.name}`}
-                    >
-                        <BsTrash className="me-2" /> Delete
-                    </button>
-                </li>
+                ))}
             </ul>
         </div>
     );
 }
 
-export { FileActionMenu, ItemMenu };
+function ContextMenu({ x, y, item, onClose, actions }) {
+    const menuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                onClose();
+            }
+        };
+        window.addEventListener("click", handleClickOutside);
+        return () => {
+            window.removeEventListener("click", handleClickOutside);
+        };
+    }, [onClose]);
+
+    const menuItems = [
+        {
+            label: "Detail",
+            onClick: () => {
+                onClose?.();
+                actions.showDetail(item);
+            },
+        },
+        item.is_file && {
+            label: "View",
+            onClick: () => {
+                onClose?.();
+                actions.display(item.path);
+            },
+        },
+        {
+            label: "Rename",
+            onClick: () => {
+                onClose?.();
+                actions.rename(item);
+            },
+        },
+        {
+            label: "Move",
+            onClick: () => {
+                onClose?.();
+                actions.move([item]);
+            },
+        },
+        item.is_file && {
+            label: "Copy",
+            onClick: () => {
+                onClose?.();
+                actions.copy(item);
+            },
+        },
+        {
+            label: "Download",
+            onClick: () => {
+                onClose?.();
+                actions.download([item]);
+            },
+        },
+        {
+            label: "Create Symlink",
+            onClick: () => {
+                onClose?.();
+                actions.create_symlink(item);
+            },
+        },
+        {
+            label: "Permissions",
+            onClick: () => {
+                onClose?.();
+                actions.permission(item);
+            },
+        },
+        {
+            label: "ACL",
+            onClick: () => {
+                onClose?.();
+                actions.accessControl(item);
+            },
+        },
+        {
+            label: "URL",
+            onClick: () => {
+                onClose?.();
+                actions.share(item);
+            },
+        },
+        {
+            label: "Delete",
+            onClick: () => {
+                onClose?.();
+                actions.remove([item]);
+            },
+        },
+    ].filter(Boolean);
+
+    return (
+        <ul
+            ref={menuRef}
+            className="dropdown-menu show position-absolute"
+            style={{ top: y, left: x, zIndex: 1050, display: "block" }}
+        >
+            {menuItems.map((menuItem, idx) => (
+                <li key={idx}>
+                    <button className="dropdown-item" onClick={menuItem.onClick}>
+                        {menuItem.label}
+                    </button>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+export { FileActionMenu, ItemMenu, ContextMenu };
 
 FileActionMenu.propTypes = {
     selectedItems: PropTypes.array,
@@ -244,4 +318,12 @@ FileActionMenu.propTypes = {
 ItemMenu.propTypes = {
     item: PropTypes.object,
     actions: PropTypes.array,
+};
+
+ContextMenu.propTypes = {
+    x: PropTypes.number.isRequired,
+    y: PropTypes.number.isRequired,
+    item: PropTypes.object.isRequired,
+    actions: PropTypes.object.isRequired,
+    onClose: PropTypes.func.isRequired,
 };
