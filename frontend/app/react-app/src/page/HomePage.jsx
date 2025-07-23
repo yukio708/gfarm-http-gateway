@@ -264,7 +264,8 @@ function HomePage() {
                         selectedItems={selectedItems}
                         setSelectedItems={setSelectedItems}
                         setLastSelectedItem={setLastSelectedItem}
-                        activeItem={showSidePanel.show ? lastSelectedItem : null}
+                        active={showSidePanel.show}
+                        lastSelectedItem={lastSelectedItem}
                         handleItemClick={handleItemClick}
                         ItemMenuActions={ItemMenuActions}
                         UploadMenuActions={UploadMenuActions}

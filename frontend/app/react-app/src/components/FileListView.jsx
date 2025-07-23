@@ -123,7 +123,8 @@ function SortDropDownMenu({ sortDirection, setSortDirection }) {
 function ListView({
     sortedItems,
     selectedItems,
-    activeItem,
+    active,
+    lastSelectedItem,
     ItemMenuActions,
     handleDoubleClick,
     handleClick,
@@ -244,7 +245,7 @@ function ListView({
                             const isSelected = selectedItems.some(
                                 (selected) => selected.path === item.path
                             );
-                            const isLastSelected = activeItem && activeItem.path === item.path;
+                            const isLastSelected = active && lastSelectedItem?.path === item.path;
                             return (
                                 <tr
                                     key={item.path}
@@ -339,7 +340,7 @@ function ListView({
                             const isSelected = selectedItems.some(
                                 (selected) => selected.path === item.path
                             );
-                            const isLastSelected = activeItem && activeItem.path === item.path;
+                            const isLastSelected = active && lastSelectedItem?.path === item.path;
                             return (
                                 <tr
                                     key={item.path}
@@ -400,7 +401,8 @@ function ListView({
 function IconView({
     sortedItems,
     selectedItems,
-    activeItem,
+    active,
+    lastSelectedItem,
     ItemMenuActions,
     handleDoubleClick,
     handleClick,
@@ -491,7 +493,7 @@ function IconView({
                         const isSelected = selectedItems.some(
                             (selected) => selected.path === item.path
                         );
-                        const isLastSelected = activeItem && activeItem.path === item.path;
+                        const isLastSelected = active && lastSelectedItem?.path === item.path;
 
                         return (
                             <div
@@ -554,7 +556,8 @@ function FileListView({
     currentItems,
     selectedItems,
     setSelectedItems,
-    activeItem,
+    active,
+    lastSelectedItem,
     setLastSelectedItem,
     ItemMenuActions,
     UploadMenuActions,
@@ -652,6 +655,55 @@ function FileListView({
         [isTouchDevice, handleItemClick]
     );
 
+    useEffect(() => {
+        const handleDeleteKeyDown = (e) => {
+            if (e.key === "Delete") {
+                e.preventDefault();
+                SelectedMenuActions.remove(selectedItems);
+            }
+        };
+
+        window.addEventListener("keydown", handleDeleteKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleDeleteKeyDown);
+        };
+    }, [selectedItems]);
+
+    useEffect(() => {
+        const handleSelectKeyDown = (e) => {
+            if (e.key === "a" || e.key === "A") {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    setSelectedItems(sortedItems);
+                }
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                setSelectedItems([]);
+            }
+        };
+
+        window.addEventListener("keydown", handleSelectKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleSelectKeyDown);
+        };
+    }, [sortedItems]);
+
+    useEffect(() => {
+        const handleFunctionKeyDown = (e) => {
+            if (e.key === "F2") {
+                e.preventDefault();
+                if (lastSelectedItem) {
+                    ItemMenuActions.rename(lastSelectedItem);
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handleFunctionKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleFunctionKeyDown);
+        };
+    }, [lastSelectedItem]);
+
     return (
         <div className="d-flex flex-column h-100">
             <div className="flex-shrink-0">
@@ -696,7 +748,8 @@ function FileListView({
                     <ListView
                         sortedItems={sortedItems}
                         selectedItems={selectedItems}
-                        activeItem={activeItem}
+                        active={active}
+                        lastSelectedItem={lastSelectedItem}
                         ItemMenuActions={ItemMenuActions}
                         handleClick={handleClick}
                         handleDoubleClick={handleDoubleClick}
@@ -709,7 +762,8 @@ function FileListView({
                     <IconView
                         sortedItems={sortedItems}
                         selectedItems={selectedItems}
-                        activeItem={activeItem}
+                        active={active}
+                        lastSelectedItem={lastSelectedItem}
                         ItemMenuActions={ItemMenuActions}
                         handleClick={handleClick}
                         handleDoubleClick={handleDoubleClick}
@@ -733,7 +787,8 @@ FileListView.propTypes = {
     currentItems: PropTypes.array,
     selectedItems: PropTypes.array,
     setSelectedItems: PropTypes.func,
-    activeItem: PropTypes.object,
+    active: PropTypes.bool,
+    lastSelectedItem: PropTypes.object,
     setLastSelectedItem: PropTypes.func,
     ItemMenuActions: PropTypes.array,
     UploadMenuActions: PropTypes.array,
@@ -744,7 +799,8 @@ FileListView.propTypes = {
 ListView.propTypes = {
     sortedItems: PropTypes.array,
     selectedItems: PropTypes.array,
-    activeItem: PropTypes.object,
+    active: PropTypes.bool,
+    lastSelectedItem: PropTypes.object,
     ItemMenuActions: PropTypes.array,
     handleClick: PropTypes.func,
     handleDoubleClick: PropTypes.func,
@@ -757,7 +813,8 @@ ListView.propTypes = {
 IconView.propTypes = {
     sortedItems: PropTypes.array,
     selectedItems: PropTypes.array,
-    activeItem: PropTypes.object,
+    active: PropTypes.bool,
+    lastSelectedItem: PropTypes.object,
     ItemMenuActions: PropTypes.array,
     handleClick: PropTypes.func,
     handleDoubleClick: PropTypes.func,
