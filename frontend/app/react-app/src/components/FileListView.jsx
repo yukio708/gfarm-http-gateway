@@ -653,7 +653,7 @@ function FileListView({
     );
 
     return (
-        <div className="d-flex flex-column h-100" style={{ zIndex: 10 }}>
+        <div className="d-flex flex-column h-100">
             <div className="flex-shrink-0">
                 <div className="d-flex mb-1">
                     <button
@@ -691,7 +691,7 @@ function FileListView({
                     </div>
                 </div>
             </div>
-            <div className="flex-grow-1 overflow-auto">
+            <div className="flex-grow-1 overflow-auto" style={{ zIndex: 0 }}>
                 {viewMode === "list" ? (
                     <ListView
                         sortedItems={sortedItems}
