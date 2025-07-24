@@ -11,8 +11,8 @@ import PropTypes from "prop-types";
 
 function SidePanel({ show, item, onHide, showTab = "detail" }) {
     const [activeTab, setActiveTab] = useState("detail");
-    const { detailContent, getAttrError, refreshAttr } = useGetAttr(item, true, true);
-    const { aclData, aclError, refreshAcl } = useGetAcl(item);
+    const { detailContent, getAttrError, refreshAttr } = useGetAttr(show ? item : null, true, true);
+    const { aclData, aclError, refreshAcl } = useGetAcl(show ? item : null);
     const { addNotification } = useNotifications();
     const tabs = [
         { key: "detail", label: "Detail" },
