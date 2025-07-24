@@ -261,9 +261,12 @@ export async function mockRoute(
             return await handleRoute(route, request);
         }
         console.log("[MOCK]", pathname, method, statusCode);
+        console.log("[MOCK] request.url()", request.url());
 
-        const body = JSON.parse(request.postData());
-        if (validateBody) validateBody(body);
+        if (validateBody) {
+            const body = JSON.parse(request.postData());
+            validateBody(body);
+        }
 
         await route.fulfill({
             status: statusCode,
@@ -283,7 +286,7 @@ export const handleRoute = async (route, request) => {
     }
 
     if (url.includes("/dir/") && method === "GET") {
-        console.log("/dir/", url);
+        console.log("[MOCK] /dir/", url);
         const path = url.split("/dir/", 2)[1].split("?")[0];
         const request_url = new URL(url);
         const effperm = request_url.searchParams.get("effperm");
@@ -319,7 +322,7 @@ export const handleRoute = async (route, request) => {
             });
         }
     } else if (url.includes("/user_info")) {
-        console.log("/user_info", url);
+        console.log("[MOCK] /user_info", url);
         await route.fulfill({
             status: 200,
             contentType: "application/json",
@@ -366,7 +369,7 @@ export const handleRoute = async (route, request) => {
             });
         }
     } else if (url.includes("/file/") && method === "GET") {
-        console.log("/file/", url);
+        console.log("[MOCK] /file/", url);
         const filePath = decodeURIComponent(url.split("/file/")[1].split("?")[0]);
         const filename = filePath.split("/").pop();
         const ext = filename.split(".").pop();
@@ -435,7 +438,7 @@ export const handleRoute = async (route, request) => {
             });
         }
     } else if (url.includes("/zip") && method === "POST") {
-        console.log("/zip/", url);
+        console.log("[MOCK] /zip/", url);
         const postData = await request.postData();
         const parsed = querystring.parse(postData);
         const files = Array.isArray(parsed["paths"]) ? parsed["paths"] : [parsed["paths"]];
@@ -475,30 +478,15 @@ export const handleRoute = async (route, request) => {
             body: zipContentBuffer,
             headers,
         });
-    } else if (url.includes("/file/") && method === "PUT") {
-        console.log("/file/", url);
-        const request = route.request();
-        const bodyBuffer = request.postDataBuffer();
-        const bodyText = request.postData();
-
-        console.log("Body buffer:", bodyBuffer);
-        console.log("Body text:", bodyText); // for plain text or JSON
-
-        // Return mocked JSON response
-        await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ result: "ok" }),
-        });
     } else if (url.includes("/file/") && method === "DELETE") {
-        console.log("/file/", url);
+        console.log("[MOCK] /file/", url);
         await route.fulfill({
             status: 200,
             contentType: "application/json",
             body: JSON.stringify({}),
         });
     } else if (url.includes("/dir/") && method === "PUT") {
-        console.log("/dir/", url);
+        console.log("[MOCK] /dir/", url);
         const dirPath = decodeURIComponent(url.split("/dir/")[1].split("?")[0]);
 
         await route.fulfill({
@@ -538,7 +526,7 @@ export const handleRoute = async (route, request) => {
             body: JSON.stringify({ message: "ACL updated successfully" }),
         });
     } else if (url.includes("/copy")) {
-        console.log("/copy", url);
+        console.log("[MOCK] /copy", url);
         const headers = {
             "content-type": "application/json",
             "transfer-encoding": "chunked",
@@ -563,7 +551,7 @@ export const handleRoute = async (route, request) => {
             body: chunks,
         });
     } else if (url.includes("/move")) {
-        console.log("/move", url);
+        console.log("[MOCK] /move", url);
         await route.fulfill({
             status: 200,
             contentType: "application/json",

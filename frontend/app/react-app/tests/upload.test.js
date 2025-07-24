@@ -73,6 +73,10 @@ test("upload multiple files", async ({ page }) => {
     const testFileNames = ["dummy.txt", "dummy.py", "dummy.js"];
     const filePaths = testFileNames.map((f) => DUMMYS + "/" + f);
 
+    await mockUploadRoute(page, {
+        filepath: currentDirectory,
+    });
+
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     await clickMenuItemformNewMenu(page, "upload-file");
@@ -89,6 +93,10 @@ test("upload multiple files", async ({ page }) => {
 test("upload nested directory", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileNames = ["dummy.txt", "dummy.py", "dummy.js", "dummy2"];
+
+    await mockUploadRoute(page, {
+        filepath: currentDirectory + "/dummy",
+    });
 
     const uploadFilePath = DUMMYS;
 
@@ -108,6 +116,10 @@ test("upload nested directory", async ({ page }) => {
 test("upload name conflict prompt (overwrite)", async ({ page }) => {
     const currentDirectory = "/dummy";
     const testFileName = "dummy.txt";
+
+    await mockUploadRoute(page, {
+        filepath: currentDirectory + "/" + testFileName,
+    });
 
     const uploadFilePath = DUMMYS + "/" + testFileName;
 
@@ -173,6 +185,10 @@ test("upload empty file", async ({ page }) => {
     const testFileName = "empty.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
 
+    await mockUploadRoute(page, {
+        filepath: currentDirectory + testFileName,
+    });
+
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     await clickMenuItemformNewMenu(page, "upload-file");
@@ -185,6 +201,10 @@ test("upload empty file", async ({ page }) => {
 
 test("drag and drop single file", async ({ page }) => {
     const testFileName = "test-file.txt";
+
+    await mockUploadRoute(page, {
+        filepath: "/" + testFileName,
+    });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/`);
 
