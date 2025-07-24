@@ -5,7 +5,7 @@ const fs = require("fs");
 
 const {
     waitForReact,
-    handleRoute,
+    mockRoute,
     findNodeByPath,
     clickMenuItemformView,
     symbolicToOctal,
@@ -26,24 +26,14 @@ async function mockAttrRoute(
         statusCode = 200,
     } = {}
 ) {
-    await page.route(`${API_URL}/**`, async (route, request) => {
-        console.log("[MOCK] /acl test", filepath);
-        const url = request.url();
-        const method = request.method();
-        if (!url.includes("/attr") || method !== "POST") {
-            await handleRoute(route, request);
-            return;
-        }
-        const body = JSON.parse(route.request().postData());
-
-        expect(typeof body.Mode).toBe("string");
-        if (expectedMode) expect(body.Mode).toBe(expectedMode);
-
-        await route.fulfill({
-            status: statusCode,
-            contentType: "application/json",
-            body: JSON.stringify(mockResponse),
-        });
+    await mockRoute(page, `${API_URL}/**`, "POST", "/attr" + filepath, {
+        validateBody: (body) => {
+            expect(typeof body.Mode).toBe("string");
+            if (expectedMode) expect(body.Mode).toBe(expectedMode);
+        },
+        statusCode,
+        contentType: "application/json",
+        response: JSON.stringify(mockResponse),
     });
 }
 

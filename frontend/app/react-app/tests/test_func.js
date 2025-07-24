@@ -65,7 +65,8 @@ export async function clickMenuItemformMenu(page, action) {
 
 export async function clickMenuItemformNewMenu(page, action) {
     const uploadmenu = page.locator('[id="upload-dropdown"]');
-    const menuButton = uploadmenu.locator(`[data-testid="${action}"]`);
+    await uploadmenu.click();
+    const menuButton = page.locator(`[data-testid="${action}"]`);
     await menuButton.click();
 }
 
@@ -242,6 +243,36 @@ export function symbolicToOctal(symbolic) {
 }
 
 // Route handler
+
+export async function mockRoute(
+    page,
+    mock_url,
+    method,
+    pathname,
+    {
+        validateBody,
+        statusCode = 200,
+        contentType = "application/json",
+        response = JSON.stringify({}),
+    }
+) {
+    await page.route(mock_url, async (route, request) => {
+        if (!request.url().includes(pathname) || request.method() !== method) {
+            return await handleRoute(route, request);
+        }
+        console.log("[MOCK]", pathname, method, statusCode);
+
+        const body = JSON.parse(request.postData());
+        if (validateBody) validateBody(body);
+
+        await route.fulfill({
+            status: statusCode,
+            contentType: contentType,
+            body: response,
+        });
+    });
+}
+
 export const handleRoute = async (route, request) => {
     const url = request.url();
     const method = request.method();

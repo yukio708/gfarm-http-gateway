@@ -2,6 +2,7 @@ const { test, expect } = require("@playwright/test");
 
 const {
     waitForReact,
+    mockRoute,
     handleRoute,
     checkItem,
     clickMenuItemformMenu,
@@ -32,40 +33,37 @@ async function mockGfptarRoute(
         mockResponse = { message: "Tar operation completed" },
     } = {}
 ) {
-    await page.route(`${API_URL}/gfptar`, async (route) => {
-        const body = JSON.parse(route.request().postData());
+    await mockRoute(page, `${API_URL}/**`, "POST", "/gfptar", {
+        validateBody: (body) => {
+            // Base type assertions
+            expect(typeof body.command).toBe("string");
+            expect(typeof body.basedir).toBe("string");
+            expect(typeof body.outdir).toBe("string");
+            expect(Array.isArray(body.source)).toBe(true);
 
-        // Base type assertions
-        expect(typeof body.command).toBe("string");
-        expect(typeof body.basedir).toBe("string");
-        expect(typeof body.outdir).toBe("string");
-        expect(Array.isArray(body.source)).toBe(true);
-
-        if (body.options !== null && body.options !== undefined) {
-            expect(Array.isArray(body.options)).toBe(true);
-            for (const opt of body.options) {
-                expect(typeof opt).toBe("string");
+            if (body.options !== null && body.options !== undefined) {
+                expect(Array.isArray(body.options)).toBe(true);
+                for (const opt of body.options) {
+                    expect(typeof opt).toBe("string");
+                }
             }
-        }
 
-        // Optional value checks
-        if (expectedCommand) expect(body.command).toBe(expectedCommand);
-        if (expectedBasedir) expect(body.basedir).toBe(expectedBasedir);
-        if (expectedOutdir) expect(body.outdir).toBe(expectedOutdir);
-        if (expectedSources) {
-            for (const f of expectedSources) {
-                expect(body.source).toContain(f);
+            // Optional value checks
+            if (expectedCommand) expect(body.command).toBe(expectedCommand);
+            if (expectedBasedir) expect(body.basedir).toBe(expectedBasedir);
+            if (expectedOutdir) expect(body.outdir).toBe(expectedOutdir);
+            if (expectedSources) {
+                for (const f of expectedSources) {
+                    expect(body.source).toContain(f);
+                }
             }
-        }
-        if (expectedOptions) {
-            expect(body.options).toEqual(expect.arrayContaining(expectedOptions));
-        }
-
-        await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify(mockResponse),
-        });
+            if (expectedOptions) {
+                expect(body.options).toEqual(expect.arrayContaining(expectedOptions));
+            }
+        },
+        statusCode: 200,
+        contentType: "application/json",
+        response: JSON.stringify(mockResponse),
     });
 }
 

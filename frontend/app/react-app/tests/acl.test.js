@@ -4,6 +4,7 @@ const fs = require("fs");
 const {
     waitForReact,
     handleRoute,
+    mockRoute,
     clickMenuItemformView,
     API_URL,
     FRONTEND_URL,
@@ -17,43 +18,33 @@ async function mockAclUpdateRoute(
     page,
     { filepath, expectedAclList, statusCode = 200, mockResponse = { message: "ACL updated" } }
 ) {
-    await page.route(`${API_URL}/**`, async (route, request) => {
-        console.log("[MOCK] /acl test", filepath);
-        const url = request.url();
-        const method = request.method();
-        if (!url.includes("/acl") || method !== "POST") {
-            await handleRoute(route, request);
-            return;
-        }
-        console.log("[MOCK] /acl POST", url);
-        const body = JSON.parse(request.postData());
-        const aclList = body.acl;
+    await mockRoute(page, `${API_URL}/**`, "POST", "/acl" + filepath, {
+        validateBody: (body) => {
+            const aclList = body.acl;
 
-        for (const expected of expectedAclList) {
-            const match = aclList.find((received) => {
-                if (
-                    received.acl_type !== expected.acl_type ||
-                    received.acl_name !== expected.acl_name ||
-                    received.is_default !== expected.is_default
-                ) {
-                    return false;
-                }
+            for (const expected of expectedAclList) {
+                const match = aclList.find((received) => {
+                    if (
+                        received.acl_type !== expected.acl_type ||
+                        received.acl_name !== expected.acl_name ||
+                        received.is_default !== expected.is_default
+                    ) {
+                        return false;
+                    }
 
-                return (
-                    received.acl_perms.r === expected.acl_perms.r &&
-                    received.acl_perms.w === expected.acl_perms.w &&
-                    received.acl_perms.x === expected.acl_perms.x
-                );
-            });
+                    return (
+                        received.acl_perms.r === expected.acl_perms.r &&
+                        received.acl_perms.w === expected.acl_perms.w &&
+                        received.acl_perms.x === expected.acl_perms.x
+                    );
+                });
 
-            expect(match).toBeDefined(); // Fail if no match found
-        }
-
-        await route.fulfill({
-            status: statusCode,
-            contentType: "application/json",
-            body: JSON.stringify(mockResponse),
-        });
+                expect(match).toBeDefined();
+            }
+        },
+        statusCode,
+        contentType: "application/json",
+        response: JSON.stringify(mockResponse),
     });
 }
 

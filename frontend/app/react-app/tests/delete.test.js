@@ -3,6 +3,7 @@ const { test, expect } = require("@playwright/test");
 const {
     waitForReact,
     handleRoute,
+    mockRoute,
     clickMenuItemformView,
     clickMenuItemformMenu,
     checkItem,
@@ -21,7 +22,7 @@ test("delete a file", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
 
-    await page.route(`${API_URL}/file/**`, async (route) => {
+    await page.route(`${API_URL}/file${currentDirectory}/${testFileName}`, async (route) => {
         console.log(`[ROUTE MOCK] Simulating delayed delete for: ${testFileName}`);
         await page.waitForTimeout(1000);
         await route.fulfill({
@@ -83,16 +84,19 @@ test("delete error", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
 
-    await page.route(`${API_URL}/file/**`, async (route) => {
-        console.log(`[ROUTE MOCK] Simulating error for: ${testFileName}`);
-        await route.fulfill({
-            status: 403,
+    await await mockRoute(
+        page,
+        `${API_URL}/**`,
+        "DELETE",
+        `/file${currentDirectory}/${testFileName}`,
+        {
+            statusCode: 403,
             contentType: "application/json",
-            body: JSON.stringify({
+            response: JSON.stringify({
                 detail: { message: "Permission denied", stdout: "", stderr: "" },
             }),
-        });
-    });
+        }
+    );
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 

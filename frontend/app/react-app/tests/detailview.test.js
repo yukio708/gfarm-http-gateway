@@ -61,7 +61,7 @@ const getExpectedDetailData = (filePath) => {
     };
 };
 
-// --- Detail View Test ---
+// === Tests ===
 
 test("display file name in details", async ({ page }) => {
     const currentDirectory = "/documents";

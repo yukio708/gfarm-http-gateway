@@ -3,11 +3,34 @@ const { test, expect } = require("@playwright/test");
 const {
     waitForReact,
     handleRoute,
+    mockRoute,
     clickMenuItemformView,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
 } = require("./test_func");
+
+async function mockCopyRoute(
+    page,
+    {
+        source,
+        destination,
+        statusCode = 200,
+        mockResponse = JSON.stringify({ copied: 100, total: 100, done: true }) + "\n",
+    }
+) {
+    await mockRoute(page, `${API_URL}/**`, "POST", "/copy", {
+        validateBody: (body) => {
+            expect(typeof body.source).toBe("string");
+            expect(typeof body.destination).toBe("string");
+            if (source) expect(body.source).toBe(source);
+            if (destination) expect(body.destination).toBe(destination);
+        },
+        statusCode,
+        contentType: "application/json",
+        response: mockResponse,
+    });
+}
 
 async function waitForProgressView(page, expectedFileName) {
     const progressView = page.locator('[data-testid="progress-view"]');
@@ -36,6 +59,11 @@ test("copy file", async ({ page }) => {
         expectedTestFileName.length > 20
             ? expectedTestFileName.slice(0, 20) + "..."
             : expectedTestFileName;
+
+    await mockCopyRoute(page, {
+        source: currentDirectory + "/" + testFileName,
+        destination: currentDirectory + "/" + expectedTestFileName,
+    });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 

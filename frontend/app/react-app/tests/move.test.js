@@ -3,6 +3,7 @@ const { test, expect } = require("@playwright/test");
 const {
     waitForReact,
     handleRoute,
+    mockRoute,
     clickMenuItemformView,
     clickMenuItemformMenu,
     checkItem,
@@ -10,6 +11,20 @@ const {
     FRONTEND_URL,
     ROUTE_STORAGE,
 } = require("./test_func");
+
+async function mockMoveRoute(page, { source, destination, statusCode = 200, mockResponse = {} }) {
+    await mockRoute(page, `${API_URL}/**`, "POST", "/move", {
+        validateBody: (body) => {
+            expect(typeof body.source).toBe("string");
+            expect(typeof body.destination).toBe("string");
+            if (source) expect(body.source).toBe(source);
+            if (destination) expect(body.destination).toBe(destination);
+        },
+        statusCode,
+        contentType: "application/json",
+        response: JSON.stringify(mockResponse),
+    });
+}
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
@@ -22,14 +37,9 @@ test("move a file", async ({ page }) => {
     const destinationDirectory = "/images";
     const testFileName = "meeting_notes.txt";
 
-    await page.route(`${API_URL}/move`, async (route) => {
-        console.log(`[ROUTE MOCK] Simulating delayed move for: ${testFileName}`);
-        await page.waitForTimeout(1000);
-        await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({}),
-        });
+    await mockMoveRoute(page, {
+        source: currentDirectory + "/" + testFileName,
+        destination: destinationDirectory + "/" + testFileName,
     });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
@@ -42,16 +52,14 @@ test("move a file", async ({ page }) => {
     const destdirInput = moveModal.locator('[id="move-dest-input"]');
     await destdirInput.fill(destinationDirectory);
 
+    await page.waitForTimeout(100);
+
     // Click confirm
     const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
     await expect(moveModal).not.toBeVisible();
-
-    // Should show deleting overlay
-    await expect(page.locator('[data-testid="move-overlay"]')).toBeVisible();
-    await expect(page.locator('[data-testid="move-overlay"]')).not.toBeVisible();
 });
 
 test("move files from actions menu", async ({ page }) => {
@@ -66,6 +74,7 @@ test("move files from actions menu", async ({ page }) => {
         const bodyText = request.postData();
 
         await expect(bodyText).toContain(filesToMove[api_count++]);
+        await page.waitForTimeout(1000);
         await route.fulfill({
             status: 200,
             contentType: "application/json",
@@ -87,12 +96,18 @@ test("move files from actions menu", async ({ page }) => {
     const destdirInput = moveModal.locator('[id="move-dest-input"]');
     await destdirInput.fill(destinationDirectory);
 
+    await page.waitForTimeout(100);
+
     // Click confirm
     const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
     await expect(moveModal).not.toBeVisible();
+
+    // Should show deleting overlay
+    await expect(page.locator('[data-testid="move-overlay"]')).toBeVisible();
+    await expect(page.locator('[data-testid="move-overlay"]')).not.toBeVisible();
 });
 
 test("move name conflict prompt", async ({ page }) => {
@@ -113,6 +128,8 @@ test("move name conflict prompt", async ({ page }) => {
 
     const destdirInput = moveModal.locator('[id="move-dest-input"]');
     await destdirInput.fill(destinationDirectory);
+
+    await page.waitForTimeout(100);
 
     // Click confirm
     const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');
@@ -142,15 +159,14 @@ test("move error", async ({ page }) => {
     const destinationDirectory = "/images";
     const testFileName = "meeting_notes.txt";
 
-    await page.route(`${API_URL}/move`, async (route) => {
-        console.log(`[ROUTE MOCK] Simulating error for: ${testFileName}`);
-        await route.fulfill({
-            status: 403,
-            contentType: "application/json",
-            body: JSON.stringify({
-                detail: { message: "Permission denied", stdout: "", stderr: "" },
-            }),
-        });
+    await mockMoveRoute(page, {
+        source: currentDirectory + "/" + testFileName,
+        destination: destinationDirectory + "/" + testFileName,
+        statusCode: 403,
+        contentType: "application/json",
+        mockResponse: {
+            detail: { message: "Permission denied", stdout: "", stderr: "" },
+        },
     });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
@@ -162,6 +178,8 @@ test("move error", async ({ page }) => {
 
     const destdirInput = moveModal.locator('[id="move-dest-input"]');
     await destdirInput.fill(destinationDirectory);
+
+    await page.waitForTimeout(100);
 
     // Click confirm
     const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');

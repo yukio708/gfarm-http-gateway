@@ -3,6 +3,7 @@ const { test, expect } = require("@playwright/test");
 const {
     waitForReact,
     handleRoute,
+    mockRoute,
     isVisible,
     clickMenuItemformNewMenu,
     API_URL,
@@ -10,6 +11,17 @@ const {
     DUMMYS,
     ROUTE_STORAGE,
 } = require("./test_func");
+
+async function mockUploadRoute(
+    page,
+    { filepath, statusCode = 200, mockResponse = { result: "ok" } }
+) {
+    await mockRoute(page, `${API_URL}/**`, "PUT", "/file" + filepath, {
+        statusCode,
+        contentType: "application/json",
+        response: JSON.stringify(mockResponse),
+    });
+}
 
 async function waitForProgressView(page, expectedFileName) {
     const progressView = page.locator('[data-testid="progress-view"]');
@@ -35,7 +47,12 @@ test("upload single file", async ({ page }) => {
     const testFileName = "dummy.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
 
+    await mockUploadRoute(page, {
+        filepath: "/" + testFileName,
+    });
+
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
+    await page.waitForLoadState("networkidle");
 
     await clickMenuItemformNewMenu(page, "upload-file");
 
@@ -228,30 +245,23 @@ test("drag and drop single file", async ({ page }) => {
     await waitForProgressView(page, testFileName);
 });
 
-test("upload backend disconnect", async ({ page }) => {
+test("upload error test", async ({ page }) => {
     const currentDirectory = "/";
     const testFileName = "dummy.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
 
-    await page.route(
-        new RegExp(`${API_URL}/file/${encodeURIComponent(testFileName)}`),
-        async (route) => {
-            console.log(
-                `[ROUTE MOCK] Simulating 500 Internal Server Error for upload: ${testFileName}`
-            );
-            await route.fulfill({
-                status: 500, // Simulate server error
-                contentType: "application/json",
-                body: JSON.stringify({
-                    detail: {
-                        command: "upload",
-                        message: "Simulated backend connection lost or internal error.",
-                        stderr: "Connection reset by peer or server crashed.",
-                    },
-                }),
-            });
-        }
-    );
+    await mockUploadRoute(page, {
+        filepath: "/" + encodeURIComponent(testFileName),
+        statusCode: 500,
+        mockResponse: {
+            detail: {
+                command: "upload",
+                message: "error test",
+                stdout: "",
+                stderr: "",
+            },
+        },
+    });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
@@ -268,10 +278,7 @@ test("upload backend disconnect", async ({ page }) => {
 
     const firstTaskMessage = taskCard.locator('[data-testid="task-message-0"]');
     await expect(firstTaskMessage).toContainText("500");
-    await expect(firstTaskMessage).toContainText(
-        "Simulated backend connection lost or internal error."
-    );
-    await expect(firstTaskMessage).toContainText("Connection reset by peer or server crashed.");
+    await expect(firstTaskMessage).toContainText("error test");
 });
 
 test("upload cancel", async ({ page }) => {
