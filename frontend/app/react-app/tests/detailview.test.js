@@ -7,6 +7,7 @@ const {
     findNodeByPath,
     clickMenuItemformView,
     getSize,
+    symbolicToOctal,
     handleRoute,
     FRONTEND_URL,
     API_URL,
@@ -129,7 +130,7 @@ test("display permissions in details", async ({ page }) => {
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
             page.locator('[data-testid="detail-Permissions"]').locator("td").nth(1)
-        ).toHaveText(expectedDetail.Mode);
+        ).toHaveText(symbolicToOctal(expectedDetail.Mode));
 
         await closeDetailTab(page);
     }
