@@ -226,6 +226,21 @@ export async function freezeTime(page, isoDate) {
     }, isoDate);
 }
 
+export function symbolicToOctal(symbolic) {
+    if (typeof symbolic !== "string" || symbolic.length < 10) return null;
+
+    const perms = symbolic.slice(1); // ignore first char (file type: -, d, l, etc.)
+
+    const digit = (permStr) =>
+        (permStr[0] === "r" ? 4 : 0) + (permStr[1] === "w" ? 2 : 0) + (permStr[2] === "x" ? 1 : 0);
+
+    const owner = digit(perms.slice(0, 3));
+    const group = digit(perms.slice(3, 6));
+    const other = digit(perms.slice(6, 9));
+
+    return `${owner}${group}${other}`;
+}
+
 // Route handler
 export const handleRoute = async (route, request) => {
     const url = request.url();
@@ -294,7 +309,7 @@ export const handleRoute = async (route, request) => {
                       ? "regular file"
                       : "directory",
                 Size: fileNode.size,
-                Mode: fileNode.mode_str,
+                Mode: symbolicToOctal(fileNode.mode_str),
                 Access: fileNode.mtime_str, // Use 'mtime_str'
                 Modify: fileNode.mtime_str, // Use 'mtime_str'
                 Change: fileNode.mtime_str, // Use 'mtime_str'

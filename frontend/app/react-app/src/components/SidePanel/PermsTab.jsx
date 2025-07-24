@@ -86,7 +86,7 @@ function PermsTab({ item, active, detailContent, refreshAttr, refreshAcl }) {
     if (!active) return null;
 
     return (
-        <div>
+        <div data-testid="perms-tab">
             <div className="mt-3">
                 <label htmlFor="perms-octal-input" className="form-label fw-bold">
                     Input Octal:
@@ -160,7 +160,11 @@ function PermsTab({ item, active, detailContent, refreshAttr, refreshAcl }) {
             </div>
 
             <div className="text-end mt-4">
-                <button className="btn btn-sm btn-primary" onClick={handleApply}>
+                <button
+                    className="btn btn-sm btn-primary"
+                    onClick={handleApply}
+                    data-testid="update-perms-button"
+                >
                     Update
                 </button>
             </div>
