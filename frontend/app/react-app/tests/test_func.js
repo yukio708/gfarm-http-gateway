@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const http = require("http");
 const querystring = require("node:querystring");
+const { expect } = require("@playwright/test");
 
 export const FRONTEND_URL = "http://localhost:3000";
 export const API_URL = "http://localhost:8080";
@@ -31,6 +32,46 @@ export async function waitForReact() {
         }
     }
     throw new Error("React app is not up!");
+}
+
+export async function isVisible(page, filename, not = false) {
+    const listview = page.locator('[data-testid="listview"]');
+    const fileRow = listview.locator(`[data-testid="row-${filename}"]`);
+    if (not) {
+        await expect(fileRow).not.toBeVisible();
+    } else {
+        await expect(fileRow).toBeVisible();
+    }
+}
+
+export async function clickMenuItemformView(page, filename, action) {
+    const fileRow = page.locator(`[data-testid="row-${filename}"]`);
+    const threeDotsButton = fileRow.locator('[data-testid="item-menu"]');
+    await expect(threeDotsButton).toBeVisible();
+    await threeDotsButton.click();
+
+    const moveButton = fileRow
+        .locator(".dropdown-menu")
+        .locator(`[data-testid="${action}-menu-${filename}"]`);
+    await expect(moveButton).toBeVisible();
+    await moveButton.click();
+}
+
+export async function clickMenuItemformMenu(page, action) {
+    const actionmenu = page.locator('[data-testid="action-menu"]');
+    const moveButton = actionmenu.locator(`[data-testid="action-menu-${action}"]`);
+    await moveButton.click();
+}
+
+export async function clickMenuItemformNewMenu(page, action) {
+    const uploadmenu = page.locator('[id="upload-dropdown"]');
+    const menuButton = uploadmenu.locator(`[data-testid="${action}"]`);
+    await menuButton.click();
+}
+
+export async function checkItem(page, filename) {
+    const fileRow = page.locator(`[data-testid="row-${filename}"]`);
+    await fileRow.locator(`[id="checkbox-${filename}"]`).check();
 }
 
 export function transformMtimeToUnix(items) {
@@ -124,10 +165,10 @@ export const getSize = (filesize, is_dir) => {
 export const getFileIconDefault = (ext, is_dir, is_sym) => {
     ext = ext.toLowerCase();
     if (is_dir) {
-        return "bi bi-folder";
+        return "bi bi-folder-fill";
     }
     if (is_sym) {
-        return "bi bi-folder";
+        return "bi bi-link-45deg";
     }
 
     switch (ext) {
@@ -238,9 +279,9 @@ export const handleRoute = async (route, request) => {
             contentType: "application/json",
             body: JSON.stringify({ username: "user1", home_directory: "/documents" }),
         });
-    } else if (url.includes("/attr/")) {
-        console.log("/attr/", url);
-        const filePath = decodeURIComponent(url.split("/attr/")[1]);
+    } else if (url.includes("/attr/") && method === "GET") {
+        console.log("[MOCK] /attr/", url);
+        const filePath = decodeURIComponent(url.split("/attr/", 2)[1].split("?")[0]);
         const fileNode = findNodeByPath(fileStructureData, filePath);
 
         if (fileNode) {
@@ -262,6 +303,8 @@ export const handleRoute = async (route, request) => {
                 MetadataHost: "test-host.local",
                 MetadataPort: 8080,
                 MetadataUser: "testuser",
+                Cksum: 123456,
+                CksumType: "test",
             };
 
             await route.fulfill({

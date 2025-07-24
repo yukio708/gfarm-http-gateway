@@ -11,6 +11,7 @@ let login = false;
 // Read login.html once at the start
 const LOGIN_HTML = path.resolve(__dirname, "../../../../templates/login.html");
 const htmlContent = fs.readFileSync(LOGIN_HTML, "utf-8");
+const expectedFilename = "tmp";
 
 // Route handler
 async function login_handleRoute(route, request) {
@@ -131,13 +132,10 @@ test("OIDC login with valid token should show file table", async ({ page }) => {
 
     await page.click("text=Login with OpenID provider");
 
-    const fileTable = await page.waitForSelector(".file-table", {
-        timeout: 10000,
-    });
-    const fileText = await fileTable.textContent();
+    await page.waitForLoadState("networkidle");
 
-    console.log(`File text: ${fileText}`);
-    await expect(fileText).toContain("tmp");
+    const fileRow = page.locator(`[data-testid="row-${expectedFilename}"]`);
+    await expect(fileRow).toBeVisible();
 });
 
 test("SASL login: valid user credentials", async ({ page }) => {
@@ -154,9 +152,10 @@ test("SASL login: valid user credentials", async ({ page }) => {
         page.waitForResponse("**/login_passwd"),
     ]);
 
-    // Check for login success indicator
-    // Replace this selector with what your app shows after login
-    await expect(page.locator(".file-table")).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    const fileRow = page.locator(`[data-testid="row-${expectedFilename}"]`);
+    await expect(fileRow).toBeVisible();
 });
 
 test("SASL login: invalid user credentials", async ({ page }) => {
@@ -172,8 +171,6 @@ test("SASL login: invalid user credentials", async ({ page }) => {
         page.waitForResponse("**/login_passwd"),
     ]);
 
-    // Check for an error message (update selector to match your app)
-    // If no error message, just check if it didn't redirect
     await expect(page).toHaveURL(/login/);
 });
 

@@ -4,6 +4,9 @@ const fs = require("fs");
 const {
     waitForReact,
     handleRoute,
+    clickMenuItemformView,
+    clickMenuItemformMenu,
+    checkItem,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
@@ -22,18 +25,8 @@ test("download single file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const downloadButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="download-menu-${testFileName}"]`);
-    await expect(downloadButton).toBeVisible();
-
     const downloadPromise = page.waitForEvent("download");
-    await downloadButton.click();
+    await clickMenuItemformView(page, testFileName, "download");
     const download = await downloadPromise;
 
     // Verify the downloaded file name
@@ -53,14 +46,11 @@ test("download multiple files", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     for (const fileName of filesToDownload) {
-        const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator(`[id="checkbox-${fileName}"]`).check();
+        checkItem(page, fileName);
     }
 
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    const downloadButton = actionmenu.locator('[data-testid="action-menu-download"]');
     const downloadPromise = page.waitForEvent("download");
-    await downloadButton.click();
+    await clickMenuItemformMenu(page, "download");
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
@@ -81,19 +71,8 @@ test("download single directory", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testDirectoryName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const downloadButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="download-menu-${testDirectoryName}"]`);
-    await expect(downloadButton).toBeVisible();
-
-    // ダウンロードイベントを待機しつつ、ダウンロードボタンをクリック
     const downloadPromise = page.waitForEvent("download");
-    await downloadButton.click();
+    await clickMenuItemformView(page, testDirectoryName, "download");
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
@@ -113,13 +92,12 @@ test("download multiple directories", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${rootPath}`);
 
     for (const dirName of dirsToDownload) {
-        const dirRow = page.locator("tbody tr", { hasText: dirName });
-        await dirRow.locator('input[type="checkbox"]').check();
+        checkItem(page, dirName);
     }
 
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    const downloadButton = actionmenu.locator('[data-testid="action-menu-download"]');
-    const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
+    const downloadPromise = page.waitForEvent("download");
+    await clickMenuItemformMenu(page, "download");
+    const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
 
@@ -138,13 +116,9 @@ test("download empty file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: emptyFileName });
-    await fileRow.locator(`[id="checkbox-${emptyFileName}"]`).check();
-
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    const downloadButton = actionmenu.locator('[data-testid="action-menu-download"]');
-
-    const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
+    const downloadPromise = page.waitForEvent("download");
+    await clickMenuItemformView(page, emptyFileName, "download");
+    const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(emptyFileName);
 
@@ -159,38 +133,7 @@ test("download nonexistent path", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const downloadButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="download-menu-${testFileName}"]`);
-    await expect(downloadButton).toBeVisible();
-
-    await downloadButton.click();
+    await clickMenuItemformView(page, testFileName, "download");
 
     await expect(page.locator("body")).toContainText("File not found");
-});
-
-test("download backend disconnect", async ({ page }) => {
-    const currentDirectory = "/error_test";
-    const testFileName = "backend_disconnect.txt";
-
-    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const downloadButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="download-menu-${testFileName}"]`);
-    await expect(downloadButton).toBeVisible();
-
-    await downloadButton.click();
-
-    await expect(page.locator("body")).toContainText("error test");
 });

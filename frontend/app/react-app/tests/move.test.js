@@ -1,6 +1,15 @@
 const { test, expect } = require("@playwright/test");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ROUTE_STORAGE } = require("./test_func");
+const {
+    waitForReact,
+    handleRoute,
+    clickMenuItemformView,
+    clickMenuItemformMenu,
+    checkItem,
+    API_URL,
+    FRONTEND_URL,
+    ROUTE_STORAGE,
+} = require("./test_func");
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
@@ -25,24 +34,16 @@ test("move a file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const moveButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="move-menu-${testFileName}"]`);
-    await expect(moveButton).toBeVisible();
-    await moveButton.click();
+    await clickMenuItemformView(page, testFileName, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();
 
-    await page.fill("#move-dest-input", destinationDirectory);
+    const destdirInput = moveModal.locator('[id="move-dest-input"]');
+    await destdirInput.fill(destinationDirectory);
 
     // Click confirm
-    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
@@ -75,21 +76,19 @@ test("move files from actions menu", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     for (const fileName of filesToMove) {
-        const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator('input[type="checkbox"]').check();
+        await checkItem(page, fileName);
     }
 
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    const moveButton = actionmenu.locator('[data-testid="action-menu-move"]');
-    await moveButton.click();
+    await clickMenuItemformMenu(page, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();
 
-    await page.fill("#move-dest-input", destinationDirectory);
+    const destdirInput = moveModal.locator('[id="move-dest-input"]');
+    await destdirInput.fill(destinationDirectory);
 
     // Click confirm
-    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
@@ -104,21 +103,19 @@ test("move name conflict prompt", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     for (const fileName of filesToMove) {
-        const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator(`[id="checkbox-${fileName}"]`).check();
+        await checkItem(page, fileName);
     }
 
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    const moveButton = actionmenu.locator('[data-testid="action-menu-move"]');
-    await moveButton.click();
+    await clickMenuItemformMenu(page, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();
 
-    await page.fill("#move-dest-input", destinationDirectory);
+    const destdirInput = moveModal.locator('[id="move-dest-input"]');
+    await destdirInput.fill(destinationDirectory);
 
     // Click confirm
-    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
@@ -127,13 +124,13 @@ test("move name conflict prompt", async ({ page }) => {
     const overwriteModal = page.locator('[data-testid="conflict-modal"]');
     await expect(overwriteModal).toBeVisible();
 
-    const duplicateFileName = page.locator(`[id="current-${filesToMove[0]}"]`);
+    const duplicateFileName = overwriteModal.locator(`[id="current-${filesToMove[0]}"]`);
     await expect(duplicateFileName).toBeVisible();
     await duplicateFileName.check();
-    const notDuplicateFileName = page.locator(`[id="current-${filesToMove[1]}"]`);
+    const notDuplicateFileName = overwriteModal.locator(`[id="current-${filesToMove[1]}"]`);
     await expect(notDuplicateFileName).not.toBeVisible();
 
-    const conflict_confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    const conflict_confirmButton = overwriteModal.locator('[data-testid="modal-button-confirm"]');
     await expect(conflict_confirmButton).toBeVisible();
     await conflict_confirmButton.click();
 
@@ -158,24 +155,16 @@ test("move error", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const moveButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="move-menu-${testFileName}"]`);
-    await expect(moveButton).toBeVisible();
-    await moveButton.click();
+    await clickMenuItemformView(page, testFileName, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();
 
-    await page.fill("#move-dest-input", destinationDirectory);
+    const destdirInput = moveModal.locator('[id="move-dest-input"]');
+    await destdirInput.fill(destinationDirectory);
 
     // Click confirm
-    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = moveModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 

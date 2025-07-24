@@ -88,7 +88,7 @@ function ListView({
     return (
         <>
             <div className="d-none d-sm-block">
-                <table className="table file-table table-hover">
+                <table className="table file-table table-hover" data-testid="listview">
                     <thead className="bg-body sticky-top">
                         <tr>
                             <th className="align-middle">
@@ -155,6 +155,7 @@ function ListView({
                                             item,
                                         });
                                     }}
+                                    data-testid={`row-${item.name}`}
                                 >
                                     <td>
                                         <input
@@ -209,7 +210,7 @@ function ListView({
             </div>
 
             <div className="d-block d-sm-none">
-                <table className="table file-table table-hover">
+                <table className="table file-table table-hover" data-testid="listview-sm">
                     <thead className="bg-body sticky-top">
                         <tr>
                             <th className="align-middle">
@@ -250,6 +251,7 @@ function ListView({
                                 <tr
                                     key={item.path}
                                     className={`align-middle ${isLastSelected ? "table-active" : ""}`}
+                                    data-testid={`row-sm-${item.name}`}
                                 >
                                     <td>
                                         <input

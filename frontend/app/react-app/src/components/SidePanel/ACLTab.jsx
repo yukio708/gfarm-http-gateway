@@ -199,13 +199,21 @@ function ACLTab({ item, active, aclData, refreshAcl, refreshAttr }) {
                         </div>
                     ))}
                     <div className="d-flex justify-content-between mt-3">
-                        <button className="btn btn-secondary btn-sm" onClick={addEntry}>
+                        <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={addEntry}
+                            data-testid="add-acl-button"
+                        >
                             + Add Entry
                         </button>
                     </div>
                 </div>
                 <div className="text-end mt-3">
-                    <button className="btn btn-primary btn-sm " onClick={updateEntry}>
+                    <button
+                        className="btn btn-primary btn-sm "
+                        onClick={updateEntry}
+                        data-testid="update-acl-button"
+                    >
                         Update
                     </button>
                 </div>

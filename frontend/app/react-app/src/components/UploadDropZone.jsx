@@ -151,11 +151,12 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
             )}
             {showConfirm && (
                 <ModalWindow
+                    testid="dropzone-modal"
                     show={visibleModal}
                     onCancel={cancelUpload}
                     onConfirm={confirmUpload}
                     title={
-                        <p className="modal-title" data-testid="dropzone-modal">
+                        <p className="modal-title">
                             Are you sure you want to upload the following files?
                         </p>
                     }

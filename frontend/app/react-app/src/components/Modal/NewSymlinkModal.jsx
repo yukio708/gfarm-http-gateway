@@ -98,6 +98,7 @@ function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
     return (
         <div>
             <ModalWindow
+                testid="newsym-modal"
                 show={visible}
                 onCancel={() => {
                     setLinkName("");

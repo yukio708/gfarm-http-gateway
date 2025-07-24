@@ -28,11 +28,5 @@
         "acl_name": "developers",
         "acl_perms": { "r": true, "w": true, "x": false },
         "is_default": false
-    },
-    {
-        "acl_type": "group",
-        "acl_name": "",
-        "acl_perms": { "r": true, "w": true, "x": false },
-        "is_default": true
     }
 ]

@@ -35,6 +35,7 @@ function NewDirModal({ setShowModal, currentDir, refresh }) {
 
     return (
         <ModalWindow
+            testid="newdir-modal"
             show={visible}
             onCancel={() => {
                 setVisible(false);

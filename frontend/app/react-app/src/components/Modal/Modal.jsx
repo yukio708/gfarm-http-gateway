@@ -3,6 +3,7 @@ import Modal from "bootstrap/js/dist/modal";
 import PropTypes from "prop-types";
 
 function ModalWindow({
+    testid = "modal",
     show,
     onCancel,
     onConfirm,
@@ -51,7 +52,7 @@ function ModalWindow({
 
     return (
         <div className="modal fade" ref={modalRef} tabIndex="-1">
-            <div className={`modal-dialog ${size_class}`} role="document">
+            <div className={`modal-dialog ${size_class}`} role="document" data-testid={testid}>
                 <div className="modal-content">
                     <div className="modal-header">
                         {title}
@@ -91,6 +92,7 @@ function ModalWindow({
 export default ModalWindow;
 
 ModalWindow.propTypes = {
+    testid: PropTypes.string,
     show: PropTypes.bool,
     onCancel: PropTypes.func,
     onConfirm: PropTypes.func,

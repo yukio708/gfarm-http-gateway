@@ -31,6 +31,7 @@ function DeleteModal({ setShowModal, itemsToDelete, setItemsToDelete, refresh })
     return (
         <div>
             <ModalWindow
+                testid="delete-modal"
                 show={visible}
                 onCancel={() => {
                     setItemsToDelete([]);
@@ -46,7 +47,7 @@ function DeleteModal({ setShowModal, itemsToDelete, setItemsToDelete, refresh })
                     </div>
                 }
             >
-                <div data-testid="delete-modal">
+                <div>
                     <ul>
                         {itemsToDelete.map((file, idx) => (
                             <li key={idx}>

@@ -96,13 +96,14 @@ function ConflictResolutionModal({
 
     return (
         <ModalWindow
+            testid="conflict-modal"
             show={visible}
             onCancel={handleCancel}
             onConfirm={handleResolve}
             size="large"
             title={<h5 className="modal-title">File Name Conflict</h5>}
         >
-            <div data-testid="conflict-modal">
+            <div>
                 <div className="mb-2">
                     Choose which files to keep. <br />
                     Selecting both will rename the incoming file.

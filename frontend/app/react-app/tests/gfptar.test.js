@@ -1,11 +1,19 @@
 const { test, expect } = require("@playwright/test");
-const fs = require("fs");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ROUTE_STORAGE } = require("./test_func");
+const {
+    waitForReact,
+    handleRoute,
+    checkItem,
+    clickMenuItemformMenu,
+    API_URL,
+    FRONTEND_URL,
+    ROUTE_STORAGE,
+} = require("./test_func");
 
 const currentDirectory = "/documents";
-const outdir = "/archives";
+const exportDirectory = "/archives";
 const filesToGfptar = ["report.docx", "meeting_notes.txt"];
+const archiveName = "/test-archive";
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
@@ -13,101 +21,67 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-async function setupMockGfptar(route, expectedCommand, basedir, outdir, sources) {
-    const request = route.request();
-    const body = JSON.parse(request.postData());
-
-    expect(body.command).toBe(expectedCommand);
-    if (basedir) expect(body.basedir).toBe(basedir);
-    if (outdir) expect(body.outdir).toBe(outdir);
-    for (const fileName of filesToGfptar) {
-        expect(body.source).toContain(fileName);
-    }
-
-    const headers = {
-        "content-type": "application/json",
-        "transfer-encoding": "chunked",
-    };
-
-    let chunks = "";
-    for (let count = 1; count <= 10; count++) {
-        chunks += JSON.stringify({ message: `test ${count}` }) + "\n";
-    }
-
-    await route.fulfill({
-        status: 200,
-        headers,
-        body: chunks,
-    });
-}
-
-async function openGfptarModal(page, commandLabel = "Create archive") {
-    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-
-    for (const fileName of filesToGfptar) {
-        const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator(`[id="checkbox-${fileName}"]`).check();
-    }
-
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    await actionmenu.locator('[data-testid="action-menu-gfptar"]').click();
-
-    const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
-    await expect(gfptarModal).toBeVisible();
-
-    const commandDropdown = gfptarModal.locator('[data-testid="gfptar-command"]');
-    await commandDropdown.selectOption({ label: commandLabel });
-
-    const outdirInput = gfptarModal.locator('[data-testid="gfptar-outdir"]');
-    await outdirInput.fill(outdir);
-
-    const confirmButton = gfptarModal.locator('[data-testid="modal-button-confirm"]');
-    await confirmButton.click();
-
-    await expect(gfptarModal).not.toBeVisible();
-}
-
-test("Create archive", async ({ page }) => {
-    const currentDirectory = "/documents";
-    const filesToGfptar = ["report.docx", "meeting_notes.txt"];
-    const archiveName = "/test-archive";
-
+async function mockGfptarRoute(
+    page,
+    {
+        expectedCommand,
+        expectedBasedir,
+        expectedOutdir,
+        expectedSources,
+        expectedOptions,
+        mockResponse = { message: "Tar operation completed" },
+    } = {}
+) {
     await page.route(`${API_URL}/gfptar`, async (route) => {
-        console.log(`[ROUTE MOCK] Simulating gfptar for: ${filesToGfptar}`);
-        const request = route.request();
-        const bodyText = request.postData();
+        const body = JSON.parse(route.request().postData());
 
-        await expect(bodyText).toContain(archiveName);
-        await expect(bodyText).toContain("create");
-        for (const fileName of filesToGfptar) {
-            await expect(bodyText).toContain(fileName);
+        // Base type assertions
+        expect(typeof body.command).toBe("string");
+        expect(typeof body.basedir).toBe("string");
+        expect(typeof body.outdir).toBe("string");
+        expect(Array.isArray(body.source)).toBe(true);
+
+        if (body.options !== null && body.options !== undefined) {
+            expect(Array.isArray(body.options)).toBe(true);
+            for (const opt of body.options) {
+                expect(typeof opt).toBe("string");
+            }
         }
 
-        const headers = {
-            "content-type": "application/json",
-            "transfer-encoding": "chunked",
-        };
-
-        let chunks = "";
-        let count = 0;
-        const total = 10;
-
-        while (count < total) {
-            count++;
-            chunks += JSON.stringify({ message: `test ${count}` }) + "\n";
+        // Optional value checks
+        if (expectedCommand) expect(body.command).toBe(expectedCommand);
+        if (expectedBasedir) expect(body.basedir).toBe(expectedBasedir);
+        if (expectedOutdir) expect(body.outdir).toBe(expectedOutdir);
+        if (expectedSources) {
+            for (const f of expectedSources) {
+                expect(body.source).toContain(f);
+            }
+        }
+        if (expectedOptions) {
+            expect(body.options).toEqual(expect.arrayContaining(expectedOptions));
         }
 
         await route.fulfill({
             status: 200,
-            headers,
-            body: chunks,
+            contentType: "application/json",
+            body: JSON.stringify(mockResponse),
         });
+    });
+}
+
+test("Create archive", async ({ page }) => {
+    await mockGfptarRoute(page, {
+        expectedCommand: "create",
+        expectedBasedir: "gfarm:" + currentDirectory,
+        expectedOutdir: "gfarm:" + archiveName,
+        expectedSources: filesToGfptar,
+        expectedOptions: [],
     });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     for (const fileName of filesToGfptar) {
-        const fileRow = page.locator("tbody tr", { hasText: fileName });
+        const fileRow = page.locator(`[data-testid="row-${fileName}"]`);
         await fileRow.locator(`[id="checkbox-${fileName}"]`).check();
     }
 
@@ -118,55 +92,47 @@ test("Create archive", async ({ page }) => {
     const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
     await expect(gfptarModal).toBeVisible();
 
-    const outdirInput = gfptarModal.locator('[data-testid="outdir-input"]');
-    await outdirInput.fill();
+    const outdirInput = gfptarModal.locator('[id="outdir-input"]');
+    await outdirInput.fill(archiveName);
 
     const radioButton = page.locator('[id="mode-create"]');
     await expect(radioButton).toBeVisible(archiveName);
     await radioButton.click();
 
-    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = gfptarModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
     await expect(gfptarModal).not.toBeVisible();
 });
 test("Update archive", async ({ page }) => {
-    const currentDirectory = "/documents";
-    const filesToGfptar = ["report.docx", "meeting_notes.txt"];
-
-    await page.route(`${API_URL}/gfptar`, async (route) => {
-        const bodyText = route.request().postData();
-        await expect(bodyText).toContain("update");
-        for (const fileName of filesToUpdate) {
-            await expect(bodyText).toContain(fileName);
-        }
-        await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ message: "Update completed" }),
-        });
+    await mockGfptarRoute(page, {
+        expectedCommand: "update",
+        expectedBasedir: "gfarm:" + currentDirectory,
+        expectedOutdir: "gfarm:" + archiveName,
+        expectedSources: filesToGfptar,
+        expectedOptions: [],
     });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     for (const fileName of filesToGfptar) {
-        const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator(`[id="checkbox-${fileName}"]`).check();
+        await checkItem(page, fileName);
     }
 
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    const gfptarButton = actionmenu.locator('[data-testid="action-menu-gfptar"]');
-    await gfptarButton.click();
+    await clickMenuItemformMenu(page, "gfptar");
 
     const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
     await expect(gfptarModal).toBeVisible();
 
-    const radioButton = page.locator('[id="mode-update"]');
+    const outdirInput = gfptarModal.locator('[id="outdir-input"]');
+    await outdirInput.fill(archiveName);
+
+    const radioButton = gfptarModal.locator('[id="mode-update"]');
     await expect(radioButton).toBeVisible();
     await radioButton.click();
 
-    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = gfptarModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
@@ -174,117 +140,151 @@ test("Update archive", async ({ page }) => {
 });
 
 test("Append archive", async ({ page }) => {
-    const archiveName = "archive_append.tar";
-    const filesToAppend = ["append_this.txt"];
-
-    await page.route(`${API_URL}/gfptar`, async (route) => {
-        const bodyText = route.request().postData();
-        for (const fileName of filesToAppend) {
-            await expect(bodyText).toContain(fileName);
-        }
-        await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ message: "Append completed" }),
-        });
+    await mockGfptarRoute(page, {
+        expectedCommand: "append",
+        expectedBasedir: "gfarm:" + currentDirectory,
+        expectedOutdir: "gfarm:" + archiveName,
+        expectedSources: filesToGfptar,
+        expectedOptions: [],
     });
 
-    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/documents`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    for (const fileName of filesToAppend) {
-        await page.locator(`[id="checkbox-${fileName}"]`).check();
+    for (const fileName of filesToGfptar) {
+        await checkItem(page, fileName);
     }
 
-    await page
-        .locator('[data-testid="action-menu"]')
-        .locator('[data-testid="action-menu-gfptar"]')
-        .click();
-    await page
-        .locator('[data-testid="gfptar-modal"]')
-        .locator('[data-testid="tar-operation"]')
-        .selectOption("append");
-    await page.locator('[data-testid="modal-archive-name"]').fill(archiveName);
-    await page.locator('[data-testid="modal-button-confirm"]').click();
-    await expect(page.locator('[data-testid="gfptar-modal"]')).not.toBeVisible();
+    await clickMenuItemformMenu(page, "gfptar");
+
+    const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
+    await expect(gfptarModal).toBeVisible();
+
+    const outdirInput = gfptarModal.locator('[id="outdir-input"]');
+    await outdirInput.fill(archiveName);
+
+    const radioButton = gfptarModal.locator('[id="mode-append"]');
+    await expect(radioButton).toBeVisible();
+    await radioButton.click();
+
+    const confirmButton = gfptarModal.locator('[data-testid="modal-button-confirm"]');
+    await expect(confirmButton).toBeVisible();
+    await confirmButton.click();
+
+    await expect(gfptarModal).not.toBeVisible();
 });
 
 test("get indir members", async ({ page }) => {
-    const archiveName = "nested.tar";
+    const archiveName = "documents";
+    const expectedMembers = ["folder1/fileA.txt", "folder2/fileB.txt"];
 
-    await page.route(`${API_URL}/gfptar/members`, async (route) => {
-        const members = ["folder1/fileA.txt", "folder2/fileB.txt"];
+    await page.route(`${API_URL}/gfptar`, async (route) => {
+        const chunks =
+            expectedMembers.map((m) => JSON.stringify({ message: "F " + m })).join("\n") + "\n";
+
+        console.log("chunks", chunks);
         await route.fulfill({
             status: 200,
             contentType: "application/json",
-            body: JSON.stringify({ members }),
+            headers: { "transfer-encoding": "chunked" },
+            body: chunks,
         });
     });
 
-    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/documents`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const archiveRow = page.locator("tbody tr", { hasText: archiveName });
-    await archiveRow.locator(`[id="checkbox-${archiveName}"]`).check();
+    await checkItem(page, archiveName);
 
-    await page
-        .locator('[data-testid="action-menu"]')
-        .locator('[data-testid="action-menu-members"]')
-        .click();
-    await expect(page.locator('[data-testid="members-modal"]')).toBeVisible();
-    await expect(page.locator('[data-testid="members-modal"]')).toContainText("folder1/fileA.txt");
-    await expect(page.locator('[data-testid="members-modal"]')).toContainText("folder2/fileB.txt");
+    await clickMenuItemformMenu(page, "gfptar");
+
+    const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
+    await expect(gfptarModal).toBeVisible();
+
+    const extractTab = gfptarModal.locator('[data-testid="extract-tab-button"]');
+    await extractTab.click();
+
+    const getButton = gfptarModal.locator('[data-testid="get-members-button"]');
+    await getButton.click();
+
+    const members = gfptarModal.locator('[data-testid="members-list"]');
+    for (const member of expectedMembers) {
+        await expect(members).toContainText(member);
+    }
+
+    const closeButton = gfptarModal.locator('[data-testid="modal-button-cancel"]');
+    await closeButton.click();
+
+    await expect(gfptarModal).not.toBeVisible();
 });
 
 test("Extract archive", async ({ page }) => {
-    const archiveName = "extract_me.tar";
+    const archiveName = "documents";
 
-    await page.route(`${API_URL}/gfptar/extract`, async (route) => {
-        await route.fulfill({
-            status: 200,
-            contentType: "application/json",
-            body: JSON.stringify({ message: "Extraction completed" }),
-        });
+    await mockGfptarRoute(page, {
+        expectedCommand: "extract",
+        expectedBasedir: "gfarm:" + currentDirectory + "/" + archiveName,
+        expectedOutdir: "gfarm:" + exportDirectory,
+        expectedSources: [],
+        expectedOptions: [],
     });
 
-    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/documents`);
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const archiveRow = page.locator("tbody tr", { hasText: archiveName });
-    await archiveRow.locator(`[id="checkbox-${archiveName}"]`).check();
+    await checkItem(page, archiveName);
 
-    await page
-        .locator('[data-testid="action-menu"]')
-        .locator('[data-testid="action-menu-extract"]')
-        .click();
-    await expect(page.locator('[data-testid="extract-modal"]')).toBeVisible();
+    await clickMenuItemformMenu(page, "gfptar");
 
-    await page.locator('[data-testid="modal-button-confirm"]').click();
-    await expect(page.locator('[data-testid="extract-modal"]')).not.toBeVisible();
+    const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
+    await expect(gfptarModal).toBeVisible();
+
+    const outdirInput = gfptarModal.locator('[id="outdir-input"]');
+    await outdirInput.fill(exportDirectory);
+
+    const extractTab = gfptarModal.locator('[data-testid="extract-tab-button"]');
+    await extractTab.click();
+
+    const confirmButton = gfptarModal.locator('[data-testid="modal-button-confirm"]');
+    await expect(confirmButton).toBeVisible();
+    await confirmButton.click();
+
+    await expect(gfptarModal).not.toBeVisible();
 });
 
 test("error test", async ({ page }) => {
-    const filesToArchive = ["fail.txt"];
-
     await page.route(`${API_URL}/gfptar`, async (route) => {
         await route.fulfill({
             status: 500,
             contentType: "application/json",
-            body: JSON.stringify({ error: "Internal Server Error" }),
+            body: JSON.stringify({ detail: "error test" }),
         });
     });
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/documents`);
-
-    for (const fileName of filesToArchive) {
-        await page.locator(`[id="checkbox-${fileName}"]`).check();
+    for (const fileName of filesToGfptar) {
+        await checkItem(page, fileName);
     }
 
-    await page
-        .locator('[data-testid="action-menu"]')
-        .locator('[data-testid="action-menu-gfptar"]')
-        .click();
-    await expect(page.locator('[data-testid="gfptar-modal"]')).toBeVisible();
-    await page.locator('[data-testid="modal-button-confirm"]').click();
+    await clickMenuItemformMenu(page, "gfptar");
 
-    const errorToast = page.locator('[data-testid="toast-error"]');
-    await expect(errorToast).toBeVisible();
-    await expect(errorToast).toContainText("Internal Server Error");
+    const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
+    await expect(gfptarModal).toBeVisible();
+
+    const outdirInput = gfptarModal.locator('[id="outdir-input"]');
+    await outdirInput.fill(archiveName);
+
+    const radioButton = page.locator('[id="mode-create"]');
+    await expect(radioButton).toBeVisible(archiveName);
+    await radioButton.click();
+
+    const confirmButton = gfptarModal.locator('[data-testid="modal-button-confirm"]');
+    await expect(confirmButton).toBeVisible();
+    await confirmButton.click();
+
+    const taskCard = page.locator(`[data-testid^="progress-card-${archiveName}"]`);
+    await expect(taskCard).toBeVisible();
+    await expect(taskCard.locator(".badge")).toHaveText("error");
+
+    await expect(gfptarModal).not.toBeVisible();
+    const firstTaskMessage = taskCard.locator('[data-testid="task-message-0"]');
+    await expect(firstTaskMessage).toContainText("500");
+    await expect(firstTaskMessage).toContainText("error test");
 });

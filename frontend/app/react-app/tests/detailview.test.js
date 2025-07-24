@@ -5,6 +5,7 @@ const {
     waitForReact,
     findChildrenByPath,
     findNodeByPath,
+    clickMenuItemformView,
     getSize,
     handleRoute,
     FRONTEND_URL,
@@ -15,25 +16,7 @@ const {
 
 let fileStructureData = null;
 
-// Helper function to click a file's detail button and wait for the modal to open
-async function openDetailModal(page, fileName) {
-    const fileRow = page.locator("tbody tr", { hasText: fileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const detailButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="detail-menu-${fileName}"]`);
-    await expect(detailButton).toBeVisible();
-
-    await detailButton.click();
-
-    await expect(page.locator(".custom-sidepanel")).toBeVisible();
-}
-
-// Helper function to close the detail modal
-async function closeDetailModal(page) {
+async function closeDetailTab(page) {
     const sidepanel = page.locator(".custom-sidepanel");
     const closeButton = sidepanel.locator(".btn-close");
     await expect(closeButton).toBeVisible();
@@ -54,7 +37,6 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-// --- Detail View Test ---
 const getExpectedDetailData = (filePath) => {
     const fileNode = findNodeByPath(fileStructureData, filePath);
     if (!fileNode) return null;
@@ -79,6 +61,8 @@ const getExpectedDetailData = (filePath) => {
     };
 };
 
+// --- Detail View Test ---
+
 test("display file name in details", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
@@ -86,14 +70,14 @@ test("display file name in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator(".table tbody tr", { hasText: "File:" }).locator("td").nth(1)
-        ).toHaveText(expectedDetail.File);
+        await expect(page.locator('[data-testid="detail-File"]').locator("td").nth(1)).toHaveText(
+            expectedDetail.File
+        );
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -104,14 +88,14 @@ test("display file type in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
-            page.locator(".table tbody tr", { hasText: "File Type:" }).locator("td").nth(1)
+            page.locator('[data-testid="detail-File Type"]').locator("td").nth(1)
         ).toHaveText(expectedDetail.Filetype);
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -122,14 +106,14 @@ test("display file size in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator(".table tbody tr", { hasText: "Size:" }).locator("td").nth(1)
-        ).toHaveText(getSize(expectedDetail.Size, false));
+        await expect(page.locator('[data-testid="detail-Size"]').locator("td").nth(1)).toHaveText(
+            getSize(expectedDetail.Size, false)
+        );
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -140,14 +124,14 @@ test("display permissions in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
-            page.locator(".table tbody tr", { hasText: "Permissions:" }).locator("td").nth(1)
+            page.locator('[data-testid="detail-Permissions"]').locator("td").nth(1)
         ).toHaveText(expectedDetail.Mode);
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -158,14 +142,14 @@ test("display access time in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator(".table tbody tr", { hasText: "Accessed:" }).locator("td").nth(1)
-        ).toHaveText(expectedDetail.Access);
+        await expect(page.locator('[data-testid="detail-Access"]').locator("td").nth(1)).toHaveText(
+            expectedDetail.Access
+        );
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -176,14 +160,14 @@ test("display modified time in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator(".table tbody tr", { hasText: "Last Modified:" }).locator("td").nth(1)
-        ).toHaveText(expectedDetail.Modify);
+        await expect(page.locator('[data-testid="detail-Modify"]').locator("td").nth(1)).toHaveText(
+            expectedDetail.Modify
+        );
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -194,14 +178,14 @@ test("display change time in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator(".table tbody tr", { hasText: "Change:" }).locator("td").nth(1)
-        ).toHaveText(expectedDetail.Change);
+        await expect(page.locator('[data-testid="detail-Change"]').locator("td").nth(1)).toHaveText(
+            expectedDetail.Change
+        );
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -212,14 +196,14 @@ test("display owner uid in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator(".table tbody tr", { hasText: "Owner UID:" }).locator("td").nth(1)
-        ).toHaveText(expectedDetail.Uid);
+        await expect(page.locator('[data-testid="detail-Owner"]').locator("td").nth(1)).toHaveText(
+            expectedDetail.Uid
+        );
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });
 
@@ -230,13 +214,13 @@ test("display owner gid in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await openDetailModal(page, expectedFile.name);
+        await clickMenuItemformView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator(".table tbody tr", { hasText: "Owner GID:" }).locator("td").nth(1)
-        ).toHaveText(expectedDetail.Gid);
+        await expect(page.locator('[data-testid="detail-Group"]').locator("td").nth(1)).toHaveText(
+            expectedDetail.Gid
+        );
 
-        await closeDetailModal(page);
+        await closeDetailTab(page);
     }
 });

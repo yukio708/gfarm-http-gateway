@@ -1,6 +1,15 @@
 const { test, expect } = require("@playwright/test");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ROUTE_STORAGE } = require("./test_func");
+const {
+    waitForReact,
+    handleRoute,
+    clickMenuItemformView,
+    clickMenuItemformMenu,
+    checkItem,
+    API_URL,
+    FRONTEND_URL,
+    ROUTE_STORAGE,
+} = require("./test_func");
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
@@ -24,16 +33,7 @@ test("delete a file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const deleteButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="delete-menu-${testFileName}"]`);
-    await expect(deleteButton).toBeVisible();
-    await deleteButton.click();
+    await clickMenuItemformView(page, testFileName, "delete");
 
     const deleteModal = page.locator('[data-testid="delete-modal"]');
     await expect(deleteModal).toBeVisible();
@@ -59,13 +59,10 @@ test("delete files from actions menu", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     for (const fileName of filesToDelete) {
-        const fileRow = page.locator("tbody tr", { hasText: fileName });
-        await fileRow.locator('input[type="checkbox"]').check();
+        await checkItem(page, fileName);
     }
 
-    const actionmenu = page.locator('[data-testid="action-menu"]');
-    const deleteButton = actionmenu.locator('[data-testid="action-menu-delete"]');
-    await deleteButton.click();
+    await clickMenuItemformMenu(page, "delete");
 
     const deleteModal = page.locator('[data-testid="delete-modal"]');
     await expect(deleteModal).toBeVisible();
@@ -99,16 +96,7 @@ test("delete error", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const deleteButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="delete-menu-${testFileName}"]`);
-    await expect(deleteButton).toBeVisible();
-    await deleteButton.click();
+    await clickMenuItemformView(page, testFileName, "delete");
 
     const deleteModal = page.locator('[data-testid="delete-modal"]');
     await expect(deleteModal).toBeVisible();

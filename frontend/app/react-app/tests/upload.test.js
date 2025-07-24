@@ -3,6 +3,8 @@ const { test, expect } = require("@playwright/test");
 const {
     waitForReact,
     handleRoute,
+    isVisible,
+    clickMenuItemformNewMenu,
     API_URL,
     FRONTEND_URL,
     DUMMYS,
@@ -35,10 +37,7 @@ test("upload single file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const fileUploadButton = page.locator('[data-testid="upload-file"]');
-    await fileUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();
@@ -59,10 +58,7 @@ test("upload multiple files", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const fileUploadButton = page.locator('[data-testid="upload-file"]');
-    await fileUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();
@@ -81,10 +77,7 @@ test("upload nested directory", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const folderUploadButton = page.locator('[data-testid="upload-folder"]');
-    await folderUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-folder");
 
     const inputLocator = page.locator('input[type="file"][multiple][webkitdirectory]');
     await expect(inputLocator).toBeAttached();
@@ -103,12 +96,9 @@ test("upload name conflict prompt (overwrite)", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await expect(page.locator("tbody tr", { hasText: testFileName })).toBeVisible();
+    await isVisible(page, testFileName);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const fileUploadButton = page.locator('[data-testid="upload-file"]');
-    await fileUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-file");
 
     await page
         .locator('input[type="file"][multiple]:not([webkitdirectory])')
@@ -137,12 +127,9 @@ test("upload name conflict prompt (cancel)", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await expect(page.locator("tbody tr", { hasText: testFileName })).toBeVisible();
+    await isVisible(page, testFileName);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const fileUploadButton = page.locator('[data-testid="upload-file"]');
-    await fileUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-file");
 
     await page
         .locator('input[type="file"][multiple]:not([webkitdirectory])')
@@ -171,10 +158,7 @@ test("upload empty file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const fileUploadButton = page.locator('[data-testid="upload-file"]');
-    await fileUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-file");
 
     const fileInput = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await fileInput.setInputFiles([uploadFilePath]);
@@ -235,10 +219,11 @@ test("drag and drop single file", async ({ page }) => {
         dropZone.dispatchEvent(new DragEvent("drop", { dataTransfer, bubbles: true }));
     });
 
-    await expect(page.locator('[data-testid="dropzone-modal"]')).toBeVisible();
-    await expect(page.locator("ul.modal-body strong")).toContainText(testFileName);
+    const modal = page.locator('[data-testid="dropzone-modal"]');
+    await expect(modal).toBeVisible();
+    await expect(modal.locator("ul.modal-body strong")).toContainText(testFileName);
 
-    await page.locator('[data-testid="modal-button-confirm"]').click();
+    await modal.locator('[data-testid="modal-button-confirm"]').click();
 
     await waitForProgressView(page, testFileName);
 });
@@ -270,16 +255,14 @@ test("upload backend disconnect", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const fileUploadButton = page.locator('[data-testid="upload-file"]');
-    await fileUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();
     await inputLocator.setInputFiles([uploadFilePath]);
 
-    const taskCard = page.locator(".offcanvas-body .card", { hasText: testFileName });
+    const progressView = page.locator('[data-testid="progress-view"]');
+    const taskCard = progressView.locator(`[data-testid^="progress-card-${testFileName}"]`);
     await expect(taskCard).toBeVisible();
     await expect(taskCard.locator(".badge")).toHaveText("error");
 
@@ -308,10 +291,7 @@ test("upload cancel", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const uploadDropdownToggle = page.locator("#upload-dropdown");
-    await uploadDropdownToggle.click();
-    const fileUploadButton = page.locator('[data-testid="upload-file"]');
-    await fileUploadButton.click();
+    await clickMenuItemformNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();

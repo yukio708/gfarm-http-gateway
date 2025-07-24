@@ -4,6 +4,7 @@ const fs = require("fs");
 const {
     waitForReact,
     handleRoute,
+    clickMenuItemformView,
     API_URL,
     FRONTEND_URL,
     ACLIST,
@@ -12,20 +13,48 @@ const {
 
 let mockAclData = null;
 
-async function openSidePanel(page, fileName) {
-    const fileRow = page.locator("tbody tr", { hasText: fileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
+async function mockAclUpdateRoute(
+    page,
+    { filepath, expectedAclList, statusCode = 200, mockResponse = { message: "ACL updated" } }
+) {
+    await page.route(`${API_URL}/**`, async (route, request) => {
+        console.log("[MOCK] /acl test", filepath);
+        const url = request.url();
+        const method = request.method();
+        if (!url.includes("/acl") || method !== "POST") {
+            await handleRoute(route, request);
+            return;
+        }
+        console.log("[MOCK] /acl POST", url);
+        const body = JSON.parse(request.postData());
+        const aclList = body.acl;
 
-    const detailButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="acl-menu-${fileName}"]`);
-    await expect(detailButton).toBeVisible();
+        for (const expected of expectedAclList) {
+            const match = aclList.find((received) => {
+                if (
+                    received.acl_type !== expected.acl_type ||
+                    received.acl_name !== expected.acl_name ||
+                    received.is_default !== expected.is_default
+                ) {
+                    return false;
+                }
 
-    await detailButton.click();
+                return (
+                    received.acl_perms.r === expected.acl_perms.r &&
+                    received.acl_perms.w === expected.acl_perms.w &&
+                    received.acl_perms.x === expected.acl_perms.x
+                );
+            });
 
-    await expect(page.locator(".custom-sidepanel")).toBeVisible();
+            expect(match).toBeDefined(); // Fail if no match found
+        }
+
+        await route.fulfill({
+            status: statusCode,
+            contentType: "application/json",
+            body: JSON.stringify(mockResponse),
+        });
+    });
 }
 
 async function assertEntry(index, entry, { acl_type, acl_name, acl_perms, is_default, is_dir }) {
@@ -72,7 +101,7 @@ test("get ACL entry", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await openSidePanel(page, targetFile);
+    await clickMenuItemformView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
@@ -89,22 +118,43 @@ test("get ACL entry", async ({ page }) => {
 test("add new ACL entry", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
+    const newentry_type = "user";
+    const ewentry_name = "test";
+    const expectedAclList = [
+        {
+            acl_type: newentry_type,
+            acl_name: ewentry_name,
+            acl_perms: {
+                r: true,
+                w: true,
+                x: false,
+            },
+            is_default: false,
+        },
+    ];
+
+    await mockAclUpdateRoute(page, {
+        filepath: currentDirectory + "/" + targetFile,
+        expectedAclList: expectedAclList,
+    });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await openSidePanel(page, targetFile);
+    await clickMenuItemformView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
-    await acltab.click('button:has-text("+ Add Entry")');
+    const addEntryButton = acltab.locator('[data-testid="add-acl-button"]');
+    await addEntryButton.scrollIntoViewIfNeeded();
+    await addEntryButton.click();
 
     const entry = acltab.locator("div.border.rounded.p-2.mb-2").last();
 
     const typeSelect = entry.locator("select");
-    await typeSelect.selectOption("user");
+    await typeSelect.selectOption(newentry_type);
 
     const nameInput = entry.locator(".form-control");
-    await nameInput.fill("test");
+    await nameInput.fill(ewentry_name);
 
     const r_box = entry.locator('input[id*="-r"]');
     const w_box = entry.locator('input[id*="-w"]');
@@ -113,8 +163,8 @@ test("add new ACL entry", async ({ page }) => {
     await w_box.check();
     await expect(entry.locator('input[id^="default-"]')).not.toBeVisible();
 
-    const set_button = acltab.locator("text=Set ACL");
-    await expect(set_button).toBeVisible(); // just confirming no error
+    const set_button = acltab.locator('[data-testid="update-acl-button"]');
+    await expect(set_button).toBeVisible();
     await set_button.click();
 });
 
@@ -122,22 +172,43 @@ test("add new ACL entry", async ({ page }) => {
 test("add new ACL entry (default)", async ({ page }) => {
     const currentDirectory = "/";
     const targetFile = "documents";
+    const newentry_type = "user";
+    const ewentry_name = "test";
+    const expectedAclList = [
+        {
+            acl_type: newentry_type,
+            acl_name: ewentry_name,
+            acl_perms: {
+                r: true,
+                w: true,
+                x: false,
+            },
+            is_default: true,
+        },
+    ];
+
+    await mockAclUpdateRoute(page, {
+        filepath: currentDirectory + "/" + targetFile,
+        expectedAclList: expectedAclList,
+    });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await openSidePanel(page, targetFile);
+    await clickMenuItemformView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
-    await acltab.click('button:has-text("+ Add Entry")');
+    const addEntryButton = acltab.locator('[data-testid="add-acl-button"]');
+    await addEntryButton.scrollIntoViewIfNeeded();
+    await addEntryButton.click();
 
     const entry = acltab.locator("div.border.rounded.p-2.mb-2").last();
 
     const typeSelect = entry.locator("select");
-    await typeSelect.selectOption("user");
+    await typeSelect.selectOption(newentry_type);
 
     const nameInput = entry.locator(".form-control");
-    await nameInput.fill("test");
+    await nameInput.fill(ewentry_name);
 
     const r_box = entry.locator('input[id*="-r"]');
     const w_box = entry.locator('input[id*="-w"]');
@@ -147,7 +218,7 @@ test("add new ACL entry (default)", async ({ page }) => {
     await w_box.check();
     await d_box.check();
 
-    const set_button = acltab.locator("text=Set ACL");
+    const set_button = acltab.locator('[data-testid="update-acl-button"]');
     await expect(set_button).toBeVisible();
     await set_button.click();
 });
@@ -159,7 +230,7 @@ test("remove an ACL entry", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await openSidePanel(page, targetFile);
+    await clickMenuItemformView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
@@ -176,4 +247,43 @@ test("remove an ACL entry", async ({ page }) => {
             mockAclData[3].acl_name
         );
     }
+});
+
+test("PermsTab set perms error", async ({ page }) => {
+    const currentDirectory = "/documents";
+    const targetFile = "report.docx";
+    const expectedAclList = [
+        {
+            acl_type: "user",
+            acl_name: null,
+            acl_perms: {
+                r: true,
+                w: true,
+                x: true,
+            },
+            is_default: false,
+        },
+    ];
+
+    await mockAclUpdateRoute(page, {
+        filepath: currentDirectory + "/" + targetFile,
+        expectedAclList: expectedAclList,
+        mockResponse: { detail: "error test" },
+        statusCode: 500,
+    });
+
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
+
+    await clickMenuItemformView(page, targetFile, "acl");
+
+    const acltab = page.locator('[data-testid="acl-tab"]');
+
+    const set_button = acltab.locator('[data-testid="update-acl-button"]');
+    await expect(set_button).toBeVisible();
+    await set_button.click();
+
+    const errorNotification = page.locator('[data-testid^="notification-"]');
+    await expect(errorNotification).toBeVisible();
+    await expect(errorNotification).toContainText("500");
+    await expect(errorNotification).toContainText("error test");
 });

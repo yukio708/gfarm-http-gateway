@@ -133,6 +133,7 @@ function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refr
     return (
         <div>
             <ModalWindow
+                testid="move-modal"
                 show={visible}
                 onCancel={() => handleCancel()}
                 onConfirm={() => handleConfirm()}
@@ -149,7 +150,7 @@ function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refr
                     </div>
                 }
             >
-                <div data-testid="move-modal">
+                <div>
                     <div className="mb-3">
                         <label htmlFor="move-dest-input" className="form-label fw-semibold">
                             Enter Destination Path:

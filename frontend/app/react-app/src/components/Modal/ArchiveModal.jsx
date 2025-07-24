@@ -129,6 +129,7 @@ function ArchiveModal({
 
     return (
         <ModalWindow
+            testid="gfptar-modal"
             show={visible}
             onCancel={() => handleCancel()}
             onConfirm={() => handleConfirm()}
@@ -136,13 +137,14 @@ function ArchiveModal({
             size="large"
             title={<h5 className="modal-title">Gfptar</h5>}
         >
-            <div data-testid="gfptar-modal">
+            <div>
                 <div className="mb-3">
                     <ul className="nav nav-tabs">
                         <li className="nav-item">
                             <button
                                 className={`nav-link ${activeTab === "archive" ? "active" : ""}`}
                                 onClick={() => setActiveTab("archive")}
+                                data-testid="archive-tab-button"
                             >
                                 Archive
                             </button>
@@ -151,6 +153,7 @@ function ArchiveModal({
                             <button
                                 className={`nav-link ${activeTab === "extract" ? "active" : ""}`}
                                 onClick={() => setActiveTab("extract")}
+                                data-testid="extract-tab-button"
                             >
                                 Extract
                             </button>
@@ -256,6 +259,7 @@ function ArchiveModal({
                                 onClick={async () => {
                                     await handleGfptar("list");
                                 }}
+                                data-testid="get-members-button"
                             >
                                 Get
                             </button>
@@ -269,6 +273,7 @@ function ArchiveModal({
                                         minHeight: "calc(30vh - 100px)",
                                         maxHeight: "calc(30vh - 100px)",
                                     }}
+                                    data-testid="members-list"
                                 >
                                     <MiniFileListView
                                         currentItems={indirList}

@@ -1,6 +1,13 @@
 const { test, expect } = require("@playwright/test");
 
-const { waitForReact, handleRoute, API_URL, FRONTEND_URL, ROUTE_STORAGE } = require("./test_func");
+const {
+    waitForReact,
+    handleRoute,
+    clickMenuItemformView,
+    API_URL,
+    FRONTEND_URL,
+    ROUTE_STORAGE,
+} = require("./test_func");
 
 async function waitForProgressView(page, expectedFileName) {
     const progressView = page.locator('[data-testid="progress-view"]');
@@ -32,16 +39,7 @@ test("copy file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const copyButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="copy-menu-${testFileName}"]`);
-    await expect(copyButton).toBeVisible();
-    await copyButton.click();
+    await clickMenuItemformView(page, testFileName, "copy");
 
     await waitForProgressView(page, displayname);
 
@@ -78,16 +76,7 @@ test("copy cancel", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    const fileRow = page.locator("tbody tr", { hasText: testFileName });
-    const threeDotsButton = fileRow.locator("button.btn.p-0.border-0");
-    await expect(threeDotsButton).toBeVisible();
-    await threeDotsButton.click();
-
-    const copyButton = page
-        .locator(".dropdown-menu")
-        .locator(`[data-testid="copy-menu-${testFileName}"]`);
-    await expect(copyButton).toBeVisible();
-    await copyButton.click();
+    await clickMenuItemformView(page, testFileName, "copy");
 
     const progressView = page.locator('[data-testid="progress-view"]');
     const taskCard = progressView.locator(`[data-testid^="progress-card-${displayname}"]`);

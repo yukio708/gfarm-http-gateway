@@ -59,6 +59,7 @@ function RenameModal({ setShowModal, renameItem, refresh }) {
 
     return (
         <ModalWindow
+            testid="rename-modal"
             show={visible}
             onCancel={() => {
                 setNewName("");

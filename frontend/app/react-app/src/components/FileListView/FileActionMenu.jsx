@@ -176,6 +176,7 @@ function ItemMenu({ item, actions }) {
                 className="btn p-0 border-0"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
+                data-testid="item-menu"
             >
                 <BsThreeDots />
             </button>

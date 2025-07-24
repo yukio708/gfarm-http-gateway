@@ -42,6 +42,7 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
         <div
             className={`custom-sidepanel ${!show ? "hide" : ""}`}
             style={{ maxWidth: "100vw", width: "400px", zIndex: 1050 }}
+            data-testid="sidepanel"
         >
             <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
                 {item && <h5 className="m-0">{item.name}</h5>}

@@ -26,7 +26,7 @@ function DetailTab({ active, detailContent }) {
             <table className="table table-striped table-bordered mt-4">
                 <tbody>
                     {rows.map(({ label, value }) => (
-                        <tr key={label}>
+                        <tr key={label} data-testid={`detail-${label}`}>
                             <td>
                                 <strong>{label}</strong>
                             </td>
