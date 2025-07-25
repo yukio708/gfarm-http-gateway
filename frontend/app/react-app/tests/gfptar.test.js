@@ -5,7 +5,7 @@ const {
     mockRoute,
     handleRoute,
     checkItem,
-    clickMenuItemformMenu,
+    clickMenuItemFromMenu,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
@@ -118,7 +118,7 @@ test("Update archive", async ({ page }) => {
         await checkItem(page, fileName);
     }
 
-    await clickMenuItemformMenu(page, "gfptar");
+    await clickMenuItemFromMenu(page, "gfptar");
 
     const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
     await expect(gfptarModal).toBeVisible();
@@ -152,7 +152,7 @@ test("Append archive", async ({ page }) => {
         await checkItem(page, fileName);
     }
 
-    await clickMenuItemformMenu(page, "gfptar");
+    await clickMenuItemFromMenu(page, "gfptar");
 
     const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
     await expect(gfptarModal).toBeVisible();
@@ -192,7 +192,7 @@ test("get indir members", async ({ page }) => {
 
     await checkItem(page, archiveName);
 
-    await clickMenuItemformMenu(page, "gfptar");
+    await clickMenuItemFromMenu(page, "gfptar");
 
     const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
     await expect(gfptarModal).toBeVisible();
@@ -229,7 +229,7 @@ test("Extract archive", async ({ page }) => {
 
     await checkItem(page, archiveName);
 
-    await clickMenuItemformMenu(page, "gfptar");
+    await clickMenuItemFromMenu(page, "gfptar");
 
     const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
     await expect(gfptarModal).toBeVisible();
@@ -261,7 +261,7 @@ test("error test", async ({ page }) => {
         await checkItem(page, fileName);
     }
 
-    await clickMenuItemformMenu(page, "gfptar");
+    await clickMenuItemFromMenu(page, "gfptar");
 
     const gfptarModal = page.locator('[data-testid="gfptar-modal"]');
     await expect(gfptarModal).toBeVisible();

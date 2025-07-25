@@ -4,8 +4,8 @@ const {
     waitForReact,
     handleRoute,
     mockRoute,
-    clickMenuItemformView,
-    clickMenuItemformMenu,
+    clickMenuItemFromView,
+    clickMenuItemFromMenu,
     checkItem,
     API_URL,
     FRONTEND_URL,
@@ -34,7 +34,7 @@ test("delete a file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, testFileName, "delete");
+    await clickMenuItemFromView(page, testFileName, "delete");
 
     const deleteModal = page.locator('[data-testid="delete-modal"]');
     await expect(deleteModal).toBeVisible();
@@ -63,7 +63,7 @@ test("delete files from actions menu", async ({ page }) => {
         await checkItem(page, fileName);
     }
 
-    await clickMenuItemformMenu(page, "delete");
+    await clickMenuItemFromMenu(page, "delete");
 
     const deleteModal = page.locator('[data-testid="delete-modal"]');
     await expect(deleteModal).toBeVisible();
@@ -100,7 +100,7 @@ test("delete error", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, testFileName, "delete");
+    await clickMenuItemFromView(page, testFileName, "delete");
 
     const deleteModal = page.locator('[data-testid="delete-modal"]');
     await expect(deleteModal).toBeVisible();

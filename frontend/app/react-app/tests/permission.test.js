@@ -7,7 +7,7 @@ const {
     waitForReact,
     mockRoute,
     findNodeByPath,
-    clickMenuItemformView,
+    clickMenuItemFromView,
     symbolicToOctal,
     API_URL,
     FRONTEND_URL,
@@ -45,7 +45,7 @@ const getExpectedPermsData = (filePath) => {
 };
 
 async function setOctal(page, currentdir, filename, octal) {
-    await clickMenuItemformView(page, filename, "permissions");
+    await clickMenuItemFromView(page, filename, "permissions");
 
     const permstab = page.locator('[data-testid="perms-tab"]');
 

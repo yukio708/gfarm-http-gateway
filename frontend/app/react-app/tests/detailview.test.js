@@ -5,7 +5,7 @@ const {
     waitForReact,
     findChildrenByPath,
     findNodeByPath,
-    clickMenuItemformView,
+    clickMenuItemFromView,
     getSize,
     symbolicToOctal,
     handleRoute,
@@ -71,7 +71,7 @@ test("display file name in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-File"]').locator("td").nth(1)).toHaveText(
@@ -89,7 +89,7 @@ test("display file type in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
@@ -107,7 +107,7 @@ test("display file size in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Size"]').locator("td").nth(1)).toHaveText(
@@ -125,7 +125,7 @@ test("display permissions in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
@@ -143,7 +143,7 @@ test("display access time in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Access"]').locator("td").nth(1)).toHaveText(
@@ -161,7 +161,7 @@ test("display modified time in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Modify"]').locator("td").nth(1)).toHaveText(
@@ -179,7 +179,7 @@ test("display change time in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Change"]').locator("td").nth(1)).toHaveText(
@@ -197,7 +197,7 @@ test("display owner uid in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Owner"]').locator("td").nth(1)).toHaveText(
@@ -215,7 +215,7 @@ test("display owner gid in details", async ({ page }) => {
         const testFilePath = `${currentDirectory}/${expectedFile.name}`;
 
         await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
-        await clickMenuItemformView(page, expectedFile.name, "detail");
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Group"]').locator("td").nth(1)).toHaveText(

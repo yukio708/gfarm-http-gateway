@@ -4,7 +4,7 @@ const {
     waitForReact,
     handleRoute,
     mockRoute,
-    clickMenuItemformView,
+    clickMenuItemFromView,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
@@ -67,7 +67,7 @@ test("copy file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, testFileName, "copy");
+    await clickMenuItemFromView(page, testFileName, "copy");
 
     await waitForProgressView(page, displayname);
 
@@ -104,7 +104,7 @@ test("copy cancel", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, testFileName, "copy");
+    await clickMenuItemFromView(page, testFileName, "copy");
 
     const progressView = page.locator('[data-testid="progress-view"]');
     const taskCard = progressView.locator(`[data-testid^="progress-card-${displayname}"]`);

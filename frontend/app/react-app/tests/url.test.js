@@ -3,7 +3,7 @@ const { test, expect } = require("@playwright/test");
 const {
     waitForReact,
     handleRoute,
-    clickMenuItemformView,
+    clickMenuItemFromView,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
@@ -24,7 +24,7 @@ test("copy link button (webui)", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "url");
+    await clickMenuItemFromView(page, targetFile, "url");
 
     const acltab = page.locator('[data-testid="url-tab"]');
 
@@ -42,7 +42,7 @@ test("copy link button (download)", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "url");
+    await clickMenuItemFromView(page, targetFile, "url");
 
     const acltab = page.locator('[data-testid="url-tab"]');
     const input = acltab.locator("#download-path-input");
@@ -64,7 +64,7 @@ test("copy link button (api)", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "url");
+    await clickMenuItemFromView(page, targetFile, "url");
 
     const acltab = page.locator('[data-testid="url-tab"]');
     const input = acltab.locator("#resource-path-input");

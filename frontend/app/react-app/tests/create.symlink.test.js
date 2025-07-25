@@ -4,8 +4,8 @@ const {
     waitForReact,
     handleRoute,
     mockRoute,
-    clickMenuItemformNewMenu,
-    clickMenuItemformView,
+    clickMenuItemFromNewMenu,
+    clickMenuItemFromView,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
@@ -49,7 +49,7 @@ test("create symlink (file)", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemformNewMenu(page, "create-symlink");
+    await clickMenuItemFromNewMenu(page, "create-symlink");
 
     const newsymModal = page.locator('[data-testid="newsym-modal"]');
     await expect(newsymModal).toBeVisible();
@@ -80,7 +80,7 @@ test("create symlink (directory)", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemformView(page, testDirName, "symlink");
+    await clickMenuItemFromView(page, testDirName, "symlink");
 
     const newsymModal = page.locator('[data-testid="newsym-modal"]');
     await expect(newsymModal).toBeVisible();
@@ -110,7 +110,7 @@ test("create symlink error", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemformView(page, testDirName, "symlink");
+    await clickMenuItemFromView(page, testDirName, "symlink");
 
     const newsymModal = page.locator('[data-testid="newsym-modal"]');
     await expect(newsymModal).toBeVisible();

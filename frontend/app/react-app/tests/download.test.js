@@ -4,8 +4,8 @@ const fs = require("fs");
 const {
     waitForReact,
     handleRoute,
-    clickMenuItemformView,
-    clickMenuItemformMenu,
+    clickMenuItemFromView,
+    clickMenuItemFromMenu,
     checkItem,
     API_URL,
     FRONTEND_URL,
@@ -26,7 +26,7 @@ test("download single file", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const downloadPromise = page.waitForEvent("download");
-    await clickMenuItemformView(page, testFileName, "download");
+    await clickMenuItemFromView(page, testFileName, "download");
     const download = await downloadPromise;
 
     // Verify the downloaded file name
@@ -46,11 +46,11 @@ test("download multiple files", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     for (const fileName of filesToDownload) {
-        checkItem(page, fileName);
+        await checkItem(page, fileName);
     }
 
     const downloadPromise = page.waitForEvent("download");
-    await clickMenuItemformMenu(page, "download");
+    await clickMenuItemFromMenu(page, "download");
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
@@ -72,7 +72,7 @@ test("download single directory", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const downloadPromise = page.waitForEvent("download");
-    await clickMenuItemformView(page, testDirectoryName, "download");
+    await clickMenuItemFromView(page, testDirectoryName, "download");
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
@@ -92,11 +92,11 @@ test("download multiple directories", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${rootPath}`);
 
     for (const dirName of dirsToDownload) {
-        checkItem(page, dirName);
+        await checkItem(page, dirName);
     }
 
     const downloadPromise = page.waitForEvent("download");
-    await clickMenuItemformMenu(page, "download");
+    await clickMenuItemFromMenu(page, "download");
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(expectedZipFileName);
@@ -117,7 +117,7 @@ test("download empty file", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
     const downloadPromise = page.waitForEvent("download");
-    await clickMenuItemformView(page, emptyFileName, "download");
+    await clickMenuItemFromView(page, emptyFileName, "download");
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(emptyFileName);
@@ -133,7 +133,7 @@ test("download nonexistent path", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, testFileName, "download");
+    await clickMenuItemFromView(page, testFileName, "download");
 
     await expect(page.locator("body")).toContainText("File not found");
 });

@@ -4,7 +4,7 @@ const {
     waitForReact,
     handleRoute,
     mockRoute,
-    clickMenuItemformNewMenu,
+    clickMenuItemFromNewMenu,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
@@ -38,7 +38,7 @@ test("create directory", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemformNewMenu(page, "create-directory");
+    await clickMenuItemFromNewMenu(page, "create-directory");
 
     const newdirModal = page.locator('[data-testid="newdir-modal"]');
     await expect(newdirModal).toBeVisible();
@@ -66,7 +66,7 @@ test("create directory error", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemformNewMenu(page, "create-directory");
+    await clickMenuItemFromNewMenu(page, "create-directory");
 
     const newdirModal = page.locator('[data-testid="newdir-modal"]');
     await expect(newdirModal).toBeVisible();

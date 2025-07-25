@@ -4,8 +4,8 @@ const {
     waitForReact,
     handleRoute,
     mockRoute,
-    clickMenuItemformView,
-    clickMenuItemformMenu,
+    clickMenuItemFromView,
+    clickMenuItemFromMenu,
     checkItem,
     API_URL,
     FRONTEND_URL,
@@ -44,7 +44,7 @@ test("move a file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, testFileName, "move");
+    await clickMenuItemFromView(page, testFileName, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();
@@ -88,7 +88,7 @@ test("move files from actions menu", async ({ page }) => {
         await checkItem(page, fileName);
     }
 
-    await clickMenuItemformMenu(page, "move");
+    await clickMenuItemFromMenu(page, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();
@@ -121,7 +121,7 @@ test("move name conflict prompt", async ({ page }) => {
         await checkItem(page, fileName);
     }
 
-    await clickMenuItemformMenu(page, "move");
+    await clickMenuItemFromMenu(page, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();
@@ -171,7 +171,7 @@ test("move error", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, testFileName, "move");
+    await clickMenuItemFromView(page, testFileName, "move");
 
     const moveModal = page.locator('[data-testid="move-modal"]');
     await expect(moveModal).toBeVisible();

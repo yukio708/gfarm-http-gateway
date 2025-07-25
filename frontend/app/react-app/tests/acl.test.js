@@ -5,7 +5,7 @@ const {
     waitForReact,
     handleRoute,
     mockRoute,
-    clickMenuItemformView,
+    clickMenuItemFromView,
     API_URL,
     FRONTEND_URL,
     ACLIST,
@@ -92,7 +92,7 @@ test("get ACL entry", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "acl");
+    await clickMenuItemFromView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
@@ -131,7 +131,7 @@ test("add new ACL entry", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "acl");
+    await clickMenuItemFromView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
@@ -185,7 +185,7 @@ test("add new ACL entry (default)", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "acl");
+    await clickMenuItemFromView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
@@ -221,7 +221,7 @@ test("remove an ACL entry", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "acl");
+    await clickMenuItemFromView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 
@@ -265,7 +265,7 @@ test("PermsTab set perms error", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformView(page, targetFile, "acl");
+    await clickMenuItemFromView(page, targetFile, "acl");
 
     const acltab = page.locator('[data-testid="acl-tab"]');
 

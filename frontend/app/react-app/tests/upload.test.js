@@ -5,7 +5,7 @@ const {
     handleRoute,
     mockRoute,
     isVisible,
-    clickMenuItemformNewMenu,
+    clickMenuItemFromNewMenu,
     API_URL,
     FRONTEND_URL,
     DUMMYS,
@@ -54,7 +54,7 @@ test("upload single file", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemformNewMenu(page, "upload-file");
+    await clickMenuItemFromNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();
@@ -79,7 +79,7 @@ test("upload multiple files", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformNewMenu(page, "upload-file");
+    await clickMenuItemFromNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();
@@ -102,7 +102,7 @@ test("upload nested directory", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformNewMenu(page, "upload-folder");
+    await clickMenuItemFromNewMenu(page, "upload-folder");
 
     const inputLocator = page.locator('input[type="file"][multiple][webkitdirectory]');
     await expect(inputLocator).toBeAttached();
@@ -127,7 +127,7 @@ test("upload name conflict prompt (overwrite)", async ({ page }) => {
 
     await isVisible(page, testFileName);
 
-    await clickMenuItemformNewMenu(page, "upload-file");
+    await clickMenuItemFromNewMenu(page, "upload-file");
 
     await page
         .locator('input[type="file"][multiple]:not([webkitdirectory])')
@@ -158,7 +158,7 @@ test("upload name conflict prompt (cancel)", async ({ page }) => {
 
     await isVisible(page, testFileName);
 
-    await clickMenuItemformNewMenu(page, "upload-file");
+    await clickMenuItemFromNewMenu(page, "upload-file");
 
     await page
         .locator('input[type="file"][multiple]:not([webkitdirectory])')
@@ -191,7 +191,7 @@ test("upload empty file", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformNewMenu(page, "upload-file");
+    await clickMenuItemFromNewMenu(page, "upload-file");
 
     const fileInput = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await fileInput.setInputFiles([uploadFilePath]);
@@ -285,7 +285,7 @@ test("upload error test", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformNewMenu(page, "upload-file");
+    await clickMenuItemFromNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();
@@ -318,7 +318,7 @@ test("upload cancel", async ({ page }) => {
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemformNewMenu(page, "upload-file");
+    await clickMenuItemFromNewMenu(page, "upload-file");
 
     const inputLocator = page.locator('input[type="file"][multiple]:not([webkitdirectory])');
     await expect(inputLocator).toBeAttached();
