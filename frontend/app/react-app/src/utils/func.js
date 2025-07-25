@@ -12,6 +12,12 @@ export const getParentPath = (path) => {
     return "/" + parts.join("/");
 };
 
+export const getTopPath = (path) => {
+    if (!path || path === "/" || path === "") return "";
+    const topPath = path.split("/").filter(Boolean)[0];
+    return topPath;
+};
+
 export const joinPaths = (...parts) => {
     return parts
         .map((part, i) => {
@@ -291,8 +297,9 @@ export const checkConflicts = (incomingItems, currentItems) => {
     let hasConflict = false;
 
     const updatedIncoming = incomingItems.map((file) => {
-        if (file.dirPath) {
-            const currentDir = currentMap.get(file.dirPath.replace(/\/$/, ""));
+        const topPath = file.dirPath ? getTopPath(file.dirPath) : "";
+        if (topPath !== "") {
+            const currentDir = currentMap.get(topPath);
             if (currentDir) {
                 hasConflict = true;
                 return {
@@ -301,6 +308,7 @@ export const checkConflicts = (incomingItems, currentItems) => {
                     parent_is_conflicted: true,
                     current_size: currentDir.size,
                     current_mtime: currentDir.mtime,
+                    topPath,
                 };
             }
         } else {
@@ -331,13 +339,14 @@ export const getUniqueConflicts = (incomingItems) => {
     const map = new Map();
     incomingItems.forEach((file) => {
         if (!file) return;
-        const key = file.parent_is_conflicted ? file.dirPath.replace(/\/$/, "") : file.name;
+        const key = file.parent_is_conflicted ? getTopPath(file.path) : file.name;
+        console.log("key", key);
         map.set(
             key,
             file.parent_is_conflicted
                 ? {
                       ...file,
-                      name: file.dirPath.replace(/\/$/, ""),
+                      name: key,
                   }
                 : file
         );

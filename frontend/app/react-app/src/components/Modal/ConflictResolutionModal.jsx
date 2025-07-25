@@ -36,14 +36,15 @@ function ConflictResolutionModal({
         const resolved = filtered.map((item) => {
             if (item.keep_current && item.keep_incoming) {
                 if (item.parent_is_conflicted) {
-                    const newDirpath = suggestNewName(
-                        item.dirPath.replace(/\/$/, ""),
-                        existingNames
-                    );
-                    return {
-                        ...item,
-                        destPath: item.uploadDir + "/" + newDirpath + "/" + item.name,
-                    };
+                    if (item.topPath) {
+                        const newTopPath = suggestNewName(item.topPath, existingNames);
+                        const newPath = item.path.replace(item.topPath, newTopPath);
+                        console.log("newPath", newPath);
+                        return {
+                            ...item,
+                            destPath: item.uploadDir.replace(/\/$/, "") + "/" + newPath,
+                        };
+                    }
                 } else if (item.is_conflicted) {
                     const newName = suggestNewName(item.name, existingNames);
                     return {
@@ -63,7 +64,7 @@ function ConflictResolutionModal({
     const handleCheck = (event, item, key) => {
         setIncomingItems((prev) =>
             prev.map((incomingItem) => {
-                if (incomingItem.name === item.name || incomingItem.dirPath === item.dirPath) {
+                if (incomingItem.name === item.name || incomingItem.topPath === item.topPath) {
                     return {
                         ...incomingItem,
                         [key]: event.target.checked,
