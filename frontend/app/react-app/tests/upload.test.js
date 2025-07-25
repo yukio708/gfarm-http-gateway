@@ -192,7 +192,7 @@ test("Should upload file with new name to avoid conflict", async ({ page }) => {
     const expectedFilename = "dummy (1).txt";
 
     await mockUploadRoute(page, {
-        filepath: currentDirectory + "/" + testFileName,
+        filepath: currentDirectory + "/" + encodeURIComponent(expectedFilename),
     });
 
     const uploadFilePath = DUMMYS + "/" + testFileName;

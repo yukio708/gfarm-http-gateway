@@ -42,7 +42,6 @@ function ConflictResolutionModal({
                     );
                     return {
                         ...item,
-                        path: newDirpath + "/" + item.name,
                         destPath: item.uploadDir + "/" + newDirpath + "/" + item.name,
                     };
                 } else if (item.is_conflicted) {
