@@ -74,6 +74,17 @@ def mock_size():
         yield mock
 
 
+@pytest.fixture
+def mock_size_with_mtime():
+    with patch("gfarm_http.file_size") as mock:
+        existing = True
+        is_file = True
+        size = 1
+        mtime = 1717232400.0
+        mock.return_value = (existing, is_file, size, mtime)
+        yield mock
+
+
 def mock_exec_common(mock, stdout, stderr, result):
     # Dummy asyncio.subprocess.Process
     mock_proc = Mock()
@@ -146,6 +157,7 @@ async def mock_size_not_found(request):
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfls(request):
+    print("!!!!request.param", request.param)
     stdout, stderr, result = request.param
     with patch('gfarm_http.gfls') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
@@ -170,7 +182,8 @@ async def mock_gfexport_for_zip(request):
             # stderr: simulate readline() to produce all lines
             proc.stderr = AsyncMock()
             proc.stderr.readline = AsyncMock(side_effect=[
-                (stderr if isinstance(stderr, bytes) else stderr.encode()) + b"\n",  # line 1
+                (stderr if isinstance(stderr, bytes) else stderr.encode()) +
+                b"\n",  # line 1
                 b""  # EOF
             ])
 
@@ -186,6 +199,32 @@ async def mock_gfwhoami(request):
     stdout, stderr, result = request.param
     with patch('gfarm_http.gfwhoami') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
+
+
+def make_mock_proc(mock, stdout: bytes, stderr: bytes, returncode: int):
+    mock_proc = Mock()
+    mock_proc.returncode = returncode
+
+    # Simulate .communicate()
+    async def communicate(input=None):
+        return stdout, stderr
+    mock_proc.communicate = AsyncMock(side_effect=communicate)
+
+    # Simulate .wait()
+    wait_future = asyncio.Future()
+    wait_future.set_result(returncode)
+    mock_proc.wait.return_value = wait_future
+
+    mock.return_value = mock_proc
+    return mock
+
+
+@pytest_asyncio.fixture(scope="function")
+async def mock_setfacl(request):
+    stdout, stderr, returncode = request.param
+    with patch("asyncio.create_subprocess_exec") as mock:
+        make_mock_proc(mock, stdout, stderr, returncode)
+        yield mock  # let test inspect it
 
 
 def assert_is_oidc_auth(kwargs):
@@ -726,6 +765,7 @@ async def zip_export_check(paths, expect_names, expect_contents):
                 content = f.read().decode()
                 assert expect_contents[i] in content
 
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param1], indirect=True)
@@ -912,6 +952,158 @@ async def test_zip_export_gfexport_error(
             content = f.read().decode()
             print(f"Zip file content: {content}")
             assert expected_content not in content
+
+
+expect_gfgetfacl_stdout = """# file: testfile.txt
+# owner: user
+# group: group
+user::rwx
+group::r-x
+other::r-x
+"""
+
+expect_gfgetfacl = (expect_gfgetfacl_stdout.encode(), b"", 0)
+
+parsed_acl = {
+    'acl': [
+        {
+            'acl_type': 'user',
+            'acl_name': None,
+            'acl_perms': {'r': True, 'w': True, 'x': True},
+            'is_default': False
+        },
+        {
+            'acl_type': 'group',
+            'acl_name': None,
+            'acl_perms': {'r': True, 'w': False, 'x': True},
+            'is_default': False
+        },
+        {
+            'acl_type': 'other',
+            'acl_name': None,
+            'acl_perms': {'r': True, 'w': False, 'x': True},
+            'is_default': False
+        }
+    ]
+}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [(expect_gfgetfacl)], indirect=True)
+async def test_get_acl(mock_claims, mock_exec):
+    response = client.get("/acl/dir/testfile.txt",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfgetfacl', '/dir/testfile.txt')
+    assert response.json() == parsed_acl
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_setfacl", [expect_no_stdout], indirect=True)
+async def test_set_acl(mock_claims, mock_setfacl):
+    response = client.post("/acl/dir/testfile.txt",
+                           json=parsed_acl,
+                           headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_setfacl.call_args
+    assert args == ('gfsetfacl', '-b', '-M', '-', '/dir/testfile.txt')
+    assert response.text == no_stdout
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_gfuser], indirect=True)
+async def test_get_users(mock_claims, mock_exec):
+    response = client.get("/users",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfuser', )
+    assert response.json()["list"] == [expect_gfuser_stdout]
+
+
+parsed_userlist = [{
+    'home_directory': '/home',
+    'id': 'testuser',
+    'identifier': 'test',
+    'name': 'testuser'
+}]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_gfuser], indirect=True)
+async def test_get_users_with_long_format(mock_claims, mock_exec):
+    response = client.get("/users?long_format=on",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfuser', '-l')
+    assert response.json()["list"] == parsed_userlist
+
+
+expect_gfgroup_stdout = "testgroup:testuser"
+expect_gfgroup = (expect_gfgroup_stdout.encode(), b"error", 0)
+parsed_grouplist = [{'group': 'testgroup', 'menbers': 'testuser'}]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_gfgroup], indirect=True)
+async def test_get_groups(mock_claims, mock_exec):
+    response = client.get("/groups",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfgroup', )
+    assert response.json()["list"] == [expect_gfgroup_stdout]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_gfgroup], indirect=True)
+async def test_get_group_with_long_format(mock_claims, mock_exec):
+    response = client.get("/groups?long_format=on",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfgroup', '-l')
+    assert response.json()["list"] == parsed_grouplist
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_create_symlink(mock_claims, mock_exec):
+    src = "/dir1/file1.txt"
+    dest = "/dir2/file2.txt"
+    move = {
+        "source": src,
+        "destination": dest
+    }
+    response = client.post("/symlink",
+                           json=move,
+                           headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfln', '-s', src, dest)
+    assert response.text == no_stdout
+
+
+expect_gfls_stdout_owndata = (
+    b"-rw-r--r-- 1 user group 5678 Jun 01 09:00:00 2024 .\n"
+)
+gfls_success_param_own = (expect_gfls_stdout_owndata, b"", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_exec", [(expect_gfstat)], indirect=True)
+@pytest.mark.parametrize("mock_gfls",
+                         [gfls_success_param_own], indirect=True)
+async def test_get_symlink(mock_claims, mock_exec, mock_gfls):
+    response = client.get("/symlink/testdir/testfile1.txt",
+                          headers=req_headers_oidc_auth)
+    assert response.status_code == 200
+    args, kwargs = mock_exec.call_args
+    assert args == ('gfstat', '/testdir/testfile1.txt')
+    assert response.json() == expect_gfls_json_stdout
+
 
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
