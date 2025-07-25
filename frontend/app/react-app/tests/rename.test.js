@@ -36,8 +36,8 @@ test("Should rename a file from the context menu", async ({ page }) => {
     const newName = "newname.py";
 
     await mockMoveRoute(page, {
-        source: currentDirectory + "/" + testname,
-        destination: currentDirectory + "/" + newName,
+        source: currentDirectory + testname,
+        destination: currentDirectory + newName,
     });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
@@ -62,8 +62,8 @@ test("Should display an error notification when file rename fails", async ({ pag
     const newName = "newname.py";
 
     await mockMoveRoute(page, {
-        source: currentDirectory + "/" + testname,
-        destination: currentDirectory + "/" + newName,
+        source: currentDirectory + testname,
+        destination: currentDirectory + newName,
         statusCode: 500,
         contentType: "application/json",
         mockResponse: {

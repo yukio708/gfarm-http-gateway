@@ -360,7 +360,8 @@ export async function mockRoute(
                 const body = JSON.parse(request.postData());
                 validateBody(body);
             } catch (error) {
-                console.warn("Failed to parse request body:", error);
+                console.warn("Failed:", error);
+                throw error;
             }
         }
 
