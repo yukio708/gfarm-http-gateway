@@ -149,6 +149,83 @@ test("Should overwrite existing file on name conflict", async ({ page }) => {
     await waitForProgressView(page, testFileName);
 });
 
+test("Should skip upload and keep existing file", async ({ page }) => {
+    const currentDirectory = "/dummy";
+    const testFileName = "dummy.txt";
+
+    await mockUploadRoute(page, {
+        filepath: currentDirectory + "/" + testFileName,
+    });
+
+    const uploadFilePath = DUMMYS + "/" + testFileName;
+
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
+
+    await isVisible(page, testFileName);
+
+    await clickMenuItemFromNewMenu(page, "upload-file");
+
+    await page
+        .locator('input[type="file"][multiple]:not([webkitdirectory])')
+        .setInputFiles([uploadFilePath]);
+
+    const overwriteModal = page.locator('[data-testid="conflict-modal"]');
+    await expect(overwriteModal).toBeVisible({ timeout: 5000 });
+
+    const duplicateFileName = page.locator(`[id="current-${testFileName}"]`);
+    await expect(duplicateFileName).toBeVisible();
+    await duplicateFileName.check();
+
+    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    await expect(confirmButton).toBeVisible();
+    await confirmButton.click();
+
+    await expect(overwriteModal).not.toBeVisible();
+
+    const progressView = page.locator('[data-testid="progress-view"]');
+    await expect(progressView).not.toBeVisible(); // No upload task should appear
+});
+
+test("Should upload file with new name to avoid conflict", async ({ page }) => {
+    const currentDirectory = "/dummy";
+    const testFileName = "dummy.txt";
+    const expectedFilename = "dummy (1).txt";
+
+    await mockUploadRoute(page, {
+        filepath: currentDirectory + "/" + testFileName,
+    });
+
+    const uploadFilePath = DUMMYS + "/" + testFileName;
+
+    await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
+
+    await isVisible(page, testFileName);
+
+    await clickMenuItemFromNewMenu(page, "upload-file");
+
+    await page
+        .locator('input[type="file"][multiple]:not([webkitdirectory])')
+        .setInputFiles([uploadFilePath]);
+
+    const overwriteModal = page.locator('[data-testid="conflict-modal"]');
+    await expect(overwriteModal).toBeVisible({ timeout: 5000 });
+
+    const duplicateFileName_incoming = page.locator(`[id="incoming-${testFileName}"]`);
+    await expect(duplicateFileName_incoming).toBeVisible();
+    await duplicateFileName_incoming.check();
+    const duplicateFileName_current = page.locator(`[id="current-${testFileName}"]`);
+    await expect(duplicateFileName_current).toBeVisible();
+    await duplicateFileName_current.check();
+
+    const confirmButton = page.locator('[data-testid="modal-button-confirm"]');
+    await expect(confirmButton).toBeVisible();
+    await confirmButton.click();
+
+    await expect(overwriteModal).not.toBeVisible();
+
+    await waitForProgressView(page, expectedFilename);
+});
+
 test("Should handle name conflict by canceling the upload", async ({ page }) => {
     const currentDirectory = "/dummy";
     const testFileName = "dummy.txt";
