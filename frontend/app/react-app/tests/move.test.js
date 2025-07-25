@@ -32,7 +32,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("move a file", async ({ page }) => {
+test("Should move a single file from the context menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const destinationDirectory = "/images";
     const testFileName = "meeting_notes.txt";
@@ -62,7 +62,7 @@ test("move a file", async ({ page }) => {
     await expect(moveModal).not.toBeVisible();
 });
 
-test("move files from actions menu", async ({ page }) => {
+test("Should move multiple files from the actions menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const destinationDirectory = "/images";
     const filesToMove = ["report.docx", "meeting_notes.txt"];
@@ -110,7 +110,7 @@ test("move files from actions menu", async ({ page }) => {
     await expect(page.locator('[data-testid="move-overlay"]')).not.toBeVisible();
 });
 
-test("move name conflict prompt", async ({ page }) => {
+test("Should show name conflict prompt when destination has duplicate files", async ({ page }) => {
     const currentDirectory = "/documents";
     const destinationDirectory = "/documents/documents";
     const filesToMove = ["report.docx", "meeting_notes.txt"];
@@ -154,7 +154,7 @@ test("move name conflict prompt", async ({ page }) => {
     await expect(overwriteModal).not.toBeVisible();
 });
 
-test("move error", async ({ page }) => {
+test("Should display an error notification when move operation fails", async ({ page }) => {
     const currentDirectory = "/documents";
     const destinationDirectory = "/images";
     const testFileName = "meeting_notes.txt";

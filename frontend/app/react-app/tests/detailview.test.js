@@ -64,7 +64,7 @@ const getExpectedDetailData = (filePath) => {
 
 // === Tests ===
 
-test("display file name in details", async ({ page }) => {
+test("Should display file name in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -82,7 +82,7 @@ test("display file name in details", async ({ page }) => {
     }
 });
 
-test("display file type in details", async ({ page }) => {
+test("Should display file type in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -100,7 +100,7 @@ test("display file type in details", async ({ page }) => {
     }
 });
 
-test("display file size in details", async ({ page }) => {
+test("Should display file size in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -118,7 +118,7 @@ test("display file size in details", async ({ page }) => {
     }
 });
 
-test("display permissions in details", async ({ page }) => {
+test("Should display permissions in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -136,7 +136,7 @@ test("display permissions in details", async ({ page }) => {
     }
 });
 
-test("display access time in details", async ({ page }) => {
+test("Should display last access time in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -154,7 +154,7 @@ test("display access time in details", async ({ page }) => {
     }
 });
 
-test("display modified time in details", async ({ page }) => {
+test("Should display last modified time in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -172,7 +172,7 @@ test("display modified time in details", async ({ page }) => {
     }
 });
 
-test("display change time in details", async ({ page }) => {
+test("Should display change time in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -190,7 +190,7 @@ test("display change time in details", async ({ page }) => {
     }
 });
 
-test("display owner uid in details", async ({ page }) => {
+test("Should display file owner (UID) in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {
@@ -208,7 +208,7 @@ test("display owner uid in details", async ({ page }) => {
     }
 });
 
-test("display owner gid in details", async ({ page }) => {
+test("Should display file group (GID) in the details panel", async ({ page }) => {
     const currentDirectory = "/documents";
     const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
     for (const expectedFile of expectedChildren) {

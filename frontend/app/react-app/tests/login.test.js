@@ -109,7 +109,7 @@ test.beforeEach(async ({ context }) => {
 });
 // Login Process Test
 
-test("Login title should be visible", async ({ page }) => {
+test("Should display the login title on the login page", async ({ page }) => {
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -117,7 +117,7 @@ test("Login title should be visible", async ({ page }) => {
     await expect(page.locator("#title")).toBeVisible();
 });
 
-test("Login button should be visible", async ({ page }) => {
+test("Should display the login button for OIDC", async ({ page }) => {
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -125,7 +125,7 @@ test("Login button should be visible", async ({ page }) => {
     await expect(page.locator("#oidc-btn")).toBeVisible();
 });
 
-test("OIDC login with valid token should show file table", async ({ page }) => {
+test("Should log in via OIDC and show the file list", async ({ page }) => {
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -138,7 +138,7 @@ test("OIDC login with valid token should show file table", async ({ page }) => {
     await expect(fileRow).toBeVisible();
 });
 
-test("SASL login: valid user credentials", async ({ page }) => {
+test("Should log in with valid SASL credentials and show the file list", async ({ page }) => {
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -158,7 +158,7 @@ test("SASL login: valid user credentials", async ({ page }) => {
     await expect(fileRow).toBeVisible();
 });
 
-test("SASL login: invalid user credentials", async ({ page }) => {
+test("Should stay on the login page with invalid SASL credentials", async ({ page }) => {
     login = false;
     await page.goto(FRONTEND_URL);
     await page.waitForFunction(() => window.location.href.includes("/login"));
@@ -176,7 +176,7 @@ test("SASL login: invalid user credentials", async ({ page }) => {
 
 // Logout Process Test
 
-test("Logout: should return to login screen", async ({ page }) => {
+test("Should log out and redirect to the login screen", async ({ page }) => {
     login = true;
     await page.goto(FRONTEND_URL, { waitUntil: "domcontentloaded" });
 
@@ -188,7 +188,7 @@ test("Logout: should return to login screen", async ({ page }) => {
 
 // A2HS Test
 
-test("Android: A2HS button click should trigger installprompt", async ({ browser }) => {
+test("[Android] Should trigger install prompt when A2HS button is clicked", async ({ browser }) => {
     const context = await browser.newContext({
         userAgent:
             "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Mobile Safari/537.36",
@@ -227,7 +227,7 @@ test("Android: A2HS button click should trigger installprompt", async ({ browser
     await context.close();
 });
 
-test("iOS: A2HS button click should trigger instructions", async ({ browser }) => {
+test("[iOS] Should show instructions modal when A2HS button is clicked", async ({ browser }) => {
     const context = await browser.newContext({
         userAgent:
             "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
@@ -253,7 +253,7 @@ test("iOS: A2HS button click should trigger instructions", async ({ browser }) =
     await context.close();
 });
 
-test("Desktop: A2HS button should be hidden", async ({ page }) => {
+test("[Desktop] Should hide A2HS button", async ({ page }) => {
     login = false;
 
     await page.goto(FRONTEND_URL);

@@ -27,7 +27,7 @@ test.beforeEach(async ({ context }) => {
 });
 // File/Directory Display Test
 
-test("display file list existing path", async ({ page }) => {
+test("Should display the file list when accessing an existing path", async ({ page }) => {
     const targetPath = "/";
     const expectedChildren = findChildrenByPath(fileStructureData, targetPath);
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
@@ -86,7 +86,7 @@ test("display file list existing path", async ({ page }) => {
     }
 });
 
-test("display error on nonexistent path", async ({ page }) => {
+test("Should show an error message when accessing a nonexistent path", async ({ page }) => {
     const nonexistentPath = "/nonexistent-directory-12345";
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${nonexistentPath}`);
 
@@ -102,7 +102,7 @@ test("display error on nonexistent path", async ({ page }) => {
     await expect(homeLink).toHaveAttribute("href", `#${ROUTE_STORAGE}/documents`);
 });
 
-test("display long file list", async ({ page }) => {
+test("Should display a long file list correctly", async ({ page }) => {
     const numberOfFiles = 1000;
 
     await page.route("**/dir/*", async (route) => {
@@ -153,7 +153,7 @@ test("display long file list", async ({ page }) => {
     await expect(listview.getByText(lastFileName)).toBeVisible();
 });
 
-test("sort by filename", async ({ page }) => {
+test("Should sort files by name (ascending and descending)", async ({ page }) => {
     const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
@@ -202,7 +202,7 @@ test("sort by filename", async ({ page }) => {
     }
 });
 
-test("sort by filesize", async ({ page }) => {
+test("Should sort files by size (ascending and descending)", async ({ page }) => {
     const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
@@ -243,7 +243,7 @@ test("sort by filesize", async ({ page }) => {
     }
 });
 
-test("sort by update date", async ({ page }) => {
+test("Should sort files by updated date (ascending and descending)", async ({ page }) => {
     const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
@@ -284,7 +284,7 @@ test("sort by update date", async ({ page }) => {
     }
 });
 
-test("filter by extension", async ({ page }) => {
+test("Should filter files by extension (.txt)", async ({ page }) => {
     const targetPath = "/documents";
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
@@ -381,7 +381,7 @@ const getExpectedFilesForDateFilter = (allFiles, filterType) => {
     });
 };
 
-test("filter by modified date (all options)", async ({ page }) => {
+test("Should filter files by modified date using all available options", async ({ page }) => {
     await freezeTime(page, "2025-06-01T12:00:00Z");
     const targetPath = "/";
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
@@ -433,7 +433,7 @@ test("filter by modified date (all options)", async ({ page }) => {
     await expect(listview.locator("tbody tr")).toHaveCount(allFilesAtRoot.length);
 });
 
-test("display current directory path", async ({ page }) => {
+test("Should display the current directory path in breadcrumb navigation", async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}/`);
 
     const rootbutton = page.locator("ol.breadcrumb button.btn.p-0").first();
@@ -496,7 +496,7 @@ test("display current directory path", async ({ page }) => {
     await expect(documentsBreadcrumb).toBeVisible();
 });
 
-test("double-click a file opens in new tab", async ({ page, context }) => {
+test("Should open a file in a new tab when double-clicked", async ({ page, context }) => {
     context.on("page", (page) => {
         console.debug("[DEBUG] New tab opened:", page.url());
     });
@@ -525,7 +525,7 @@ test("double-click a file opens in new tab", async ({ page, context }) => {
 
 // Path Navigation Test
 
-test("double-click a directory navigates to it", async ({ page }) => {
+test("Should navigate into a directory when double-clicked", async ({ page }) => {
     const currentDirectory = "/documents";
     const testDirectoryName = "presentations";
     const expectedNewPath = `${currentDirectory}/${testDirectoryName}`;
@@ -551,7 +551,7 @@ test("double-click a directory navigates to it", async ({ page }) => {
     ).toBeVisible();
 });
 
-test("navigate back and forward", async ({ page }) => {
+test("Should navigate back and forward between directories", async ({ page }) => {
     const firstPath = "/documents";
     const secondPath = "/documents/presentations";
 
@@ -572,7 +572,9 @@ test("navigate back and forward", async ({ page }) => {
     await expect(page).toHaveURL(`${FRONTEND_URL}/#${ROUTE_STORAGE}${secondPath}`);
 });
 
-test("home_directory path access", async ({ page }) => {
+test("Should automatically redirect to the home directory when accessing the root URL", async ({
+    page,
+}) => {
     const targetPath = "/documents";
 
     await page.goto(`${FRONTEND_URL}/`);

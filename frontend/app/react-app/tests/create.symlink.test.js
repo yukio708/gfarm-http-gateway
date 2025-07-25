@@ -36,7 +36,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("create symlink (file)", async ({ page }) => {
+test("Should create a symbolic link to a file from the New menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const destination = "/symlink";
     const testFileName = "meeting_notes.txt";
@@ -67,7 +67,7 @@ test("create symlink (file)", async ({ page }) => {
     await confirmButton.click();
 });
 
-test("create symlink (directory)", async ({ page }) => {
+test("Should create a symbolic link to a directory from the context menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const destination = "/symlink";
     const testDirName = "documents";
@@ -95,7 +95,7 @@ test("create symlink (directory)", async ({ page }) => {
     await confirmButton.click();
 });
 
-test("create symlink error", async ({ page }) => {
+test("Should display an error notification when symlink creation fails", async ({ page }) => {
     const currentDirectory = "/documents";
     const destination = "/symlink";
     const testDirName = "documents";

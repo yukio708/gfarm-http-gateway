@@ -65,7 +65,7 @@ test.beforeEach(async () => {
     fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
 });
 
-test("PermsTab updates octal when checkboxes are toggled", async ({ page }) => {
+test("Should update file permissions using the octal input", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
     const filepath = currentDirectory + "/" + targetFile;
@@ -81,7 +81,7 @@ test("PermsTab updates octal when checkboxes are toggled", async ({ page }) => {
     await setOctal(page, currentDirectory, targetFile, expectedMode);
 });
 
-test("PermsTab toggles sticky bit for directory", async ({ page }) => {
+test("Should apply the sticky bit when updating a directory's permissions", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "documents";
     const filepath = currentDirectory + "/" + targetFile;
@@ -97,7 +97,7 @@ test("PermsTab toggles sticky bit for directory", async ({ page }) => {
     await setOctal(page, currentDirectory, targetFile, expectedMode);
 });
 
-test("PermsTab set perms error", async ({ page }) => {
+test("Should display an error notification when permission update fails", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "documents";
     const filepath = currentDirectory + "/" + targetFile;

@@ -19,7 +19,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("download single file", async ({ page }) => {
+test("Should download a single file from the context menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
 
@@ -38,7 +38,7 @@ test("download single file", async ({ page }) => {
     expect(fs.statSync(path).size).toBeGreaterThan(0);
 });
 
-test("download multiple files", async ({ page }) => {
+test("Should download multiple selected files as a ZIP from the actions menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const filesToDownload = ["report.docx", "meeting_notes.txt"];
     const expectedZipFileName = ZIPNAME;
@@ -64,7 +64,7 @@ test("download multiple files", async ({ page }) => {
     }
 });
 
-test("download single directory", async ({ page }) => {
+test("Should download a single directory as a ZIP from the context menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const testDirectoryName = "presentations";
     const expectedZipFileName = ZIPNAME;
@@ -84,7 +84,7 @@ test("download single directory", async ({ page }) => {
     expect(zipEntries.map((entry) => entry.entryName)).toContain(testDirectoryName + "/");
 });
 
-test("download multiple directories", async ({ page }) => {
+test("Should download multiple directories as a ZIP from the actions menu", async ({ page }) => {
     const rootPath = "/";
     const dirsToDownload = ["documents", "images"];
     const expectedZipFileName = ZIPNAME;
@@ -110,7 +110,7 @@ test("download multiple directories", async ({ page }) => {
     }
 });
 
-test("download empty file", async ({ page }) => {
+test("Should download an empty file with 0 bytes", async ({ page }) => {
     const currentDirectory = "/error_test";
     const emptyFileName = "empty_file.txt";
 
@@ -127,7 +127,7 @@ test("download empty file", async ({ page }) => {
     expect(stats.size).toBe(0);
 });
 
-test("download nonexistent path", async ({ page }) => {
+test("Should display an error when trying to download a nonexistent file", async ({ page }) => {
     const currentDirectory = "/error_test";
     const testFileName = "deleted_file.txt";
 

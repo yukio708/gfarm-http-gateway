@@ -67,7 +67,7 @@ async function mockGfptarRoute(
     });
 }
 
-test("Create archive", async ({ page }) => {
+test("Should create an archive from selected files", async ({ page }) => {
     await mockGfptarRoute(page, {
         expectedCommand: "create",
         expectedBasedir: "gfarm:" + currentDirectory,
@@ -103,7 +103,7 @@ test("Create archive", async ({ page }) => {
 
     await expect(gfptarModal).not.toBeVisible();
 });
-test("Update archive", async ({ page }) => {
+test("Should update an existing archive with selected files", async ({ page }) => {
     await mockGfptarRoute(page, {
         expectedCommand: "update",
         expectedBasedir: "gfarm:" + currentDirectory,
@@ -137,7 +137,7 @@ test("Update archive", async ({ page }) => {
     await expect(gfptarModal).not.toBeVisible();
 });
 
-test("Append archive", async ({ page }) => {
+test("Should append files to an existing archive", async ({ page }) => {
     await mockGfptarRoute(page, {
         expectedCommand: "append",
         expectedBasedir: "gfarm:" + currentDirectory,
@@ -171,7 +171,7 @@ test("Append archive", async ({ page }) => {
     await expect(gfptarModal).not.toBeVisible();
 });
 
-test("get indir members", async ({ page }) => {
+test("Should retrieve archive members for extraction", async ({ page }) => {
     const archiveName = "documents";
     const expectedMembers = ["folder1/fileA.txt", "folder2/fileB.txt"];
 
@@ -214,7 +214,7 @@ test("get indir members", async ({ page }) => {
     await expect(gfptarModal).not.toBeVisible();
 });
 
-test("Extract archive", async ({ page }) => {
+test("Should extract files from an archive to the specified directory", async ({ page }) => {
     const archiveName = "documents";
 
     await mockGfptarRoute(page, {
@@ -247,7 +247,7 @@ test("Extract archive", async ({ page }) => {
     await expect(gfptarModal).not.toBeVisible();
 });
 
-test("error test", async ({ page }) => {
+test("Should display an error and show task status when tar operation fails", async ({ page }) => {
     await page.route(`${API_URL}/gfptar`, async (route) => {
         await route.fulfill({
             status: 500,

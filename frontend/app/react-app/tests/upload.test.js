@@ -42,7 +42,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("upload single file", async ({ page }) => {
+test("Should upload a single file using the upload dialog", async ({ page }) => {
     const currentDirectory = "/";
     const testFileName = "dummy.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
@@ -68,7 +68,7 @@ test("upload single file", async ({ page }) => {
     await expect(ProgressViewHeader).not.toBeVisible();
 });
 
-test("upload multiple files", async ({ page }) => {
+test("Should upload multiple files using the upload dialog", async ({ page }) => {
     const currentDirectory = "/";
     const testFileNames = ["dummy.txt", "dummy.py", "dummy.js"];
     const filePaths = testFileNames.map((f) => DUMMYS + "/" + f);
@@ -90,7 +90,7 @@ test("upload multiple files", async ({ page }) => {
     }
 });
 
-test("upload nested directory", async ({ page }) => {
+test("Should upload a nested directory using the folder upload dialog", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileNames = ["dummy.txt", "dummy.py", "dummy.js", "dummy2"];
 
@@ -113,7 +113,7 @@ test("upload nested directory", async ({ page }) => {
     }
 });
 
-test("upload name conflict prompt (overwrite)", async ({ page }) => {
+test("Should overwrite existing file on name conflict", async ({ page }) => {
     const currentDirectory = "/dummy";
     const testFileName = "dummy.txt";
 
@@ -149,7 +149,7 @@ test("upload name conflict prompt (overwrite)", async ({ page }) => {
     await waitForProgressView(page, testFileName);
 });
 
-test("upload name conflict prompt (cancel)", async ({ page }) => {
+test("Should handle name conflict by canceling the upload", async ({ page }) => {
     const currentDirectory = "/dummy";
     const testFileName = "dummy.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
@@ -180,7 +180,7 @@ test("upload name conflict prompt (cancel)", async ({ page }) => {
     await expect(page.locator('[data-testid="progress-view"]')).not.toBeVisible();
 });
 
-test("upload empty file", async ({ page }) => {
+test("Should upload an empty file and complete the task", async ({ page }) => {
     const currentDirectory = "/";
     const testFileName = "empty.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
@@ -199,7 +199,7 @@ test("upload empty file", async ({ page }) => {
     await waitForProgressView(page, testFileName);
 });
 
-test("drag and drop single file", async ({ page }) => {
+test("Should upload a file via drag-and-drop and confirm in the modal", async ({ page }) => {
     const testFileName = "test-file.txt";
 
     await mockUploadRoute(page, {
@@ -265,7 +265,7 @@ test("drag and drop single file", async ({ page }) => {
     await waitForProgressView(page, testFileName);
 });
 
-test("upload error test", async ({ page }) => {
+test("Should display an error and show task status when upload fails", async ({ page }) => {
     const currentDirectory = "/";
     const testFileName = "dummy.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;
@@ -301,7 +301,7 @@ test("upload error test", async ({ page }) => {
     await expect(firstTaskMessage).toContainText("error test");
 });
 
-test("upload cancel", async ({ page }) => {
+test("Should cancel an ongoing upload and display cancellation status", async ({ page }) => {
     const currentDirectory = "/";
     const testFileName = "dummy.txt";
     const uploadFilePath = DUMMYS + "/" + testFileName;

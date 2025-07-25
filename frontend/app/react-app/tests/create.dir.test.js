@@ -27,7 +27,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("create directory", async ({ page }) => {
+test("Should create a new directory from the New menu", async ({ page }) => {
     const currentDirectory = "/";
     const testDirName = "testdir";
 
@@ -53,7 +53,7 @@ test("create directory", async ({ page }) => {
     await confirmButton.click();
 });
 
-test("create directory error", async ({ page }) => {
+test("Should display an error notification when directory creation fails", async ({ page }) => {
     const currentDirectory = "/";
     const testDirName = "testdir";
 

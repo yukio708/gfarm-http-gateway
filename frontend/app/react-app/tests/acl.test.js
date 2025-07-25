@@ -85,8 +85,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-// Get ACL
-test("get ACL entry", async ({ page }) => {
+test("Should display all ACL entries for a file", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 
@@ -105,8 +104,7 @@ test("get ACL entry", async ({ page }) => {
     }
 });
 
-// Set ACL
-test("add new ACL entry", async ({ page }) => {
+test("Should add a new ACL entry", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
     const newentry_type = "user";
@@ -159,8 +157,7 @@ test("add new ACL entry", async ({ page }) => {
     await set_button.click();
 });
 
-// Set ACL (default)
-test("add new ACL entry (default)", async ({ page }) => {
+test("Should add a new default ACL entry for a directory", async ({ page }) => {
     const currentDirectory = "/";
     const targetFile = "documents";
     const newentry_type = "user";
@@ -214,8 +211,7 @@ test("add new ACL entry (default)", async ({ page }) => {
     await set_button.click();
 });
 
-// remove an ACL entry
-test("remove an ACL entry", async ({ page }) => {
+test("Should remove the selected ACL entry from the list", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 
@@ -240,7 +236,7 @@ test("remove an ACL entry", async ({ page }) => {
     }
 });
 
-test("PermsTab set perms error", async ({ page }) => {
+test("Should display error notification when ACL update fails", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
     const expectedAclList = [

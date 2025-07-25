@@ -51,7 +51,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("copy file", async ({ page }) => {
+test("Should copy a file and display progress until completion", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
     const expectedTestFileName = "meeting_notes (1).txt";
@@ -77,7 +77,7 @@ test("copy file", async ({ page }) => {
     await expect(ProgressViewHeader).not.toBeVisible();
 });
 
-test("copy cancel", async ({ page }) => {
+test("Should cancel an ongoing copy operation and show cancellation message", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
     const expectedTestFileName = "meeting_notes (1).txt";

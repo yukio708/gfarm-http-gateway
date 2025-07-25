@@ -64,7 +64,7 @@ export async function isVisible(page, filename, shouldNotBeVisible = false) {
 }
 
 /**
- * Clicks a menu item from the file row dropdown menu
+ * Clicks a menu item from the the context menu
  * @param {Object} page - Playwright page object
  * @param {string} filename - Name of the file
  * @param {string} action - Action to perform
@@ -83,7 +83,7 @@ export async function clickMenuItemFromView(page, filename, action) {
 }
 
 /**
- * Clicks a menu item from the action menu
+ * Clicks a menu item from the actions menu
  * @param {Object} page - Playwright page object
  * @param {string} action - Action to perform
  */

@@ -18,7 +18,7 @@ test.beforeEach(async ({ context }) => {
 });
 
 // Copy link
-test("copy link button (webui)", async ({ page }) => {
+test("Should display the WebUI link in the URL tab", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 
@@ -36,7 +36,7 @@ test("copy link button (webui)", async ({ page }) => {
     );
 });
 
-test("copy link button (download)", async ({ page }) => {
+test("Should display the download link and allow access to the file via URL", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 
@@ -58,7 +58,7 @@ test("copy link button (download)", async ({ page }) => {
     );
 });
 
-test("copy link button (api)", async ({ page }) => {
+test("Should display the API resource URL for the selected file", async ({ page }) => {
     const currentDirectory = "/documents";
     const targetFile = "report.docx";
 

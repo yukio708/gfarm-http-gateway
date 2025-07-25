@@ -18,7 +18,7 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("delete a file", async ({ page }) => {
+test("Should delete a single file from the context menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
 
@@ -53,7 +53,7 @@ test("delete a file", async ({ page }) => {
     await expect(page.locator('[data-testid="delete-overlay"]')).not.toBeVisible();
 });
 
-test("delete files from actions menu", async ({ page }) => {
+test("Should delete multiple files from the actions menu", async ({ page }) => {
     const currentDirectory = "/documents";
     const filesToDelete = ["report.docx", "meeting_notes.txt"];
 
@@ -80,7 +80,7 @@ test("delete files from actions menu", async ({ page }) => {
     await expect(deleteModal).not.toBeVisible();
 });
 
-test("delete error", async ({ page }) => {
+test("Should display an error notification when file deletion fails", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
 
