@@ -680,7 +680,6 @@ async def is_expired_token(token, use_raise=False):
 async def get_token(request: Request):
     token = request.session.get("token")
     if not token:
-        logger.debug(f"!!!! token is not found. request: {vars(request)}")
         return None
     if fer:
         token = decrypt_token(request, token)
@@ -1726,13 +1725,17 @@ async def gfls_generator(
                    show_hidden, recursive, long_format, time_format, effperm)
     stdout = ""
     buffer = b""
-    while True:
+    is_reading = True
+    while is_reading:
         chunk = await p.stdout.read(1)
         if not chunk:
-            break
-        buffer += chunk
+            is_reading = False
+            if len(buffer) > 0:
+                buffer += b"\n"
+        else:
+            buffer += chunk
         if b"\r" in buffer or b"\n" in buffer:
-            # logger.debug(f"buffer:{buffer}")
+            # print(f"buffer:{buffer}")
             line = buffer.decode("utf-8", errors="replace").strip()
             stdout += line
             buffer = b""
@@ -2513,25 +2516,11 @@ class ZipStreamWriter:
         pass
 
 
-class PathList(BaseModel):
-    paths: List[str]
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "paths": ["/foo", "/bar"],
-                }
-            ]
-        }
-    }
-
-
 @app.post("/zip")
 async def zip_export(request: Request,
                      paths: List[str] = Form(...),
                      authorization: Union[str, None] = Header(default=None)):
-    opname = "gfzip"
+    opname = "gfexport"
     apiname = "/zip"
     env = await set_env(request, authorization)
     user = get_user_from_env(env)
