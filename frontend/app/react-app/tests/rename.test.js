@@ -4,17 +4,20 @@ const {
     waitForReact,
     handleRoute,
     mockRoute,
-    clickMenuItemFromNewMenu,
+    clickMenuItemFromView,
     API_URL,
     FRONTEND_URL,
     ROUTE_STORAGE,
 } = require("./test_func");
 
-async function mockCreateRoute(
-    page,
-    { filepath, statusCode = 200, mockResponse = { result: "ok" } }
-) {
-    await mockRoute(page, `${API_URL}/**`, "PUT", "/dir" + filepath, {
+async function mockMoveRoute(page, { source, destination, statusCode = 200, mockResponse = {} }) {
+    await mockRoute(page, `${API_URL}/**`, "POST", "/move", {
+        validateBody: (body) => {
+            expect(typeof body.source).toBe("string");
+            expect(typeof body.destination).toBe("string");
+            if (source) expect(body.source).toBe(source);
+            if (destination) expect(body.destination).toBe(destination);
+        },
         statusCode,
         contentType: "application/json",
         response: JSON.stringify(mockResponse),
@@ -27,52 +30,59 @@ test.beforeEach(async ({ context }) => {
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
-test("create directory", async ({ page }) => {
+test("Should rename a file from the context menu", async ({ page }) => {
     const currentDirectory = "/";
-    const testDirName = "testdir";
+    const testname = "python_code.py";
+    const newName = "newname.py";
 
-    await mockCreateRoute(page, {
-        filepath: "/" + testDirName,
+    await mockMoveRoute(page, {
+        source: currentDirectory + "/" + testname,
+        destination: currentDirectory + "/" + newName,
     });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemFromNewMenu(page, "create-directory");
+    await clickMenuItemFromView(page, testname, "rename");
 
-    const newdirModal = page.locator('[data-testid="newdir-modal"]');
-    await expect(newdirModal).toBeVisible();
+    const renameModal = page.locator('[data-testid="rename-modal"]');
+    await expect(renameModal).toBeVisible();
 
-    const input = newdirModal.locator('[id="create-dir-input"]');
-    await input.fill(testDirName);
+    const input = renameModal.locator('[id="rename-input"]');
+    await input.fill(newName);
 
-    const confirmButton = newdirModal.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = renameModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 });
 
-test("create directory error", async ({ page }) => {
+test("Should display an error notification when file rename fails", async ({ page }) => {
     const currentDirectory = "/";
-    const testDirName = "testdir";
+    const testname = "python_code.py";
+    const newName = "newname.py";
 
-    await mockCreateRoute(page, {
-        filepath: "/" + testDirName,
+    await mockMoveRoute(page, {
+        source: currentDirectory + "/" + testname,
+        destination: currentDirectory + "/" + newName,
         statusCode: 500,
-        mockResponse: { detail: "error test" },
+        contentType: "application/json",
+        mockResponse: {
+            detail: "error test",
+        },
     });
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
     await page.waitForLoadState("networkidle");
 
-    await clickMenuItemFromNewMenu(page, "create-directory");
+    await clickMenuItemFromView(page, testname, "rename");
 
-    const newdirModal = page.locator('[data-testid="newdir-modal"]');
-    await expect(newdirModal).toBeVisible();
+    const renameModal = page.locator('[data-testid="rename-modal"]');
+    await expect(renameModal).toBeVisible();
 
-    const input = newdirModal.locator('[id="create-dir-input"]');
-    await input.fill(testDirName);
+    const input = renameModal.locator('[id="rename-input"]');
+    await input.fill(newName);
 
-    const confirmButton = newdirModal.locator('[data-testid="modal-button-confirm"]');
+    const confirmButton = renameModal.locator('[data-testid="modal-button-confirm"]');
     await expect(confirmButton).toBeVisible();
     await confirmButton.click();
 
