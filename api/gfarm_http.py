@@ -3021,6 +3021,7 @@ async def set_acl(gfarm_path: str,
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
         message = f"Failed to execute: gfsetfacl {' '.join(args)}"
         raise gfarm_http_error(opname, code, message, stdout, elist)
+    return PlainTextResponse(content=stdout)
 
 
 async def get_name_list(request: Request,
@@ -3084,6 +3085,7 @@ async def get_usernames(request: Request,
             name_entries.append(entry_dict)
         return JSONResponse(content={"list": name_entries})
     else:
+        print("name_list", name_list)
         return JSONResponse(content={"list": name_list})
 
 
@@ -3099,7 +3101,7 @@ async def get_groups(request: Request,
                                     authorization=authorization,
                                     x_csrf_token=x_csrf_token,
                                     opname=opname, apiname=apiname,
-                                    exec_func=gfuser, command=command)
+                                    exec_func=gfgroup, command=command)
     if long_format:
         name_entries = []
         for entry in name_list:
@@ -3111,7 +3113,7 @@ async def get_groups(request: Request,
                 'menbers': parts[1]
             }
             name_entries.append(entry_dict)
-        return JSONResponse(content={"list": entry_dict})
+        return JSONResponse(content={"list": name_entries})
     else:
         return JSONResponse(content={"list": name_list})
 
