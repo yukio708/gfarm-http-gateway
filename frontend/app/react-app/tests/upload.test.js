@@ -423,4 +423,6 @@ test("Should cancel an ongoing upload and display cancellation status", async ({
 
     const ProgressViewButton = page.locator(".btn", { hasText: "Show Progress" });
     await expect(ProgressViewButton).not.toBeVisible();
+
+    await page.unrouteAll({ behavior: "ignoreErrors" });
 });

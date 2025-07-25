@@ -126,4 +126,6 @@ test("Should cancel an ongoing copy operation and show cancellation message", as
 
     const ProgressViewButton = page.locator(".btn", { hasText: "Show Progress" });
     await expect(ProgressViewButton).not.toBeVisible();
+
+    await page.unrouteAll({ behavior: "ignoreErrors" });
 });
