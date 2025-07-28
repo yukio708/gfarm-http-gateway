@@ -70,7 +70,6 @@ PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
                         r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
 
 
-TMPDIR = "/tmp/gfarm-http"
 STORAGE_URL_PREFIX = "#/ui"
 
 #############################################################################
@@ -174,7 +173,8 @@ conf_required_keys = [
     "GFARM_HTTP_ALLOW_ANONYMOUS",
     "GFARM_HTTP_ASYNC_GFEXPORT",
     "GFARM_HTTP_SESSION_MAX_AGE",
-    "GFARM_HTTP_RECURSIVE_MAX_DEPTH"
+    "GFARM_HTTP_RECURSIVE_MAX_DEPTH",
+    "GFARM_HTTP_TMPDIR"
 ]
 
 # default parameters
@@ -255,6 +255,8 @@ try:
 except Exception as e:
     logger.warning("Invalid value for SESSION_MAX_AGE: " + {str(e)})
     RECURSIVE_MAX_DEPTH = 16
+
+TMPDIR = conf.GFARM_HTTP_TMPDIR
 
 
 def conf_check_not_recommended():
@@ -548,9 +550,12 @@ def decrypt_token(request, encrypted_token):
 
 
 def set_token(request: Request, token):
+    necessary_token = {}
+    necessary_token["access_token"] = token.get("access_token")
+    necessary_token["refresh_token"] = token.get("refresh_token")
     if fer:
-        token = encrypt_token(token)
-    request.session["token"] = token
+        necessary_token = encrypt_token(necessary_token)
+    request.session["token"] = necessary_token
 
 
 USE_HTTPX = True
