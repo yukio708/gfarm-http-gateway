@@ -92,14 +92,11 @@ RUN npm install && npm run build
 
 # Copy Gfarm client tools and libs
 COPY --from=builder /usr/local/bin/gf* /usr/local/bin/
-COPY --from=builder /usr/local/lib/libgfarm.so* /usr/local/lib/
+COPY --from=builder /usr/local/lib/libgf* /usr/local/lib/
 
 # Set environment
 ENV PATH="/usr/local/gfarm/bin:$PATH"
-ENV LD_LIBRARY_PATH="/usr/local/lib"
-
-# Optional config dir
-RUN mkdir -p /root/.gfarm
+RUN ldconfig
 
 # Entry script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
