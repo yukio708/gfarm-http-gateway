@@ -6,7 +6,7 @@
 
 ### Prerequisites
 
-* Node.js (v18 or higher recommended)
+* Node.js (v20 or higher recommended)
 
 ### Install dependencies
 

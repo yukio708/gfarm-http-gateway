@@ -3,7 +3,8 @@ set -eu
 set -x
 
 DIR=$(dirname $(realpath $0))
-CONF=./gfarm-http-for-docker-dist.conf
+# CONF=./gfarm-http-for-docker-dist.conf
+CONF=./gfarm-http-for-HPCI.conf
 
 LOAD_FROM_ENV=1
 
