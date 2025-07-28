@@ -3240,7 +3240,8 @@ async def archive_files(
                 f"{ipaddr}:0 user={user}, cmd={opname}, Client disconnected")
         finally:
             try:
-                os.remove(tokenfilepath)
+                if tokenfilepath:
+                    os.remove(tokenfilepath)
             except Exception as e:
                 logger.error(
                     f"{ipaddr}:0 user={user}, cmd={opname},"

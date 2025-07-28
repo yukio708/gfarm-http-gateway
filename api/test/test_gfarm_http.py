@@ -228,6 +228,34 @@ async def mock_setfacl(request):
         yield mock  # let test inspect it
 
 
+@pytest_asyncio.fixture(scope="function")
+async def mock_gfptar(request):
+    stdout, stderr, result = request.param
+
+    mock_proc = MagicMock()
+    mock_proc.returncode = result
+    mock_proc.wait = AsyncMock(return_value=result)
+
+    # simulate stdout line-by-line (1 byte at a time)
+    mock_proc.stdout = AsyncMock()
+    b_stream = list(stdout) + [b""]
+    mock_proc.stdout.read = AsyncMock(
+        side_effect=[bytes([b]) if isinstance(b, int) else b for b in b_stream])
+    mock_proc.stdout.readline = AsyncMock(side_effect=[
+        stdout + b"\n",
+        b""
+    ])
+
+    mock_proc.stderr = AsyncMock()
+    mock_proc.stderr.readline = AsyncMock(side_effect=[
+        (stderr if isinstance(stderr, bytes) else stderr.encode()) + b"\n",
+        b""
+    ])
+
+    with patch("gfarm_http.gfptar", return_value=(mock_proc, ["test"])):
+        yield mock_proc
+
+
 def assert_is_oidc_auth(kwargs):
     env = kwargs.get("env")
     mech = env.get("GFARM_SASL_MECHANISMS")
@@ -1130,6 +1158,114 @@ async def test_file_copy(
     lines = [line async for line in response.aiter_lines()]
     assert any('"copied":' in line for line in lines)
     assert any('"done": true' in line.lower() for line in lines)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfptar", [(b"creating...\n", b"", 0)],
+                         indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_gfptar_create(
+    mock_claims,
+    mock_size_not_found,
+    mock_exec,
+    mock_gfptar
+):
+    tar_data = {
+        "command": "create",
+        "basedir": "/source/dir",
+        "source": ["file1.txt", "file2.txt"],
+        "outdir": "/dest/dir",
+        "options": []
+    }
+
+    response = client.post("/gfptar",
+                           json=tar_data,
+                           headers=req_headers_oidc_auth)
+
+    assert response.status_code == 200
+    lines = [line async for line in response.aiter_lines()]
+    assert any("creating..." in line for line in lines)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfptar", [(b"updating...\n", b"", 0)],
+                         indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_gfptar_update(
+    mock_claims,
+    mock_size,
+    mock_exec,
+    mock_gfptar
+):
+    tar_data = {
+        "command": "update",
+        "basedir": "/source/dir",
+        "source": ["file1.txt", "file2.txt"],
+        "outdir": "/dest/dir",
+        "options": []
+    }
+
+    response = client.post("/gfptar",
+                           json=tar_data,
+                           headers=req_headers_oidc_auth)
+
+    assert response.status_code == 200
+    lines = [line async for line in response.aiter_lines()]
+    assert any("updating..." in line for line in lines)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfptar", [(b"appending...\n", b"", 0)],
+                         indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_gfptar_append(
+    mock_claims,
+    mock_size,
+    mock_exec,
+    mock_gfptar
+):
+    tar_data = {
+        "command": "append",
+        "basedir": "/source/dir",
+        "source": ["file1.txt", "file2.txt"],
+        "outdir": "/dest/dir",
+        "options": []
+    }
+
+    response = client.post("/gfptar",
+                           json=tar_data,
+                           headers=req_headers_oidc_auth)
+
+    assert response.status_code == 200
+    lines = [line async for line in response.aiter_lines()]
+    assert any("appending..." in line for line in lines)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfptar", [(b"", b"error!", 0)],
+                         indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+async def test_gfptar_error(
+    mock_claims,
+    mock_size,
+    mock_exec,
+    mock_gfptar
+):
+    tar_data = {
+        "command": "append",
+        "basedir": "/source/dir",
+        "source": ["file1.txt", "file2.txt"],
+        "outdir": "/dest/dir",
+        "options": []
+    }
+
+    response = client.post("/gfptar",
+                           json=tar_data,
+                           headers=req_headers_oidc_auth)
+
+    assert response.status_code == 500
+    lines = [line async for line in response.aiter_lines()]
+    assert any("error!" in line for line in lines)
 
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
