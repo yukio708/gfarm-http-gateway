@@ -9,9 +9,8 @@
 /coverage
 
 # production
-/dist/assets/*
+/dist/*
 !/dist/assets/.gitkeep
-/dist/index.html
 
 # misc
 .DS_Store
