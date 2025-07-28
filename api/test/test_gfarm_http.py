@@ -164,31 +164,32 @@ async def mock_gfls(request):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def mock_gfexport_for_zip(request):
+async def mock_gfexport(request):
     stderr, result = request.param
     with patch('gfarm_http.gfexport') as mock:
         def _gfexport_dynamic_side_effect(env_arg, filepath_arg):
-            proc = MagicMock()
+            mock_proc = MagicMock()
 
             # stdout: simulate read() and readline()
-            proc.stdout = AsyncMock()
+            mock_proc.stdout = AsyncMock()
             data = filepath_arg.encode()
-            proc.stdout.read = AsyncMock(side_effect=[data, b""])
-            proc.stdout.readline = AsyncMock(side_effect=[
+            mock_proc.stdout.read = AsyncMock(side_effect=[data, b""])
+            mock_proc.stdout.readline = AsyncMock(side_effect=[
                 filepath_arg.encode() + b"\n",  # one line
                 b""  # EOF
             ])
 
             # stderr: simulate readline() to produce all lines
-            proc.stderr = AsyncMock()
-            proc.stderr.readline = AsyncMock(side_effect=[
+            mock_proc.stderr = AsyncMock()
+            mock_proc.stderr.readline = AsyncMock(side_effect=[
                 (stderr if isinstance(stderr, bytes) else stderr.encode()) +
                 b"\n",  # line 1
                 b""  # EOF
             ])
 
-            proc.returncode = result
-            return proc, (env_arg, filepath_arg)
+            mock_proc.returncode = result
+            mock_proc.wait = AsyncMock(return_value=result)
+            return mock_proc, filepath_arg
 
         mock.side_effect = _gfexport_dynamic_side_effect
         yield mock
@@ -769,13 +770,13 @@ async def zip_export_check(paths, expect_names, expect_contents):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param1], indirect=True)
-@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+@pytest.mark.parametrize("mock_gfexport", [(b"", 0)], indirect=True)
 # @pytest.mark.parametrize("mock_exec", [expect_gfexport], indirect=True)
 async def test_zip_export_file_and_directory(
         mock_claims,
         mock_size_not_file,
         mock_gfls,
-        mock_gfexport_for_zip):
+        mock_gfexport):
     expected_zip_paths = [
         "testdir/file_a.txt",
         "testdir/file_b.txt",
@@ -813,12 +814,12 @@ gfls_success_param2 = (expect_gfls_stdout_data2, b"", 0)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param2], indirect=True)
-@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+@pytest.mark.parametrize("mock_gfexport", [(b"", 0)], indirect=True)
 async def test_zip_export_nest_directory(
         mock_claims,
         mock_size_not_file,
         mock_gfls,
-        mock_gfexport_for_zip):
+        mock_gfexport):
     expected_zip_paths = [
         "testdir/test/",
         "testdir/test/test2/",
@@ -842,12 +843,12 @@ gfls_success_param3 = (expect_gfls_stdout_data3, b"", 0)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param3], indirect=True)
-@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+@pytest.mark.parametrize("mock_gfexport", [(b"", 0)], indirect=True)
 async def test_zip_export_file(
         mock_claims,
         mock_size,
         mock_gfls,
-        mock_gfexport_for_zip):
+        mock_gfexport):
     expected_zip_paths = [
         "./testfile1.txt",
     ]
@@ -864,12 +865,12 @@ async def test_zip_export_file(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_success_param], indirect=True)
-@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+@pytest.mark.parametrize("mock_gfexport", [(b"", 0)], indirect=True)
 async def test_zip_export_file_not_found(
         mock_claims,
         mock_size_not_found,
         mock_gfls,
-        mock_gfexport_for_zip):
+        mock_gfexport):
     test_files = {"paths": ["testdir"]}
 
     response = client.post("/zip",
@@ -888,12 +889,12 @@ gfls_error_param = (expect_gfls_stdout_data4, b"", 1)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_gfls",
                          [gfls_error_param], indirect=True)
-@pytest.mark.parametrize("mock_gfexport_for_zip", [(b"", 0)], indirect=True)
+@pytest.mark.parametrize("mock_gfexport", [(b"", 0)], indirect=True)
 async def test_zip_export_gfls_error(
         mock_claims,
         mock_size,
         mock_gfls,
-        mock_gfexport_for_zip):
+        mock_gfexport):
     test_files = {"paths": ["/tmp/testdir/testfile1.txt"]}
     expected_filename = "./testfile1.txt"
     response = client.post("/zip",
@@ -1104,6 +1105,31 @@ async def test_get_symlink(mock_claims, mock_exec, mock_gfls):
     assert args == ('gfstat', '/testdir/testfile1.txt')
     assert response.json() == expect_gfls_json_stdout
 
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mock_gfexport", [(b"", 0)], indirect=True)
+@pytest.mark.parametrize("mock_exec", [expect_no_stdout], indirect=True)
+@pytest.mark.parametrize("mock_gfmv", [expect_no_stdout], indirect=True)
+async def test_file_copy(
+    mock_claims,
+    mock_size_with_mtime,
+    mock_gfmv,
+    mock_exec,
+    mock_gfexport
+):
+    copy_data = {
+        "source": "/dir1/file1.txt",
+        "destination": "/dir2/file2.txt",
+    }
+
+    response = client.post("/copy",
+                           json=copy_data,
+                           headers=req_headers_oidc_auth)
+
+    assert response.status_code == 200
+    lines = [line async for line in response.aiter_lines()]
+    assert any('"copied":' in line for line in lines)
+    assert any('"done": true' in line.lower() for line in lines)
 
 
 # MEMO: How to use arguments of patch() instead of pytest.mark.parametrize
