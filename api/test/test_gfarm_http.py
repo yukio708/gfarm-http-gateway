@@ -240,7 +240,9 @@ async def mock_gfptar(request):
     mock_proc.stdout = AsyncMock()
     b_stream = list(stdout) + [b""]
     mock_proc.stdout.read = AsyncMock(
-        side_effect=[bytes([b]) if isinstance(b, int) else b for b in b_stream])
+        side_effect=[
+            bytes([b]) if isinstance(b, int) else b for b in b_stream
+        ])
     mock_proc.stdout.readline = AsyncMock(side_effect=[
         stdout + b"\n",
         b""

@@ -1458,7 +1458,8 @@ def parse_gfgetfacl(acl_str) -> Union[ACList, None]:
                 is_default = True
                 line = line[len('default:'):]
 
-            match = re.match(r"(user|group|other)(?::([^:]*))?:([rwx-]+)", line)
+            match = re.match(r"(user|group|other)(?::([^:]*))?:([rwx-]+)",
+                             line)
 
             if match:
                 acl_type = match.group(1)
@@ -2747,12 +2748,14 @@ async def file_copy(copy_data: FileOperation,
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
     filename_prefix = dest_filename[:128]
-    randstr = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    randstr = ''.join(
+        random.choices(string.ascii_letters + string.digits, k=8))
     tmpname = f"gfarm-http.copy.{filename_prefix}.{randstr}"
     tmppath = os.path.join(dest_dir, tmpname)
 
     p_export, args = await gfexport(env, gfarm_path)
-    stderr_export = asyncio.create_task(log_stderr("gfexport", p_export, elist))
+    stderr_export = asyncio.create_task(
+        log_stderr("gfexport", p_export, elist))
     first_byte = await p_export.stdout.read(1)
     if not first_byte:
         await stderr_export
@@ -2883,7 +2886,8 @@ async def get_attr(gfarm_path: str,
         user = get_user_from_env(env)
         ipaddr = get_client_ip_from_env(env)
         log_operation(env, request.method, apiname, opname, gfarm_path)
-        logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, path={gfarm_path}")
+        logger.debug(f"{ipaddr}:0 user={user}, "
+                     f"cmd={opname}, path={gfarm_path}")
         metadata = True
         proc = await gfstat(env, gfarm_path, metadata, check_symlink)
 
