@@ -10,6 +10,7 @@
 
 # production
 /dist/assets/*
+!/dist/assets/.gitkeep
 /dist/index.html
 
 # misc
