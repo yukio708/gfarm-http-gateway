@@ -85,7 +85,7 @@ function SuggestInput({ id, value, onChange, suggestions, placeholder = null, di
                     {filtered.map((s, i) => (
                         <li
                             key={i}
-                            className={`list-group-item list-group-item-action ${
+                            className={`list-group-item list-group-item-action text-break ${
                                 i === highlight ? "active" : ""
                             }`}
                             onMouseDown={() => handleSelect(s)}
