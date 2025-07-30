@@ -7,11 +7,13 @@ import os
 import sys
 import json
 import argparse
-import subprocess
 import urllib.parse
+import urllib.request
+import urllib.error
 import base64
-import stat
+import ssl
 from pathlib import Path
+
 
 def get_jwt_token():
     """Get JWT token from file or environment"""
@@ -25,6 +27,7 @@ def get_jwt_token():
             return f.read().strip()
     return None
 
+
 def get_auth_headers():
     """Get authentication headers for requests"""
     sasl_user = os.environ.get('GFARM_SASL_USER')
@@ -33,96 +36,122 @@ def get_auth_headers():
     if sasl_user == "anonymous":
         return {}
     elif sasl_user and sasl_password:
-        auth_str = base64.b64encode(f"{sasl_user}:{sasl_password}".encode()).decode()
+        auth_str = base64.b64encode(
+            f"{sasl_user}:{sasl_password}".encode()).decode()
         return {"Authorization": f"Basic {auth_str}"}
     else:
         token = get_jwt_token()
         if token:
             return {"Authorization": f"Bearer {token}"}
         else:
-            print("Error: Environment variable JWT_USER_PATH (or, GFARM_SASL_USER and GFARM_SASL_PASSWORD) is required", file=sys.stderr)
+            print("Error: Environment variable JWT_USER_PATH (or, "
+                  "GFARM_SASL_USER and GFARM_SASL_PASSWORD) is required",
+                  file=sys.stderr)
             sys.exit(1)
 
-def make_curl_request(url, method="GET", data=None, headers=None, output_file=None, upload_file=None, curl_opts=None):
-    """Make authenticated curl request"""
+
+def make_http_request(url, method="GET", data=None, headers=None,
+                      output_file=None, upload_file=None, verbose=False,
+                      insecure=False):
+    """Make authenticated HTTP request using urllib"""
     auth_headers = get_auth_headers()
 
-    cmd = ["curl"]
-
-    # Add curl options
-    if curl_opts:
-        cmd.extend(curl_opts)
-
-    # Add authentication headers
-    for key, value in auth_headers.items():
-        cmd.extend(["-H", f"{key}: {value}"])
-
-    # Add additional headers
+    # Prepare headers
+    req_headers = {}
+    req_headers.update(auth_headers)
     if headers:
-        for key, value in headers.items():
-            cmd.extend(["-H", f"{key}: {value}"])
+        req_headers.update(headers)
 
-    # Set HTTP method
-    if method != "GET":
-        cmd.extend(["-X", method])
-
-    # Add data for POST/PUT/PATCH
+    # Prepare data and content type
+    request_data = None
     if data:
         if isinstance(data, dict):
-            cmd.extend(["-d", json.dumps(data)])
-            cmd.extend(["-H", "Content-Type: application/json"])
+            request_data = json.dumps(data).encode('utf-8')
+            req_headers['Content-Type'] = 'application/json'
         else:
-            cmd.extend(["-d", data])
+            request_data = (data.encode('utf-8')
+                            if isinstance(data, str) else data)
 
     # Handle file upload
     if upload_file:
         if upload_file == "-":
-            cmd.extend(["--upload-file", "-"])
+            request_data = sys.stdin.buffer.read()
         else:
             upload_path = Path(upload_file)
             if upload_path.exists():
                 # Add file timestamp header
                 mtime = int(upload_path.stat().st_mtime)
-                cmd.extend(["-H", f"X-File-Timestamp: {mtime}"])
-                cmd.extend(["--upload-file", str(upload_path)])
+                req_headers['X-File-Timestamp'] = str(mtime)
+                with open(upload_path, 'rb') as f:
+                    request_data = f.read()
             else:
                 print(f"Error: File not found: {upload_file}", file=sys.stderr)
                 sys.exit(1)
 
-    # Handle output file
-    if output_file:
-        cmd.extend(["-o", output_file])
+    # Create request
+    req = urllib.request.Request(url, data=request_data,
+                                 headers=req_headers, method=method)
 
-    # Add URL
-    cmd.append(url)
+    # Create SSL context
+    ssl_context = ssl.create_default_context()
+    if insecure:
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
 
-    # Execute curl
     try:
-        sasl_user = os.environ.get('GFARM_SASL_USER')
-        sasl_password = os.environ.get('GFARM_SASL_PASSWORD')
+        if verbose:
+            print(f"Making {method} request to {url}", file=sys.stderr)
+            for key, value in req_headers.items():
+                print(f"Header: {key}: {value}", file=sys.stderr)
 
-        if sasl_user and sasl_password and sasl_user != "anonymous":
-            # Use basic auth directly in curl
-            cmd = ["curl", "-u", f"{sasl_user}:{sasl_password}"] + cmd[1:]
-            # Remove Authorization header if present
-            filtered_cmd = []
-            i = 0
-            while i < len(cmd):
-                if cmd[i] == "-H" and i + 1 < len(cmd) and cmd[i + 1].startswith("Authorization:"):
-                    i += 2  # Skip both -H and the header
+        with urllib.request.urlopen(req, context=ssl_context) as response:
+            response_data = response.read()
+
+            # Handle output
+            if output_file:
+                if output_file == "-":
+                    sys.stdout.buffer.write(response_data)
                 else:
-                    filtered_cmd.append(cmd[i])
-                    i += 1
-            cmd = filtered_cmd
+                    with open(output_file, 'wb') as f:
+                        f.write(response_data)
+                    # Set file timestamp if available
+                    if 'Last-Modified' in response.headers:
+                        from email.utils import parsedate_to_datetime
+                        try:
+                            dt = parsedate_to_datetime(
+                                response.headers['Last-Modified'])
+                            timestamp = dt.timestamp()
+                            os.utime(output_file, (timestamp, timestamp))
+                        except Exception:
+                            pass
+            else:
+                # Print to stdout
+                try:
+                    print(response_data.decode('utf-8'), end='')
+                except UnicodeDecodeError:
+                    sys.stdout.buffer.write(response_data)
 
-        subprocess.run(cmd)
-    except Exception as e:
-        print(f"Error executing curl: {e}", file=sys.stderr)
+    except urllib.error.HTTPError as e:
+        error_data = e.read()
+        try:
+            error_text = error_data.decode('utf-8')
+            print(f"HTTP {e.code} Error: {error_text}", file=sys.stderr)
+        except UnicodeDecodeError:
+            print(f"HTTP {e.code} Error", file=sys.stderr)
+            sys.stderr.buffer.write(error_data)
         sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"URL Error: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error making HTTP request: {e}", file=sys.stderr)
+        sys.exit(1)
+
 
 def url_path_encode(path):
     """URL encode path while preserving forward slashes"""
     return urllib.parse.quote(path.lstrip('/'), safe='/')
+
 
 def get_url_base():
     """Get the base URL from environment"""
@@ -132,19 +161,14 @@ def get_url_base():
         sys.exit(1)
     return url.rstrip('/')
 
-def build_curl_opts(args):
-    """Build common curl options"""
-    opts = ["--fail-with-body"]
 
-    if args.verbose:
-        opts.append("-v")
-    else:
-        opts.append("--no-progress-meter")
+def get_common_options(args):
+    """Get common HTTP options from args"""
+    return {
+        'verbose': getattr(args, 'verbose', False),
+        'insecure': getattr(args, 'insecure', False)
+    }
 
-    if args.insecure:
-        opts.append("-k")
-
-    return opts
 
 def cmd_ls(args):
     """List directory contents"""
@@ -168,13 +192,15 @@ def cmd_ls(args):
     params_str = "?" + "&".join(params) if params else ""
     url = f"{url_base}/dir/{gfarm_path}{params_str}"
 
-    opts = build_curl_opts(args)
-    make_curl_request(url, curl_opts=opts)
+    opts = get_common_options(args)
+    make_http_request(url, **opts)
+
 
 def cmd_download(args):
     """Download file from Gfarm"""
     if len(args.path) != 2:
-        print("Error: Both Gfarm-path and Local-path are required", file=sys.stderr)
+        print("Error: Both Gfarm-path and Local-path are required",
+              file=sys.stderr)
         sys.exit(1)
 
     url_base = get_url_base()
@@ -183,18 +209,15 @@ def cmd_download(args):
 
     url = f"{url_base}/file/{gfarm_path}"
 
-    opts = build_curl_opts(args)
-    opts.append("-R")  # --remote-time
+    opts = get_common_options(args)
+    make_http_request(url, output_file=local_path, **opts)
 
-    if local_path == "-":
-        make_curl_request(url, curl_opts=opts)
-    else:
-        make_curl_request(url, curl_opts=opts, output_file=local_path)
 
 def cmd_upload(args):
     """Upload file to Gfarm"""
     if len(args.path) != 2:
-        print("Error: Both Local-path and Gfarm-path are required", file=sys.stderr)
+        print("Error: Both Local-path and Gfarm-path are required",
+              file=sys.stderr)
         sys.exit(1)
 
     url_base = get_url_base()
@@ -203,8 +226,9 @@ def cmd_upload(args):
 
     url = f"{url_base}/file/{gfarm_path}"
 
-    opts = build_curl_opts(args)
-    make_curl_request(url, method="PUT", curl_opts=opts, upload_file=local_path)
+    opts = get_common_options(args)
+    make_http_request(url, method="PUT", upload_file=local_path, **opts)
+
 
 def cmd_mkdir(args):
     """Create directory"""
@@ -217,8 +241,9 @@ def cmd_mkdir(args):
 
     url = f"{url_base}/dir/{gfarm_path}"
 
-    opts = build_curl_opts(args)
-    make_curl_request(url, method="PUT", curl_opts=opts)
+    opts = get_common_options(args)
+    make_http_request(url, method="PUT", **opts)
+
 
 def cmd_rm(args):
     """Remove file"""
@@ -231,8 +256,9 @@ def cmd_rm(args):
 
     url = f"{url_base}/file/{gfarm_path}"
 
-    opts = build_curl_opts(args)
-    make_curl_request(url, method="DELETE", curl_opts=opts)
+    opts = get_common_options(args)
+    make_http_request(url, method="DELETE", **opts)
+
 
 def cmd_rmdir(args):
     """Remove directory"""
@@ -245,8 +271,9 @@ def cmd_rmdir(args):
 
     url = f"{url_base}/dir/{gfarm_path}"
 
-    opts = build_curl_opts(args)
-    make_curl_request(url, method="DELETE", curl_opts=opts)
+    opts = get_common_options(args)
+    make_http_request(url, method="DELETE", **opts)
+
 
 def cmd_chmod(args):
     """Change file permissions"""
@@ -260,9 +287,10 @@ def cmd_chmod(args):
 
     url = f"{url_base}/attr/{gfarm_path}"
 
-    opts = build_curl_opts(args)
+    opts = get_common_options(args)
     data = {"Mode": mode}
-    make_curl_request(url, method="POST", data=data, curl_opts=opts)
+    make_http_request(url, method="POST", data=data, **opts)
+
 
 def cmd_stat(args):
     """Get file status"""
@@ -275,13 +303,15 @@ def cmd_stat(args):
 
     url = f"{url_base}/attr/{gfarm_path}"
 
-    opts = build_curl_opts(args)
-    make_curl_request(url, curl_opts=opts)
+    opts = get_common_options(args)
+    make_http_request(url, **opts)
+
 
 def cmd_mv(args):
     """Move/rename file"""
     if len(args.path) != 2:
-        print("Error: Both source and destination paths are required", file=sys.stderr)
+        print("Error: Both source and destination paths are required",
+              file=sys.stderr)
         sys.exit(1)
 
     url_base = get_url_base()
@@ -290,17 +320,19 @@ def cmd_mv(args):
 
     url = f"{url_base}/file/{src_path}"
 
-    opts = build_curl_opts(args)
+    opts = get_common_options(args)
     data = {"Destination": dst_path}
-    make_curl_request(url, method="PATCH", data=data, curl_opts=opts)
+    make_http_request(url, method="PATCH", data=data, **opts)
+
 
 def cmd_whoami(args):
     """Show current user"""
     url_base = get_url_base()
     url = f"{url_base}/conf/me"
 
-    opts = build_curl_opts(args)
-    make_curl_request(url, curl_opts=opts)
+    opts = get_common_options(args)
+    make_http_request(url, **opts)
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -309,21 +341,29 @@ def main():
     )
 
     # Common options
-    parser.add_argument("-k", "--insecure", action="store_true", help="Insecure connection")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
+    parser.add_argument("-k", "--insecure", action="store_true",
+                        help="Insecure connection")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Verbose mode")
 
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    subparsers = parser.add_subparsers(dest='command',
+                                       help='Available commands')
 
     # ls command
     ls_parser = subparsers.add_parser('ls', help='List directory contents')
-    ls_parser.add_argument('-a', '--all', action='store_true', help="Do not hide entries starting with '.'")
-    ls_parser.add_argument('-e', '--effective', action='store_true', help="Display effective permissions")
-    ls_parser.add_argument('-l', '--long', action='store_true', help="List in long format")
-    ls_parser.add_argument('-R', '--recursive', action='store_true', help="Recursively list subdirectories")
+    ls_parser.add_argument('-a', '--all', action='store_true',
+                           help="Do not hide entries starting with '.'")
+    ls_parser.add_argument('-e', '--effective', action='store_true',
+                           help="Display effective permissions")
+    ls_parser.add_argument('-l', '--long', action='store_true',
+                           help="List in long format")
+    ls_parser.add_argument('-R', '--recursive', action='store_true',
+                           help="Recursively list subdirectories")
     ls_parser.add_argument('path', nargs=1, help='Gfarm path')
 
     # download command
-    dl_parser = subparsers.add_parser('download', help='Download file from Gfarm')
+    dl_parser = subparsers.add_parser('download',
+                                      help='Download file from Gfarm')
     dl_parser.add_argument('path', nargs=2, help='Gfarm-path Local-path')
 
     # upload command
@@ -343,7 +383,8 @@ def main():
     rmdir_parser.add_argument('path', nargs=1, help='Gfarm path')
 
     # chmod command
-    chmod_parser = subparsers.add_parser('chmod', help='Change file permissions')
+    chmod_parser = subparsers.add_parser('chmod',
+                                         help='Change file permissions')
     chmod_parser.add_argument('path', nargs=2, help='mode(octal) Gfarm-path')
 
     # stat command
@@ -355,7 +396,7 @@ def main():
     mv_parser.add_argument('path', nargs=2, help='source destination')
 
     # whoami command
-    whoami_parser = subparsers.add_parser('whoami', help='Show current user')
+    subparsers.add_parser('whoami', help='Show current user')
 
     args = parser.parse_args()
 
@@ -382,6 +423,7 @@ def main():
     else:
         print(f"Error: Unknown command '{args.command}'", file=sys.stderr)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
