@@ -3,12 +3,14 @@ FROM ubuntu:24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Set ARGs early
-ARG OSSURL=https://github.com/oss-tsukuba
-ARG PKG
-ARG VER
+# ==== Set ARGs for build-time config ====
+ARG GFARM_REPO=https://github.com/oss-tsukuba/gfarm
+ARG GFARM_VER=2.8.7
 
-# Install build dependencies
+ARG SASL_REPO=https://github.com/oss-tsukuba/cyrus-sasl-xoauth2-idp
+ARG SASL_VER=1.0.2
+
+# ==== Install build dependencies ====
 RUN apt-get update && apt-get install -y \
     build-essential \
     autoconf automake libtool pkg-config \
@@ -22,83 +24,60 @@ RUN apt-get update && apt-get install -y \
     python3 python3-docopt python3-schema \
     ruby golang jq
 
-# Install scitokens-cpp
+# ==== Build scitokens-cpp ====
 RUN git clone https://github.com/scitokens/scitokens-cpp.git \
     && mkdir /scitokens-cpp/build && cd /scitokens-cpp/build \
     && cmake -DCMAKE_INSTALL_PREFIX="/usr" .. \
     && make && make install
 
-# Install cyrus-sasl-xoauth2-idp
-ARG PKG=cyrus-sasl-xoauth2-idp
-ARG VER=1.0.2
-RUN cd \
-    && wget --content-disposition $OSSURL/$PKG/archive/$VER.tar.gz \
-    && tar pxf $PKG-$VER.tar.gz \
-    && cd $PKG-$VER \
+# ==== Build cyrus-sasl-xoauth2-idp ====
+RUN cd /tmp \
+    && wget --content-disposition ${SASL_REPO}/archive/${SASL_VER}.tar.gz \
+    && tar xf ${SASL_VER}.tar.gz \
+    && cd cyrus-sasl-xoauth2-idp-${SASL_VER} \
     && ./autogen.sh \
     && ./configure --libdir=$(pkg-config --variable=libdir libsasl2) \
     && make && make install
 
-# Install Gfarm
-ARG PKG=gfarm
-ARG VER=2.8.7
-RUN cd \
-    && wget --content-disposition $OSSURL/$PKG/archive/$VER.tar.gz \
-    && tar pxf $PKG-$VER.tar.gz \
-    && cd $PKG-$VER \
+# ==== Build Gfarm ====
+RUN cd /tmp \
+    && wget --content-disposition ${GFARM_REPO}/archive/${GFARM_VER}.tar.gz \
+    && tar xf ${GFARM_VER}.tar.gz \
+    && cd gfarm-${GFARM_VER} \
     && ./configure --enable-xmlattr --enable-cyrus-sasl \
     && make && make install
 
+
 # ========= Runtime Stage =========
-FROM ubuntu:24.04 AS runtime
+FROM debian:bookworm-slim AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies + Python + Node.js
+# ==== Install runtime dependencies ====
 RUN apt-get update && apt-get install -y \
-    libcurl4 \
-    libssl3 \
-    libexpat1 \
-    libgcc-s1 \
-    libstdc++6 \
+    libcurl4 libssl3 libexpat1 libgcc-s1 libstdc++6 \
     ca-certificates \
-    wget \
-    git \
-    curl \
-    gnupg \
-    python3 \
-    python3-pip \
-    sudo && \
+    wget git curl gnupg \
+    python3 python3-pip \
+    sudo make && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# # Optional: Install HPCI TLS certificate
-# RUN mkdir -p /etc/pki/tls/certs/gfarm && \
-#     cd /etc/pki/tls/certs/gfarm && \
-#     wget https://www.hpci-office.jp/info/download/attachments/425328655/21d9c8b3.0
+# ==== Copy Gfarm client binaries and libraries ====
+COPY --from=builder /usr/local/bin/gf* /usr/local/bin/
+COPY --from=builder /usr/local/lib/libgf*.so* /usr/local/lib/
+RUN ldconfig
 
-# Clone Gfarm HTTP Gateway (your webui branch)
-WORKDIR /app
-RUN git clone -b webui https://github.com/yukio708/gfarm-http-gateway.git
+# ==== Copy gfarm-http-gateway ====
+COPY . /app/gfarm-http-gateway
 
-# Install Python requirements
+# ==== Build ====
 WORKDIR /app/gfarm-http-gateway
 RUN make setup
-
-# Build React frontend
 WORKDIR /app/gfarm-http-gateway/frontend/app/react-app
 RUN npm install && npm run build
 
-# Copy Gfarm client tools and libs
-COPY --from=builder /usr/local/bin/gf* /usr/local/bin/
-COPY --from=builder /usr/local/lib/libgf* /usr/local/lib/
-
-# Set environment
-ENV PATH="/usr/local/gfarm/bin:$PATH"
-RUN ldconfig
-
-# Entry script
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
