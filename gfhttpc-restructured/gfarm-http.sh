@@ -216,7 +216,7 @@ cmd_mkdir() {
     local url="${url_base}/dir/${gfarm_path}"
     local opts=($(build_curl_opts))
 
-    exec "${BIN_DIR}/jwt-curl" -X PUT "${opts[@]}" "$url"
+    make_authenticated_curl -X PUT "${opts[@]}" "$url"
 }
 
 cmd_rm() {
@@ -231,7 +231,7 @@ cmd_rm() {
     local url="${url_base}/file/${gfarm_path}"
     local opts=($(build_curl_opts))
 
-    exec "${BIN_DIR}/jwt-curl" -X DELETE "${opts[@]}" "$url"
+    make_authenticated_curl -X DELETE "${opts[@]}" "$url"
 }
 
 cmd_rmdir() {
@@ -246,7 +246,7 @@ cmd_rmdir() {
     local url="${url_base}/dir/${gfarm_path}"
     local opts=($(build_curl_opts))
 
-    exec "${BIN_DIR}/jwt-curl" -X DELETE "${opts[@]}" "$url"
+    make_authenticated_curl -X DELETE "${opts[@]}" "$url"
 }
 
 cmd_chmod() {
