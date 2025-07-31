@@ -18,6 +18,7 @@ function ArchiveModal({
     setItemForGfptar,
     refresh,
 }) {
+    const title = "Gfptar";
     const { showHidden } = useShowHidden();
     const [visible, setVisible] = useState(true);
     const [activeTab, setActiveTab] = useState("archive");
@@ -72,7 +73,7 @@ function ArchiveModal({
                 options.split(" ").filter(Boolean),
                 ({ status, message }) => {
                     if (status === "error") {
-                        addNotification("Gfptar", message, "error");
+                        addNotification(title, message, "error");
                         console.error("useEffect gfptar failed", message);
                         return;
                     }
@@ -135,7 +136,7 @@ function ArchiveModal({
             onConfirm={() => handleConfirm()}
             comfirmText="Run"
             size="large"
-            title={<h5 className="modal-title">Gfptar</h5>}
+            title={<h5 className="modal-title">{title}</h5>}
         >
             <div>
                 <div className="mb-3">

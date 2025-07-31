@@ -5,6 +5,7 @@ import { createDir } from "@utils/dircommon";
 import PropTypes from "prop-types";
 
 function NewDirModal({ setShowModal, currentDir, refresh }) {
+    const title = "New Directory";
     const [dirname, setDirname] = useState("");
     const [visible, setVisible] = useState(true);
     const { addNotification } = useNotifications();
@@ -18,7 +19,7 @@ function NewDirModal({ setShowModal, currentDir, refresh }) {
     const handleCreateDir = useCallback(() => {
         console.log("handleCreateDir dirname", dirname);
         if (dirname === "") {
-            addNotification("Create", "Directory name is empty", "warning");
+            addNotification(title, "Directory name is empty", "warning");
             return false;
         }
         const create = async () => {
@@ -26,7 +27,7 @@ function NewDirModal({ setShowModal, currentDir, refresh }) {
             const error = await createDir(path);
             setVisible(false);
             setDirname("");
-            if (error) addNotification("Create", error, "error");
+            if (error) addNotification(title, error, "error");
             refresh();
         };
         create();
@@ -43,7 +44,7 @@ function NewDirModal({ setShowModal, currentDir, refresh }) {
             }}
             onConfirm={handleCreateDir}
             comfirmText="Create"
-            title={<h5 className="modal-title">Create New Directory</h5>}
+            title={<h5 className="modal-title">{title}</h5>}
         >
             <input
                 id="create-dir-input"

@@ -5,6 +5,7 @@ import removeItems from "@utils/remove";
 import PropTypes from "prop-types";
 
 function DeleteModal({ setShowModal, itemsToDelete, setItemsToDelete, refresh }) {
+    const title = "Delete";
     const [visible, setVisible] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const { addNotification } = useNotifications();
@@ -21,7 +22,7 @@ function DeleteModal({ setShowModal, itemsToDelete, setItemsToDelete, refresh })
             setIsDeleting(true);
             const error = await removeItems(itemsToDelete, refresh);
             setIsDeleting(false);
-            if (error) addNotification("Delete", error, "error");
+            if (error) addNotification(title, error, "error");
             setItemsToDelete([]);
         };
         deleteFile();

@@ -137,23 +137,6 @@ function useProgressTasks(refreshItems, addNotification) {
                     console.error("uploadFile failed:", err);
                 });
             });
-
-            // await upload(
-            //     uploadItem.file,
-            //     uploadItem.fullpath,
-            //     uploadDirSet,
-            //     ({ status, value, message, done, onCancel }) => {
-            //         setTasks((prev) =>
-            //             prev.map((task) =>
-            //                 task.taskId === uploadItem.taskId
-            //                     ? updateTask(task, { status, value, message, done, onCancel })
-            //                     : task
-            //             )
-            //         );
-            //     }
-            // ).catch((err) => {
-            //     console.error("uploadFile failed:", err);
-            // });
         }
         isUploadingRef.current = false;
 
@@ -176,9 +159,9 @@ function useProgressTasks(refreshItems, addNotification) {
         setDownloading(true);
     };
 
-    const setError = (error) => {
+    const setError = (title, error) => {
         console.debug("error", error);
-        addNotification("Move", error, "error");
+        addNotification(title, error, "error");
     };
 
     const handleDownload = async () => {
@@ -191,7 +174,7 @@ function useProgressTasks(refreshItems, addNotification) {
         const worker = async () => {
             while (downloadQueueRef.current.length) {
                 const files = downloadQueueRef.current.shift();
-                download(files, setError);
+                download(files, (error) => setError("download", error));
             }
             isDownloadingRef.current = false;
         };

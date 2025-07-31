@@ -29,6 +29,7 @@ function permissionsToOctal(p) {
 }
 
 function PermsTab({ item, active, detailContent, refreshAttr, refreshAcl }) {
+    const title = "Perms";
     const { addNotification } = useNotifications();
     const [octal, setOctal] = useState("644");
     const [permissions, setPermissions] = useState({
@@ -78,7 +79,7 @@ function PermsTab({ item, active, detailContent, refreshAttr, refreshAcl }) {
 
     const handleApply = async () => {
         const error = await changeMode(item.path, octal);
-        if (error) addNotification("ChangeMode", error, "error");
+        if (error) addNotification(title, error, "error");
         refreshAttr();
         refreshAcl();
     };

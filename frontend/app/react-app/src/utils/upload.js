@@ -90,7 +90,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
                         message,
                         done: true,
                     });
-                    console.error("!!!", message);
+                    console.error("Upload", message);
                     reject(new Error(message));
                 }
             };

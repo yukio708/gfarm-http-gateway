@@ -9,6 +9,7 @@ import { setSymlink } from "@utils/symlink";
 import PropTypes from "prop-types";
 
 function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
+    const title = "New Symlink";
     const { showHidden } = useShowHidden();
     const [visible, setVisible] = useState(true);
     const [linkName, setLinkName] = useState(currentDir.replace(/\/$/, "") + "/");
@@ -72,11 +73,11 @@ function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
 
     const handleCreate = () => {
         if (!linkPath || !sourcePath) {
-            addNotification("Create Symlink", "All fields are required.", "error");
+            addNotification(title, "All fields are required.", "error");
             return false;
         }
         if (error) {
-            addNotification("Create Symlink", "alredy exists", "error");
+            addNotification(title, "alredy exists", "error");
             return false;
         }
         const createSymlink = async () => {
@@ -85,7 +86,7 @@ function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
                 await setSymlink(sourcePath, linkPath);
             } catch (err) {
                 console.error("setSymlink failed:", err);
-                addNotification("Create Symlink", `${err.name} : ${err.message}`, "error");
+                addNotification(title, `${err.name} : ${err.message}`, "error");
             }
             refresh();
             setIsCreating(false);
@@ -109,7 +110,7 @@ function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
                 }}
                 onConfirm={handleCreate}
                 comfirmText="Create"
-                title={<h5 className="modal-title">New Symlink</h5>}
+                title={<h5 className="modal-title">{title}</h5>}
             >
                 <div>
                     <div className="mb-3">

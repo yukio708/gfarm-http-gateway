@@ -6,6 +6,7 @@ import moveItems from "@utils/move";
 import PropTypes from "prop-types";
 
 function RenameModal({ setShowModal, renameItem, refresh }) {
+    const title = "Rename";
     const [newName, setNewName] = useState(renameItem?.name || "");
     const [visible, setVisible] = useState(true);
     const { addNotification } = useNotifications();
@@ -18,20 +19,20 @@ function RenameModal({ setShowModal, renameItem, refresh }) {
 
     const setError = (error) => {
         console.debug("error", error);
-        addNotification("Rename", error, "error");
+        addNotification(title, error, "error");
     };
 
     const handleRename = () => {
         if (!renameItem || !newName) {
             setNewName("");
-            setVisible(false);
-            return true;
+            addNotification(title, "Empty name", "error");
+            return false;
         }
         const trimmedName = newName.trim();
 
         if (!checkFileName(trimmedName)) {
             addNotification(
-                "Rename",
+                title,
                 'Invalid name. Avoid characters like <>:"/\\|?* or ending with space/dot.',
                 "error"
             );
@@ -67,7 +68,7 @@ function RenameModal({ setShowModal, renameItem, refresh }) {
             }}
             onConfirm={handleRename}
             comfirmText="Rename"
-            title={<h5 className="modal-title">Rename</h5>}
+            title={<h5 className="modal-title">{title}</h5>}
         >
             <div>
                 <input

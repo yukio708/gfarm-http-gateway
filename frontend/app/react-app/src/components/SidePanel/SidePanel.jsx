@@ -28,13 +28,13 @@ function SidePanel({ show, item, onHide, showTab = "detail" }) {
     useEffect(() => {
         if (getAttrError) {
             console.error("getAttribute failed:", getAttrError);
-            addNotification("GetAttr", getAttrError, "error");
+            addNotification("Detail", getAttrError, "error");
         }
     }, [getAttrError]);
 
     useEffect(() => {
         if (aclError) {
-            addNotification("GetACL", aclError, "error");
+            addNotification("ACL", aclError, "error");
         }
     }, [aclError]);
 

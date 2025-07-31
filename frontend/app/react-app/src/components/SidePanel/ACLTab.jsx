@@ -6,6 +6,7 @@ import { useNotifications } from "@context/NotificationContext";
 import PropTypes from "prop-types";
 
 function ACLTab({ item, active, aclData, refreshAcl, refreshAttr }) {
+    const title = "ACL";
     const { addNotification } = useNotifications();
     const [entries, setEntries] = useState([]);
     const [userList, setUserList] = useState([]);
@@ -38,14 +39,14 @@ function ACLTab({ item, active, aclData, refreshAcl, refreshAttr }) {
             if (entry.base) continue;
             if (entry.is_default) continue;
             if (entry.acl_name) continue;
-            addNotification("SetACL", "Name is empty", "error");
+            addNotification(title, "Empty name", "error");
             return;
         }
 
         const res = await set_acl(item.path, entries);
         if (res !== "") {
             console.error(res);
-            addNotification("SetACL", res, "error");
+            addNotification(title, res, "error");
         }
         refreshAcl();
         refreshAttr();

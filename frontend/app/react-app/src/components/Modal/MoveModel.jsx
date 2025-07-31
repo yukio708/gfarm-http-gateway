@@ -11,6 +11,7 @@ import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
 function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refresh }) {
+    const title = "Move";
     const { showHidden } = useShowHidden();
     const [visible, setVisible] = useState(true);
     const [isMoving, setIsMoving] = useState(false);
@@ -49,7 +50,7 @@ function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refr
 
     const setError = (error) => {
         console.debug("error", error);
-        addNotification("Move", error, "error");
+        addNotification(title, error, "error");
     };
 
     const handleMove = async (items) => {
@@ -96,11 +97,11 @@ function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refr
 
     const handleConfirm = () => {
         if (targetPath === "") {
-            addNotification("Move", "Destination Path is empty", "warning");
+            addNotification(title, "Destination Path is empty", "warning");
             return;
         }
         if (targetPath === currentDir) {
-            addNotification("Move", "Destination Path is the same path as current path", "warning");
+            addNotification(title, "Destination Path is the same path as current path", "warning");
             setTargetPath("");
             return;
         }
@@ -142,7 +143,7 @@ function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refr
                 title={
                     <div className="d-flex modal-title">
                         <h5 className="">
-                            Move{" "}
+                            {title + " "}
                             {itemsToMove.length === 1
                                 ? '"' + itemsToMove[0].name + '"'
                                 : itemsToMove.length + " items"}

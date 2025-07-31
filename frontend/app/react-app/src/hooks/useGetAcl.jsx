@@ -23,7 +23,7 @@ function useGetAcl(item) {
             setAclError(null);
         } catch (err) {
             console.error("getAcl failed:", err);
-            setAclError(`${err.name}: ${err.message}`);
+            setAclError(err.message);
         }
     }, [item]);
 
