@@ -2,7 +2,6 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
 const {
-    waitForReact,
     isVisible,
     findChildrenByPath,
     transformMtimeToUnix,
@@ -21,7 +20,6 @@ let fileStructureData = null;
 // === Tests ===
 
 test.beforeEach(async ({ context }) => {
-    await waitForReact();
     fileStructureData = transformMtimeToUnix(JSON.parse(fs.readFileSync(DIR_LIST, "utf-8")));
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });

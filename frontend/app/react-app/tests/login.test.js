@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
 
-const { waitForReact, FRONTEND_URL, API_URL } = require("./test_func");
+const { FRONTEND_URL, API_URL } = require("./test_func");
 
 const DIR_LIST = path.resolve(__dirname, "data/datalist.json");
 
@@ -99,12 +99,7 @@ async function login_handleRoute(route, request) {
 }
 
 // === Tests ===
-
-test.beforeAll(async () => {
-    await waitForReact();
-});
 test.beforeEach(async ({ context }) => {
-    await waitForReact();
     await context.route(`${API_URL}/**`, (route, request) => login_handleRoute(route, request));
 });
 // Login Process Test

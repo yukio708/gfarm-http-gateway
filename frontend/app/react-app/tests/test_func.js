@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const http = require("http");
 const querystring = require("node:querystring");
 const { expect } = require("@playwright/test");
 
@@ -22,30 +21,6 @@ export const ROUTE_DOWNLOAD = "/dl";
 let fileStructureData = null;
 
 // ===== UTILITY FUNCTIONS =====
-/**
- * Waits for React frontend to start by polling the frontend URL
- * @throws {Error} If React app is not up after max retries
- */
-export async function waitForReact() {
-    const maxRetries = 10;
-    const retryDelay = 1000;
-
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            await new Promise((resolve, reject) => {
-                const req = http.get(FRONTEND_URL, (res) => {
-                    res.statusCode === 200 ? resolve() : reject();
-                });
-                req.on("error", reject);
-            });
-            return;
-        } catch {
-            await new Promise((res) => setTimeout(res, retryDelay));
-        }
-    }
-    throw new Error("React app is not up!");
-}
-
 /**
  * Checks if a file is visible in the listview
  * @param {Object} page - Playwright page object

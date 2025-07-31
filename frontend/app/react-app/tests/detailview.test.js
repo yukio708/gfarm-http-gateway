@@ -2,7 +2,6 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
 const {
-    waitForReact,
     findChildrenByPath,
     findNodeByPath,
     clickMenuItemFromView,
@@ -25,15 +24,9 @@ async function closeDetailTab(page) {
     await expect(page.locator(".custom-sidepanel.hide")).toBeVisible();
 }
 
-test.beforeAll(async () => {
-    await waitForReact();
-    fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
-});
-
 // === Tests ===
 
 test.beforeEach(async ({ context }) => {
-    await waitForReact();
     fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
@@ -59,6 +52,8 @@ const getExpectedDetailData = (filePath) => {
         MetadataHost: "test-host.local",
         MetadataPort: 8080,
         MetadataUser: "testuser",
+        Cksum: "123456",
+        CksumType: "test",
     };
 };
 
@@ -74,7 +69,7 @@ test("Should display file name in the details panel", async ({ page }) => {
         await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(page.locator('[data-testid="detail-File"]').locator("td").nth(1)).toHaveText(
+        await expect(page.locator('[data-testid="detail-Path"]').locator("td").nth(1)).toHaveText(
             expectedDetail.File
         );
 
@@ -92,9 +87,9 @@ test("Should display file type in the details panel", async ({ page }) => {
         await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator('[data-testid="detail-File Type"]').locator("td").nth(1)
-        ).toHaveText(expectedDetail.Filetype);
+        await expect(page.locator('[data-testid="detail-Type"]').locator("td").nth(1)).toHaveText(
+            expectedDetail.Filetype
+        );
 
         await closeDetailTab(page);
     }
@@ -128,9 +123,9 @@ test("Should display permissions in the details panel", async ({ page }) => {
         await clickMenuItemFromView(page, expectedFile.name, "detail");
 
         const expectedDetail = getExpectedDetailData(testFilePath);
-        await expect(
-            page.locator('[data-testid="detail-Permissions"]').locator("td").nth(1)
-        ).toHaveText(symbolicToOctal(expectedDetail.Mode));
+        await expect(page.locator('[data-testid="detail-Mode"]').locator("td").nth(1)).toHaveText(
+            symbolicToOctal(expectedDetail.Mode)
+        );
 
         await closeDetailTab(page);
     }
@@ -221,6 +216,27 @@ test("Should display file group (GID) in the details panel", async ({ page }) =>
         await expect(page.locator('[data-testid="detail-Group"]').locator("td").nth(1)).toHaveText(
             expectedDetail.Gid
         );
+
+        await closeDetailTab(page);
+    }
+});
+
+test("Should display cksum in the details panel", async ({ page }) => {
+    const currentDirectory = "/documents";
+    const expectedChildren = findChildrenByPath(fileStructureData, currentDirectory);
+    for (const expectedFile of expectedChildren) {
+        const testFilePath = `${currentDirectory}/${expectedFile.name}`;
+
+        await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
+        await clickMenuItemFromView(page, expectedFile.name, "detail");
+
+        const expectedDetail = getExpectedDetailData(testFilePath);
+        await expect(
+            page.locator('[data-testid="detail-Cksum"]').locator("td").nth(1)
+        ).toContainText(expectedDetail.Cksum);
+        await expect(
+            page.locator('[data-testid="detail-Cksum"]').locator("td").nth(1)
+        ).toContainText(expectedDetail.CksumType);
 
         await closeDetailTab(page);
     }

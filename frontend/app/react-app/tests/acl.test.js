@@ -2,7 +2,6 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
 const {
-    waitForReact,
     handleRoute,
     mockRoute,
     clickMenuItemFromView,
@@ -80,7 +79,6 @@ async function assertEntry(index, entry, { acl_type, acl_name, acl_perms, is_def
 // === Tests ===
 
 test.beforeEach(async ({ context }) => {
-    await waitForReact();
     mockAclData = JSON.parse(fs.readFileSync(ACLIST, "utf-8"));
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });

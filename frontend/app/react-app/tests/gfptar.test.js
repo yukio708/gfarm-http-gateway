@@ -1,7 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
 const {
-    waitForReact,
     mockRoute,
     handleRoute,
     checkItem,
@@ -18,7 +17,6 @@ const archiveName = "/test-archive";
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
-    await waitForReact();
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 

@@ -4,7 +4,6 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
 const {
-    waitForReact,
     mockRoute,
     findNodeByPath,
     clickMenuItemFromView,
@@ -61,7 +60,6 @@ async function setOctal(page, currentdir, filename, octal) {
 // === Tests ===
 
 test.beforeEach(async () => {
-    await waitForReact();
     fileStructureData = JSON.parse(fs.readFileSync(DIR_LIST, "utf-8"));
 });
 

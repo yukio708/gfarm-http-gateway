@@ -2,7 +2,6 @@ const { test, expect } = require("@playwright/test");
 const fs = require("fs");
 
 const {
-    waitForReact,
     handleRoute,
     clickMenuItemFromView,
     clickMenuItemFromMenu,
@@ -15,7 +14,6 @@ const {
 
 // === Tests ===
 test.beforeEach(async ({ context }) => {
-    await waitForReact();
     await context.route(`${API_URL}/**`, (route, request) => handleRoute(route, request));
 });
 
