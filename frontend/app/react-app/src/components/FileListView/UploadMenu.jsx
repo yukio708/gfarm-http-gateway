@@ -102,7 +102,7 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                             data-testid="create-directory"
                         >
                             <BsFolderPlus className="me-2" />
-                            Directory
+                            Folder
                         </button>
                     </li>
                     <li>
