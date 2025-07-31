@@ -12,11 +12,11 @@ function DetailTab({ active, detailContent }) {
         { label: "Size", value: formatFileSize(detailContent?.Size || 0, false) },
         { label: "Mode", value: detailContent?.Mode || "" },
         { label: "Ncopy", value: detailContent?.Ncopy || "" },
+        { label: "Owner", value: detailContent?.Uid || "" },
+        { label: "Group", value: detailContent?.Gid || "" },
         { label: "Access", value: detailContent?.Access || "" },
         { label: "Modify", value: detailContent?.Modify || "" },
         { label: "Change", value: detailContent?.Change || "" },
-        { label: "Owner", value: detailContent?.Uid || "" },
-        { label: "Group", value: detailContent?.Gid || "" },
         {
             label: "Cksum",
             value: `${detailContent?.Cksum || ""}${detailContent?.CksumType ? ` (${detailContent.CksumType})` : ""}`,
