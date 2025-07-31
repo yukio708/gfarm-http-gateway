@@ -17,7 +17,11 @@
     "lint:fix": "eslint ./src --ext .js,.jsx --fix",
     "e2e:all": "playwright test",
     "e2e:chromium": "playwright test --project=chromium",
+    "e2e:firefox": "playwright test --project=firefox",
+    "e2e:webkit": "playwright test --project=webkit",
     "e2e:ui": "playwright test --project=chromium --ui",
+    "e2e:ui:firefox": "playwright test --project=firefox --ui",
+    "e2e:ui:webkit": "playwright test --project=webkit --ui",
     "e2e:headed": "playwright test --project=chromium --headed"
   },
   "eslintConfig": {

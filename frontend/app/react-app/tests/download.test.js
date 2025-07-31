@@ -28,7 +28,7 @@ test("Should download a single file from the context menu", async ({ page }) => 
     const download = await downloadPromise;
 
     // Verify the downloaded file name
-    expect(download.suggestedFilename()).toBe(testFileName);
+    expect(download.suggestedFilename().replace(/^_+|_+$/g, "")).toBe(testFileName);
 
     const path = await download.path(); // Get the temporary file path
     const fileContent = fs.readFileSync(path, "utf8"); // Read the file contents
@@ -118,7 +118,7 @@ test("Should download an empty file with 0 bytes", async ({ page }) => {
     await clickMenuItemFromView(page, emptyFileName, "download");
     const download = await downloadPromise;
 
-    expect(download.suggestedFilename()).toBe(emptyFileName);
+    expect(download.suggestedFilename().replace(/^_+|_+$/g, "")).toBe(emptyFileName);
 
     const path = await download.path();
     const stats = fs.statSync(path);

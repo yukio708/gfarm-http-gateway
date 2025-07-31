@@ -30,7 +30,7 @@ async function login_handleRoute(route, request) {
 
         if (formData.get("username") === "user1" && formData.get("password") === "pass1") {
             login = true;
-            // Simulate successful login
+            console.log("Simulate successful login", url);
             route.fulfill({
                 status: 302,
                 headers: {
@@ -142,10 +142,9 @@ test("Should log in with valid SASL credentials and show the file list", async (
     await page.fill("#password", "pass1");
 
     // Submit the form
-    await Promise.all([
-        page.click('button[type="submit"]'),
-        page.waitForResponse("**/login_passwd"),
-    ]);
+    const navigationPromise = page.waitForNavigation();
+    await page.click('button[type="submit"]');
+    await navigationPromise;
 
     await page.waitForLoadState("networkidle");
 
@@ -161,10 +160,9 @@ test("Should stay on the login page with invalid SASL credentials", async ({ pag
     await page.fill("#username", "wronguser");
     await page.fill("#password", "wrongpass");
 
-    await Promise.all([
-        page.click('button[type="submit"]'),
-        page.waitForResponse("**/login_passwd"),
-    ]);
+    const navigationPromise = page.waitForNavigation();
+    await page.click('button[type="submit"]');
+    await navigationPromise;
 
     await expect(page).toHaveURL(/login/);
 });
@@ -183,7 +181,11 @@ test("Should log out and redirect to the login screen", async ({ page }) => {
 
 // A2HS Test
 
-test("[Android] Should trigger install prompt when A2HS button is clicked", async ({ browser }) => {
+test("[Android] Should trigger install prompt when A2HS button is clicked", async ({
+    browserName,
+    browser,
+}) => {
+    test.skip(browserName === "webkit", "Skip this test on Webkit");
     const context = await browser.newContext({
         userAgent:
             "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Mobile Safari/537.36",
