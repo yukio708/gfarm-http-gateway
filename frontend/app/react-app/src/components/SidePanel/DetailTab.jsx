@@ -6,19 +6,21 @@ function DetailTab({ active, detailContent }) {
     if (!active) return null;
 
     const rows = [
-        { label: "File", value: detailContent?.File || "" },
-        detailContent?.LinkPath && { label: "Link Path", value: detailContent?.LinkPath || "" },
-        { label: "File Type", value: detailContent?.Filetype || "" },
+        { label: "Path", value: detailContent?.File || "" },
+        detailContent?.LinkPath && { label: "Link", value: detailContent?.LinkPath || "" },
+        { label: "Type", value: detailContent?.Filetype || "" },
         { label: "Size", value: formatFileSize(detailContent?.Size || 0, false) },
-        { label: "Permissions", value: detailContent?.Mode || "" },
+        { label: "Mode", value: detailContent?.Mode || "" },
         { label: "Ncopy", value: detailContent?.Ncopy || "" },
         { label: "Access", value: detailContent?.Access || "" },
         { label: "Modify", value: detailContent?.Modify || "" },
         { label: "Change", value: detailContent?.Change || "" },
         { label: "Owner", value: detailContent?.Uid || "" },
         { label: "Group", value: detailContent?.Gid || "" },
-        { label: "Cksum", value: detailContent?.Cksum || "" },
-        { label: "Cksum Type", value: detailContent?.CksumType || "" },
+        {
+            label: "Cksum",
+            value: `${detailContent?.Cksum || ""}${detailContent?.CksumType ? ` (${detailContent.CksumType})` : ""}`,
+        },
     ].filter(Boolean);
 
     return (
