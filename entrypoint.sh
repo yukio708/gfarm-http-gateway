@@ -22,7 +22,7 @@ fi
 #   mkdir -p /etc/pki/tls/certs/gfarm
 #   cd /etc/pki/tls/certs/gfarm
 #   wget https://www.hpci-office.jp/info/download/attachments/425328655/21d9c8b3.0 || {
-#     echo "[WARN] Failed to download HPCI TLS cert. Continuing anyway..."
+#     echo "[WARN] Failed to download HPCI TLS cert"
 #   }
 # fi
 
@@ -35,7 +35,5 @@ fi
 
 
 # Launch gfarm-http-gateway
-# echo "[INFO] Switching to $USERNAME"
-# exec gosu "$USERNAME" /app/gfarm-http-gateway/bin/gfarm-http.sh --proxy-headers "$@"
 exec /app/gfarm-http-gateway/bin/gfarm-http.sh --proxy-headers "$@"
 

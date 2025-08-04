@@ -60,7 +60,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     curl python3 python3-pip \
     sudo make && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
