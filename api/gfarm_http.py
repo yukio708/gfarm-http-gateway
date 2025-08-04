@@ -736,32 +736,23 @@ def gen_csrf(request: Request):
 async def oidc_auth_common(request):
     try:
         token = await provider.authorize_access_token(request)
+        delete_user_passwd(request)
+        set_token(request, token)
+        access_token = await get_access_token(request)
+        user = get_user_from_access_token(access_token)
+        log_login(request, user, "access_token")
     except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
-    delete_user_passwd(request)
-    set_token(request, token)
-    access_token = await get_access_token(request)
-    user = get_user_from_access_token(access_token)
-    log_login(request, user, "access_token")
-    # return RedirectResponse(url="./")
+        # raise HTTPException(status_code=401, detail=str(e))
+        request.session["error"] = str(e)
     url = await get_next_url(request)
     return RedirectResponse(url=url)
 
 
-@app.get("/debug", response_class=HTMLResponse)
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request,
-                error: str = "",
-                session_state: str = None,
-                code: str = None):
-    if session_state is not None and code is not None:
-        return await oidc_auth_common(request)
-
+async def login_check(request: Request,
+                      error: str = "",
+                      session_state: str = None,
+                      code: str = None):
     login_ok = False
-    if error == "":
-        error = request.session.get("error", "")
-        request.session.pop("error", None)
-
     sasl_username = ""
     try:
         access_token = await get_access_token(request)
@@ -777,6 +768,37 @@ async def index(request: Request,
             user, passwd = user_passwd
             login_ok = True
             sasl_username = user
+
+    return login_ok, access_token, sasl_username, error
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request,
+                error: str = "",
+                session_state: str = None,
+                code: str = None):
+    if session_state is not None and code is not None:
+        return await oidc_auth_common(request)
+
+    _, _, _, error = await login_check(
+        request, error, session_state, code)
+
+    if error != "":
+        request.session["error"] = error
+
+    return FileResponse("frontend/app/react-app/dist/index.html")
+
+
+@app.get("/debug", response_class=HTMLResponse)
+async def debug_page(request: Request,
+                     error: str = "",
+                     session_state: str = None,
+                     code: str = None):
+    login_ok, access_token, sasl_username, error = await login_check(
+        request, session_state, code)
+
+    if error != "":
+        request.session["error"] = error
 
     csrf_token = gen_csrf(request)
     pat = ""
@@ -794,8 +816,6 @@ async def index(request: Request,
             + logout_url + "&state=" + csrf_token
         claims = jwt.get_unverified_claims(access_token)
         exp = claims.get("exp")
-    if "debug" not in request.url.path:
-        return FileResponse("frontend/app/react-app/dist/index.html")
     return templates.TemplateResponse("index.html",
                                       {"request": request,
                                        "error": error,
@@ -964,8 +984,13 @@ def delete_user_passwd(request: Request):
 async def get_next_url(request: Request,
                        env=None,
                        authorization: Union[str, None] = None):
-    if env is None:
-        env = await set_env(request, authorization)
+    try:
+        if env is None:
+            env = await set_env(request, authorization)
+    except Exception as e:
+        logger.error(f"{str(e)}")
+        return request.url_for("index").path
+
     url = request.session.get("next_url", None)
     if url is None:
         username = await get_username(env)
@@ -989,15 +1014,13 @@ async def login_passwd(request: Request,
     url = await get_next_url(request, env)
     try:
         await gfarm_command_standard_response(env, p, "gfwhoami")
+        # OK
+        log_login(request, username, "password")
     except Exception as e:
         delete_user_passwd(request)
         err = str(e)
         request.session["error"] = err
         log_login_error(request, username, "password", err)
-        url = urllib.parse.quote(url)
-        return RedirectResponse(url="/login", status_code=303)
-    # OK
-    log_login(request, username, "password")
     return RedirectResponse(url=url, status_code=303)
 
 
