@@ -67,8 +67,8 @@ RUN apt-get update && apt-get install -y \
 # ==== Copy Gfarm client binaries and libraries ====
 COPY --from=builder /usr/local/bin/gf* /usr/local/bin/
 COPY --from=builder /usr/local/lib/libgf* /usr/local/lib/
-RUN mkdir -p /usr/lib/x86_64-linux-gnu/sasl2
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libSciTokens* /usr/lib/x86_64-linux-gnu/
+RUN mkdir -p /usr/lib/x86_64-linux-gnu/sasl2
 COPY --from=builder /usr/lib/x86_64-linux-gnu/sasl2/ /usr/lib/x86_64-linux-gnu/sasl2/
 RUN ldconfig
 
