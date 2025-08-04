@@ -61,8 +61,14 @@ install_for_rhel() {
     install_python_package
 }
 
+install_frontent() {
+    npm --prefix frontend/app/react-app install
+    npm --prefix frontend/app/react-app run build
+}
+
 # main
-for id in $ID_LIKE; do  # ID_LIKE from /etc/os-release
+ALL_IDS="${ID_LIKE:-} ${ID:-}"
+for id in $ALL_IDS; do  # ID_LIKE from /etc/os-release
     case $id in
         debian)
             install_for_debian
@@ -75,3 +81,5 @@ for id in $ID_LIKE; do  # ID_LIKE from /etc/os-release
             ;;
     esac
 done
+
+install_frontent
