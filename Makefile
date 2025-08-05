@@ -1,10 +1,10 @@
 test-flake8: flake8 test
 
 test:
-	./bin/gfarm-http-test.sh
+	./bin/gfarm-http-gateway-test.sh
 
 test-verbose test-v:
-	./bin/gfarm-http-test.sh -v
+	./bin/gfarm-http-gateway-test.sh -v
 
 test-gfhttpc:
 	./bin/gfhttpc-test.sh /tmp

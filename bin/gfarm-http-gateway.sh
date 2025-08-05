@@ -2,7 +2,7 @@
 set -eu
 
 DIR=$(realpath $(dirname $0))
-source "${DIR}/gfarm-http-common.sh"
+source "${DIR}/gfarm-http-gateway-common.sh"
 
 #WORKERS="--workers $(nproc)"
 

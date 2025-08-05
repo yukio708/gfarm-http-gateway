@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DIR=$(realpath $(dirname $0))
-source "${DIR}/gfarm-http-common.sh"
+source "${DIR}/gfarm-http-gateway-common.sh"
 
 export GFARM_HTTP_SESSION_SECRET="qU70WDyIpXdSOT9/7l0hICy0597EPRs/aPb5Mj5Xniw="
 export GFARM_HTTP_OIDC_CLIENT_ID=TEST_CLIENT

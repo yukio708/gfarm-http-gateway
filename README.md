@@ -85,19 +85,19 @@ HTTP gateway for Gfarm filesystem
 
 ### Start for clients on localhost (127.0.0.1)
 
-- `./bin/gfarm-http.sh`
+- `./bin/gfarm-http-gateway.sh`
 - For production use, it is recommended to use this with a reverse proxy.
 
 ### Start for clients of any hosts
 
 - (not for production use)
-- `./bin/gfarm-http.sh --host 0.0.0.0 --port 8000`
+- `./bin/gfarm-http-gateway.sh --host 0.0.0.0 --port 8000`
 
 ### Start for developer
 
 - (install GNU make)
 - `make test` to run test
-- `./bin/gfarm-http-dev.sh --port 8000 --log-level debug`
+- `./bin/gfarm-http-gateway-dev.sh --port 8000 --log-level debug`
   - for clients of any hosts (0.0.0.0:8000)
   - high load average
 
@@ -113,8 +113,8 @@ HTTP gateway for Gfarm filesystem
 - (in c2 container)
 - `cd ~/gfarm/gfarm-http-gateway`
 - `make setup-latest`
-- `bin/gfarm-http-dev-for-docker-dist.sh  --port 8000 --log-level debug`
-- `bin/gfarm-http-dev-for-docker-dist.sh  --port 8000 --log-level debug` in c3 container using the same procedure described above
+- `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug`
+- `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug` in c3 container using the same procedure described above
 - Refer to `Setup -> Required OpenID Connect configurations` above
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <https://jwt-server/> in a web browser
