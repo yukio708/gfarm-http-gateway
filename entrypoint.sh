@@ -1,39 +1,40 @@
 #!/bin/bash
 set -eu
 
-# Setup /etc/gfarm2.conf
+echo "=== Starting gfarm-http-gateway container ==="
+
+# Setup gfarm2.conf
 if [ -f /config/gfarm2.conf ]; then
-  ln -sf /config/gfarm2.conf /usr/local/etc/gfarm2.conf
+    echo "[INFO] Linking /config/gfarm2.conf to /usr/local/etc/gfarm2.conf"
+    ln -sf /config/gfarm2.conf /usr/local/etc/gfarm2.conf
 else
-  echo "[WARN] /config/gfarm2.conf not found"
+    echo "[WARN] /config/gfarm2.conf not found"
 fi
 
-# Copy certs
+# Copy certificate files
 if [ -d /config/certs ]; then
-  mkdir -p /etc/pki/tls/certs/gfarm
-  cp -u /config/certs/* /etc/pki/tls/certs/gfarm/
+    echo "[INFO] Copying certs from /config/certs to /etc/pki/tls/certs/gfarm/"
+    mkdir -p /etc/pki/tls/certs/gfarm
+    cp -u /config/certs/* /etc/pki/tls/certs/gfarm/
 else
-  echo "[WARN] /config/certs not found"
+    echo "[WARN] /config/certs not found"
 fi
-# # Optional: Download HPCI CA certificate if not mounted or present
-# CERT_FILE=/etc/pki/tls/certs/gfarm/21d9c8b3.0
-# if [ ! -f "$CERT_FILE" ]; then
-#   echo "[INFO] Downloading HPCI TLS certificate..."
-#   mkdir -p /etc/pki/tls/certs/gfarm
-#   cd /etc/pki/tls/certs/gfarm
-#   wget https://www.hpci-office.jp/info/download/attachments/425328655/21d9c8b3.0 || {
-#     echo "[WARN] Failed to download HPCI TLS cert"
-#   }
-# fi
 
-# Copy gfarm-http.conf
+# Setup gfarm-http.conf
 if [ -f /config/gfarm-http.conf ]; then
-  ln -sf /config/gfarm-http.conf /app/gfarm-http-gateway/gfarm-http.conf
+    echo "[INFO] Linking /config/gfarm-http.conf to /app/gfarm-http-gateway/gfarm-http.conf"
+    ln -sf /config/gfarm-http.conf /app/gfarm-http-gateway/gfarm-http.conf
 else
-  echo "[WARN] /config/certs not found"
+    echo "[WARN] /config/gfarm-http.conf not found"
 fi
 
+# Trust custom CA
+if [ -f /config/dev_ca.crt ]; then
+    echo "[INFO] Custom CA found at /config/dev_ca.crt — installing"
+    cp /config/dev_ca.crt /usr/local/share/ca-certificates/dev_ca.crt
+    update-ca-certificates
+fi
 
-# Launch gfarm-http-gateway
+# Launch gateway
+echo "[INFO] Launching gfarm-http-gateway..."
 exec /app/gfarm-http-gateway/bin/gfarm-http-gateway.sh --proxy-headers "$@"
-
