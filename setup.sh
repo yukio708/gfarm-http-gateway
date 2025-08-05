@@ -15,7 +15,11 @@ PIP="${VENV_DIR}/bin/pip3"
 PYTHON=python3
 
 SUDO() {
-    sudo "$@"
+    if command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    else
+        "$@"
+    fi
 }
 
 APTGET() {
