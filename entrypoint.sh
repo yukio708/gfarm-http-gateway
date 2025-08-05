@@ -35,5 +35,5 @@ fi
 
 
 # Launch gfarm-http-gateway
-exec /app/gfarm-http-gateway/bin/gfarm-http.sh --proxy-headers "$@"
+exec /app/gfarm-http-gateway/bin/gfarm-http-gateway.sh --proxy-headers "$@"
 
