@@ -21,4 +21,4 @@ else
     export GFARM_HTTP_CONFIG_FILE
 fi
 
-exec bash -x ${DIR}/gfarm-http-dev.sh "$@"
+exec bash -x ${DIR}/gfarm-http-gateway-dev.sh "$@"

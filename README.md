@@ -193,7 +193,7 @@ server {
 - How to proxy with subpath
   - Ex.: (base URL)/gfarm/
   - `location /gfarm/ { ...`
-  - use `--root-path /gfarm` option for gfarm-http.sh (uvicorn option)
+  - use `--root-path /gfarm` option for gfarm-http-gateway.sh (uvicorn option)
 - `sudo systemctl restart nginx`
 - (Configure the Redirect URI parameters in Keycloak)
 - Open URL of the server in web browser

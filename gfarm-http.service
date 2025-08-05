@@ -5,11 +5,11 @@ Description=Gfarm HTTP gateway
 #User=...
 
 Environment="LOGURU_FORMAT={time:YYYY-MM-DD HH:mm:ss.SSS} {level: <8} {message}"
-Environment=GFARM_HTTP_CONFIG_FILE=/opt/gfarm-http-gateway/gfarm-http-for-docker-dist.conf
+Environment=GFARM_HTTP_CONFIG_FILE=/opt/gfarm-http-gateway/gfarm-http-gateway-for-docker-dist.conf
 
-#ExecStart=/opt/gfarm-http-gateway/bin/gfarm-http.sh --port 8001 --log-level info
-ExecStart=/opt/gfarm-http-gateway/bin/gfarm-http.sh --port 8001 --log-level info --root-path /gfarm
-#ExecStart=/opt/gfarm-http-gateway/bin/gfarm-http-dev.sh --port 8001 --log-level debug --host 127.0.0.1
+#ExecStart=/opt/gfarm-http-gateway/bin/gfarm-http-gateway.sh --port 8001 --log-level info
+ExecStart=/opt/gfarm-http-gateway/bin/gfarm-http-gateway.sh --port 8001 --log-level info --root-path /gfarm
+#ExecStart=/opt/gfarm-http-gateway/bin/gfarm-http-gateway-dev.sh --port 8001 --log-level debug --host 127.0.0.1
 
 Restart=always
 
