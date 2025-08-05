@@ -4,11 +4,15 @@ FROM debian:bookworm-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
 # ==== Set ARGs for build-time config ====
-ARG GFARM_REPO=https://github.com/oss-tsukuba/gfarm
 ARG GFARM_VER=2.8.7
+ARG GFARM_SRC_URL=https://github.com/oss-tsukuba/gfarm/archive/${GFARM_VER}.tar.gz
+ARG GFARM_SRC_GIT_URL=https://github.com/oss-tsukuba/gfarm.git
+ARG GFARM_SRC_GIT_BRANCH=2.8
 
-ARG SASL_XOAUTH2_REPO=https://github.com/oss-tsukuba/cyrus-sasl-xoauth2-idp
-ARG SASL_XOAUTH2_VER=1.0.2
+ARG SCITOKENS_CPP_SRC_GIT_URL=https://github.com/scitokens/scitokens-cpp.git
+ARG SCITOKENS_CPP_SRC_GIT_BRANCH=master
+ARG SASL_XOAUTH2_SRC_GIT_URL=https://github.com/oss-tsukuba/cyrus-sasl-xoauth2-idp.git
+ARG SASL_XOAUTH2_SRC_GIT_BRANCH=feature/keycloak
 
 # ==== Install build dependencies ====
 RUN apt-get update && apt-get install -y \
@@ -25,33 +29,47 @@ RUN apt-get update && apt-get install -y \
     ruby golang jq
 
 # ==== Build scitokens-cpp ====
-RUN git clone https://github.com/scitokens/scitokens-cpp.git \
-    && mkdir /scitokens-cpp/build && cd /scitokens-cpp/build \
+RUN cd /tmp \
+    && git clone -b ${SCITOKENS_CPP_SRC_GIT_BRANCH} --depth 1 ${SCITOKENS_CPP_SRC_GIT_URL} scitokens-cpp \
+    && cd scitokens-cpp \
+    && mkdir build && cd build \
     && cmake -DCMAKE_INSTALL_PREFIX="/usr" .. \
     && make && make install
 
 # ==== Build cyrus-sasl-xoauth2-idp ====
 RUN cd /tmp \
-    && wget -O cyrus-sasl-xoauth2-idp.tar.gz ${SASL_XOAUTH2_REPO}/archive/${SASL_XOAUTH2_VER}.tar.gz \
-    && tar xf cyrus-sasl-xoauth2-idp.tar.gz \
-    && cd cyrus-sasl-xoauth2-idp-${SASL_XOAUTH2_VER} \
+    && git clone -b ${SASL_XOAUTH2_SRC_GIT_BRANCH} --depth 1 ${SASL_XOAUTH2_SRC_GIT_URL} cyrus-sasl-xoauth2-idp \
+    && cd cyrus-sasl-xoauth2-idp \
     && ./autogen.sh \
     && ./configure --libdir=$(pkg-config --variable=libdir libsasl2) \
     && make && make install
 
 # ==== Build Gfarm ====
 RUN cd /tmp \
-    && wget -O gfarm.tar.gz ${GFARM_REPO}/archive/${GFARM_VER}.tar.gz \
+    && if [ -n "${GFARM_SRC_URL}" ]; then \
+    wget -O gfarm.tar.gz ${GFARM_SRC_URL} \
     && tar xf gfarm.tar.gz \
+    ; else \
+    git clone -b ${GFARM_SRC_GIT_BRANCH} --depth 1 ${GFARM_SRC_GIT_URL} gfarm-${GFARM_VER} \
+    ; fi \
     && cd gfarm-${GFARM_VER} \
     && ./configure --enable-xmlattr --enable-cyrus-sasl \
     && make && make install
 
+# ==== Collect SASL plugin and libscitokens ====
+RUN LIBDIR=$(pkg-config --variable=libdir libsasl2) \
+    && mkdir -p /tmp/libs/sasl2 \
+    && cp "$LIBDIR"/libSciTokens* /tmp/libs/ \
+    && cp "$LIBDIR"/sasl2/* /tmp/libs/sasl2/ \
+    && echo "$(pkg-config --variable=libdir libsasl2)" > /tmp/sasl2-libdir.txt
 
 # ========= Runtime Stage =========
 FROM debian:bookworm-slim AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+# ==== Set ARGs for runtime ====
+ARG NODE_VERSION=22.18.0
 
 # ==== Install runtime dependencies ====
 RUN apt-get update && apt-get install -y \
@@ -59,17 +77,34 @@ RUN apt-get update && apt-get install -y \
     libsasl2-2 libsasl2-modules libsasl2-modules-db sasl2-bin \
     ca-certificates \
     curl python3 python3-pip \
-    sudo make && \
-    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    sudo && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && case "$(dpkg --print-architecture)" in \
+    amd64) NODE_ARCH="x64" ;; \
+    arm64) NODE_ARCH="arm64" ;; \
+    armhf) NODE_ARCH="armv7l" ;; \
+    *) echo "Unsupported architecture" && exit 1 ;; \
+    esac \
+    && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -o /tmp/node.tar.xz \
+    && mkdir -p /usr/local/lib/nodejs \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local/lib/nodejs --strip-components=1 \
+    && ln -s /usr/local/lib/nodejs/bin/node /usr/local/bin/node \
+    && ln -s /usr/local/lib/nodejs/bin/npm /usr/local/bin/npm \
+    && ln -s /usr/local/lib/nodejs/bin/npx /usr/local/bin/npx \
+    && rm -rf /tmp/node.tar.xz
 
 # ==== Copy Gfarm client binaries and libraries ====
 COPY --from=builder /usr/local/bin/gf* /usr/local/bin/
 COPY --from=builder /usr/local/lib/libgf* /usr/local/lib/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libSciTokens* /usr/lib/x86_64-linux-gnu/
-RUN mkdir -p /usr/lib/x86_64-linux-gnu/sasl2
-COPY --from=builder /usr/lib/x86_64-linux-gnu/sasl2/ /usr/lib/x86_64-linux-gnu/sasl2/
+RUN mkdir -p /tmp/libs
+COPY --from=builder /tmp/libs/ /tmp/libs/
+COPY --from=builder /tmp/sasl2-libdir.txt /tmp/
+RUN LIBDIR=$(cat /tmp/sasl2-libdir.txt) \
+    && cp /tmp/libs/libSciTokens* "$LIBDIR"/ \
+    && mkdir -p "$LIBDIR"/sasl2 \
+    && cp /tmp/libs/sasl2/* "$LIBDIR"/sasl2/ \
+    && ldconfig \
+    && rm -rf /tmp/libs /tmp/sasl2-libdir.txt
 RUN ldconfig
 
 # ==== Copy gfarm-http-gateway ====
@@ -77,7 +112,7 @@ COPY . /app/gfarm-http-gateway
 
 # ==== Build ====
 WORKDIR /app/gfarm-http-gateway
-RUN make setup
+RUN ./setup.sh
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
