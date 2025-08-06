@@ -33,8 +33,14 @@ if [ -f /config/dev_ca.crt ]; then
     echo "[INFO] Custom CA found at /config/dev_ca.crt — installing"
     cp /config/dev_ca.crt /usr/local/share/ca-certificates/dev_ca.crt
     update-ca-certificates
+    export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 fi
 
 # Launch gateway
 echo "[INFO] Launching gfarm-http-gateway..."
-exec /app/gfarm-http-gateway/bin/gfarm-http-gateway.sh --proxy-headers "$@"
+if [ -n "${REQUESTS_CA_BUNDLE:-}" ]; then
+    exec env REQUESTS_CA_BUNDLE="$REQUESTS_CA_BUNDLE" \
+         /app/gfarm-http-gateway/bin/gfarm-http-gateway.sh --proxy-headers "$@"
+else
+    exec /app/gfarm-http-gateway/bin/gfarm-http-gateway.sh --proxy-headers "$@"
+fi

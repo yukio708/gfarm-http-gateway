@@ -241,6 +241,9 @@ if TOKEN_ISSUERS:
 
 TOKEN_USER_CLAIM = conf.GFARM_HTTP_TOKEN_USER_CLAIM
 VERIFY_CERT = str2bool(conf.GFARM_HTTP_VERIFY_CERT)
+verify_path = os.environ.get("REQUESTS_CA_BUNDLE", None)
+if verify_path is not None:
+    VERIFY_CERT = verify_path  # set to custom CA path
 SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
 ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
 
