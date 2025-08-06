@@ -132,13 +132,13 @@ docker compose up
 ## Configuration variables
 
 - Configuration file
-  - Default: `<gfarm-http-gateway source>/gfarm-http.conf` is loaded if it exists
+  - Default: `<gfarm-http-gateway source>/gfarm-http-gateway.conf` is loaded if it exists
   - To specify a different file, use `GFARM_HTTP_CONFIG_FILE` environment variable
-- Variables in `gfarm-http.conf`
+- Variables in `gfarm-http-gateway.conf`
   - GFARM_HTTP_* can be loaded
 - Required variables and default variables
   - Refer to `api/default.conf`
-- Default variables are overridden by `gfarm-http.conf`
+- Default variables are overridden by `gfarm-http-gateway.conf`
 - Variables from files are overridden by environment variables
 
 ## Start server

@@ -180,7 +180,7 @@ conf_required_keys = [
 # default parameters
 default_dict = load_config_from_file("api/default.conf")
 
-conf_file = os.environ.get("GFARM_HTTP_CONFIG_FILE", "gfarm-http.conf")
+conf_file = os.environ.get("GFARM_HTTP_CONFIG_FILE", "gfarm-http-gateway.conf")
 if os.path.exists(conf_file):
     conf_dict = load_config_from_file(conf_file)
 else:

@@ -20,12 +20,12 @@ else
     echo "[WARN] /config/certs not found"
 fi
 
-# Setup gfarm-http.conf
-if [ -f /config/gfarm-http.conf ]; then
-    echo "[INFO] Linking /config/gfarm-http.conf to /app/gfarm-http-gateway/gfarm-http.conf"
-    ln -sf /config/gfarm-http.conf /app/gfarm-http-gateway/gfarm-http.conf
+# Setup gfarm-http-gateway.conf
+if [ -f /config/gfarm-http-gateway.conf ]; then
+    echo "[INFO] Linking /config/gfarm-http-gateway.conf to /app/gfarm-http-gateway/gfarm-http-gateway.conf"
+    ln -sf /config/gfarm-http-gateway.conf /app/gfarm-http-gateway/gfarm-http-gateway.conf
 else
-    echo "[WARN] /config/gfarm-http.conf not found"
+    echo "[WARN] /config/gfarm-http-gateway.conf not found"
 fi
 
 # Trust custom CA
