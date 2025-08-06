@@ -1,0 +1,22 @@
+services:
+  gfarm-http-gateway:
+    build:
+      context: .
+    container_name: gfarm-http-gateway
+    ports:
+      - 8000:8000
+
+    volumes:
+      # Required: Gfarm core config
+      - ./config/gfarm2.conf:/config/gfarm2.conf:ro
+
+      # Required: Gfarm HTTP gateway config
+      - ./config/gfarm-http.conf:/config/gfarm-http.conf:ro
+
+      # Required: CA certs for Gfarm
+      - ./config/certs:/config/certs:ro
+
+      # Optional: Custom development CA (e.g. self-signed root CA)
+      # - ./config/dev_ca.crt:/config/dev_ca.crt:ro
+
+    restart: unless-stopped
