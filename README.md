@@ -26,6 +26,66 @@ HTTP gateway for Gfarm filesystem
   - JWT Server: <https://github.com/oss-tsukuba/jwt-server>
   - jwt-agent: <https://github.com/oss-tsukuba/jwt-agent>
 - curl 7.76.0 or later (for gfhttpc-* commands)
+- Node.js v22 or later
+
+## Quick Start
+
+### Option 1: Build and Run with docker
+
+#### 1. Build the Docker Image
+
+Clone the repository and build the image:
+
+```bash
+git clone https://github.com/oss-tsukuba/gfarm-http-gateway.git
+cd gfarm-http-gateway
+
+docker build -t gfarm-http-gateway .
+```
+
+#### 2. Prepare Configuration
+
+Create a config/ directory with the following files:
+```
+config/
+├── gfarm2.conf              # Gfarm client configuration (required)
+├── gfarm-http-gateway.conf  # Gateway configuration (required)
+├── certs/                   # Gfarm CA certificates (required)
+└── dev_ca.crt               # (Optional) Custom CA certificate (for development)
+```
+
+#### 3. Run the Container
+```
+docker run --rm \
+  -v $(pwd)/config:/config \
+  -p 8080:8080 \
+  gfarm-http-gateway
+```
+
+### Option 2: Use Docker Compose
+
+#### 1. Copy the Sample YAML
+
+```bash
+cp docker-compose.yaml.sample docker-compose.yaml
+```
+
+#### 2. Prepare the Configuration
+
+Make sure your `config/` directory is structured like:
+```
+config/
+├── gfarm2.conf
+├── gfarm-http-gateway.conf
+├── certs/
+└── dev_ca.crt               # (Optional)
+```
+
+#### 3. Launch with Docker Compose
+
+```bash
+docker compose up
+```
 
 ## Setup
 
