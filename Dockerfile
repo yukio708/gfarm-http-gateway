@@ -71,10 +71,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG NODE_VERSION=22.18.0
 
 # ==== Install runtime dependencies ====
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4 libssl3 libexpat1 libgcc-s1 libstdc++6 libuuid1 \
-    libsasl2-2 libsasl2-modules libsasl2-modules-db sasl2-bin \
-    ca-certificates curl python3 python3-pip \
+    libsasl2-2 \
+    ca-certificates curl python3 python3-pip xz-utils \
+    && apt-get install -y sasl2-bin \
     && case "$(dpkg --print-architecture)" in \
     amd64) NODE_ARCH="x64" ;; \
     arm64) NODE_ARCH="arm64" ;; \
@@ -87,7 +88,8 @@ RUN apt-get update && apt-get install -y \
     && ln -s /usr/local/lib/nodejs/bin/node /usr/local/bin/node \
     && ln -s /usr/local/lib/nodejs/bin/npm /usr/local/bin/npm \
     && ln -s /usr/local/lib/nodejs/bin/npx /usr/local/bin/npx \
-    && rm -rf /tmp/node.tar.xz
+    && rm -rf /tmp/node.tar.xz \
+    && rm -rf /var/lib/apt/lists/*
 
 # ==== Copy Gfarm client binaries and libraries ====
 COPY --from=builder /usr/local/bin/gf* /usr/local/bin/
@@ -108,10 +110,7 @@ COPY . /app/gfarm-http-gateway
 
 # ==== Build ====
 WORKDIR /app/gfarm-http-gateway
-RUN ./setup.sh \
-    && apt-get remove -y curl python3-pip \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+RUN ./setup.sh
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
