@@ -12,6 +12,10 @@ export const getParentPath = (path) => {
     return "/" + parts.join("/");
 };
 
+export const getFileName = (path) => {
+    return path.split("/").pop();
+};
+
 export const getTopPath = (path) => {
     if (!path || path === "/" || path === "") return "";
     const topPath = path.split("/").filter(Boolean)[0];

@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect } from "react";
 import ModalWindow from "@components/Modal/Modal";
 import { useNotifications } from "@context/NotificationContext";
 import { createDir } from "@utils/dircommon";
+import { checkFileName } from "@utils/func";
+import { ErrorCodes, get_ui_error } from "@utils/error";
 import PropTypes from "prop-types";
 
 function NewDirModal({ setShowModal, currentDir, refresh }) {
@@ -19,11 +21,24 @@ function NewDirModal({ setShowModal, currentDir, refresh }) {
     const handleCreateDir = useCallback(() => {
         console.log("handleCreateDir dirname", dirname);
         if (dirname === "") {
-            addNotification(title, "Directory name is empty", "warning");
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).message,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).type
+            );
+            return false;
+        }
+        const trimmedName = dirname.trim();
+        if (!checkFileName(trimmedName)) {
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.INVALID_NAME]).message,
+                get_ui_error([ErrorCodes.INVALID_NAME]).type
+            );
             return false;
         }
         const create = async () => {
-            const path = currentDir.replace(/\/$/, "") + "/" + dirname;
+            const path = currentDir.replace(/\/$/, "") + "/" + trimmedName;
             const error = await createDir(path);
             setVisible(false);
             setDirname("");

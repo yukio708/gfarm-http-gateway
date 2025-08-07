@@ -23,6 +23,7 @@ import { ROUTE_STORAGE } from "@utils/config";
 import displayFile from "@utils/display";
 import { getSymlink } from "@utils/symlink";
 import { getParentPath } from "@utils/func";
+import { ErrorCodes, get_ui_error } from "@utils/error";
 import LoginPage from "@page/LoginPage";
 import ErrorPage from "@page/ErrorPage";
 import PropTypes from "prop-types";
@@ -112,7 +113,11 @@ function HomePage() {
                 if (info.is_file) {
                     handleDisplayFile(info.path);
                 } else if (info.is_sym) {
-                    addNotification(info.name, `Link not found`, "warning");
+                    addNotification(
+                        info.name,
+                        get_ui_error([ErrorCodes.NOT_FOUND]).message,
+                        get_ui_error([ErrorCodes.NOT_FOUND]).type
+                    );
                 } else {
                     jumpDirectory(info.path);
                 }

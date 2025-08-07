@@ -4,8 +4,9 @@ import { useShowHidden } from "@context/ShowHiddenContext";
 import { useNotifications } from "@context/NotificationContext";
 import useFileList from "@hooks/useFileList";
 import SuggestInput from "@components/SuggestInput";
-import { getParentPath, joinPaths, normalizePath } from "@utils/func";
+import { getParentPath, joinPaths, normalizePath, checkFileName, getFileName } from "@utils/func";
 import { setSymlink } from "@utils/symlink";
+import { ErrorCodes, get_ui_error } from "@utils/error";
 import PropTypes from "prop-types";
 
 function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
@@ -64,7 +65,7 @@ function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
     useEffect(() => {
         if (linkPath) {
             if (currentItems.some((item) => item.path === linkPath)) {
-                setError("! already exists !");
+                setError(get_ui_error([ErrorCodes.ALREADY_EXISTS]).message);
             } else {
                 setError(null);
             }
@@ -73,11 +74,35 @@ function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
 
     const handleCreate = () => {
         if (!linkPath || !sourcePath) {
-            addNotification(title, "All fields are required.", "error");
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.REQUIRED_NOT_MET]).message,
+                get_ui_error([ErrorCodes.REQUIRED_NOT_MET]).type
+            );
+            return false;
+        }
+        if (linkName === "") {
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).message,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).type
+            );
+            return false;
+        }
+        if (!checkFileName(getFileName(linkName))) {
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.INVALID_NAME]).message,
+                get_ui_error([ErrorCodes.INVALID_NAME]).type
+            );
             return false;
         }
         if (error) {
-            addNotification(title, "alredy exists", "error");
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.ALREADY_EXISTS]).message,
+                get_ui_error([ErrorCodes.ALREADY_EXISTS]).type
+            );
             return false;
         }
         const createSymlink = async () => {

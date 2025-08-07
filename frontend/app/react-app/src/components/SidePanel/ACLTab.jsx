@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import SuggestInput from "@components/SuggestInput";
 import { set_acl } from "@utils/acl";
 import { getUsers, getGroups } from "@utils/getNameList";
+import { ErrorCodes, get_ui_error } from "@utils/error";
 import { useNotifications } from "@context/NotificationContext";
 import PropTypes from "prop-types";
 
@@ -39,7 +40,11 @@ function ACLTab({ item, active, aclData, refreshAcl, refreshAttr }) {
             if (entry.base) continue;
             if (entry.is_default) continue;
             if (entry.acl_name) continue;
-            addNotification(title, "Empty name", "error");
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).message,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).type
+            );
             return;
         }
 

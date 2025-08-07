@@ -7,6 +7,7 @@ import { useShowHidden } from "@context/ShowHiddenContext";
 import { useNotifications } from "@context/NotificationContext";
 import { getParentPath, checkConflicts } from "@utils/func";
 import moveItems from "@utils/move";
+import { ErrorCodes, get_ui_error } from "@utils/error";
 import { BsArrowBarUp, BsFolder } from "react-icons/bs";
 import PropTypes from "prop-types";
 
@@ -97,11 +98,19 @@ function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refr
 
     const handleConfirm = () => {
         if (targetPath === "") {
-            addNotification(title, "Destination Path is empty", "warning");
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.EMPTY_PATH]).message,
+                get_ui_error([ErrorCodes.EMPTY_PATH]).type
+            );
             return;
         }
         if (targetPath === currentDir) {
-            addNotification(title, "Destination Path is the same path as current path", "warning");
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.SAME_DESTINATION]).message,
+                get_ui_error([ErrorCodes.SAME_DESTINATION]).type
+            );
             setTargetPath("");
             return;
         }

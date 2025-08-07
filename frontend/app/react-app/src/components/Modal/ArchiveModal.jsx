@@ -6,6 +6,8 @@ import useFileList from "@hooks/useFileList";
 import { useShowHidden } from "@context/ShowHiddenContext";
 import { useNotifications } from "@context/NotificationContext";
 import gfptar from "@utils/archive";
+import { checkFileName, getFileName } from "@utils/func";
+import { ErrorCodes, get_ui_error } from "@utils/error";
 import PropTypes from "prop-types";
 
 function ArchiveModal({
@@ -50,7 +52,7 @@ function ArchiveModal({
             (compressMode === "create" || activeTab === "extract") &&
             currentItems.some((item) => item.path === destDir)
         ) {
-            setError("! already exists !");
+            setError(get_ui_error([ErrorCodes.ALREADY_EXISTS]).message);
         } else {
             setError(null);
         }
@@ -113,6 +115,16 @@ function ArchiveModal({
     };
 
     const handleConfirm = () => {
+        if (activeTab === "archive" && compressMode === "create") {
+            if (!checkFileName(getFileName(destDir))) {
+                addNotification(
+                    title,
+                    get_ui_error([ErrorCodes.INVALID_NAME]).message,
+                    get_ui_error([ErrorCodes.INVALID_NAME]).type
+                );
+                return false;
+            }
+        }
         setVisible(false);
 
         handleGfptar(activeTab === "archive" ? compressMode : activeTab);

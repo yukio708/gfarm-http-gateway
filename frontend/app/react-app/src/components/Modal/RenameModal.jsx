@@ -3,6 +3,7 @@ import ModalWindow from "@components/Modal/Modal";
 import { useNotifications } from "@context/NotificationContext";
 import { getParentPath, checkFileName } from "@utils/func";
 import moveItems from "@utils/move";
+import { ErrorCodes, get_ui_error } from "@utils/error";
 import PropTypes from "prop-types";
 
 function RenameModal({ setShowModal, renameItem, refresh }) {
@@ -25,7 +26,11 @@ function RenameModal({ setShowModal, renameItem, refresh }) {
     const handleRename = () => {
         if (!renameItem || !newName) {
             setNewName("");
-            addNotification(title, "Empty name", "error");
+            addNotification(
+                title,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).message,
+                get_ui_error([ErrorCodes.EMPTY_NAME]).type
+            );
             return false;
         }
         const trimmedName = newName.trim();
@@ -33,8 +38,8 @@ function RenameModal({ setShowModal, renameItem, refresh }) {
         if (!checkFileName(trimmedName)) {
             addNotification(
                 title,
-                'Invalid name. Avoid characters like <>:"/\\|?* or ending with space/dot.',
-                "error"
+                get_ui_error([ErrorCodes.INVALID_NAME]).message,
+                get_ui_error([ErrorCodes.INVALID_NAME]).type
             );
             return false;
         }
