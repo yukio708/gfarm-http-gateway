@@ -1,21 +1,30 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// Config holds the global configuration
+const (
+	DefaultDirMode  = 0o755
+	DefaultFileMode = 0o644
+	DefaultTimeout  = 30 * time.Second
+)
+
 type Config struct {
 	BaseURL    string
 	Verbose    bool
@@ -23,565 +32,628 @@ type Config struct {
 	HTTPClient *http.Client
 }
 
-// GetAuthHeaders returns authentication headers based on environment variables
-func (c *Config) GetAuthHeaders() (map[string]string, error) {
-	headers := make(map[string]string)
-
-	saslUser := os.Getenv("GFARM_SASL_USER")
-	saslPassword := os.Getenv("GFARM_SASL_PASSWORD")
-
-	if saslUser == "anonymous" {
-		return headers, nil
-	} else if saslUser != "" && saslPassword != "" {
-		auth := base64.StdEncoding.EncodeToString([]byte(saslUser + ":" + saslPassword))
-		headers["Authorization"] = "Basic " + auth
-		return headers, nil
-	} else {
-		token, err := getJWTToken()
-		if err != nil {
-			return nil, fmt.Errorf("error reading JWT token: %v", err)
-		}
-		if token != "" {
-			headers["Authorization"] = "Bearer " + token
-			return headers, nil
-		} else {
-			return nil, fmt.Errorf("environment variable JWT_USER_PATH (or GFARM_SASL_USER and GFARM_SASL_PASSWORD) is required")
-		}
-	}
+type HTTPError struct {
+	StatusCode int
+	Message    string
 }
 
-// getJWTToken reads JWT token from file or environment
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Message)
+}
+
+func (c *Config) GetAuthHeaders() (map[string]string, error) {
+	h := make(map[string]string)
+
+	user := os.Getenv("GFARM_SASL_USER")
+	pass := os.Getenv("GFARM_SASL_PASSWORD")
+
+	if user == "anonymous" {
+		return h, nil
+	}
+	if user != "" && pass != "" {
+		auth := base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
+		h["Authorization"] = "Basic " + auth
+		return h, nil
+	}
+
+	tok, err := getJWTToken()
+	if err != nil {
+		return nil, fmt.Errorf("read JWT token: %w", err)
+	}
+	if tok != "" {
+		h["Authorization"] = "Bearer " + tok
+		return h, nil
+	}
+	return nil, fmt.Errorf("environment GFARM_SASL_USER/GFARM_SASL_PASSWORD or JWT_USER_PATH is required")
+}
+
 func getJWTToken() (string, error) {
 	jwtPath := os.Getenv("JWT_USER_PATH")
 	if jwtPath == "" {
-		uid := os.Getuid()
-		jwtPath = fmt.Sprintf("/tmp/jwt_user_u%d/token.jwt", uid)
+		jwtPath = fmt.Sprintf("/tmp/jwt_user_u%d/token.jwt", os.Getuid())
 	}
-
-	if _, err := os.Stat(jwtPath); os.IsNotExist(err) {
+	b, err := os.ReadFile(jwtPath)
+	if errors.Is(err, os.ErrNotExist) {
 		return "", nil
 	}
-
-	data, err := os.ReadFile(jwtPath)
 	if err != nil {
 		return "", err
 	}
-
-	return strings.TrimSpace(string(data)), nil
+	tok := strings.TrimSpace(string(b))
+	if tok == "" {
+		return "", fmt.Errorf("JWT token file is empty: %s", jwtPath)
+	}
+	return tok, nil
 }
 
-// urlPathEncode encodes path while preserving forward slashes
-func urlPathEncode(path string) string {
-	path = strings.TrimPrefix(path, "/")
-	return url.QueryEscape(path)
+// Encode each path segment but keep slashes as separators.
+func encodePath(p string) string {
+	p = strings.TrimPrefix(p, "/")
+	segs := strings.Split(p, "/")
+	for i, s := range segs {
+		segs[i] = url.PathEscape(s)
+	}
+	return strings.Join(segs, "/")
 }
 
-// makeHTTPRequest performs HTTP request with authentication
-func (c *Config) makeHTTPRequest(method, requestURL string, data interface{}, headers map[string]string, outputFile string, uploadFile string) error {
-	// Get authentication headers
+func formatByteData(b []byte) string {
+	var v any
+	if json.Unmarshal(b, &v) == nil {
+		out, _ := json.MarshalIndent(v, "", "  ")
+		return string(out)
+	}
+	return string(b)
+}
+
+func (c *Config) vlogf(format string, a ...any) {
+	if c.Verbose {
+		fmt.Fprintf(os.Stderr, format, a...)
+	}
+}
+
+func (c *Config) prepareRequestBody(data any, uploadFile string, headers map[string]string) (io.Reader, error) {
+	if uploadFile != "" {
+		return c.prepareUploadBody(uploadFile, headers)
+	}
+	if data != nil {
+		return c.prepareJSONBody(data, headers)
+	}
+	return nil, nil
+}
+
+func (c *Config) prepareUploadBody(uploadFile string, headers map[string]string) (io.Reader, error) {
+	if uploadFile == "-" {
+		return os.Stdin, nil
+	}
+
+	f, err := os.Open(uploadFile)
+	if err != nil {
+		return nil, fmt.Errorf("open %s: %w", uploadFile, err)
+	}
+	// Note: caller must close the file
+	if st, err := f.Stat(); err == nil {
+		headers["X-File-Timestamp"] = strconv.FormatInt(st.ModTime().Unix(), 10)
+	}
+	return f, nil
+}
+
+func (c *Config) prepareJSONBody(data any, headers map[string]string) (io.Reader, error) {
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("marshal json: %w", err)
+	}
+	headers["Content-Type"] = "application/json"
+	return bytes.NewReader(raw), nil
+}
+
+func (c *Config) createRequest(ctx context.Context, method, requestURL string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, body)
+	if err != nil {
+		return nil, fmt.Errorf("new request: %w", err)
+	}
+
 	authHeaders, err := c.GetAuthHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range authHeaders {
+		req.Header.Set(k, v)
+	}
+	return req, nil
+}
+
+func (c *Config) logRequest(req *http.Request) {
+	if !c.Verbose {
+		return
+	}
+	c.vlogf("=> %s %s\n", req.Method, req.URL.String())
+	for k, vs := range req.Header {
+		for _, v := range vs {
+			c.vlogf("   %s: %s\n", k, v)
+		}
+	}
+}
+
+func (c *Config) handleResponse(resp *http.Response) ([]byte, error) {
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		eb, _ := io.ReadAll(resp.Body)
+		return nil, &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    formatByteData(eb),
+		}
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+	return b, nil
+}
+
+func (c *Config) writeOutput(data []byte, outputFile string, resp *http.Response) error {
+	if outputFile == "" {
+		fmt.Print(formatByteData(data))
+		return nil
+	}
+
+	if outputFile == "-" {
+		_, err := os.Stdout.Write(data)
+		return err
+	}
+
+	// Ensure parent directory exists
+	if d := filepath.Dir(outputFile); d != "" && d != "." {
+		if err := os.MkdirAll(d, DefaultDirMode); err != nil {
+			return fmt.Errorf("create directory %s: %w", d, err)
+		}
+	}
+
+	if err := os.WriteFile(outputFile, data, DefaultFileMode); err != nil {
+		return fmt.Errorf("write %s: %w", outputFile, err)
+	}
+
+	// Set file timestamp if provided
+	if lm := resp.Header.Get("Last-Modified"); lm != "" {
+		if t, err := time.Parse(time.RFC1123, lm); err == nil {
+			_ = os.Chtimes(outputFile, t, t)
+		}
+	}
+	return nil
+}
+
+func (c *Config) makeHTTPRequest(method, requestURL string, data any, headers map[string]string, outputFile string, uploadFile string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	if headers == nil {
+		headers = make(map[string]string)
+	}
+
+	body, err := c.prepareRequestBody(data, uploadFile, headers)
 	if err != nil {
 		return err
 	}
 
-	// Prepare request body
-	var body io.Reader
-	if uploadFile != "" {
-		if uploadFile == "-" {
-			body = os.Stdin
-		} else {
-			file, err := os.Open(uploadFile)
-			if err != nil {
-				return fmt.Errorf("error opening file %s: %v", uploadFile, err)
-			}
-			defer file.Close()
-
-			// Add file timestamp header
-			if stat, err := file.Stat(); err == nil {
-				mtime := stat.ModTime().Unix()
-				if headers == nil {
-					headers = make(map[string]string)
-				}
-				headers["X-File-Timestamp"] = strconv.FormatInt(mtime, 10)
-			}
-			body = file
+	// Close file if it was opened for upload
+	if uploadFile != "" && uploadFile != "-" {
+		if closer, ok := body.(io.Closer); ok {
+			defer closer.Close()
 		}
-	} else if data != nil {
-		jsonData, err := json.Marshal(data)
-		if err != nil {
-			return fmt.Errorf("error marshaling JSON: %v", err)
-		}
-		body = strings.NewReader(string(jsonData))
-		if headers == nil {
-			headers = make(map[string]string)
-		}
-		headers["Content-Type"] = "application/json"
 	}
 
-	// Create request
-	req, err := http.NewRequest(method, requestURL, body)
+	req, err := c.createRequest(ctx, method, requestURL, body)
 	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
+		return err
 	}
 
-	// Add headers
-	for key, value := range authHeaders {
-		req.Header.Set(key, value)
-	}
-	for key, value := range headers {
-		req.Header.Set(key, value)
+	for k, v := range headers {
+		req.Header.Set(k, v)
 	}
 
-	if c.Verbose {
-		fmt.Fprintf(os.Stderr, "Making %s request to %s\n", method, requestURL)
-		for key, values := range req.Header {
-			for _, value := range values {
-				fmt.Fprintf(os.Stderr, "Header: %s: %s\n", key, value)
-			}
-		}
-	}
+	c.logRequest(req)
 
-	// Make request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Check status code
-	if resp.StatusCode >= 400 {
-		errorData, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("HTTP %d Error: %s", resp.StatusCode, string(errorData))
+		return fmt.Errorf("request failed: %w", err)
 	}
 
-	// Handle response
-	responseData, err := io.ReadAll(resp.Body)
+	responseData, err := c.handleResponse(resp)
 	if err != nil {
-		return fmt.Errorf("error reading response: %v", err)
+		return err
 	}
 
-	if outputFile != "" {
-		if outputFile == "-" {
-			os.Stdout.Write(responseData)
-		} else {
-			err := os.WriteFile(outputFile, responseData, 0644)
-			if err != nil {
-				return fmt.Errorf("error writing to file %s: %v", outputFile, err)
-			}
-
-			// Set file timestamp if available
-			if lastModified := resp.Header.Get("Last-Modified"); lastModified != "" {
-				if t, err := time.Parse(time.RFC1123, lastModified); err == nil {
-					os.Chtimes(outputFile, t, t)
-				}
-			}
-		}
-	} else {
-		fmt.Print(string(responseData))
-	}
-
-	return nil
+	return c.writeOutput(responseData, outputFile, resp)
 }
 
-// Command implementations
-func (c *Config) cmdLs(path string, all, effective, long, recursive bool) error {
+// Commands
+func (c *Config) cmdLs(path string, all, effective, longf, timef, recursive, json bool) error {
 	if path == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-
-	gfarmPath := urlPathEncode(path)
+	gfarmPath := encodePath(path)
 	params := url.Values{}
-
 	if all {
-		params.Set("show_hidden", "1")
+		params.Set("show_hidden", "on")
 	}
 	if effective {
-		params.Set("effperm", "1")
+		params.Set("effperm", "on")
 	}
-	if long {
-		params.Set("long_format", "1")
+	if longf {
+		params.Set("long_format", "on")
+	}
+	if timef {
+		params.Set("time_format", "full")
+	} else {
+		params.Set("time_format", "short")
 	}
 	if recursive {
-		params.Set("recursive", "1")
+		params.Set("recursive", "on")
 	}
-
-	requestURL := fmt.Sprintf("%s/dir/%s", c.BaseURL, gfarmPath)
+	if json {
+		params.Set("output_format", "json")
+	} else {
+		params.Set("output_format", "plain")
+	}
+	u := fmt.Sprintf("%s/dir/%s", c.BaseURL, gfarmPath)
 	if len(params) > 0 {
-		requestURL += "?" + params.Encode()
+		u += "?" + params.Encode()
 	}
-
-	return c.makeHTTPRequest("GET", requestURL, nil, nil, "", "")
+	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }
 
 func (c *Config) cmdDownload(gfarmPath, localPath string) error {
 	if gfarmPath == "" || localPath == "" {
 		return fmt.Errorf("both Gfarm-path and Local-path are required")
 	}
-
-	encodedPath := urlPathEncode(gfarmPath)
-	requestURL := fmt.Sprintf("%s/file/%s", c.BaseURL, encodedPath)
-
-	return c.makeHTTPRequest("GET", requestURL, nil, nil, localPath, "")
+	p := encodePath(gfarmPath)
+	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
+	return c.makeHTTPRequest("GET", u, nil, nil, localPath, "")
 }
 
 func (c *Config) cmdUpload(localPath, gfarmPath string) error {
 	if localPath == "" || gfarmPath == "" {
 		return fmt.Errorf("both Local-path and Gfarm-path are required")
 	}
-
-	encodedPath := urlPathEncode(gfarmPath)
-	requestURL := fmt.Sprintf("%s/file/%s", c.BaseURL, encodedPath)
-
-	return c.makeHTTPRequest("PUT", requestURL, nil, nil, "", localPath)
+	p := encodePath(gfarmPath)
+	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
+	return c.makeHTTPRequest("PUT", u, nil, nil, "", localPath)
 }
 
 func (c *Config) cmdMkdir(path string) error {
 	if path == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-
-	encodedPath := urlPathEncode(path)
-	requestURL := fmt.Sprintf("%s/dir/%s", c.BaseURL, encodedPath)
-
-	return c.makeHTTPRequest("PUT", requestURL, nil, nil, "", "")
+	p := encodePath(path)
+	u := fmt.Sprintf("%s/dir/%s", c.BaseURL, p)
+	return c.makeHTTPRequest("PUT", u, nil, nil, "", "")
 }
 
 func (c *Config) cmdRm(path string) error {
 	if path == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-
-	encodedPath := urlPathEncode(path)
-	requestURL := fmt.Sprintf("%s/file/%s", c.BaseURL, encodedPath)
-
-	return c.makeHTTPRequest("DELETE", requestURL, nil, nil, "", "")
+	p := encodePath(path)
+	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
+	return c.makeHTTPRequest("DELETE", u, nil, nil, "", "")
 }
 
 func (c *Config) cmdRmdir(path string) error {
 	if path == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-
-	encodedPath := urlPathEncode(path)
-	requestURL := fmt.Sprintf("%s/dir/%s", c.BaseURL, encodedPath)
-
-	return c.makeHTTPRequest("DELETE", requestURL, nil, nil, "", "")
+	p := encodePath(path)
+	u := fmt.Sprintf("%s/dir/%s", c.BaseURL, p)
+	return c.makeHTTPRequest("DELETE", u, nil, nil, "", "")
 }
 
 func (c *Config) cmdChmod(mode, path string) error {
 	if mode == "" || path == "" {
 		return fmt.Errorf("both mode and Gfarm-path are required")
 	}
-
-	encodedPath := urlPathEncode(path)
-	requestURL := fmt.Sprintf("%s/attr/%s", c.BaseURL, encodedPath)
-
+	p := encodePath(path)
+	u := fmt.Sprintf("%s/attr/%s", c.BaseURL, p)
 	data := map[string]string{"Mode": mode}
-	return c.makeHTTPRequest("POST", requestURL, data, nil, "", "")
+	return c.makeHTTPRequest("POST", u, data, nil, "", "")
 }
 
 func (c *Config) cmdStat(path string) error {
 	if path == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-
-	encodedPath := urlPathEncode(path)
-	requestURL := fmt.Sprintf("%s/attr/%s", c.BaseURL, encodedPath)
-
-	return c.makeHTTPRequest("GET", requestURL, nil, nil, "", "")
+	p := encodePath(path)
+	u := fmt.Sprintf("%s/attr/%s", c.BaseURL, p)
+	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }
 
 func (c *Config) cmdMv(srcPath, dstPath string) error {
 	if srcPath == "" || dstPath == "" {
 		return fmt.Errorf("both source and destination paths are required")
 	}
-
-	encodedSrcPath := urlPathEncode(srcPath)
-	requestURL := fmt.Sprintf("%s/file/%s", c.BaseURL, encodedSrcPath)
-
+	p := encodePath(srcPath)
+	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
 	data := map[string]string{"Destination": dstPath}
-	return c.makeHTTPRequest("PATCH", requestURL, data, nil, "", "")
+	return c.makeHTTPRequest("PATCH", u, data, nil, "", "")
 }
 
 func (c *Config) cmdWhoami() error {
-	requestURL := fmt.Sprintf("%s/conf/me", c.BaseURL)
-	return c.makeHTTPRequest("GET", requestURL, nil, nil, "", "")
+	u := fmt.Sprintf("%s/conf/me", c.BaseURL)
+	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }
 
-// Help functions
-func showHelp() {
-	fmt.Printf(`Usage: %s [global-options] <command> [command-options] [arguments]
+// ---- CLI  ----
 
-Global options:
-  -k, --insecure    Insecure connection
-  -v, --verbose     Verbose mode
-  -h, --help        Show this help message
-
-Commands:
-  ls        List directory contents
-  download  Download file from Gfarm
-  upload    Upload file to Gfarm
-  mkdir     Create directory
-  rm        Remove file
-  rmdir     Remove directory
-  chmod     Change file permissions
-  stat      Get file status
-  mv        Move/rename file
-  whoami    Show current user
-
-Environment variables:
-  GFARM_HTTP_URL       the base URL of gfarm-http-gateway. (required)
-  GFARM_SASL_USER      SASL username. (optional)
-  GFARM_SASL_PASSWORD  SASL password. (optional)
-  JWT_USER_PATH        the file of JWT or SASL password. (optional)
-
-Use '%s <command> --help' for more information on a command.
-`, os.Args[0], os.Args[0])
+type Command struct {
+	Name        string
+	Description string
+	Handler     func(*Config, []string) error
 }
 
-func showCommandHelp(cmd string) {
-	switch cmd {
-	case "ls":
-		fmt.Printf("Usage: %s ls [options] Gfarm-path\nOptions:\n", os.Args[0])
-		fmt.Println("  -a, --all         Do not hide entries starting with '.'")
-		fmt.Println("  -e, --effective   Display effective permissions")
-		fmt.Println("  -l, --long        List in long format")
-		fmt.Println("  -R, --recursive   Recursively list subdirectories")
-	case "download":
-		fmt.Printf("Usage: %s download [options] Gfarm-path Local-path\n", os.Args[0])
-	case "upload":
-		fmt.Printf("Usage: %s upload [options] Local-path Gfarm-path\n", os.Args[0])
-	case "mkdir":
-		fmt.Printf("Usage: %s mkdir [options] Gfarm-path\n", os.Args[0])
-	case "rm":
-		fmt.Printf("Usage: %s rm [options] Gfarm-path\n", os.Args[0])
-	case "rmdir":
-		fmt.Printf("Usage: %s rmdir [options] Gfarm-path\n", os.Args[0])
-	case "chmod":
-		fmt.Printf("Usage: %s chmod [options] mode(octal) Gfarm-path\n", os.Args[0])
-	case "stat":
-		fmt.Printf("Usage: %s stat [options] Gfarm-path\n", os.Args[0])
-	case "mv":
-		fmt.Printf("Usage: %s mv [options] source destination\n", os.Args[0])
-	case "whoami":
-		fmt.Printf("Usage: %s whoami [options]\n", os.Args[0])
-	default:
-		fmt.Printf("Unknown command: %s\n", cmd)
-		os.Exit(1)
-	}
+var commands = map[string]*Command{
+	"ls": {
+		Name:        "ls",
+		Description: "List directory",
+		Handler:     handleLs,
+	},
+	"download": {
+		Name:        "download",
+		Description: "Download file",
+		Handler:     handleDownload,
+	},
+	"upload": {
+		Name:        "upload",
+		Description: "Upload file",
+		Handler:     handleUpload,
+	},
+	"mkdir": {
+		Name:        "mkdir",
+		Description: "Create directory",
+		Handler:     handleMkdir,
+	},
+	"rm": {
+		Name:        "rm",
+		Description: "Remove file",
+		Handler:     handleRm,
+	},
+	"rmdir": {
+		Name:        "rmdir",
+		Description: "Remove directory",
+		Handler:     handleRmdir,
+	},
+	"chmod": {
+		Name:        "chmod",
+		Description: "Change permissions",
+		Handler:     handleChmod,
+	},
+	"stat": {
+		Name:        "stat",
+		Description: "File status",
+		Handler:     handleStat,
+	},
+	"mv": {
+		Name:        "mv",
+		Description: "Move/rename",
+		Handler:     handleMv,
+	},
+	"whoami": {
+		Name:        "whoami",
+		Description: "Show current user",
+		Handler:     handleWhoami,
+	},
 }
 
-// Parse command line arguments manually
-func parseArgs() (config *Config, command string, args []string, err error) {
-	config = &Config{}
-	
-	if len(os.Args) < 2 {
-		showHelp()
-		os.Exit(1)
+func handleLs(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("ls", flag.ExitOnError)
+	all := fs.Bool("a", false, "do not hide entries starting with '.'")
+	eff := fs.Bool("e", false, "display effective permissions")
+	longf := fs.Bool("l", false, "list in long format")
+	timef := fs.Bool("T", false, "With the -l option, show complete date format")
+	rec := fs.Bool("R", false, "recursively list subdirectories")
+	json := fs.Bool("j", false, "output with json format")
+
+	if err := fs.Parse(args); err != nil {
+		return err
 	}
-
-	i := 1
-	// Parse global flags
-	for i < len(os.Args) {
-		arg := os.Args[i]
-		if !strings.HasPrefix(arg, "-") {
-			break
-		}
-		
-		switch arg {
-		case "-k", "--insecure":
-			config.Insecure = true
-		case "-v", "--verbose":
-			config.Verbose = true
-		case "-h", "--help":
-			showHelp()
-			os.Exit(0)
-		default:
-			return nil, "", nil, fmt.Errorf("unknown global option: %s", arg)
-		}
-		i++
+	rest := fs.Args()
+	if len(rest) != 1 {
+		return fmt.Errorf("ls requires exactly 1 Gfarm-path")
 	}
-
-	if i >= len(os.Args) {
-		showHelp()
-		os.Exit(1)
-	}
-
-	command = os.Args[i]
-	args = os.Args[i+1:]
-
-	// Check for command help
-	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
-		showCommandHelp(command)
-		os.Exit(0)
-	}
-
-	return config, command, args, nil
+	return cfg.cmdLs(rest[0], *all, *eff, *longf, *timef, *rec, *json)
 }
 
-// Parse command-specific flags
-func parseLsFlags(args []string) (path string, all, effective, long, recursive bool, err error) {
-	fs := flag.NewFlagSet("ls", flag.ContinueOnError)
-	fs.BoolVar(&all, "a", false, "")
-	fs.BoolVar(&all, "all", false, "")
-	fs.BoolVar(&effective, "e", false, "")
-	fs.BoolVar(&effective, "effective", false, "")
-	fs.BoolVar(&long, "l", false, "")
-	fs.BoolVar(&long, "long", false, "")
-	fs.BoolVar(&recursive, "R", false, "")
-	fs.BoolVar(&recursive, "recursive", false, "")
-	
-	err = fs.Parse(args)
-	if err != nil {
-		return "", false, false, false, false, err
+func handleDownload(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("download", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
 	}
-	
-	remaining := fs.Args()
-	if len(remaining) != 1 {
-		return "", false, false, false, false, fmt.Errorf("exactly one path argument required")
+	rest := fs.Args()
+	if len(rest) != 2 {
+		return fmt.Errorf("download requires Gfarm-path and Local-path")
 	}
-	
-	return remaining[0], all, effective, long, recursive, nil
+	return cfg.cmdDownload(rest[0], rest[1])
 }
 
-func main() {
-	config, command, args, err := parseArgs()
+func handleUpload(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("upload", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 2 {
+		return fmt.Errorf("upload requires Local-path and Gfarm-path")
+	}
+	return cfg.cmdUpload(rest[0], rest[1])
+}
+
+func handleMkdir(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("mkdir", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		return fmt.Errorf("mkdir requires exactly 1 Gfarm-path")
+	}
+	return cfg.cmdMkdir(rest[0])
+}
+
+func handleRm(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("rm", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		return fmt.Errorf("rm requires exactly 1 Gfarm-path")
+	}
+	return cfg.cmdRm(rest[0])
+}
+
+func handleRmdir(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("rmdir", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		return fmt.Errorf("rmdir requires exactly 1 Gfarm-path")
+	}
+	return cfg.cmdRmdir(rest[0])
+}
+
+func handleChmod(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("chmod", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 2 {
+		return fmt.Errorf("chmod requires mode(octal) and Gfarm-path")
+	}
+	return cfg.cmdChmod(rest[0], rest[1])
+}
+
+func handleStat(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("stat", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		return fmt.Errorf("stat requires exactly 1 Gfarm-path")
+	}
+	return cfg.cmdStat(rest[0])
+}
+
+func handleMv(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("mv", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 2 {
+		return fmt.Errorf("mv requires source and destination")
+	}
+	return cfg.cmdMv(rest[0], rest[1])
+}
+
+func handleWhoami(cfg *Config, args []string) error {
+	fs := flag.NewFlagSet("whoami", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if len(fs.Args()) != 0 {
+		return fmt.Errorf("whoami takes no arguments")
+	}
+	return cfg.cmdWhoami()
+}
+
+func exitErr(err error) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
 
-	// Get base URL from environment
-	baseURL := os.Getenv("GFARM_HTTP_URL")
-	if baseURL == "" {
-		fmt.Fprintf(os.Stderr, "Error: GFARM_HTTP_URL is required\n")
+func showRootHelp() {
+	fmt.Printf(`Usage: %s [global-options] <command> [command-options] [args]
+
+Global options:
+  -k, --insecure    Insecure TLS (skip verify)
+  -v, --verbose     Verbose logging
+  -h, --help        Show this help
+
+Commands:
+`, os.Args[0])
+	for _, cmd := range commands {
+		fmt.Printf("  %-8s  %s\n", cmd.Name, cmd.Description)
+	}
+}
+
+func parseGlobal() (insecure, verbose bool, rest []string) {
+	insecure = false
+	verbose = false
+
+	args := os.Args[1:]
+	for len(args) > 0 {
+		a := args[0]
+		if !strings.HasPrefix(a, "-") {
+			break
+		}
+		switch a {
+		case "-k", "--insecure":
+			insecure = true
+		case "-v", "--verbose":
+			verbose = true
+		case "-h", "--help":
+			showRootHelp()
+			os.Exit(0)
+		default:
+			fmt.Fprintf(os.Stderr, "Unknown global option: %s\n", a)
+			os.Exit(1)
+		}
+		args = args[1:]
+	}
+	return insecure, verbose, args
+}
+
+func mustBaseURL() string {
+	u := os.Getenv("GFARM_HTTP_URL")
+	if u == "" {
+		fmt.Fprintln(os.Stderr, "Error: GFARM_HTTP_URL is required")
 		os.Exit(1)
 	}
-	config.BaseURL = strings.TrimSuffix(baseURL, "/")
+	return strings.TrimSuffix(u, "/")
+}
 
-	// Create HTTP client
-	transport := &http.Transport{}
-	if config.Insecure {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-	config.HTTPClient = &http.Client{Transport: transport}
-
-	// Execute command
-	switch command {
-	case "ls":
-		path, all, effective, long, recursive, err := parseLsFlags(args)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-		err = config.cmdLs(path, all, effective, long, recursive)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "download":
-		if len(args) != 2 {
-			fmt.Fprintf(os.Stderr, "Error: download requires exactly 2 arguments\n")
-			os.Exit(1)
-		}
-		err := config.cmdDownload(args[0], args[1])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "upload":
-		if len(args) != 2 {
-			fmt.Fprintf(os.Stderr, "Error: upload requires exactly 2 arguments\n")
-			os.Exit(1)
-		}
-		err := config.cmdUpload(args[0], args[1])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "mkdir":
-		if len(args) != 1 {
-			fmt.Fprintf(os.Stderr, "Error: mkdir requires exactly 1 argument\n")
-			os.Exit(1)
-		}
-		err := config.cmdMkdir(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "rm":
-		if len(args) != 1 {
-			fmt.Fprintf(os.Stderr, "Error: rm requires exactly 1 argument\n")
-			os.Exit(1)
-		}
-		err := config.cmdRm(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "rmdir":
-		if len(args) != 1 {
-			fmt.Fprintf(os.Stderr, "Error: rmdir requires exactly 1 argument\n")
-			os.Exit(1)
-		}
-		err := config.cmdRmdir(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "chmod":
-		if len(args) != 2 {
-			fmt.Fprintf(os.Stderr, "Error: chmod requires exactly 2 arguments\n")
-			os.Exit(1)
-		}
-		err := config.cmdChmod(args[0], args[1])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "stat":
-		if len(args) != 1 {
-			fmt.Fprintf(os.Stderr, "Error: stat requires exactly 1 argument\n")
-			os.Exit(1)
-		}
-		err := config.cmdStat(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "mv":
-		if len(args) != 2 {
-			fmt.Fprintf(os.Stderr, "Error: mv requires exactly 2 arguments\n")
-			os.Exit(1)
-		}
-		err := config.cmdMv(args[0], args[1])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "whoami":
-		if len(args) != 0 {
-			fmt.Fprintf(os.Stderr, "Error: whoami requires no arguments\n")
-			os.Exit(1)
-		}
-		err := config.cmdWhoami()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
-
-	default:
-		fmt.Fprintf(os.Stderr, "Error: Unknown command '%s'\n", command)
-		showHelp()
+func main() {
+	insecure, verbose, rest := parseGlobal()
+	if len(rest) == 0 {
+		showRootHelp()
 		os.Exit(1)
 	}
+	command := rest[0]
+	args := rest[1:]
+
+	cfg := &Config{
+		BaseURL:  mustBaseURL(),
+		Verbose:  verbose,
+		Insecure: insecure,
+	}
+	tr := &http.Transport{}
+	if cfg.Insecure {
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec
+	}
+	cfg.HTTPClient = &http.Client{Transport: tr}
+
+	cmd, exists := commands[command]
+	if !exists {
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
+		showRootHelp()
+		os.Exit(1)
+	}
+
+	exitErr(cmd.Handler(cfg, args))
 }
