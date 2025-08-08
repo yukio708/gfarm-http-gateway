@@ -1685,6 +1685,9 @@ class Gfls_Entry:
             self.name = pair[0]
             self.linkname = pair[1]
 
+    def set_line(self, line):
+        self.line = line
+
     def json_dump(self):
         return {
             "mode_str": self.mode_str,
@@ -1701,6 +1704,9 @@ class Gfls_Entry:
             "path": self.path,
             "perms": self.perms
         }
+
+    def line_dump(self):
+        return self.line
 
     def parse(line,
               is_file, long_format, full_format_time, effperm, dirname=None):
@@ -1738,6 +1744,8 @@ class Gfls_Entry:
 
         if is_file:
             new_entry.name = os.path.basename(new_entry.name)
+
+        new_entry.set_line(line)
 
         return new_entry
 
@@ -2257,7 +2265,7 @@ async def dir_list(gfarm_path: str,
         elist = []
         raise gfarm_http_error(opname, code, message, "", elist)
 
-    json_data = []
+    output_data = []
     try:
         async for entry in gfls_generator(
                 env, gfarm_path, is_file,
@@ -2268,20 +2276,23 @@ async def dir_list(gfarm_path: str,
                 effperm=effperm,
                 ign_err=ign_err):
             if isinstance(entry, Gfls_Entry):
-                json_data.append(entry.json_dump())
+                if output_format == 'json':
+                    output_data.append(entry.json_dump())
+                else:
+                    output_data.append(entry.line_dump())
             else:
-                json_data.append(entry)
+                output_data.append(entry)
     except RuntimeError as e:
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
         message = f"Failed to execute gfls: path={gfarm_path}"
         elist = []
         raise gfarm_http_error(opname, code, message, str(e), elist)
 
-    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={json_data}")
+    logger.debug(f"{ipaddr}:0 user={user}, cmd={opname}, stdout={output_data}")
     if output_format == 'json':
-        return JSONResponse(content=json_data)
+        return JSONResponse(content=output_data)
 
-    return PlainTextResponse(content="\n".join(json_data))
+    return PlainTextResponse(content="\n".join(output_data))
 
 
 @app.get("/symlink/{gfarm_path:path}")
