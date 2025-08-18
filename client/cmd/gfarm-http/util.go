@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -57,4 +60,38 @@ func expandCombinedShort(args []string, allowed string) []string {
 		out = append(out, a)
 	}
 	return out
+}
+
+func prepareRequestBody(data any, uploadFile string, headers map[string]string) (io.Reader, func(), error) {
+	if uploadFile != "" {
+		return prepareUploadBody(uploadFile, headers)
+	}
+	if data != nil {
+		return prepareJSONBody(data, headers)
+	}
+	return nil, func() {}, nil
+}
+
+func prepareUploadBody(uploadFile string, headers map[string]string) (io.Reader, func(), error) {
+	if uploadFile == "-" {
+		return os.Stdin, func() {}, nil
+	}
+
+	f, err := os.Open(uploadFile)
+	if err != nil {
+		return nil, func() {}, fmt.Errorf("open %s: %w", uploadFile, err)
+	}
+	if st, err := f.Stat(); err == nil {
+		headers["X-File-Timestamp"] = strconv.FormatInt(st.ModTime().Unix(), 10)
+	}
+	return f, func() { _ = f.Close() }, nil
+}
+
+func prepareJSONBody(data any, headers map[string]string) (io.Reader, func(), error) {
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return nil, func() {}, fmt.Errorf("marshal json: %w", err)
+	}
+	headers["Content-Type"] = "application/json"
+	return bytes.NewReader(raw), func() {}, nil
 }

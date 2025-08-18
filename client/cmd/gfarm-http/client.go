@@ -1,19 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -54,92 +48,13 @@ func (c *Client) vlogf(format string, a ...any) {
 	}
 }
 
-func (c *Client) GetAuthHeaders() (map[string]string, error) {
-	h := make(map[string]string)
-
-	user := os.Getenv("GFARM_SASL_USER")
-	pass := os.Getenv("GFARM_SASL_PASSWORD")
-
-	if user == "anonymous" {
-		return h, nil
-	}
-	if user != "" && pass != "" {
-		auth := base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
-		h["Authorization"] = "Basic " + auth
-		return h, nil
-	}
-
-	tok, err := getJWTToken()
-	if err != nil {
-		return nil, fmt.Errorf("read JWT token: %w", err)
-	}
-	if tok != "" {
-		h["Authorization"] = "Bearer " + tok
-		return h, nil
-	}
-	return nil, fmt.Errorf("environment GFARM_SASL_USER/GFARM_SASL_PASSWORD or JWT_USER_PATH is required")
-}
-
-func getJWTToken() (string, error) {
-	jwtPath := os.Getenv("JWT_USER_PATH")
-	if jwtPath == "" {
-		jwtPath = fmt.Sprintf("/tmp/jwt_user_u%d/token.jwt", os.Getuid())
-	}
-	b, err := os.ReadFile(jwtPath)
-	if errors.Is(err, os.ErrNotExist) {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	tok := strings.TrimSpace(string(b))
-	if tok == "" {
-		return "", fmt.Errorf("JWT token file is empty: %s", jwtPath)
-	}
-	return tok, nil
-}
-
-func (c *Client) prepareRequestBody(data any, uploadFile string, headers map[string]string) (io.Reader, error) {
-	if uploadFile != "" {
-		return c.prepareUploadBody(uploadFile, headers)
-	}
-	if data != nil {
-		return c.prepareJSONBody(data, headers)
-	}
-	return nil, nil
-}
-
-func (c *Client) prepareUploadBody(uploadFile string, headers map[string]string) (io.Reader, error) {
-	if uploadFile == "-" {
-		return os.Stdin, nil
-	}
-
-	f, err := os.Open(uploadFile)
-	if err != nil {
-		return nil, fmt.Errorf("open %s: %w", uploadFile, err)
-	}
-	if st, err := f.Stat(); err == nil {
-		headers["X-File-Timestamp"] = strconv.FormatInt(st.ModTime().Unix(), 10)
-	}
-	return f, nil
-}
-
-func (c *Client) prepareJSONBody(data any, headers map[string]string) (io.Reader, error) {
-	raw, err := json.Marshal(data)
-	if err != nil {
-		return nil, fmt.Errorf("marshal json: %w", err)
-	}
-	headers["Content-Type"] = "application/json"
-	return bytes.NewReader(raw), nil
-}
-
 func (c *Client) createRequest(ctx context.Context, method, requestURL string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, method, requestURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("new request: %w", err)
 	}
 
-	authHeaders, err := c.GetAuthHeaders()
+	authHeaders, err := GetAuthHeaders()
 	if err != nil {
 		return nil, err
 	}
@@ -222,16 +137,11 @@ func (c *Client) makeHTTPRequest(method, requestURL string, data any, headers ma
 		headers = make(map[string]string)
 	}
 
-	body, err := c.prepareRequestBody(data, uploadFile, headers)
+	body, cleanup, err := prepareRequestBody(data, uploadFile, headers)
 	if err != nil {
 		return err
 	}
-
-	if uploadFile != "" && uploadFile != "-" {
-		if closer, ok := body.(io.Closer); ok {
-			defer closer.Close()
-		}
-	}
+	defer cleanup()
 
 	req, err := c.createRequest(ctx, method, requestURL, body)
 	if err != nil {
