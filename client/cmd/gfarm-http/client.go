@@ -194,6 +194,8 @@ func (c *Client) cmdLs(gfarmPath string, all, effective, longf, timef, recursive
 	}
 	if longf {
 		params.Set("long_format", "on")
+	} else {
+		params.Set("long_format", "off")
 	}
 	if timef {
 		params.Set("time_format", "full")
