@@ -324,3 +324,15 @@ func (c *Client) cmdLn(srcPath, dstPath string, symlink bool) error {
 	data := map[string]string{"source": srcPath, "destination": dstPath}
 	return c.makeHTTPRequest("POST", u, data, nil, "", "")
 }
+
+func (c *Client) cmdTar(command, outdir, basedir string, source, options []string) error {
+	u := c.generateURL("gfptar", "", nil)
+	data := map[string]any{
+		"command": command,
+		"basedir": basedir,
+		"source":  source,
+		"outdir":  outdir,
+		"options": options,
+	}
+	return c.makeHTTPRequest("POST", u, data, nil, "", "")
+}

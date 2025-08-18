@@ -3191,7 +3191,7 @@ class Tar(BaseModel):
                     "basedir": "/",
                     "source": ["./tmp"],
                     "outdir": "/tmp2",
-                    "option": ["--jobs=4"]
+                    "options": ["--jobs=4"]
 
                 }
             ]

@@ -74,6 +74,11 @@ var commands = map[string]*Command{
 		Description: "Create link",
 		Handler:     handleLn,
 	},
+	"tar": {
+		Name:        "tar",
+		Description: "archive files in parallel",
+		Handler:     handleTar,
+	},
 }
 
 func exitErr(err error) {
@@ -292,7 +297,7 @@ func handleCopy(client *Client, args []string) error {
 }
 
 func handleLn(client *Client, args []string) error {
-	fs := flag.NewFlagSet("symlink", flag.ExitOnError)
+	fs := flag.NewFlagSet("ln", flag.ExitOnError)
 
 	symlink := fs.Bool("s", false, "Create a symbolic link")
 
@@ -304,4 +309,76 @@ func handleLn(client *Client, args []string) error {
 		return fmt.Errorf("copy requires source and destination")
 	}
 	return client.cmdLn(rest[0], rest[1], *symlink)
+}
+
+func handleTar(client *Client, args []string) error {
+	fs := flag.NewFlagSet("tar", flag.ExitOnError)
+
+	create := fs.String("c", "", " Create tar files in OUTDIR from MEMBERs")
+	appendf := fs.String("r", "", "Append files to new tar files")
+	update := fs.String("u", "", " Append only files (to new tar files) newer than same entries in existing tar files")
+	extract := fs.String("x", "", "Extract all entries or specified MEMBERs from INDIR to OUTDIR")
+	listDir := fs.String("t", "", "List the members of DIR")
+
+	basedir := fs.String("C", ".", "Change to directory for MEMBERs [default: .]")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	// determine command
+	cmdCount := 0
+	var cmd string
+	var outdir string
+
+	if *create != "" {
+		cmd, outdir, cmdCount = "c", *create, cmdCount+1
+	}
+	if *appendf != "" {
+		cmd, outdir, cmdCount = "r", *appendf, cmdCount+1
+	}
+	if *update != "" {
+		cmd, outdir, cmdCount = "u", *update, cmdCount+1
+	}
+	if *extract != "" {
+		cmd, outdir, cmdCount = "x", *extract, cmdCount+1
+	}
+	if *listDir != "" {
+		cmd, outdir, cmdCount = "t", *listDir, cmdCount+1
+	}
+	if cmdCount != 1 {
+		return fmt.Errorf("tar requires exactly one of -c OUTDIR, -r OUTDIR, -u OUTDIR, -x OUTDIR, or -t DIR")
+	}
+
+	rest := fs.Args()
+
+	switch cmd {
+	case "c", "r", "u":
+		// -c/-r/-u OUTDIR [-C DIR] [--] MEMBER...
+		if len(rest) == 0 {
+			return fmt.Errorf("tar -%s requires at least one MEMBER", cmd)
+		}
+
+		return client.cmdTar(cmd, outdir, *basedir, rest, nil)
+
+	case "x":
+		// -x OUTDIR [--] INDIR [MEMBER...]
+		if len(rest) < 1 {
+			return fmt.Errorf("tar -x requires INDIR")
+		}
+		indir := rest[0]
+		members := rest[1:]
+
+		src := append([]string{indir}, members...)
+		return client.cmdTar("x", outdir, indir, src, nil)
+
+	case "t":
+		// -t DIR
+		if *listDir == "" {
+			return fmt.Errorf("tar -t requires DIR")
+		}
+		return client.cmdTar("t", "", outdir, []string{*listDir}, nil)
+	}
+
+	return fmt.Errorf("unreachable")
 }
