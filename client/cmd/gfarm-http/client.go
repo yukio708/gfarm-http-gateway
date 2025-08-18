@@ -274,11 +274,18 @@ func (c *Client) cmdChmod(mode, gfarmPath string) error {
 	return c.makeHTTPRequest("POST", u, data, nil, "", "")
 }
 
-func (c *Client) cmdStat(gfarmPath string) error {
+func (c *Client) cmdStat(gfarmPath string, check_sum, check_symlink bool) error {
 	if gfarmPath == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-	u := c.generateURL("attr", gfarmPath, nil)
+	params := url.Values{}
+	if check_sum {
+		params.Set("check_sum", "on")
+	}
+	if check_symlink {
+		params.Set("check_symlink", "on")
+	}
+	u := c.generateURL("attr", gfarmPath, params)
 	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }
 

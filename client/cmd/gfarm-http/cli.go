@@ -193,8 +193,8 @@ func handleRm(client *Client, args []string) error {
 	args = expandCombinedShort(args, "rf")
 	fs := flag.NewFlagSet("rm", flag.ExitOnError)
 
-	force := fs.Bool("f", false, "")
-	recursive := fs.Bool("r", false, "")
+	force := fs.Bool("f", false, "ignore nonexistent files and arguments, never prompt")
+	recursive := fs.Bool("r", false, "remove directories and their contents recursively")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -232,6 +232,10 @@ func handleChmod(client *Client, args []string) error {
 
 func handleStat(client *Client, args []string) error {
 	fs := flag.NewFlagSet("stat", flag.ExitOnError)
+
+	check_sum := fs.Bool("C", false, "show checksum")
+	check_symlink := fs.Bool("l", false, "does not follow symbolic links, but show the link information itself.")
+
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -239,7 +243,7 @@ func handleStat(client *Client, args []string) error {
 	if len(rest) != 1 {
 		return fmt.Errorf("stat requires exactly 1 Gfarm-path")
 	}
-	return client.cmdStat(rest[0])
+	return client.cmdStat(rest[0], *check_sum, *check_symlink)
 }
 
 func handleMv(client *Client, args []string) error {
