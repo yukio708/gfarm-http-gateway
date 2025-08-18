@@ -42,6 +42,20 @@ func NewClient(baseURL string, verbose, insecure bool, httpClient *http.Client) 
 	}
 }
 
+func (c *Client) generateURL(api, path string, params url.Values) string {
+	fullURL := c.BaseURL
+	if api != "" {
+		fullURL += "/" + api
+	}
+	if path != "" {
+		fullURL += "/" + encodePath(path)
+	}
+	if len(params) > 0 {
+		fullURL += "?" + params.Encode()
+	}
+	return fullURL
+}
+
 func (c *Client) vlogf(format string, a ...any) {
 	if c.Verbose {
 		fmt.Fprintf(os.Stderr, format, a...)
@@ -167,11 +181,10 @@ func (c *Client) makeHTTPRequest(method, requestURL string, data any, headers ma
 	return nil
 }
 
-func (c *Client) cmdLs(path string, all, effective, longf, timef, recursive, json bool) error {
-	if path == "" {
+func (c *Client) cmdLs(gfarmPath string, all, effective, longf, timef, recursive, json bool) error {
+	if gfarmPath == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-	gfarmPath := encodePath(path)
 	params := url.Values{}
 	if all {
 		params.Set("show_hidden", "on")
@@ -195,10 +208,7 @@ func (c *Client) cmdLs(path string, all, effective, longf, timef, recursive, jso
 	} else {
 		params.Set("output_format", "plain")
 	}
-	u := fmt.Sprintf("%s/dir/%s", c.BaseURL, gfarmPath)
-	if len(params) > 0 {
-		u += "?" + params.Encode()
-	}
+	u := c.generateURL("dir", gfarmPath, params)
 	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }
 
@@ -206,8 +216,7 @@ func (c *Client) cmdDownload(gfarmPath, localPath string) error {
 	if gfarmPath == "" || localPath == "" {
 		return fmt.Errorf("both Gfarm-path and Local-path are required")
 	}
-	p := encodePath(gfarmPath)
-	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
+	u := c.generateURL("file", gfarmPath, nil)
 	return c.makeHTTPRequest("GET", u, nil, nil, localPath, "")
 }
 
@@ -215,61 +224,59 @@ func (c *Client) cmdUpload(localPath, gfarmPath string) error {
 	if localPath == "" || gfarmPath == "" {
 		return fmt.Errorf("both Local-path and Gfarm-path are required")
 	}
-	p := encodePath(gfarmPath)
-	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
+	u := c.generateURL("file", gfarmPath, nil)
 	return c.makeHTTPRequest("PUT", u, nil, nil, "", localPath)
 }
 
-func (c *Client) cmdMkdir(path string, parents bool) error {
-	if path == "" {
+func (c *Client) cmdMkdir(gfarmPath string, parents bool) error {
+	if gfarmPath == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-	p := encodePath(path)
 	params := url.Values{}
 	if parents {
 		params.Set("p", "on")
 	}
-	u := fmt.Sprintf("%s/dir/%s", c.BaseURL, p)
-	if len(params) > 0 {
-		u += "?" + params.Encode()
-	}
+	u := c.generateURL("dir", gfarmPath, params)
 	return c.makeHTTPRequest("PUT", u, nil, nil, "", "")
 }
 
-func (c *Client) cmdRm(path string) error {
-	if path == "" {
+func (c *Client) cmdRm(gfarmPath string, force, recursive bool) error {
+	if gfarmPath == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-	p := encodePath(path)
-	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
+	params := url.Values{}
+	if force {
+		params.Set("force", "on")
+	}
+	if recursive {
+		params.Set("recursive", "on")
+	}
+	u := c.generateURL("file", gfarmPath, params)
 	return c.makeHTTPRequest("DELETE", u, nil, nil, "", "")
 }
 
-func (c *Client) cmdRmdir(path string) error {
-	if path == "" {
+func (c *Client) cmdRmdir(gfarmPath string) error {
+	if gfarmPath == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-	p := encodePath(path)
-	u := fmt.Sprintf("%s/dir/%s", c.BaseURL, p)
+	u := c.generateURL("dir", gfarmPath, nil)
 	return c.makeHTTPRequest("DELETE", u, nil, nil, "", "")
 }
 
-func (c *Client) cmdChmod(mode, path string) error {
-	if mode == "" || path == "" {
+func (c *Client) cmdChmod(mode, gfarmPath string) error {
+	if mode == "" || gfarmPath == "" {
 		return fmt.Errorf("both mode and Gfarm-path are required")
 	}
-	p := encodePath(path)
-	u := fmt.Sprintf("%s/attr/%s", c.BaseURL, p)
+	u := c.generateURL("attr", gfarmPath, nil)
 	data := map[string]string{"Mode": mode}
 	return c.makeHTTPRequest("POST", u, data, nil, "", "")
 }
 
-func (c *Client) cmdStat(path string) error {
-	if path == "" {
+func (c *Client) cmdStat(gfarmPath string) error {
+	if gfarmPath == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
-	p := encodePath(path)
-	u := fmt.Sprintf("%s/attr/%s", c.BaseURL, p)
+	u := c.generateURL("attr", gfarmPath, nil)
 	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }
 
@@ -277,13 +284,12 @@ func (c *Client) cmdMv(srcPath, dstPath string) error {
 	if srcPath == "" || dstPath == "" {
 		return fmt.Errorf("both source and destination paths are required")
 	}
-	p := encodePath(srcPath)
-	u := fmt.Sprintf("%s/file/%s", c.BaseURL, p)
-	data := map[string]string{"Destination": dstPath}
-	return c.makeHTTPRequest("PATCH", u, data, nil, "", "")
+	u := c.generateURL("move", "", nil)
+	data := map[string]string{"source": srcPath, "destination": dstPath}
+	return c.makeHTTPRequest("POST", u, data, nil, "", "")
 }
 
 func (c *Client) cmdWhoami() error {
-	u := fmt.Sprintf("%s/conf/me", c.BaseURL)
+	u := c.generateURL("conf/me", "", nil)
 	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }

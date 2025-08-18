@@ -190,7 +190,12 @@ func handleMkdir(client *Client, args []string) error {
 }
 
 func handleRm(client *Client, args []string) error {
+	args = expandCombinedShort(args, "rf")
 	fs := flag.NewFlagSet("rm", flag.ExitOnError)
+
+	force := fs.Bool("f", false, "")
+	recursive := fs.Bool("r", false, "")
+
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -198,7 +203,7 @@ func handleRm(client *Client, args []string) error {
 	if len(rest) != 1 {
 		return fmt.Errorf("rm requires exactly 1 Gfarm-path")
 	}
-	return client.cmdRm(rest[0])
+	return client.cmdRm(rest[0], *force, *recursive)
 }
 
 func handleRmdir(client *Client, args []string) error {
