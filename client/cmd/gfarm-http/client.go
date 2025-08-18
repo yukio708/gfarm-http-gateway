@@ -311,3 +311,16 @@ func (c *Client) cmdCopy(srcPath, dstPath string) error {
 	data := map[string]string{"source": srcPath, "destination": dstPath}
 	return c.makeHTTPRequest("POST", u, data, nil, "", "")
 }
+
+func (c *Client) cmdLn(srcPath, dstPath string, symlink bool) error {
+	if srcPath == "" || dstPath == "" {
+		return fmt.Errorf("both source and destination paths are required")
+	}
+	params := url.Values{}
+	if symlink {
+		params.Set("symlink", "on")
+	}
+	u := c.generateURL("symlink", "", params)
+	data := map[string]string{"source": srcPath, "destination": dstPath}
+	return c.makeHTTPRequest("POST", u, data, nil, "", "")
+}

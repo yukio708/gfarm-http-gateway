@@ -69,6 +69,11 @@ var commands = map[string]*Command{
 		Description: "Copy file",
 		Handler:     handleCopy,
 	},
+	"ln": {
+		Name:        "ln",
+		Description: "Create link",
+		Handler:     handleLn,
+	},
 }
 
 func exitErr(err error) {
@@ -239,7 +244,7 @@ func handleStat(client *Client, args []string) error {
 	fs := flag.NewFlagSet("stat", flag.ExitOnError)
 
 	check_sum := fs.Bool("C", false, "show checksum")
-	check_symlink := fs.Bool("l", false, "does not follow symbolic links, but show the link information itself.")
+	check_symlink := fs.Bool("l", false, "does not follow symbolic links, but show the link information itself")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -284,4 +289,19 @@ func handleCopy(client *Client, args []string) error {
 		return fmt.Errorf("copy requires source and destination")
 	}
 	return client.cmdCopy(rest[0], rest[1])
+}
+
+func handleLn(client *Client, args []string) error {
+	fs := flag.NewFlagSet("symlink", flag.ExitOnError)
+
+	symlink := fs.Bool("s", false, "Create a symbolic link")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 2 {
+		return fmt.Errorf("copy requires source and destination")
+	}
+	return client.cmdLn(rest[0], rest[1], *symlink)
 }
