@@ -175,14 +175,18 @@ func handleUpload(client *Client, args []string) error {
 
 func handleMkdir(client *Client, args []string) error {
 	fs := flag.NewFlagSet("mkdir", flag.ExitOnError)
+
+	parents := fs.Bool("p", false, "Even if the specified directory exists, do not return error. Create parent directories if needed.")
+
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	rest := fs.Args()
 	if len(rest) != 1 {
-		return fmt.Errorf("mkdir requires exactly 1 Gfarm-path")
+		return fmt.Errorf("ls requires exactly 1 Gfarm-path")
 	}
-	return client.cmdMkdir(rest[0])
+
+	return client.cmdMkdir(rest[0], *parents)
 }
 
 func handleRm(client *Client, args []string) error {

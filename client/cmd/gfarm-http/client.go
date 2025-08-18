@@ -220,12 +220,19 @@ func (c *Client) cmdUpload(localPath, gfarmPath string) error {
 	return c.makeHTTPRequest("PUT", u, nil, nil, "", localPath)
 }
 
-func (c *Client) cmdMkdir(path string) error {
+func (c *Client) cmdMkdir(path string, parents bool) error {
 	if path == "" {
 		return fmt.Errorf("gfarm-path is required")
 	}
 	p := encodePath(path)
+	params := url.Values{}
+	if parents {
+		params.Set("p", "on")
+	}
 	u := fmt.Sprintf("%s/dir/%s", c.BaseURL, p)
+	if len(params) > 0 {
+		u += "?" + params.Encode()
+	}
 	return c.makeHTTPRequest("PUT", u, nil, nil, "", "")
 }
 
