@@ -2809,12 +2809,18 @@ async def file_copy(copy_data: FileOperation,
     stderr_reg = asyncio.create_task(log_stderr("gfreg", p_reg, elist))
     opname = "gfreg"
     log_operation(env, request.method, apiname, opname, gfarm_path)
+    current_status = {"copied": 0,
+                      "total": size,
+                      "warn": None,
+                      "error": None,
+                      "done": False}
 
     async def progress_generator():
         copied = 1
         p_reg.stdin.write(first_byte)
         await p_reg.stdin.drain()
-        yield json.dumps({"copied": copied, "total": size}) + "\n"
+        current_status["copied"] = copied
+        yield json.dumps(current_status) + "\n"
         try:
             while True:
                 chunk = await p_export.stdout.read(BUFSIZE)
@@ -2824,7 +2830,8 @@ async def file_copy(copy_data: FileOperation,
                 await p_reg.stdin.drain()
                 copied += len(chunk)
                 # yield JSON line
-                yield json.dumps({"copied": copied, "total": size}) + "\n"
+                current_status["copied"] = copied
+                yield json.dumps(current_status) + "\n"
         except Exception as e:
             yield json.dumps({"error": "I/O error", "done": True}) + "\n"
             raise e
@@ -2840,13 +2847,16 @@ async def file_copy(copy_data: FileOperation,
             ok, error_message = await match_checksum(
                 env, request.method, apiname, gfarm_path, tmppath, elist)
             if ok is None:
-                yield json.dumps({"warn": error_message}) + "\n"
+                current_status["warn"] = error_message
+                yield json.dumps(current_status) + "\n"
             elif not ok:
                 # cleanup
                 p_clean = await gfrm(env, tmppath, force=True)
                 await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
                 await p_clean.wait()
-                yield json.dumps({"error": error_message, "done": True}) + "\n"
+                current_status["error"] = error_message
+                current_status["done"] = True
+                yield json.dumps(current_status) + "\n"
                 return
 
         if return_code_export != 0 or return_code_reg != 0:
@@ -2858,7 +2868,9 @@ async def file_copy(copy_data: FileOperation,
             p_clean = await gfrm(env, tmppath, force=True)
             await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
             await p_clean.wait()
-            yield json.dumps({"error": "copy failed", "done": True}) + "\n"
+            current_status["error"] = "copy failed"
+            current_status["done"] = True
+            yield json.dumps(current_status) + "\n"
             return
 
         # final move
@@ -2872,17 +2884,17 @@ async def file_copy(copy_data: FileOperation,
         if return_code_mv == 0:
             ok, error_message = await match_checksum(
                 env, request.method, apiname, gfarm_path, dest_path, elist)
-            yield json.dumps(
-                {"copied": copied,
-                 "total": size,
-                 "warn": error_message if ok is None else None,
-                 "error": None if ok is None else error_message,
-                 "done": True}) + "\n"
+            current_status["warn"] = error_message if ok is None else None
+            current_status["error"] = None if ok is None else error_message
+            current_status["done"] = True
+            yield json.dumps(current_status) + "\n"
         else:
             p_clean = await gfrm(env, tmppath, force=True)
             await asyncio.create_task(log_stderr("gfrm", p_clean, elist))
             await p_clean.wait()
-            yield json.dumps({"error": "move failed"}) + "\n"
+            current_status["error"] = "move failed"
+            current_status["done"] = True
+            yield json.dumps(current_status) + "\n"
 
     return StreamingResponse(progress_generator(),
                              media_type="application/json")
