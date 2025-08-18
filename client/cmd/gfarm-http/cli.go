@@ -64,6 +64,11 @@ var commands = map[string]*Command{
 		Description: "Show current user",
 		Handler:     handleWhoami,
 	},
+	"copy": {
+		Name:        "copy",
+		Description: "Copy file",
+		Handler:     handleCopy,
+	},
 }
 
 func exitErr(err error) {
@@ -267,4 +272,16 @@ func handleWhoami(client *Client, args []string) error {
 		return fmt.Errorf("whoami takes no arguments")
 	}
 	return client.cmdWhoami()
+}
+
+func handleCopy(client *Client, args []string) error {
+	fs := flag.NewFlagSet("copy", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 2 {
+		return fmt.Errorf("copy requires source and destination")
+	}
+	return client.cmdCopy(rest[0], rest[1])
 }

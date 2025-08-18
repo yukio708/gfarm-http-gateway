@@ -302,3 +302,12 @@ func (c *Client) cmdWhoami() error {
 	u := c.generateURL("conf/me", "", nil)
 	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
 }
+
+func (c *Client) cmdCopy(srcPath, dstPath string) error {
+	if srcPath == "" || dstPath == "" {
+		return fmt.Errorf("both source and destination paths are required")
+	}
+	u := c.generateURL("copy", "", nil)
+	data := map[string]string{"source": srcPath, "destination": dstPath}
+	return c.makeHTTPRequest("POST", u, data, nil, "", "")
+}
