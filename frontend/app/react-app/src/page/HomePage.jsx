@@ -113,6 +113,7 @@ function HomePage() {
                 if (info.is_file) {
                     handleDisplayFile(info.path);
                 } else if (info.is_sym) {
+                    // Theoretically unreachable, added only for completeness/safety.
                     addNotification(
                         info.name,
                         get_ui_error([ErrorCodes.NOT_FOUND]).message,
