@@ -2314,7 +2314,7 @@ async def get_symlink(gfarm_path: str,
 
         stdout = await read_proc_output(opname, proc, elist)
         if stdout is None:
-            raise Exception(str(elist))
+            raise RuntimeError(str(elist))
         st = parse_gfstat(stdout)
         logger.debug("Stat=\n" + pf(st.model_dump()))
         if st.Filetype == "regular file" and not get_fullpath:
