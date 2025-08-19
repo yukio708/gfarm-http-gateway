@@ -162,8 +162,20 @@ export const formatFileSize = (filesize, is_dir) => {
     return sizestr;
 };
 
-export const getTimeStr = (time, format = "DMY") => {
+export const formatBytes = (bytes) => {
+    if (bytes == null) return "";
+    return new Intl.NumberFormat("en-US").format(bytes) + " bytes";
+};
+
+export const getTimeStr = (time, format = "DMY", withNanos = false) => {
     if (!time) return "unknown";
+
+    // Seconds + Decimals
+    const secInt = Math.floor(time);
+    const frac = time - secInt; // decimal part
+
+    // Convert to ns
+    const nanos = BigInt(Math.round(frac * 1e9));
 
     let locale;
     switch (format) {
@@ -177,7 +189,29 @@ export const getTimeStr = (time, format = "DMY") => {
         default:
             locale = "en-GB"; // day-month-year
     }
-    return new Date(time * 1000).toLocaleString(locale);
+
+    const d = new Date(secInt * 1000);
+
+    if (!withNanos) {
+        return d.toLocaleString(locale);
+    } else {
+        const offsetMin = -d.getTimezoneOffset(); // JSTなら +540
+        const sign = offsetMin >= 0 ? "+" : "-";
+        const hh = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, "0");
+        const mm = String(Math.abs(offsetMin) % 60).padStart(2, "0");
+        const tzStr = `${sign}${hh}${mm}`;
+        const dateStr = d.toLocaleDateString(locale);
+        const timeStr = [
+            String(d.getHours()).padStart(2, "0"),
+            String(d.getMinutes()).padStart(2, "0"),
+            String(d.getSeconds()).padStart(2, "0"),
+        ].join(":");
+
+        // 9 桁のナノ秒文字列
+        const fracStr = nanos.toString().padStart(9, "0");
+
+        return `${dateStr} ${timeStr}.${fracStr} ${tzStr}`;
+    }
 };
 
 export const loadExternalCss = (url) => {
