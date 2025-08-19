@@ -82,10 +82,10 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                             type="button"
                             className="dropdown-item"
                             onClick={() => folderInputRef.current?.click()}
-                            data-testid="upload-folder"
+                            data-testid="upload-directory"
                         >
                             <BsFolder className="me-2" />
-                            Folder
+                            Directory
                         </button>
                     </li>
                     <li>
@@ -102,7 +102,7 @@ function UploadMenu({ actions, uploadDir, currentItems }) {
                             data-testid="create-directory"
                         >
                             <BsFolderPlus className="me-2" />
-                            Folder
+                            Directory
                         </button>
                     </li>
                     <li>
