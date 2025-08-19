@@ -35,7 +35,8 @@ function useProgressTasks(refreshItems, addNotification) {
             const fullpath = file.destPath;
             const taskId = fullpath + Date.now();
             const displaypath = fullpath.replace(file.uploadDir + "/", "");
-            const displayname = displaypath > 20 ? displaypath.slice(0, 20) + "..." : displaypath;
+            const displayname =
+                displaypath.length > 20 ? displaypath.slice(0, 20) + "..." : displaypath;
 
             const newTask = {
                 taskId,
