@@ -19,23 +19,28 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - name: Cache Dependencies
         uses: actions/cache@v4
         with:
-          path: ./venv
+          path: ./server/venv
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
       - name: Run setup-latest-wo-sys-packages
+        working-directory: server
         run: make setup-latest-wo-sys-packages
       - name: Run test
+        working-directory: server
         run: make test
       - name: Run flake8
+        working-directory: server
         run: make flake8
       - name: Update requirements.txt
+        working-directory: server
         run: make freeze
       - name: Check for changes (for requirements.txt)
+        working-directory: server
         id: check_changes
         # https://docs.github.com/ja/actions/writing-workflows/choosing-what-your-workflow-does/passing-information-between-jobs
         run: |
@@ -44,6 +49,7 @@ jobs:
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Commit files (for requirements.txt)
+        working-directory: server
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
           git config --local user.email "${{ github.event.pusher.email }}"

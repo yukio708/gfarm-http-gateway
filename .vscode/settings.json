@@ -1,0 +1,32 @@
+{
+  "python.analysis.extraPaths": [
+    "/home/otsukay/gfarm/gfarm/gfarm-http-gateway/venv/lib/python3.12/site-packages"
+  ],
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.formatOnSave": false
+  },
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.formatOnSave": false
+  },
+  "files.trimTrailingWhitespace": true,
+  "flake8.args": [
+    "--max-line-length=79",
+    "--ignore=E203,W503,W504"
+  ]
+}
