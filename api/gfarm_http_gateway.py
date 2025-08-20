@@ -1282,11 +1282,11 @@ class Stat(BaseModel):
     Inode: Optional[int] = None
     Ncopy: Optional[int] = None
     Links: Optional[int] = None
-    AccessSecound: Optional[float] = None
+    AccessSeconds: Optional[float] = None
     Access: Optional[str] = None
-    ModifySecound: Optional[float] = None
+    ModifySeconds: Optional[float] = None
     Modify: Optional[str] = None
-    ChangeSecound: Optional[float] = None
+    ChangeSeconds: Optional[float] = None
     Change: Optional[str] = None
     MetadataHost: Optional[str] = None
     MetadataPort: Optional[str] = None
@@ -1306,11 +1306,11 @@ class Stat(BaseModel):
                     "Inode": 3,
                     "Ncopy": 1,
                     "Links": 2,
-                    "AccessSecound": 1739212053.191688,
+                    "AccessSeconds": 1739212053.191688,
                     "Access": "2025-02-10 18:27:33.191688 +0000",
-                    "ModifySecound": 1739212051.07112,
+                    "ModifySeconds": 1739212051.07112,
                     "Modify": "2025-02-10 18:27:31.071120 +0000",
-                    "ChangeSecound": 1739178909.4,
+                    "ChangeSeconds": 1739178909.4,
                     "Change": "2025-02-10 18:15:09.400000 +0900",
                     "MetadataHost": "gfmd1",
                     "MetadataPort": "601",
@@ -1374,7 +1374,7 @@ def parse_gfstat(file_info_str):
                 zone = t[2]
                 value = f"{day} {sec}.{usec} {zone}"
                 value_sec = timestamp_to_unix(value)
-                file_info[key + "Secound"] = value_sec
+                file_info[key + "Seconds"] = value_sec
         elif key is None:
             continue
         file_info[key] = value
@@ -2060,7 +2060,7 @@ async def file_size(env, path, extend=False):
         size = st.Size
     logger.debug(f"file_size: {existing}, {is_file}, {size}")
     if extend:
-        return existing, is_file, size, int(st.ModifySecound)
+        return existing, is_file, size, int(st.ModifySeconds)
     else:
         return existing, is_file, size
 

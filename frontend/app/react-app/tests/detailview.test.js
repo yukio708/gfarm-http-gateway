@@ -5,7 +5,8 @@ const {
     findChildrenByPath,
     findNodeByPath,
     clickMenuItemFromView,
-    getSize,
+    formatBytes,
+    getTimeStr,
     symbolicToOctal,
     handleRoute,
     FRONTEND_URL,
@@ -34,6 +35,7 @@ test.beforeEach(async ({ context }) => {
 const getExpectedDetailData = (filePath) => {
     const fileNode = findNodeByPath(fileStructureData, filePath);
     if (!fileNode) return null;
+    const d = new Date(fileNode.mtime_str);
 
     return {
         File: fileNode.name,
@@ -44,9 +46,12 @@ const getExpectedDetailData = (filePath) => {
               : "directory",
         Size: fileNode.size,
         Mode: fileNode.mode_str,
-        Access: fileNode.mtime_str, // Use 'mtime_str'
-        Modify: fileNode.mtime_str, // Use 'mtime_str'
-        Change: fileNode.mtime_str, // Use 'mtime_str'
+        Access: fileNode.mtime_str,
+        AccessSeconds: d.getTime() / 1000,
+        Modify: fileNode.mtime_str,
+        ModifySeconds: d.getTime() / 1000,
+        Change: fileNode.mtime_str,
+        ChangeSeconds: d.getTime() / 1000,
         Uid: fileNode.uname, // Use 'uname'
         Gid: fileNode.gname, // Use 'gname'
         MetadataHost: "test-host.local",
@@ -106,7 +111,7 @@ test("Should display file size in the details panel", async ({ page }) => {
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Size"]').locator("td").nth(1)).toHaveText(
-            getSize(expectedDetail.Size, false)
+            formatBytes(expectedDetail.Size, false)
         );
 
         await closeDetailTab(page);
@@ -142,7 +147,7 @@ test("Should display last access time in the details panel", async ({ page }) =>
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Access"]').locator("td").nth(1)).toHaveText(
-            expectedDetail.Access
+            getTimeStr(expectedDetail.AccessSeconds, "DMY", true)
         );
 
         await closeDetailTab(page);
@@ -160,7 +165,7 @@ test("Should display last modified time in the details panel", async ({ page }) 
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Modify"]').locator("td").nth(1)).toHaveText(
-            expectedDetail.Modify
+            getTimeStr(expectedDetail.ModifySeconds, "DMY", true)
         );
 
         await closeDetailTab(page);
@@ -178,7 +183,7 @@ test("Should display change time in the details panel", async ({ page }) => {
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Change"]').locator("td").nth(1)).toHaveText(
-            expectedDetail.Change
+            getTimeStr(expectedDetail.ChangeSeconds, "DMY", true)
         );
 
         await closeDetailTab(page);
@@ -232,10 +237,10 @@ test("Should display cksum in the details panel", async ({ page }) => {
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(
-            page.locator('[data-testid="detail-Cksum"]').locator("td").nth(1)
+            page.locator('[data-testid="detail-Digest"]').locator("td").nth(1)
         ).toContainText(expectedDetail.Cksum);
         await expect(
-            page.locator('[data-testid="detail-Cksum"]').locator("td").nth(1)
+            page.locator('[data-testid="detail-Digest"]').locator("td").nth(1)
         ).toContainText(expectedDetail.CksumType);
 
         await closeDetailTab(page);

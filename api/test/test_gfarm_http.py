@@ -9,10 +9,10 @@ from unittest.mock import patch, Mock, MagicMock, AsyncMock
 import zipfile
 import io
 
-import gfarm_http
+import gfarm_http_gateway
 
 
-client = TestClient(gfarm_http.app)
+client = TestClient(gfarm_http_gateway.app)
 
 test_access_token = "TEST_access_token"
 req_headers_oidc_auth = {"Authorization": f"Bearer {test_access_token}"}
@@ -38,35 +38,35 @@ def mock_claims():
 
 @pytest.fixture
 def mock_anon():
-    with patch("gfarm_http.ALLOW_ANONYMOUS") as mock:
+    with patch("gfarm_http_gateway.ALLOW_ANONYMOUS") as mock:
         mock = "yes"
         yield mock
 
 
 @pytest.fixture
 def mock_access_token():
-    with patch("gfarm_http.get_access_token") as mock:
+    with patch("gfarm_http_gateway.get_access_token") as mock:
         mock.return_value = test_access_token
         yield mock
 
 
 @pytest.fixture
 def mock_access_token_none():
-    with patch("gfarm_http.get_access_token") as mock:
+    with patch("gfarm_http_gateway.get_access_token") as mock:
         mock.return_value = None
         yield mock
 
 
 @pytest.fixture
 def mock_user_passwd():
-    with patch("gfarm_http.get_user_passwd") as mock:
+    with patch("gfarm_http_gateway.get_user_passwd") as mock:
         mock.return_value = tuple(userpass_str.split(":", 1))
         yield mock
 
 
 @pytest.fixture
 def mock_size():
-    with patch("gfarm_http.file_size") as mock:
+    with patch("gfarm_http_gateway.file_size") as mock:
         existing = True
         is_file = True
         size = 1
@@ -76,7 +76,7 @@ def mock_size():
 
 @pytest.fixture
 def mock_size_with_mtime():
-    with patch("gfarm_http.file_size") as mock:
+    with patch("gfarm_http_gateway.file_size") as mock:
         existing = True
         is_file = True
         size = 1
@@ -117,27 +117,27 @@ async def mock_exec(request):
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfstat(request):
     stdout, stderr, result = request.param
-    with patch('gfarm_http.gfstat') as mock:
+    with patch('gfarm_http_gateway.gfstat') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
 
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfmv(request):
     stdout, stderr, result = request.param
-    with patch('gfarm_http.gfmv') as mock:
+    with patch('gfarm_http_gateway.gfmv') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
 
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfrm(request):
     stdout, stderr, result = request.param
-    with patch('gfarm_http.gfrm') as mock:
+    with patch('gfarm_http_gateway.gfrm') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
 
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_size_not_file(request):
-    with patch("gfarm_http.file_size") as mock:
+    with patch("gfarm_http_gateway.file_size") as mock:
         existing = True
         is_file = False
         size = 1
@@ -147,7 +147,7 @@ async def mock_size_not_file(request):
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_size_not_found(request):
-    with patch("gfarm_http.file_size") as mock:
+    with patch("gfarm_http_gateway.file_size") as mock:
         existing = False
         is_file = False
         size = 0
@@ -159,14 +159,14 @@ async def mock_size_not_found(request):
 async def mock_gfls(request):
     print("!!!!request.param", request.param)
     stdout, stderr, result = request.param
-    with patch('gfarm_http.gfls') as mock:
+    with patch('gfarm_http_gateway.gfls') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
 
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfexport(request):
     stderr, result = request.param
-    with patch('gfarm_http.gfexport') as mock:
+    with patch('gfarm_http_gateway.gfexport') as mock:
         def _gfexport_dynamic_side_effect(env_arg, filepath_arg):
             mock_proc = MagicMock()
 
@@ -198,7 +198,7 @@ async def mock_gfexport(request):
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfwhoami(request):
     stdout, stderr, result = request.param
-    with patch('gfarm_http.gfwhoami') as mock:
+    with patch('gfarm_http_gateway.gfwhoami') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
 
 
@@ -254,7 +254,8 @@ async def mock_gfptar(request):
         b""
     ])
 
-    with patch("gfarm_http.gfptar", return_value=(mock_proc, ["test"])):
+    with patch("gfarm_http_gateway.gfptar",
+               return_value=(mock_proc, ["test"])):
         yield mock_proc
 
 
@@ -335,11 +336,11 @@ parsed_stat = {
     "Links": 2,
     "Ncopy": 1,
     "Access": "2025-02-10 18:27:33.191688 +0000",
-    "AccessSecound": 1739212053.191688,
+    "AccessSeconds": 1739212053.191688,
     "Modify": "2025-02-10 18:27:31.071120 +0000",
-    "ModifySecound": 1739212051.07112,
+    "ModifySeconds": 1739212051.07112,
     "Change": "2025-02-10 18:15:09.400000 +0900",
-    "ChangeSecound": 1739178909.4,
+    "ChangeSeconds": 1739178909.4,
     "MetadataHost": "gfmd1",
     "MetadataPort": "601",
     "MetadataUser": "user1",
@@ -347,7 +348,7 @@ parsed_stat = {
 
 
 def test_parse_gfstat():
-    st = gfarm_http.parse_gfstat(gfstat_dir_stdout).model_dump()
+    st = gfarm_http_gateway.parse_gfstat(gfstat_dir_stdout).model_dump()
     assert st == parsed_stat
 
 

@@ -1,24 +1,26 @@
 import React from "react";
-import { formatFileSize } from "@utils/func";
+import { formatBytes, getTimeStr } from "@utils/func";
+import { useDateFormat } from "@context/DateFormatContext";
 import PropTypes from "prop-types";
 
 function DetailTab({ active, detailContent }) {
     if (!active) return null;
+    const { dateFormat } = useDateFormat();
 
     const rows = [
         { label: "Path", value: detailContent?.File || "" },
         detailContent?.LinkPath && { label: "Link", value: detailContent?.LinkPath || "" },
         { label: "Type", value: detailContent?.Filetype || "" },
-        { label: "Size", value: formatFileSize(detailContent?.Size || 0, false) },
+        { label: "Size", value: formatBytes(detailContent?.Size || 0, false) },
         { label: "Mode", value: detailContent?.Mode || "" },
         { label: "Ncopy", value: detailContent?.Ncopy || "" },
         { label: "Owner", value: detailContent?.Uid || "" },
         { label: "Group", value: detailContent?.Gid || "" },
-        { label: "Access", value: detailContent?.Access || "" },
-        { label: "Modify", value: detailContent?.Modify || "" },
-        { label: "Change", value: detailContent?.Change || "" },
+        { label: "Access", value: getTimeStr(detailContent?.AccessSeconds, dateFormat, true) },
+        { label: "Modify", value: getTimeStr(detailContent?.ModifySeconds, dateFormat, true) },
+        { label: "Change", value: getTimeStr(detailContent?.ChangeSeconds, dateFormat, true) },
         {
-            label: "Cksum",
+            label: "Digest",
             value: `${detailContent?.Cksum || ""}${detailContent?.CksumType ? ` (${detailContent.CksumType})` : ""}`,
         },
     ].filter(Boolean);

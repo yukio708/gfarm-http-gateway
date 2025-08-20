@@ -100,7 +100,7 @@ test("Should upload a nested directory using the folder upload dialog", async ({
 
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${currentDirectory}`);
 
-    await clickMenuItemFromNewMenu(page, "upload-folder");
+    await clickMenuItemFromNewMenu(page, "upload-directory");
 
     const inputLocator = page.locator('input[type="file"][multiple][webkitdirectory]');
     await expect(inputLocator).toBeAttached();

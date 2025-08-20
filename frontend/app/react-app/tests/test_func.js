@@ -204,6 +204,58 @@ export const getSize = (filesize, is_dir) => {
     return `${parseFloat((filesize / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
+export const formatBytes = (bytes) => {
+    if (bytes == null) return "";
+    return new Intl.NumberFormat("en-US").format(bytes) + " bytes";
+};
+
+export const getTimeStr = (time, format = "DMY", withNanos = false) => {
+    if (!time) return "unknown";
+
+    // Seconds + Decimals
+    const secInt = Math.floor(time);
+    const frac = time - secInt; // decimal part
+
+    // Convert to ns
+    const nanos = BigInt(Math.round(frac * 1e9));
+
+    let locale;
+    switch (format) {
+        case "MDY":
+            locale = "en-US"; // month-day-year
+            break;
+        case "YMD":
+            locale = "ja-JP"; // year-month-day
+            break;
+        case "DMY":
+        default:
+            locale = "en-GB"; // day-month-year
+    }
+
+    const d = new Date(secInt * 1000);
+
+    if (!withNanos) {
+        return d.toLocaleString(locale);
+    } else {
+        const offsetMin = -d.getTimezoneOffset(); // JSTなら +540
+        const sign = offsetMin >= 0 ? "+" : "-";
+        const hh = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, "0");
+        const mm = String(Math.abs(offsetMin) % 60).padStart(2, "0");
+        const tzStr = `${sign}${hh}${mm}`;
+        const dateStr = d.toLocaleDateString(locale);
+        const timeStr = [
+            String(d.getHours()).padStart(2, "0"),
+            String(d.getMinutes()).padStart(2, "0"),
+            String(d.getSeconds()).padStart(2, "0"),
+        ].join(":");
+
+        // 9 桁のナノ秒文字列
+        const fracStr = nanos.toString().padStart(9, "0");
+
+        return `${dateStr} ${timeStr}.${fracStr} ${tzStr}`;
+    }
+};
+
 const FILE_ICON_MAP = {
     pdf: "bi bi-file-earmark-pdf",
     jpg: "bi bi-file-earmark-image",
@@ -436,6 +488,7 @@ const handleAttrRoute = async (route, url) => {
     const fileNode = findNodeByPath(fileStructureData, filePath);
 
     if (fileNode) {
+        const d = new Date(fileNode.mtime_str);
         const detailResponse = {
             File: fileNode.name,
             Filetype: fileNode.name.includes(".")
@@ -446,8 +499,11 @@ const handleAttrRoute = async (route, url) => {
             Size: fileNode.size,
             Mode: symbolicToOctal(fileNode.mode_str),
             Access: fileNode.mtime_str,
+            AccessSeconds: d.getTime() / 1000,
             Modify: fileNode.mtime_str,
+            ModifySeconds: d.getTime() / 1000,
             Change: fileNode.mtime_str,
+            ChangeSeconds: d.getTime() / 1000,
             Uid: fileNode.uname,
             Gid: fileNode.gname,
             MetadataHost: "test-host.local",
