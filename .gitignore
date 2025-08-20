@@ -8,3 +8,5 @@ server/venv/
 
 __pycache__
 .pytest_cache
+
+gfarm-http-gateway.conf

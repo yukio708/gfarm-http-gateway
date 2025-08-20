@@ -2,6 +2,8 @@
 set -eu
 set -x
 
+cp gfarm-http-gateway.conf.default gfarm-http-gateway.conf
+
 DIR=$(dirname $(realpath $0))
 CONF=./gfarm-http-gateway-for-docker-dist.conf
 

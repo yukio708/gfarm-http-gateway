@@ -177,9 +177,7 @@ conf_required_keys = [
     "GFARM_HTTP_TMPDIR"
 ]
 
-# default parameters
-default_dict = load_config_from_file("api/default.conf")
-
+# parameters
 conf_file = os.environ.get("GFARM_HTTP_CONFIG_FILE", "gfarm-http-gateway.conf")
 if os.path.exists(conf_file):
     conf_dict = load_config_from_file(conf_file)
@@ -188,8 +186,7 @@ else:
 
 env_dict = load_config_from_env()
 
-merged_dict = default_dict
-merged_dict.update(conf_dict)
+merged_dict = conf_dict
 merged_dict.update(env_dict)
 validate_conf(merged_dict, conf_required_keys)
 format_conf(merged_dict, conf_required_keys)
