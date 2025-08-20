@@ -3,20 +3,38 @@ services:
     build:
       context: .
     container_name: gfarm-http-gateway
-    ports:
-      - 8000:8000
-
+    command: --host 0.0.0.0 --port 8000
+    # for Run with a Subpath
+    # command: --host 0.0.0.0 --port 8000 --root-path /gfarm
     volumes:
-      # Required: Gfarm core config
+      # Required: Gfarm config
       - ./config/gfarm2.conf:/config/gfarm2.conf:ro
-
       # Required: Gfarm HTTP gateway config
       - ./config/gfarm-http-gateway.conf:/config/gfarm-http-gateway.conf:ro
-
       # Required: CA certs for Gfarm
       - ./config/certs:/config/certs:ro
-
     # Optional: Custom development CA (e.g. self-signed root CA)
     # - ./config/dev_ca.crt:/config/dev_ca.crt:ro
 
     restart: unless-stopped
+    networks:
+      - gfarm_net
+
+  nginx-proxy:
+    container_name: nginx-proxy
+    image: nginx:latest
+    ports:
+      - "443:443"    # HTTPS
+    volumes:
+      # Required: Nginx config
+      - ./nginx/gfarm.conf:/etc/nginx/conf.d/gfarm.conf:ro
+      # Required for HTTPS: TLS server certs/keys for Nginx
+      - ./nginx/certs:/etc/nginx/certs:ro
+    networks:
+      - gfarm_net
+    depends_on:
+      - gfarm-http-gateway
+
+networks:
+  gfarm_net:
+    name: gfarm_net
