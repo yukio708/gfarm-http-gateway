@@ -1,78 +1,181 @@
-## How to use clients
+# gfarm-http Client
 
-### Requirements
+Command-line tools for interacting with [gfarm-http-gateway](../server).
 
-- Gfarm (clients) 2.8.7 or later
-- Python 3.12 or later
-- venv (python3-venv)
-- Python packages (refer to `requirements.txt`)
-- GNU Make
-- OpenID provider (Keycloak, etc.)
-- JWT server and jwt-agent (for gfhttpc-* and jwt-curl commands)
-  - JWT Server: <https://github.com/oss-tsukuba/jwt-server>
-  - jwt-agent: <https://github.com/oss-tsukuba/jwt-agent>
-- curl 7.76.0 or later (for gfhttpc-* commands)
-- Node.js v22 or later
+This directory provides:
 
-### gfhttpc-* commands
+- **gfarm-http** — Unified CLI for Gfarm over HTTP
+- **jwt-curl** — Wrapper for `curl` with JWT/OIDC support
 
-- bin/gfhttpc-download Gfarm-path Local-path
-- bin/gfhttpc-upload Local-path Gfarm-path
-- bin/gfhttpc-whoami
-- bin/gfhttpc-ls [-laeR] Gfarm-path
-- bin/gfhttpc-rm Gfarm-path
-- bin/gfhttpc-mkdir Gfarm-path
-- bin/gfhttpc-rmdir Gfarm-path
-- bin/gfhttpc-mv Gfarm-path-src Gfarm-path-dest
-- bin/gfhttpc-stat Gfarm-path
-- bin/gfhttpc-chmod mode Gfarm-path
-- bin/gfhttpc-test.sh
+## Requirements
 
-#### Example of gfhttpc-* commands
+To use the client successfully, you need:
 
-- `GFARM_HTTP_URL=http://c2:8000 bin/gfhttpc-whoami`
-- `GFARM_HTTP_URL=http://c2:8000 GFARM_SASL_USER=user1 GFARM_SASL_PASSWORD=PASSWORD bin/gfhttpc-whoami`
-- `GFARM_HTTP_URL=http://c2:8000 GFARM_SASL_USER=anonymous bin/gfhttpc-whoami`
+### Server-side (environment already running)
 
-### curl commands for jwt-agent (low level commands for gfhttpc-* commands)
+- **gfarm-http-gateway** — The API server  
+- **JWT server** — Issues access tokens ([jwt-server](https://github.com/oss-tsukuba/jwt-server))  
 
-- bin/jwt-curl [curl options]
-  - Automatically add the access token from jwt-agent to the Authorization header
-  - Available curl options
-    - See the curl manual
-  - Environment variables
-    - JWT_USER_PATH: JWT file of access token (for SASL mechanism: XOAUTH2)
-    - GFARM_SASL_USER: SASL user name
-      - To use SASL ANONYMOUS: GFARM_SASL_USER=anonymous
-        - In that case, the Authorization header will not be included in the request.
-    - GFARM_SASL_PASSWORD: SASL password (for SASL mechanisms: PLAIN or LOGIN)
-- bin/jwt-curl-upload local_file URL [curl options]
-  - Upload a file
-  - Automatically use jwt-curl and --upload-file option
-  - Available jwt-curl environment variables
+### Client-side (your terminal)
 
-#### Example of jwt-curl command
+- **jwt-agent** — Manages and refreshes tokens ([jwt-agent](https://github.com/oss-tsukuba/jwt-agent))  
+- `gfarm-http` binary (this project) or `jwt-curl` scripts  
 
-- get passphrase from JWT Server
-- start jwt-agent
-- `gfmkdir /tmp; gfchmod 1777 /tmp`
-- `cd bin`
-- `./jwt-curl -s http://c2:8000/c/me`
-- `./jwt-curl -s "http://c2:8000/d/?a=1&R=1&ign_err=1"`
-- `dd if=/dev/urandom of=/tmp/10GiB bs=1M count=10K`
-- `./jwt-curl-upload /tmp/10GiB http://c2:8000/f/tmp/10GiB`
-- `./jwt-curl -o /tmp/10GiB-2 http://c2:8000/f/tmp/10GiB`
-- `GFARM_SASL_USER=anonymous ./jwt-curl http://c2:8000/c/me`
-  - or `curl http://c2:8000/c/me`
-- `GFARM_SASL_USER=user1 GFARM_SASL_PASSWORD=PASSWORD ./jwt-curl http://c2:8000/c/me`
+## Installation
+
+### Option 1: Download prebuilt binary (recommended)
+
+Prebuilt binaries are available from the [Releases](https://github.com/oss-tsukuba/gfarm-http-gateway/releases) page.
+
+Example for Linux (amd64):
+
+```bash
+wget https://github.com/oss-tsukuba/gfarm-http-gateway/releases/download/vX.Y.Z/gfarm-http-linux-amd64 -O gfarm-http
+chmod +x gfarm-http
+sudo mv gfarm-http /usr/local/bin/
+```
+
+> Replace `vX.Y.Z` with the desired release version
+
+Then verify:
+
+```bash
+gfarm-http --help
+```
 
 
-### Authorization
+---
 
-- How to use OIDC access token
-  - HTTP request header: "Authorization: Bearer <Access token>"
-- How to use username:password
-  - HTTP request header: "Authorization: Basic <base64encoded 'user:pass'>"
-- How to use session
-  - open "/" (index page) by web browser
-  - and login (OpenID provider or password for SASL)
+### Option 2: Build from source
+
+You need **Go 1.18+** installed.
+
+```bash
+git clone https://github.com/oss-tsukuba/gfarm-http-gateway.git
+cd gfarm-http-gateway/client
+go build -o gfarm-http ./cmd/gfarm-http
+```
+
+The compiled binary `gfarm-http` will be created in the `client/` directory.
+
+Install it to your PATH:
+
+```bash
+sudo mv gfarm-http /usr/local/bin/
+```
+
+Then verify:
+
+```bash
+gfarm-http --help
+```
+
+
+## gfarm-http (recommended CLI)
+
+Main entry point:
+
+```bash
+gfarm-http [global-options] <command> [command-options] [args]
+```
+
+### Supported commands
+
+* `ls [options] <Gfarm-path>`
+* `download <Gfarm-path> <Local-path>`
+* `upload <Local-path> <Gfarm-path>`
+* `rm <Gfarm-path>`
+* `mkdir <Gfarm-path>`
+* `rmdir <Gfarm-path>`
+* `mv <src> <dest>`
+* `stat <Gfarm-path>`
+* `chmod <mode> <Gfarm-path>`
+* `whoami`
+* `copy <src> <dest>`
+* `symlink <target> <linkname>`
+* `tar <create|extract|list> ...`
+
+### Examples
+
+#### File Operations
+```bash
+# List files and directories
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http ls -la /tmp
+
+# Upload and download files
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http upload ./local.txt /tmp/remote.txt
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http download /tmp/remote.txt ./local.txt
+
+# File management
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http mkdir /tmp/newdir
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http mv /tmp/old.txt /tmp/new.txt
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http rm /tmp/unwanted.txt
+```
+
+#### System Information
+```bash
+# Check current user
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http whoami
+
+# Get file attributes
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http stat /tmp/file.txt
+
+# Change permissions
+GFARM_HTTP_URL=http://localhost:8000 gfarm-http chmod 644 /tmp/file.txt
+```
+
+
+## jwt-curl
+
+Wrapper around `curl` that automatically attaches an access token from `jwt-agent`.
+
+### Commands
+
+* `bin/jwt-curl [curl options]`
+
+  * Adds `Authorization: Bearer <token>` header automatically
+  * Environment variables:
+
+    * `JWT_USER_PATH` — Path to JWT file
+    * `GFARM_SASL_USER` — Username (`anonymous` disables Authorization header)
+    * `GFARM_SASL_PASSWORD` — Password (for SASL PLAIN/LOGIN)
+* `bin/jwt-curl-upload local_file URL [curl options]`
+
+  * Convenience wrapper for file uploads
+
+### Examples
+
+```bash
+# Start jwt-agent after retrieving passphrase from JWT Server
+
+# Simple GET with token
+./jwt-curl -s http://c2:8000/conf/me
+
+# Anonymous access
+GFARM_SASL_USER=anonymous ./jwt-curl http://c2:8000/conf/me
+
+# SASL user/pass
+GFARM_SASL_USER=user1 GFARM_SASL_PASSWORD=PASSWORD ./jwt-curl http://c2:8000/conf/me
+```
+
+## Authorization
+
+Supported methods:
+
+* **OIDC Access Token** (preferred):
+  `Authorization: Bearer <token>`
+
+* **SASL Username/Password**:
+  `Authorization: Basic <base64(user:pass)>`
+
+* **Browser Session**:
+  Login through the Web UI (OIDC or SASL)
+
+## Debug Mode
+
+Enable verbose output for troubleshooting:
+
+```bash
+# Add -v flag for verbose output
+gfarm-http -v ls /tmp
+```
