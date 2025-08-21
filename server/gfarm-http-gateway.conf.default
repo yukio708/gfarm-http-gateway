@@ -73,7 +73,7 @@ GFARM_HTTP_KEYCLOAK_RELATIVE_PATH=/auth
 #   OpenID Connect base URL
 #   (used for string replacement in GFARM_HTTP_OIDC_*)
 #   default is for Keycloak (using GFARM_HTTP_KEYCLOAK_SERVER)
-#   NOTE: "http://" is not work for Gfarm
+#   NOTE: "http://" does not work for Gfarm
 #     gfmd[]: <err> [1005366]
 #     SASL: xoauth2_plugin: introspect_token #012 Issuer URL must be HTTPS
 GFARM_HTTP_OIDC_BASE_URL="{GFARM_HTTP_KEYCLOAK_SERVER}{GFARM_HTTP_KEYCLOAK_RELATIVE_PATH}/realms/{GFARM_HTTP_KEYCLOAK_REALM}"
