@@ -23,7 +23,7 @@ This repository provides two components:
 ## Quick Links
 
 - **Server setup (Docker or manual):**  
-  [gfarm-http-gateway/README.md](./server/README.md)
+  [server/README.md](./server/README.md)
 
 - **Client usage (CLI):**  
   [client/README.md](./client/README.md)
