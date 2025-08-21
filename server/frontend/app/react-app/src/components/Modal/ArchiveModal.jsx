@@ -18,7 +18,6 @@ function ArchiveModal({
     currentDirItems,
     setSelectedItems,
     setItemForGfptar,
-    refresh,
 }) {
     const title = "Gfptar";
     const { showHidden } = useShowHidden();
@@ -95,7 +94,7 @@ function ArchiveModal({
                         setIndirList(indirList);
                     }
                 },
-                refresh
+                () => {}
             );
         } else {
             setItemForGfptar(
@@ -329,5 +328,4 @@ ArchiveModal.propTypes = {
     currentDirItems: PropTypes.array,
     setSelectedItems: PropTypes.func,
     setItemForGfptar: PropTypes.func,
-    refresh: PropTypes.func,
 };

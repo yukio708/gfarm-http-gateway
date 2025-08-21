@@ -380,7 +380,6 @@ function HomePage() {
                     currentDirItems={currentItems}
                     currentDir={currentDir}
                     setItemForGfptar={setItemForGfptar}
-                    refresh={() => refreshItems()}
                 />
             )}
             <SettingsModal />
