@@ -1,26 +1,33 @@
 # gfarm-http-gateway webui
 
----
+## Prerequisites
 
-## Getting Started
+* Node.js (v22 or higher recommended)
 
-### Prerequisites
-
-* Node.js (v20 or higher recommended)
-
-### Install dependencies
+## Install dependencies
 
 ```bash
 npm install
 ```
 
-### Development
+## Development
 
-Start the app with hot reload:
+### Backend Setup Required
+
+Before running the React app, you need the gfarm-http-gateway backend running:
+
+1. Follow the setup instructions in the main [server/README.md](../../../README.md)
+2. Start the backend server (typically on `http://localhost:8000`)
+
+### Start Frontend Development Server
+
+Start the React app with hot reload:
 
 ```bash
 npm run start
 ```
+
+The frontend will be available at `http://localhost:3000` and will proxy API requests to the backend.
 
 ### Build for Production
 
@@ -55,17 +62,22 @@ Interactive test UI:
 npm run e2e:ui
 ```
 
----
 
 ## Folder Structure
 
 ```
 src/
-├── components/       # Reusable UI components
-├── pages/            # Page-level views (Home, Login, etc.)
-├── hooks/            # Custom React hooks
-├── utils/            # Utility functions (e.g., API helpers)
-├── App.jsx           # Main app entry
+├── components/           # Reusable UI components
+│   ├── FileListView/     # File browser components (list, icon views)
+│   ├── Modal/            # Modal dialogs (rename, delete, settings)
+│   └── SidePanel/        # File details and permissions panel
+├── page/                 # Page-level views and handlers
+├── hooks/                # Custom React hooks
+├── context/              # React context providers
+├── utils/                # Utility functions and API helpers
+├── css/                  # Component-specific stylesheets
+├── App.jsx               # Main application component
+└── index.jsx             # React app entry point
 public/
-└── assets/           # Static files (e.g., icons)
+└── assets/               # Static files (icons, logos, metadata)
 ```
