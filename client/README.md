@@ -7,19 +7,18 @@ This directory provides:
 - **gfarm-http** — Unified CLI for Gfarm over HTTP
 - **jwt-curl** — Wrapper for `curl` with JWT/OIDC support
 
-## Requirements
+## Prerequisites
 
-To use the client successfully, you need:
+To use the client, you need:
 
-### Server-side (environment already running)
+### Infrastructure (must be running)
 
 - **gfarm-http-gateway** — The API server  
 - **JWT server** — Issues access tokens ([jwt-server](https://github.com/oss-tsukuba/jwt-server))  
 
-### Client-side (your terminal)
+### Client Tools (install locally)
 
 - **jwt-agent** — Manages and refreshes tokens ([jwt-agent](https://github.com/oss-tsukuba/jwt-agent))  
-- `gfarm-http` binary (this project) or `jwt-curl` scripts  
 
 ## Installation
 
