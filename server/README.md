@@ -134,6 +134,22 @@ If you use Nginx as a reverse proxy, add a `location /gfarm/` block that preserv
 }
 ```
 
+### Option 4: Run in HPCI environment
+
+For running `gfarm-http-gateway` in the HPCI environment, an example Compose file is provided:  
+[`docker-compose-for-HPCI.yaml`](./docker-compose-for-HPCI.yaml)
+
+Build and Run:
+```bash
+docker compose -f docker-compose-for-HPCI.yaml up -d --build
+```
+
+This setup:
+- Uses `Dockerfile-for-HPCI`
+  - Automatically downloads HPCI-specific configuration (`gfarm2.conf`) and certificates
+- Mounts `gfarm-http-gateway-for-HPCI.conf` as the gateway configuration
+- Runs on port 8080 (accessible at `http://localhost:8080`)
+
 
 ## Manual Installation (example without Docker)
 
