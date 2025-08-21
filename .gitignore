@@ -10,3 +10,5 @@ __pycache__
 .pytest_cache
 
 gfarm-http-gateway.conf
+
+config/
