@@ -1458,45 +1458,32 @@ class ACList(BaseModel):
 
 
 def parse_gfgetfacl(acl_str) -> Union[ACList, None]:
-    owner = ""
-    group = ""
     acl = []
     lines = acl_str.strip().split('\n')
     for line in lines:
         line = line.strip()
         if not line:
             continue
+        if line.startswith('#'):
+            continue
 
-        if line.startswith('# owner:'):
-            owner_match = re.match(r"# owner:\s*(\S+)", line)
-            if owner_match:
-                owner = owner_match.group(1)
-        elif line.startswith('# group:'):
-            group_match = re.match(r"# group:\s*(\S+)", line)
-            if group_match:
-                group = group_match.group(1)
-        elif not line.startswith('#'):
-            is_default = False
-            if line.startswith('default:'):
-                is_default = True
-                line = line[len('default:'):]
+        is_default = False
+        if line.startswith('default:'):
+            is_default = True
+            line = line[len('default:'):]
 
-            match = re.match(r"(user|group|other)(?::([^:]*))?:([rwx-]+)",
-                             line)
+        match = re.match(r"(user|group|other)(?::([^:]*))?:([rwx-]+)", line)
 
-            if match:
-                acl_type = match.group(1)
-                acl_name = match.group(2) if match.group(2) else None
-                acl_perms = {}
-                for key in ["r", "w", "x"]:
-                    acl_perms[key] = key in match.group(3)
-                acl.append(ACInfo(acl_type=acl_type,
-                                  acl_name=acl_name,
-                                  acl_perms=acl_perms,
-                                  is_default=is_default))
-
-    if not owner or not group:
-        return None
+        if match:
+            acl_type = match.group(1)
+            acl_name = match.group(2) if match.group(2) else None
+            acl_perms = {}
+            for key in ["r", "w", "x"]:
+                acl_perms[key] = key in match.group(3)
+            acl.append(ACInfo(acl_type=acl_type,
+                              acl_name=acl_name,
+                              acl_perms=acl_perms,
+                              is_default=is_default))
 
     return ACList(acl=acl)
 
