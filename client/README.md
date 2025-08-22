@@ -13,7 +13,7 @@ To use the client, you need:
 
 ### Infrastructure (must be running)
 
-- **gfarm-http-gateway** — The API server  
+- **gfarm-http-gateway** — [server](../server) 
 - **JWT server** — Issues access tokens ([jwt-server](https://github.com/oss-tsukuba/jwt-server))  
 
 ### Client Tools (install locally)
@@ -42,8 +42,6 @@ Then verify:
 gfarm-http --help
 ```
 
-
----
 
 ### Option 2: Build from source
 
@@ -96,31 +94,40 @@ gfarm-http [global-options] <command> [command-options] [args]
 
 ### Examples
 
+#### Setup
+
+```bash
+# Set the gateway URL
+export GFARM_HTTP_URL=http://localhost:8000
+```
+
 #### File Operations
+
 ```bash
 # List files and directories
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http ls -la /tmp
+gfarm-http ls -la /tmp
 
 # Upload and download files
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http upload ./local.txt /tmp/remote.txt
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http download /tmp/remote.txt ./local.txt
+gfarm-http upload ./local.txt /tmp/remote.txt
+gfarm-http download /tmp/remote.txt ./local.txt
 
 # File management
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http mkdir /tmp/newdir
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http mv /tmp/old.txt /tmp/new.txt
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http rm /tmp/unwanted.txt
+gfarm-http mkdir /tmp/newdir
+gfarm-http mv /tmp/old.txt /tmp/new.txt
+gfarm-http rm /tmp/unwanted.txt
 ```
 
 #### System Information
+
 ```bash
 # Check current user
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http whoami
+gfarm-http whoami
 
 # Get file attributes
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http stat /tmp/file.txt
+gfarm-http stat /tmp/file.txt
 
 # Change permissions
-GFARM_HTTP_URL=http://localhost:8000 gfarm-http chmod 644 /tmp/file.txt
+gfarm-http chmod 644 /tmp/file.txt
 ```
 
 
@@ -144,17 +151,34 @@ Wrapper around `curl` that automatically attaches an access token from `jwt-agen
 
 ### Examples
 
+#### Basic Requests
+
 ```bash
-# Start jwt-agent after retrieving passphrase from JWT Server
+# Get username
+./jwt-curl -s http://localhost:8000/conf/me
 
-# Simple GET with token
-./jwt-curl -s http://c2:8000/conf/me
+# Get file list
+./jwt-curl -s "http://localhost:8080/dir/?show_hidden=on&long_format=on"
+```
 
+#### File Transfer
+
+```bash
+# Upload large file
+./jwt-curl-upload /tmp/10GiB http://localhost:8000/file/tmp/10GiB
+
+# Download file
+./jwt-curl -o /tmp/10GiB-2 http://localhost:8000/file/tmp/10GiB
+```
+
+#### Authentication Variants
+
+```bash
 # Anonymous access
-GFARM_SASL_USER=anonymous ./jwt-curl http://c2:8000/conf/me
+GFARM_SASL_USER=anonymous ./jwt-curl http://localhost:8000/conf/me
 
 # SASL user/pass
-GFARM_SASL_USER=user1 GFARM_SASL_PASSWORD=PASSWORD ./jwt-curl http://c2:8000/conf/me
+GFARM_SASL_USER=user1 GFARM_SASL_PASSWORD=PASSWORD ./jwt-curl http://localhost:8000/conf/me
 ```
 
 ## Authorization
