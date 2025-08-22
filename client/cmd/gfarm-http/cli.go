@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -78,6 +79,16 @@ var commands = map[string]*Command{
 		Name:        "tar",
 		Description: "archive files in parallel",
 		Handler:     handleTar,
+	},
+	"getfacl": {
+		Name:        "getfacl",
+		Description: "get file access control lists",
+		Handler:     handleGetfacl,
+	},
+	"setfacl": {
+		Name:        "setfacl",
+		Description: "set file access control lists",
+		Handler:     handleSetfacl,
 	},
 }
 
@@ -381,4 +392,54 @@ func handleTar(client *Client, args []string) error {
 	}
 
 	return fmt.Errorf("unreachable")
+}
+
+func handleGetfacl(client *Client, args []string) error {
+	fs := flag.NewFlagSet("getfacl", flag.ExitOnError)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		return fmt.Errorf("stat requires exactly 1 Gfarm-path")
+	}
+	return client.cmdGetfacl(rest[0])
+}
+
+func handleSetfacl(client *Client, args []string) error {
+	fs := flag.NewFlagSet("setfacl", flag.ExitOnError)
+
+	fromFile := fs.String("M", "", "read ACL entries from FILE ('-' for stdin)")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	rest := fs.Args()
+	if len(rest) != 1 {
+		return fmt.Errorf("stat requires exactly 1 Gfarm-path")
+	}
+
+	if *fromFile == "" {
+		return fmt.Errorf("setfacl requires -M FILE (gfgetfacl output)")
+	}
+
+	// Read ACL text from a file or stdin
+	var r io.Reader
+	if *fromFile == "-" {
+		r = os.Stdin
+	} else {
+		f, err := os.Open(*fromFile)
+		if err != nil {
+			return fmt.Errorf("open %s: %w", *fromFile, err)
+		}
+		defer f.Close()
+		r = f
+	}
+
+	aclText, err := io.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("read ACL file: %w", err)
+	}
+
+	return client.cmdSetfacl(rest[0], string(aclText))
 }

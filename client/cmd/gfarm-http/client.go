@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -335,4 +337,96 @@ func (c *Client) cmdTar(command, outdir, basedir string, source, options []strin
 		"options": options,
 	}
 	return c.makeHTTPRequest("POST", u, data, nil, "", "")
+}
+
+func (c *Client) cmdGetfacl(gfarmPath string) error {
+	if gfarmPath == "" {
+		return fmt.Errorf("gfarm-path is required")
+	}
+	u := c.generateURL("acl", gfarmPath, nil)
+	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
+}
+
+func (c *Client) cmdSetfacl(gfarmPath, aclText string) error {
+	if gfarmPath == "" {
+		return fmt.Errorf("gfarm-path is required")
+	}
+	u := c.generateURL("acl", gfarmPath, nil)
+
+	data, err := parseAclText(aclText)
+	if err != nil {
+		return fmt.Errorf("parse ACL: %w", err)
+	}
+
+	return c.makeHTTPRequest("POST", u, data, nil, "", "")
+}
+
+func parseAclText(text string) (map[string]any, error) {
+	entries := make([]map[string]any, 0, 8)
+	sc := bufio.NewScanner(strings.NewReader(text))
+
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		isDefault := false
+		if strings.HasPrefix(line, "default:") {
+			isDefault = true
+			line = strings.TrimPrefix(line, "default:")
+		} else if strings.HasPrefix(line, "d:") {
+			isDefault = true
+			line = strings.TrimPrefix(line, "d:")
+		}
+
+		// Expect "<type>:<name>:<perms>"
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("invalid ACL line (need type:name:perms): %q", line)
+		}
+
+		aclType := strings.TrimSpace(parts[0])
+		name := strings.TrimSpace(parts[1])
+		perms := strings.TrimSpace(parts[2])
+
+		r, w, x, err := parsePermBools(perms) // "rwx" / "r-x" etc.
+		if err != nil {
+			return nil, fmt.Errorf("invalid perms in %q: %w", line, err)
+		}
+
+		entry := map[string]any{
+			"acl_type":   aclType,
+			"acl_name":   nil, // null by default
+			"acl_perms":  map[string]bool{"r": r, "w": w, "x": x},
+			"is_default": isDefault,
+		}
+		if name != "" {
+			entry["acl_name"] = name
+		}
+
+		entries = append(entries, entry)
+	}
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
+
+	return map[string]any{"acl": entries}, nil
+}
+
+func parsePermBools(s string) (bool, bool, bool, error) {
+	if len(s) != 3 {
+		return false, false, false, fmt.Errorf("perms must be 3 chars (r/-)(w/-)(x/-), got %q", s)
+	}
+	// basic validation
+	if s[0] != 'r' && s[0] != '-' {
+		return false, false, false, fmt.Errorf("bad read flag: %q", s[0])
+	}
+	if s[1] != 'w' && s[1] != '-' {
+		return false, false, false, fmt.Errorf("bad write flag: %q", s[1])
+	}
+	if s[2] != 'x' && s[2] != '-' {
+		return false, false, false, fmt.Errorf("bad exec flag: %q", s[2])
+	}
+	return s[0] == 'r', s[1] == 'w', s[2] == 'x', nil
 }
