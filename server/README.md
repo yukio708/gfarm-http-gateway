@@ -23,7 +23,9 @@ Edit gfarm-http-gateway.conf and update variables for your environment
 ## Quick Start (example using Docker)
 
 ### Requirements
+
 - Docker
+- Docker Compose (for Option 2, Option 3, Option 4)
 
 ### Option 1: Run with Docker
 
@@ -86,11 +88,11 @@ cp nginx.conf.sample ./nginx/gfarm.conf
 
 Edit them to match your environment:  
 - In **`docker-compose.yaml`**:
-  - Mount the Nginx config and (optionally) certs, e.g.:
+  - Mount the Nginx config and TLS certificates, e.g.:
     - `./nginx/gfarm.conf:/etc/nginx/conf.d/gfarm.conf:ro`
     - `./nginx/certs:/etc/nginx/certs:ro`
 - In **`nginx/gfarm.conf`**:
-  - Point TLS to your cert paths, e.g.:
+  - Point TLS to your Nginx certificates, e.g.:
     - `ssl_certificate     /etc/nginx/certs/cert.pem;`
     - `ssl_certificate_key /etc/nginx/certs/key.pem;`
 
@@ -107,7 +109,7 @@ This is useful when you share a domain with other apps behind the same reverse p
 
 #### 1. Start the gateway with a root path
 
-- **Docker (single container):**
+- **Docker:**
 
 ```bash
   docker run --rm \
@@ -255,11 +257,11 @@ This setup:
   - login to c1 container
 - `ssh c2`
 - (in c2 container)
-- `cd ~/gfarm/gfarm-http-gateway`
+- `cd ~/gfarm/gfarm-http-gateway/server`
 - `make setup-latest`
 - `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug`
 - `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug` in c3 container using the same procedure described above
-- Refer to `Example: Keycloak on Gfarm docker/dist (developer setup)` for configuration details
+- Refer to `Keycloak on Gfarm docker/dist (developer setup)` for configuration details
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <https://jwt-server/> in a web browser
 - copy the command line of jwt-agent and start jwt-agent in c1 container
@@ -272,7 +274,7 @@ This setup:
   - login: `user1/PASSWORD`
   - This page contains examples of API usage
 
-#### Example: Keycloak on Gfarm docker/dist (developer setup)
+#### Keycloak on Gfarm docker/dist (developer setup)
 
 This section shows how to configure **Keycloak** as an OpenID Connect provider in the
 [Gfarm docker/dist](https://github.com/oss-tsukuba/gfarm/tree/master/docker/dist) environment.  
@@ -293,10 +295,6 @@ It is intended as a development example only.
 
 3. Save your changes.
 
-4. When you run `gfarm-http-gateway` in this docker/dist environment:
-   - You will be redirected to Keycloak for login.  
-   - Example test user: `user1 / PASSWORD`
-
 ### To freeze python packages
 
 - Edit requirements_dev.txt
@@ -315,7 +313,7 @@ git commit requirements.txt
 
 ### GitHub Actions
 
-- See: `.github/workflows/`
+- See: `../.github/workflows/`
 - See: <https://github.com/ad-m/github-push-action?tab=readme-ov-file#requirements-and-prerequisites>
   - (Requirements and Prerequisites)
   - `Read and write permissions` for Actions is required
