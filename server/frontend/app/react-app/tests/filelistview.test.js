@@ -6,6 +6,7 @@ const {
     findChildrenByPath,
     transformMtimeToUnix,
     getSize,
+    getTimeStr,
     getFileIconDefault,
     freezeTime,
     handleRoute,
@@ -78,9 +79,7 @@ test("Should display the file list when accessing an existing path", async ({ pa
             getSize(expectedFile.size, expectedFile.is_dir)
         );
 
-        await expect(rowLocator.locator("td").nth(4)).toHaveText(
-            new Date(expectedFile.mtime * 1000).toLocaleString("en-GB")
-        );
+        await expect(rowLocator.locator("td").nth(4)).toHaveText(getTimeStr(expectedFile.mtime));
     }
 });
 

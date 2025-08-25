@@ -147,7 +147,7 @@ test("Should display last access time in the details panel", async ({ page }) =>
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Access"]').locator("td").nth(1)).toHaveText(
-            getTimeStr(expectedDetail.AccessSeconds, "DMY", true)
+            getTimeStr(expectedDetail.AccessSeconds, "YMD", true)
         );
 
         await closeDetailTab(page);
@@ -165,7 +165,7 @@ test("Should display last modified time in the details panel", async ({ page }) 
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Modify"]').locator("td").nth(1)).toHaveText(
-            getTimeStr(expectedDetail.ModifySeconds, "DMY", true)
+            getTimeStr(expectedDetail.ModifySeconds, "YMD", true)
         );
 
         await closeDetailTab(page);
@@ -183,7 +183,7 @@ test("Should display change time in the details panel", async ({ page }) => {
 
         const expectedDetail = getExpectedDetailData(testFilePath);
         await expect(page.locator('[data-testid="detail-Change"]').locator("td").nth(1)).toHaveText(
-            getTimeStr(expectedDetail.ChangeSeconds, "DMY", true)
+            getTimeStr(expectedDetail.ChangeSeconds, "YMD", true)
         );
 
         await closeDetailTab(page);

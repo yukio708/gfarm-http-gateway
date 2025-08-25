@@ -209,7 +209,7 @@ export const formatBytes = (bytes) => {
     return new Intl.NumberFormat("en-US").format(bytes) + " bytes";
 };
 
-export const getTimeStr = (time, format = "DMY", withNanos = false) => {
+export const getTimeStr = (time, format = "YMD", withNanos = false) => {
     if (!time) return "unknown";
 
     // Seconds + Decimals
