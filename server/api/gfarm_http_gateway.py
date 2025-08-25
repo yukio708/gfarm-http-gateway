@@ -846,7 +846,7 @@ async def user_info(request: Request,
         user_passwd = get_user_passwd(request)
         if user_passwd:
             user, _ = user_passwd
-    if user:
+    if user or authorization:
         env = await set_env(request, authorization)
         username = await get_username(env)
         if username:

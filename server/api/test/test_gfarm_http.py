@@ -358,6 +358,8 @@ def test_parse_gfstat():
 expect_gfwhoami_stdout = "testuser"
 expect_gfwhoami = (expect_gfwhoami_stdout.encode(), b"error", 0)
 
+expect_gfwhoami_error = (None, b"error", 1)
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mock_exec", [expect_gfwhoami], indirect=True)
@@ -744,7 +746,9 @@ async def test_user_info_with_password(mock_claims, mock_exec,
 
 
 @pytest.mark.asyncio
-async def test_user_info_None(mock_claims):
+@pytest.mark.parametrize("mock_gfwhoami",
+                         [expect_gfwhoami_error], indirect=True)
+async def test_user_info_None(mock_claims, mock_gfwhoami):
     response = client.get("/user_info",
                           headers=req_headers_oidc_auth)
     assert response.status_code == 401
