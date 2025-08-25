@@ -8,6 +8,9 @@ test-verbose test-v:
 
 test-gfhttpc:
 	./bin/gfhttpc-test.sh /tmp
+	
+test-gfarm-http:
+	../client/test/gfarm-http-test.sh /tmp
 
 test-all: test-flake8 test-gfhttpc
 
