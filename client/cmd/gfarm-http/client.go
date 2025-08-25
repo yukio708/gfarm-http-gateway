@@ -430,3 +430,21 @@ func parsePermBools(s string) (bool, bool, bool, error) {
 	}
 	return s[0] == 'r', s[1] == 'w', s[2] == 'x', nil
 }
+
+func (c *Client) cmdUsers(long_format bool) error {
+	params := url.Values{}
+	if long_format {
+		params.Set("long_format", "on")
+	}
+	u := c.generateURL("users", "", params)
+	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
+}
+
+func (c *Client) cmdGroups(long_format bool) error {
+	params := url.Values{}
+	if long_format {
+		params.Set("long_format", "on")
+	}
+	u := c.generateURL("groups", "", params)
+	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
+}

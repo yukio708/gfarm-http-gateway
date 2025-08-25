@@ -90,6 +90,16 @@ var commands = map[string]*Command{
 		Description: "set file access control lists",
 		Handler:     handleSetfacl,
 	},
+	"gfuser": {
+		Name:        "gfuser",
+		Description: "get users list",
+		Handler:     handleUsers,
+	},
+	"gfgroup": {
+		Name:        "gfgroup",
+		Description: "get groups list",
+		Handler:     handleGroups,
+	},
 }
 
 func exitErr(err error) {
@@ -442,4 +452,28 @@ func handleSetfacl(client *Client, args []string) error {
 	}
 
 	return client.cmdSetfacl(rest[0], string(aclText))
+}
+
+func handleUsers(client *Client, args []string) error {
+	fs := flag.NewFlagSet("gfuser", flag.ExitOnError)
+
+	long_format := fs.Bool("l", false, "long format")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	return client.cmdUsers(*long_format)
+}
+
+func handleGroups(client *Client, args []string) error {
+	fs := flag.NewFlagSet("gfgroup", flag.ExitOnError)
+
+	long_format := fs.Bool("l", false, "long format")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	return client.cmdGroups(*long_format)
 }
