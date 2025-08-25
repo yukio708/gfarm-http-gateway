@@ -5,14 +5,11 @@ test:
 
 test-verbose test-v:
 	./bin/gfarm-http-gateway-test.sh -v
-
-test-gfhttpc:
-	./bin/gfhttpc-test.sh /tmp
 	
 test-gfarm-http:
 	../client/test/gfarm-http-test.sh /tmp
 
-test-all: test-flake8 test-gfhttpc
+test-all: test-flake8 test-gfarm-http
 
 flake8:
 	./venv/bin/flake8 api
