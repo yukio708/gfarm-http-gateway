@@ -66,7 +66,7 @@ gfarm-http [global-options] <command> [command-options] [args]
 * `chmod <mode> <Gfarm-path>`
 * `whoami`
 * `copy <src> <dest>`
-* `symlink <target> <linkname>`
+* `ln <target> <linkname>`
 * `tar <create|extract|list> ...`
 
 ### Examples
