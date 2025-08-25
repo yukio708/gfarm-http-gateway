@@ -56,18 +56,46 @@ gfarm-http [global-options] <command> [command-options] [args]
 ### Supported commands
 
 * `ls [options] <Gfarm-path>`
+  * `-a` - do not hide entries starting with '.'
+  * `-e` - display effective permissions  
+  * `-l` - list in long format
+  * `-T` - with -l option, show complete date format
+  * `-R` - recursively list subdirectories
+  * `-j` - output with json format
 * `download <Gfarm-path> <Local-path>`
+* `zipdownload [-o output] <Gfarm-paths>...`
+  * `-o output` - output zip file ("-" for stdout, default: "-")
 * `upload <Local-path> <Gfarm-path>`
-* `rm <Gfarm-path>`
-* `mkdir <Gfarm-path>`
+* `rm [options] <Gfarm-path>`
+  * `-f` - ignore nonexistent files, never prompt
+  * `-r` - remove directories and contents recursively
+* `mkdir [options] <Gfarm-path>`
+  * `-p` - create parent directories if needed
 * `rmdir <Gfarm-path>`
 * `mv <src> <dest>`
-* `stat <Gfarm-path>`
+* `stat [options] <Gfarm-path>`
+  * `-C` - show checksum
+  * `-l` - show symlink info, don't follow links
 * `chmod <mode> <Gfarm-path>`
-* `whoami`
 * `copy <src> <dest>`
-* `ln <target> <linkname>`
-* `tar <create|extract|list> ...`
+* `ln [options] <target> <linkname>`
+  * `-s` - create symbolic link
+* `tar <command> [options] [args]`
+  * `-c OUTDIR` - create tar files in OUTDIR from MEMBERs
+  * `-r OUTDIR` - append files to new tar files  
+  * `-u OUTDIR` - append only newer files to new tar files
+  * `-x OUTDIR` - extract entries from INDIR to OUTDIR
+  * `-t DIR` - list members of DIR
+  * `-C DIR` - change to directory for MEMBERs (default: ".")
+* `getfacl <Gfarm-path>`
+* `setfacl [options] <Gfarm-path>`
+  * `-M FILE` - read ACL entries from FILE ("-" for stdin)
+* `gfuser [options]`
+  * `-l` - long format
+* `gfgroup [options]`  
+  * `-l` - long format
+* `whoami`
+* `userinfo`
 
 ### Examples
 
