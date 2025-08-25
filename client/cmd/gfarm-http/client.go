@@ -4,11 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -64,23 +62,6 @@ func (c *Client) vlogf(format string, a ...any) {
 	}
 }
 
-func (c *Client) createRequest(ctx context.Context, method, requestURL string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequestWithContext(ctx, method, requestURL, body)
-	if err != nil {
-		return nil, fmt.Errorf("new request: %w", err)
-	}
-
-	authHeaders, err := GetAuthHeaders()
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range authHeaders {
-		req.Header.Set(k, v)
-	}
-	return req, nil
-}
-
 func (c *Client) logRequest(req *http.Request) {
 	if !c.Verbose {
 		return
@@ -91,58 +72,6 @@ func (c *Client) logRequest(req *http.Request) {
 			c.vlogf("   %s: %s\n", k, v)
 		}
 	}
-}
-
-func (c *Client) handleResponse(resp *http.Response, outputFile string) error {
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		eb, _ := io.ReadAll(resp.Body)
-		return &HTTPError{
-			StatusCode: resp.StatusCode,
-			Message:    formatByteData(eb),
-		}
-	}
-
-	if outputFile == "" {
-		data, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("read response: %w", err)
-		}
-		fmt.Print(formatByteData(data))
-		return nil
-	}
-
-	if outputFile == "-" {
-		if _, err := io.Copy(os.Stdout, resp.Body); err != nil {
-			return fmt.Errorf("stream write: %w", err)
-		}
-		return nil
-	}
-
-	if d := filepath.Dir(outputFile); d != "" && d != "." {
-		if err := os.MkdirAll(d, DefaultDirMode); err != nil {
-			return fmt.Errorf("create directory %s: %w", d, err)
-		}
-	}
-
-	f, err := os.OpenFile(outputFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultFileMode)
-	if err != nil {
-		return fmt.Errorf("open %s: %w", outputFile, err)
-	}
-
-	defer f.Close()
-	if _, err := io.Copy(f, resp.Body); err != nil {
-		return fmt.Errorf("stream write: %w", err)
-	}
-
-	if lm := resp.Header.Get("Last-Modified"); lm != "" {
-		if t, err := time.Parse(time.RFC1123, lm); err == nil {
-			_ = os.Chtimes(outputFile, t, t)
-		}
-	}
-
-	return nil
 }
 
 func (c *Client) makeHTTPRequest(method, requestURL string, data any, headers map[string]string, outputFile string, uploadFile string) error {
@@ -159,7 +88,7 @@ func (c *Client) makeHTTPRequest(method, requestURL string, data any, headers ma
 	}
 	defer cleanup()
 
-	req, err := c.createRequest(ctx, method, requestURL, body)
+	req, err := createRequest(ctx, method, requestURL, body)
 	if err != nil {
 		return err
 	}
@@ -175,7 +104,7 @@ func (c *Client) makeHTTPRequest(method, requestURL string, data any, headers ma
 		return fmt.Errorf("request failed: %w", err)
 	}
 
-	err = c.handleResponse(resp, outputFile)
+	err = handleResponse(resp, outputFile)
 	if err != nil {
 		return err
 	}
@@ -447,4 +376,24 @@ func (c *Client) cmdGroups(long_format bool) error {
 	}
 	u := c.generateURL("groups", "", params)
 	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
+}
+
+func (c *Client) cmdUserInfo() error {
+	u := c.generateURL("user_info", "", nil)
+	return c.makeHTTPRequest("GET", u, nil, nil, "", "")
+}
+
+func (c *Client) cmdZip(paths []string, localPath string) error {
+	if len(paths) == 0 {
+		return fmt.Errorf("zip requires at least one Gfarm path")
+	}
+
+	data := url.Values{}
+	for _, p := range paths {
+		data.Add("paths", p)
+	}
+
+	u := c.generateURL("zip", "", nil)
+
+	return c.makeHTTPRequest("POST", u, data, nil, localPath, "")
 }

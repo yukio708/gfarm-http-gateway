@@ -100,6 +100,17 @@ var commands = map[string]*Command{
 		Description: "get groups list",
 		Handler:     handleGroups,
 	},
+	"userinfo": {
+		Name:        "userinfo",
+		Description: "get user info",
+		Handler:     handleUserInfo,
+	},
+	"zipdownload": {
+
+		Name:        "zipdownload",
+		Description: "download files as zip",
+		Handler:     handleZipDownload,
+	},
 }
 
 func exitErr(err error) {
@@ -476,4 +487,30 @@ func handleGroups(client *Client, args []string) error {
 	}
 
 	return client.cmdGroups(*long_format)
+}
+
+func handleUserInfo(client *Client, args []string) error {
+	fs := flag.NewFlagSet("userinfo", flag.ExitOnError)
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if len(fs.Args()) != 0 {
+		return fmt.Errorf("userinfo takes no arguments")
+	}
+	return client.cmdUserInfo()
+}
+
+func handleZipDownload(client *Client, args []string) error {
+	fs := flag.NewFlagSet("zip", flag.ExitOnError)
+	out := fs.String("o", "-", "output zip file (\"-\" for stdout)")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	paths := fs.Args()
+	if len(paths) == 0 {
+		return fmt.Errorf("zip requires at least 1 Gfarm path")
+	}
+	return client.cmdZip(paths, *out)
 }
