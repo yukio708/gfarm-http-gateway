@@ -3,7 +3,7 @@
 HTTP gateway and CLI client for the [Gfarm distributed filesystem](https://github.com/oss-tsukuba/gfarm).
 
 This repository provides two components:  
-- **Server**: `gfarm-http-gateway/` — FastAPI application exposing an HTTP API for Gfarm  
+- **Server**: `server/` — FastAPI application exposing an HTTP API for Gfarm  
 - **Client**: `client/` — Command-line interface (CLI) for interacting with the gateway API  
 
 
