@@ -157,7 +157,6 @@ async def mock_size_not_found(request):
 
 @pytest_asyncio.fixture(scope="function")
 async def mock_gfls(request):
-    print("!!!!request.param", request.param)
     stdout, stderr, result = request.param
     with patch('gfarm_http_gateway.gfls') as mock:
         yield mock_exec_common(mock, stdout, stderr, result)
@@ -336,11 +335,14 @@ parsed_stat = {
     "Links": 2,
     "Ncopy": 1,
     "Access": "2025-02-10 18:27:33.191688 +0000",
-    "AccessSeconds": 1739212053.191688,
+    "AccessSeconds": 1739212053,
+    "AccessNanos": 191688265,
     "Modify": "2025-02-10 18:27:31.071120 +0000",
-    "ModifySeconds": 1739212051.07112,
+    "ModifySeconds": 1739212051,
+    "ModifyNanos": 71120060,
     "Change": "2025-02-10 18:15:09.400000 +0900",
-    "ChangeSeconds": 1739178909.4,
+    "ChangeSeconds": 1739178909,
+    "ChangeNanos": 400000000,
     "MetadataHost": "gfmd1",
     "MetadataPort": "601",
     "MetadataUser": "user1",
@@ -349,6 +351,7 @@ parsed_stat = {
 
 def test_parse_gfstat():
     st = gfarm_http_gateway.parse_gfstat(gfstat_dir_stdout).model_dump()
+    print(st)
     assert st == parsed_stat
 
 

@@ -167,15 +167,8 @@ export const formatBytes = (bytes) => {
     return new Intl.NumberFormat("en-US").format(bytes) + " bytes";
 };
 
-export const getTimeStr = (time, format = "DMY", withNanos = false) => {
+export const getTimeStr = (time, format = "YMD", nanos = null) => {
     if (!time) return "unknown";
-
-    // Seconds + Decimals
-    const secInt = Math.floor(time);
-    const frac = time - secInt; // decimal part
-
-    // Convert to ns
-    const nanos = BigInt(Math.round(frac * 1e9));
 
     let locale;
     switch (format) {
@@ -190,9 +183,9 @@ export const getTimeStr = (time, format = "DMY", withNanos = false) => {
             locale = "en-GB"; // day-month-year
     }
 
-    const d = new Date(secInt * 1000);
+    const d = new Date(time * 1000);
 
-    if (!withNanos) {
+    if (nanos === null) {
         return d.toLocaleString(locale);
     } else {
         const offsetMin = -d.getTimezoneOffset(); // JSTなら +540

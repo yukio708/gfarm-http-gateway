@@ -1279,11 +1279,14 @@ class Stat(BaseModel):
     Inode: Optional[int] = None
     Ncopy: Optional[int] = None
     Links: Optional[int] = None
-    AccessSeconds: Optional[float] = None
+    AccessSeconds: Optional[int] = None
+    AccessNanos: Optional[int] = None
     Access: Optional[str] = None
-    ModifySeconds: Optional[float] = None
+    ModifySeconds: Optional[int] = None
+    ModifyNanos: Optional[int] = None
     Modify: Optional[str] = None
-    ChangeSeconds: Optional[float] = None
+    ChangeSeconds: Optional[int] = None
+    ChangeNanos: Optional[int] = None
     Change: Optional[str] = None
     MetadataHost: Optional[str] = None
     MetadataPort: Optional[str] = None
@@ -1303,11 +1306,14 @@ class Stat(BaseModel):
                     "Inode": 3,
                     "Ncopy": 1,
                     "Links": 2,
-                    "AccessSeconds": 1739212053.191688,
+                    "AccessSeconds": 1739212053,
+                    "AccessNanos": 191688000,
                     "Access": "2025-02-10 18:27:33.191688 +0000",
-                    "ModifySeconds": 1739212051.07112,
+                    "ModifySeconds": 1739212051,
+                    "ModifyNanos": 71120000,
                     "Modify": "2025-02-10 18:27:31.071120 +0000",
-                    "ChangeSeconds": 1739178909.4,
+                    "ChangeSeconds": 1739178909,
+                    "ChangeNanos": 400000000,
                     "Change": "2025-02-10 18:15:09.400000 +0900",
                     "MetadataHost": "gfmd1",
                     "MetadataPort": "601",
@@ -1371,7 +1377,8 @@ def parse_gfstat(file_info_str):
                 zone = t[2]
                 value = f"{day} {sec}.{usec} {zone}"
                 value_sec = timestamp_to_unix(value)
-                file_info[key + "Seconds"] = value_sec
+                file_info[key + "Seconds"] = int(value_sec)
+                file_info[key + "Nanos"] = int(nsec)
         elif key is None:
             continue
         file_info[key] = value

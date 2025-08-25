@@ -8,7 +8,7 @@ export function useDateFormat() {
 }
 
 export function DateFormatProvider({ children }) {
-    const [dateFormat, setDateFormat] = useState("DMY");
+    const [dateFormat, setDateFormat] = useState("YMD");
 
     useEffect(() => {
         const savedDateFormat = localStorage.getItem("dateFormat");

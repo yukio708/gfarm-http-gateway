@@ -489,6 +489,9 @@ const handleAttrRoute = async (route, url) => {
 
     if (fileNode) {
         const d = new Date(fileNode.mtime_str);
+        const unixtime_f = d.getTime() / 1000;
+        const sec = Math.floor(unixtime_f);
+        const nano = Math.round((unixtime_f - sec) * 1e9);
         const detailResponse = {
             File: fileNode.name,
             Filetype: fileNode.name.includes(".")
@@ -499,11 +502,14 @@ const handleAttrRoute = async (route, url) => {
             Size: fileNode.size,
             Mode: symbolicToOctal(fileNode.mode_str),
             Access: fileNode.mtime_str,
-            AccessSeconds: d.getTime() / 1000,
+            AccessSeconds: sec,
+            AccessNanos: nano,
             Modify: fileNode.mtime_str,
-            ModifySeconds: d.getTime() / 1000,
+            ModifySeconds: sec,
+            ModifyNanos: nano,
             Change: fileNode.mtime_str,
-            ChangeSeconds: d.getTime() / 1000,
+            ChangeSeconds: sec,
+            ChangeNanos: nano,
             Uid: fileNode.uname,
             Gid: fileNode.gname,
             MetadataHost: "test-host.local",

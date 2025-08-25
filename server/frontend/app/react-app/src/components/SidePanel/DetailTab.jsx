@@ -16,9 +16,18 @@ function DetailTab({ active, detailContent }) {
         { label: "Ncopy", value: detailContent?.Ncopy || "" },
         { label: "Owner", value: detailContent?.Uid || "" },
         { label: "Group", value: detailContent?.Gid || "" },
-        { label: "Access", value: getTimeStr(detailContent?.AccessSeconds, dateFormat, true) },
-        { label: "Modify", value: getTimeStr(detailContent?.ModifySeconds, dateFormat, true) },
-        { label: "Change", value: getTimeStr(detailContent?.ChangeSeconds, dateFormat, true) },
+        {
+            label: "Access",
+            value: getTimeStr(detailContent?.AccessSeconds, dateFormat, detailContent?.AccessNanos),
+        },
+        {
+            label: "Modify",
+            value: getTimeStr(detailContent?.ModifySeconds, dateFormat, detailContent?.ModifyNanos),
+        },
+        {
+            label: "Change",
+            value: getTimeStr(detailContent?.ChangeSeconds, dateFormat, detailContent?.ChangeNanos),
+        },
         {
             label: "Digest",
             value: `${detailContent?.Cksum || ""}${detailContent?.CksumType ? ` (${detailContent.CksumType})` : ""}`,
