@@ -1,6 +1,6 @@
 test: test-unit test-flake8 test-playwright
 
-test-all: test-unit test-flake8 test-client
+test-all: test-unit test-flake8 test-playwright test-client
 
 test-unit:
 	./bin/gfarm-http-gateway-test.sh
