@@ -1212,7 +1212,7 @@ async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
     if tokenfile is None:
         tmpdir = f"{TMPDIR}/{user}/" if user is not None else TMPDIR
         env.pop('GFARM_SASL_PASSWORD', None)
-        os.makedirs(tmpdir, exist_ok=True)
+        os.makedirs(tmpdir, mode=0o700, exist_ok=True)
         with tempfile.NamedTemporaryFile(
                 dir=tmpdir,
                 delete_on_close=False) as fp:
