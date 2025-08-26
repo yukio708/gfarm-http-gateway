@@ -1853,45 +1853,6 @@ async def gfchmod(env, path, mode):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
-# # SEE ALSO: gfptar
-# PAT_ENTRY = re.compile(r'^\s*(\d+)\s+([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
-#                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
-# async def file_size(env, path):
-#     args = ['-ilTd', path]
-#     p = await asyncio.create_subprocess_exec(
-#         'gfls', *args,
-#         env=env,
-#         stdin=asyncio.subprocess.DEVNULL,
-#         stdout=asyncio.subprocess.PIPE,
-#         stderr=asyncio.subprocess.DEVNULL)
-#     line = await p.stdout.readline()
-#     return_code = await p.wait()
-#     if return_code != 0:
-#         existing = False
-#         is_file = False
-#         size = 0
-#         return existing, is_file, size
-#     line = line.decode().rstrip()
-#     m = PAT_ENTRY.match(line)
-#     if m:
-#         # Ex.
-#         # 12345 -rw-rw-r-- 1 user1 group1 29 Jan 1 00:00:00 2022 fname
-#         # inum = int(m.group(1))
-#         mode_str = m.group(2)
-#         # nlink = int(m.group(3))
-#         # uname = m.group(4)
-#         # gname = m.group(5)
-#         size = int(m.group(6))
-#         # mtime_str = m.group(7)
-#         # name = m.group(8)
-#     else:
-#         mode_str = "?"
-#         size = -1
-
-#     existing = True
-#     is_file = mode_str[0] == '-'
-#     return existing, is_file, size
-
 
 async def gfcksum(env,
                   cmd: str = None, paths: List[str] = None, host: str = None):
@@ -2823,9 +2784,9 @@ async def file_copy(copy_data: FileOperation,
                 # yield JSON line
                 current_status["copied"] = copied
                 yield json.dumps(current_status) + "\n"
-        except Exception as e:
+        except Exception:
             yield json.dumps({"error": "I/O error", "done": True}) + "\n"
-            raise e
+            raise
         finally:
             p_reg.stdin.close()
 
@@ -3249,7 +3210,7 @@ async def archive_files(
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
-    async def stream_response():
+    async def progress_generator():
         try:
             exp = expire
             buffer = first_byte
@@ -3291,5 +3252,5 @@ async def archive_files(
                     f"{ipaddr}:0 user={user}, cmd={opname},"
                     + f"os.remove({tokenfilepath}) error: {e}")
 
-    return StreamingResponse(content=stream_response(),
+    return StreamingResponse(content=progress_generator(),
                              media_type='application/json')
