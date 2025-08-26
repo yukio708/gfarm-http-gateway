@@ -3154,7 +3154,8 @@ async def archive_files(
     opname = "gfptar"
     apiname = "/gfptar"
     env = await set_env(request, authorization)
-    # Set the token file path to env
+    # Set the token file path in env for long-term exec
+    # (updated in progress_generator())
     tokenfilepath, env, expire = await set_tokenfilepath_to_env(request, env)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
