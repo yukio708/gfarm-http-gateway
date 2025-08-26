@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-* Node.js (v22 or higher recommended)
+* Node.js v22 or later
 
 ## Install dependencies
 
@@ -44,6 +44,11 @@ npm run lint:fix  # Auto-fix issues
 
 ### End-to-End Tests (Playwright)
 
+Install playwright:
+```bash
+npx playwright install-deps
+```
+
 Run all tests:
 
 ```bash
@@ -61,7 +66,20 @@ Interactive test UI:
 ```bash
 npm run e2e:ui
 ```
+### Update packages
 
+Install [npm-check-updates](https://github.com/raineorshine/npm-check-updates)
+
+```bash
+# Show available updates
+npx npm-check-updates
+
+# Update package.json with latest versions
+npx npm-check-updates -u
+
+# Install and refresh package-lock.json
+npm install
+```
 
 ## Folder Structure
 

@@ -9,15 +9,27 @@ To run gfarm-http-gateway, you need:
 
 ## Configuration variables
 
-Default values are defined in [`gfarm-http-gateway.conf.default`](./gfarm-http-gateway.conf.default).  
-To customize settings, copy the provided example file:
+Default values are defined in [`gfarm-http-gateway.conf.default`](./gfarm-http-gateway.conf.default). 
+
+The file is divided into sections:
+
+- **Basic** - Basic settings (Gfarm config, CORS, temp directory)
+- **Sessions** - Session management and security
+- **Authentication** - TLS and SASL authentication
+- **OpenID Connect** - OIDC and Keycloak settings  
+- **Tokens** - Token verification and validation
+- **Performance** - Performance-related settings
+- **Development & Debug** - Debug settings (keep defaults for production)
+
+### How to configure
+
+1. Copy the template file
 
 ```bash
 cp gfarm-http-gateway.conf.default gfarm-http-gateway.conf
 ```
 
-Edit gfarm-http-gateway.conf and update variables for your environment  
-- At minimum, you must set the variables marked as **required** in `gfarm-http-gateway.conf.default`
+2. Edit gfarm-http-gateway.conf and update variables for your environment
 
 
 ## Quick Start (example using Docker)
@@ -70,9 +82,9 @@ docker run --rm \
   gfarm-http-gateway --port 8080
 ```
 
-### Option 2: Run Behind Nginx (HTTPS)
+### Option 2: Run Behind NGINX (HTTPS)
 
-Use Nginx as a reverse proxy in front of **gfarm-http-gateway**.  
+Use NGINX as a reverse proxy in front of **gfarm-http-gateway**.  
 This example uses Docker Compose.  
 
 #### 1. Prepare the Configuration
@@ -88,11 +100,11 @@ cp nginx.conf.sample ./nginx/gfarm.conf
 
 Edit them to match your environment:  
 - In **`docker-compose.yaml`**:
-  - Mount the Nginx config and TLS certificates, e.g.:
+  - Mount the NGINX config and TLS certificates, e.g.:
     - `./nginx/gfarm.conf:/etc/nginx/conf.d/gfarm.conf:ro`
     - `./nginx/certs:/etc/nginx/certs:ro`
 - In **`nginx/gfarm.conf`**:
-  - Point TLS to your Nginx certificates, e.g.:
+  - Point TLS to your NGINX certificates, e.g.:
     - `ssl_certificate     /etc/nginx/certs/cert.pem;`
     - `ssl_certificate_key /etc/nginx/certs/key.pem;`
 
@@ -128,7 +140,7 @@ This is useful when you share a domain with other apps behind the same reverse p
 
 > `--root-path /gfarm` tells Uvicorn/FastAPI that the app lives under `/gfarm`.
 
-If you use Nginx as a reverse proxy, add a `location /gfarm/` block that preserves `/gfarm` when forwarding:  
+If you use NGINX as a reverse proxy, add a `location /gfarm/` block that preserves `/gfarm` when forwarding:  
 ```
 ...
   location /gfarm/ {
@@ -136,7 +148,18 @@ If you use Nginx as a reverse proxy, add a `location /gfarm/` block that preserv
 }
 ```
 
-### Option 4: Run in HPCI environment
+### Option 4: Run in HPCI Shared Storage environment
+
+This option is a preset for HPCI Shared Storage. It expects Docker + Docker Compose.
+
+#### 1. Fetch HPCI Shared Storage config and certificate
+
+Run the following script to download HPCI-specific `gfarm2.conf` and CA certificate:
+```bash
+./download-HPCI-config.sh
+```
+
+#### 2. Launch with Docker Compose
 
 For running `gfarm-http-gateway` in the HPCI environment, an example Compose file is provided:  
 [`docker-compose-for-HPCI.yaml`](./docker-compose-for-HPCI.yaml)
@@ -147,8 +170,6 @@ docker compose -f docker-compose-for-HPCI.yaml up -d --build
 ```
 
 This setup:
-- Uses `Dockerfile-for-HPCI`
-  - Automatically downloads HPCI-specific configuration (`gfarm2.conf`) and certificates
 - Mounts `gfarm-http-gateway-for-HPCI.conf` as the gateway configuration
 - Runs on port 8080 (accessible at `http://localhost:8080`)
 
@@ -304,11 +325,15 @@ It is intended as a development example only.
 ### To update requirements.txt for latest
 
 ```
-make test
+make test-unit
 make freeze
 git add requirements.txt
 git commit requirements.txt
 ```
+
+### To update frontend/app/react-app/package.json for latest
+
+See `Update packages` in [frontend/app/react-app/README.md](./frontend/app/react-app/README.md)
 
 ### GitHub Actions
 
