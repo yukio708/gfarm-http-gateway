@@ -65,8 +65,15 @@ install_for_rhel() {
     install_python_package
 }
 
-install_frontent() {
-    npm --prefix frontend/app/react-app install
+install_frontend() {
+    if [ $INSTALL_SYS_PACKAGES -eq 1 ]; then
+        NODE_VERSION=22
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+        \. "$HOME/.nvm/nvm.sh"
+        nvm install $NODE_VERSION
+    fi
+
+    npm --prefix frontend/app/react-app ci
     npm --prefix frontend/app/react-app run build
 }
 
@@ -86,4 +93,4 @@ for id in $ALL_IDS; do  # ID_LIKE from /etc/os-release
     esac
 done
 
-install_frontent
+install_frontend
