@@ -1,29 +1,55 @@
+# ========================================
+# Basic
+# ========================================
+
 # GFARM_HTTP_GFARM_CONFIG_FILE
 #   specify a Gfarm configuration file instead of ~/.gfarm2rc
 #   default: empty string ... use ~/.gfarm2rc
 GFARM_HTTP_GFARM_CONFIG_FILE=
 
 # GFARM_HTTP_ORIGINS
-#   allowd URLs for CORS (Cross-Origin Resource Sharing)
+#   allowed URLs for CORS (Cross-Origin Resource Sharing)
 GFARM_HTTP_ORIGINS="http://localhost:8000,http://localhost:8080"
 
-# GFARM_HTTP_SESSION_SECRET (required, no default)
+# GFARM_HTTP_TMPDIR
+# Temporary directory to store token files for long-term exec (gfptar).
+# Token files are removed after gfptar finishes.
+# The gateway cleans up this directory when it starts.
+GFARM_HTTP_TMPDIR="/tmp/gfarm-http"
+
+# ========================================
+# Sessions
+# ========================================
+
+# GFARM_HTTP_SESSION_SECRET
 #   value: random 32 url-safe base64-encoded bytes
 #          (ex. `openssl rand -base64 32`)
 #   ex.: GFARM_HTTP_SESSION_SECRET="qU70WDyIpXdSOT9/7l0hICy0597EPRs/aPb5Mj5Xniw="
 GFARM_HTTP_SESSION_SECRET=
 
-# GFARM_HTTP_SESSION_ENCRYPT
-#   encrypt session data in cookie
-#   value: yes (required)
-#          no ... for developer
-GFARM_HTTP_SESSION_ENCRYPT=yes
+# GFARM_HTTP_SESSION_MAX_AGE
+#   The amount of time a user session remains valid before expiring
+#   value: sec
+GFARM_HTTP_SESSION_MAX_AGE=86400
 
-# GFARM_HTTP_SESSION_COMPRESS_TYPE
-#   compression type to compress session strings in cookie
-#   value: gzip (required)
-#          bz2 ... for developer (bz2-ed data is larger than gzip-ed)
-GFARM_HTTP_SESSION_COMPRESS_TYPE=gzip
+# ========================================
+# Authentication
+# ========================================
+
+# GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
+#   SASL mechanism for password authentication
+#   value: PLAIN ... use SASL:PLAIN
+#          LOGIN ... use SASL:LOGIN
+GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD=PLAIN
+
+# GFARM_HTTP_ALLOW_ANONYMOUS
+#   allow anonymous access (use SASL:ANONYMOUS)
+#   value: yes, no
+GFARM_HTTP_ALLOW_ANONYMOUS=no
+
+# ========================================
+# OpenID Connect
+# ========================================
 
 # GFARM_HTTP_OIDC_REDIRECT_URI_PAGE
 #   switch a page for redirect_uri to get OIDC authorization code
@@ -38,25 +64,25 @@ GFARM_HTTP_OIDC_REDIRECT_URI_PAGE=index
 #   ex.: GFARM_HTTP_OIDC_OVERRIDE_REDIRECT_URI=http://host1/auth
 GFARM_HTTP_OIDC_OVERRIDE_REDIRECT_URI=
 
-# GFARM_HTTP_OIDC_CLIENT_ID (required, no default)
+# GFARM_HTTP_OIDC_CLIENT_ID
 #   OpenID Connect client ID
 #   ex.: GFARM_HTTP_OIDC_CLIENT_ID=hpci-jwt-server
 GFARM_HTTP_OIDC_CLIENT_ID=
 
-# GFARM_HTTP_OIDC_CLIENT_SECRET (required, no default)
+# GFARM_HTTP_OIDC_CLIENT_SECRET
 #   OpenID Connect client secret
 #   default: empty string ... for public OIDC client
 #   ex.: GFARM_HTTP_OIDC_CLIENT_SECRET="eJxl5z1EHU0u6BVLpR5MG0v4NLgCZWWG"
 GFARM_HTTP_OIDC_CLIENT_SECRET=
 
-# GFARM_HTTP_KEYCLOAK_SERVER (required for Keycloak)
+# GFARM_HTTP_KEYCLOAK_SERVER
 #   Keycloak server
 #   (used for string replacement in GFARM_HTTP_OIDC_BASE_URL)
 #   (DO NOT specify a last slash)
 #   ex.: GFARM_HTTP_KEYCLOAK_SERVER=https://keycloak.test:8443
 GFARM_HTTP_KEYCLOAK_SERVER=
 
-# GFARM_HTTP_KEYCLOAK_REALM (required for Keycloak)
+# GFARM_HTTP_KEYCLOAK_REALM
 #   Keycloak REALM
 #   (used for string replacement in GFARM_HTTP_OIDC_BASE_URL)
 #   ex.: GFARM_HTTP_KEYCLOAK_REALM=HPCI
@@ -86,16 +112,20 @@ GFARM_HTTP_OIDC_META_URL="{GFARM_HTTP_OIDC_BASE_URL}/.well-known/openid-configur
 # GFARM_HTTP_OIDC_KEYS_URL
 #   URL of jwks_uri
 #   default: empty string ... URL in JSON from GFARM_HTTP_OIDC_META_URL
-#   Example for Keycloak (no need to specifiy for Keycloak):
+#   Example for Keycloak (no need to specify for Keycloak):
 #     GFARM_HTTP_OIDC_KEYS_URL="{GFARM_HTTP_OIDC_BASE_URL}/protocol/openid-connect/certs"
 GFARM_HTTP_OIDC_KEYS_URL=
 
 # GFARM_HTTP_OIDC_LOGOUT_URL
 #   URL of end_session_endpoint
 #   default: empty string ... URL in JSON from GFARM_HTTP_OIDC_META_URL
-#   Example for Keycloak (no need to specifiy for Keycloak):
+#   Example for Keycloak (no need to specify for Keycloak):
 #     GFARM_HTTP_OIDC_LOGOUT_URL="{GFARM_HTTP_OIDC_BASE_URL}/protocol/openid-connect/logout"
 GFARM_HTTP_OIDC_LOGOUT_URL=
+
+# ========================================
+# Tokens
+# ========================================
 
 # GFARM_HTTP_TOKEN_VERIFY
 #   verify access token
@@ -128,45 +158,45 @@ GFARM_HTTP_TOKEN_ISSUERS=
 #   log the claim in access token as username
 GFARM_HTTP_TOKEN_USER_CLAIM=sub
 
-# GFARM_HTTP_VERIFY_CERT
-#   verify TLS certificate
-#   value: yes ... secure
-#          no  ... insecure (for developer)
-GFARM_HTTP_VERIFY_CERT=yes
-
-# GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
-#   SASL mechanism for password authentication
-#   value: PLAIN ... use SASL:PLAIN
-#          LOGIN ... use SASL:LOGIN
-GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD=PLAIN
-
-# GFARM_HTTP_ALLOW_ANONYMOUS
-#   allow anonymous access (use SASL:ANONYMOUS)
-#   value: yes, no
-GFARM_HTTP_ALLOW_ANONYMOUS=no
-
-# GFARM_HTTP_ASYNC_GFEXPORT
-#   no ... for developer
-#   value: yes, no
-GFARM_HTTP_ASYNC_GFEXPORT=yes
-
-# GFARM_HTTP_SESSION_MAX_AGE
-#   The amount of time a user session remains valid before expiring
-#   value: sec
-GFARM_HTTP_SESSION_MAX_AGE=86400
+# ========================================
+# Performance
+# ========================================
 
 # GFARM_HTTP_RECURSIVE_MAX_DEPTH
 #   Maximum number of recursive levels
 #   value: 0~
 GFARM_HTTP_RECURSIVE_MAX_DEPTH=16
 
-# GFARM_HTTP_TMPDIR
-# Temporary directory to store token files for long-term exec (gfptar).
-# Token files are removed after gfptar finishes.
-# The gateway cleans up this directory when it starts.
-GFARM_HTTP_TMPDIR="/tmp/gfarm-http"
+# ========================================
+# Development & Debug (for production, keep default values)
+# ========================================
+
+# GFARM_HTTP_VERIFY_CERT
+#   verify TLS certificate
+#   value: yes ... secure (default)
+#          no  ... insecure (for developer)
+GFARM_HTTP_VERIFY_CERT=yes
+
+# GFARM_HTTP_SESSION_COMPRESS_TYPE
+#   compression type to compress session strings in cookie
+#   value: gzip ... default
+#          bz2  ... for developer (bz2-ed data is larger than gzip-ed)
+GFARM_HTTP_SESSION_COMPRESS_TYPE=gzip
+
+# GFARM_HTTP_SESSION_ENCRYPT
+#   encrypt session data in cookie
+#   value: yes ... default
+#          no  ... for developer
+GFARM_HTTP_SESSION_ENCRYPT=yes
+
+# GFARM_HTTP_ASYNC_GFEXPORT
+#   Run gfexport asynchronously
+#   value: yes ... default
+#          no  ... for developer
+GFARM_HTTP_ASYNC_GFEXPORT=yes
 
 # GFARM_HTTP_DEBUG
-#   yes ... for developer
-#   value: yes, no
+#   Enable debug logging
+#   value: yes ... for developer
+#          no  ... default
 GFARM_HTTP_DEBUG=no
