@@ -15,16 +15,16 @@ flake8:
 	./venv/bin/flake8 api
 
 setup setup-freezed:
-	./setup.sh
-
-setup-wo-sys-packages:
 	INSTALL_SYS_PACKAGES=0 ./setup.sh
 
-setup-latest:
-	./setup.sh requirements_dev.txt
+setup-with-sys-packages:
+	INSTALL_SYS_PACKAGES=1 ./setup.sh
 
-setup-latest-wo-sys-packages:
+setup-latest:
 	INSTALL_SYS_PACKAGES=0 ./setup.sh requirements_dev.txt
+
+setup-latest-with-sys-packages:
+	INSTALL_SYS_PACKAGES=1 ./setup.sh requirements_dev.txt
 
 freeze:
 	./venv/bin/pip3 freeze > requirements.txt

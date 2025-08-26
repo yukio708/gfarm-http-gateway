@@ -6,7 +6,7 @@ source /etc/os-release
 
 REQUIREMENTS="${1:-requirements.txt}"
 
-INSTALL_SYS_PACKAGES="${INSTALL_SYS_PACKAGES:-1}"
+INSTALL_SYS_PACKAGES="${INSTALL_SYS_PACKAGES:-0}"
 
 DIR=$(realpath $(dirname $0))
 VENV_DIR="${DIR}/venv"
