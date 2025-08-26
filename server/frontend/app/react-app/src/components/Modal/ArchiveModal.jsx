@@ -145,7 +145,7 @@ function ArchiveModal({
             show={visible}
             onCancel={() => handleCancel()}
             onConfirm={() => handleConfirm()}
-            comfirmText="Run"
+            confirmText="Run"
             size="large"
             title={<h5 className="modal-title">{title}</h5>}
         >

@@ -134,7 +134,7 @@ function NewSymlinkModal({ setShowModal, currentDir, targetItem, refresh }) {
                     setVisible(false);
                 }}
                 onConfirm={handleCreate}
-                comfirmText="Create"
+                confirmText="Create"
                 title={<h5 className="modal-title">{title}</h5>}
             >
                 <div>

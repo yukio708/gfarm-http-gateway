@@ -4,8 +4,8 @@ import { API_URL } from "@utils/config";
 import get_error_message from "@utils/error";
 
 // file: file + File
-// progressCallbeck({status, value, message, done, onCancel})
-async function upload(file, fullpath, dirSet, progressCallbeck) {
+// progressCallback({status, value, message, done, onCancel})
+async function upload(file, fullpath, dirSet, progressCallback) {
     if (!file) {
         alert("Please select a file");
         return;
@@ -25,7 +25,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
     }
 
     if (createDirError) {
-        progressCallbeck({
+        progressCallback({
             status: createDirError ? "error" : "completed",
             value: 100,
             message: createDirError ? createDirError : "",
@@ -45,10 +45,10 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
         xhr.withCredentials = true;
         xhr.responseType = "json";
 
-        progressCallbeck({
+        progressCallback({
             onCancel: () => {
                 xhr.abort();
-                progressCallbeck({
+                progressCallback({
                     status: "cancelled",
                     message: "Upload cancelled",
                     done: true,
@@ -67,14 +67,14 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
                 const sec = Math.floor(elapsedTime / 1000);
                 const value = percent;
                 const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
-                progressCallbeck({ value, message });
+                progressCallback({ value, message });
                 // console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
             }
         };
         return new Promise((resolve, reject) => {
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    progressCallbeck({
+                    progressCallback({
                         status: "completed",
                         value: 100,
                         message: "",
@@ -85,7 +85,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
                 } else {
                     const detail = xhr.response?.detail;
                     const message = "Error : " + get_error_message(xhr.status, detail);
-                    progressCallbeck({
+                    progressCallback({
                         status: "error",
                         message,
                         done: true,
@@ -95,7 +95,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
                 }
             };
             xhr.onerror = () => {
-                progressCallbeck({
+                progressCallback({
                     status: "error",
                     message: "Network error",
                     done: true,
@@ -107,7 +107,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
     } catch (error) {
         console.error("Cannot upload:", error);
         const message = `${error.name} : ${error.message}`;
-        progressCallbeck({
+        progressCallback({
             status: "error",
             message,
             done: true,
@@ -116,7 +116,7 @@ async function upload(file, fullpath, dirSet, progressCallbeck) {
     }
 }
 
-async function checkPermissoin(uploaddir) {
+async function checkPermission(uploaddir) {
     const epath = encodePath(uploaddir);
     const fullpath = `${API_URL}/dir${epath}?show_hidden=on&effperm=on`;
     let error = null;
@@ -142,4 +142,4 @@ async function checkPermissoin(uploaddir) {
     return error;
 }
 
-export { upload, checkPermissoin };
+export { upload, checkPermission };

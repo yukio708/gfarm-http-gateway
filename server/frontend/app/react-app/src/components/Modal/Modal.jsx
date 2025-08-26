@@ -10,7 +10,7 @@ function ModalWindow({
     title,
     children,
     cancelText,
-    comfirmText,
+    confirmText,
     size,
 }) {
     const modalRef = useRef(null);
@@ -80,7 +80,7 @@ function ModalWindow({
                             onClick={handleConfirm}
                             data-testid="modal-button-confirm"
                         >
-                            {comfirmText || "Confirm"}
+                            {confirmText || "Confirm"}
                         </button>
                     </div>
                 </div>
@@ -99,6 +99,6 @@ ModalWindow.propTypes = {
     title: PropTypes.string,
     children: PropTypes.node,
     cancelText: PropTypes.string,
-    comfirmText: PropTypes.string,
+    confirmText: PropTypes.string,
     size: PropTypes.string,
 };

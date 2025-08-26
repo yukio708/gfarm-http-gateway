@@ -39,7 +39,7 @@ function DeleteModal({ setShowModal, itemsToDelete, setItemsToDelete, refresh })
                     setVisible(false);
                 }}
                 onConfirm={handleDelete}
-                comfirmText="Delete"
+                confirmText="Delete"
                 title={
                     <div>
                         <p className="modal-title">

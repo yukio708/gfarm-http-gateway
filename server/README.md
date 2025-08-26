@@ -162,7 +162,6 @@ This setup:
 - venv (python3-venv)
 - Python packages (refer to `requirements.txt`)
 - GNU Make
-- curl 7.76.0 or later (for gfhttpc-* commands)
 - Node.js v22 or later
 
 #### Setup environment
@@ -318,4 +317,4 @@ git commit requirements.txt
   - (Requirements and Prerequisites)
   - `Read and write permissions` for Actions is required
 - Auto `make freeze`, commit and push
-- ./requirements.txt may be updated/commited/pushed automatically on GitHub, so `git pull` on your working directory may be required after `git push`
+- ./requirements.txt may be updated/committed/pushed automatically on GitHub, so `git pull` on your working directory may be required after `git push`

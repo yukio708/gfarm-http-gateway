@@ -147,7 +147,7 @@ function MoveModal({ setShowModal, currentDir, itemsToMove, setItemsToMove, refr
                 show={visible}
                 onCancel={() => handleCancel()}
                 onConfirm={() => handleConfirm()}
-                comfirmText="Move"
+                confirmText="Move"
                 size="large"
                 title={
                     <div className="d-flex modal-title">

@@ -65,11 +65,6 @@ def exit_error():
     sys.exit(1)
 
 
-# Ex. -rw-rw-r-- 1 user1  gfarmadm     29 Jan  1 00:00:00 2022 fname
-PAT_ENTRY2 = re.compile(r'^([-dl]\S+)\s+(\d+)\s+(\S+)\s+(\S+)\s+'
-                        r'(\d+)\s+(\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(.+)$')
-
-
 STORAGE_URL_PREFIX = "#/ui"
 
 #############################################################################
@@ -347,7 +342,7 @@ logger_uvicorn = logging.getLogger("uvicorn")
 logger_uvicorn.setLevel(loglevel)
 logger_uvicorn.handlers = [InterceptHandler()]
 
-# not change (duplicated messges are printed)
+# not change (duplicated messages are printed)
 # logger_uvicorn_error = logging.getLogger("uvicorn.error")
 # logger_uvicorn_error.setLevel(loglevel)
 # logger_uvicorn_error.handlers = [InterceptHandler()]

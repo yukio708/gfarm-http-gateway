@@ -7,8 +7,8 @@ function getProgress(copied, total) {
     return Math.floor((copied / total) * 100);
 }
 
-// progressCallbeck({status, value, message, done, onCancel})
-async function copyFile(srcpath, destpath, progressCallbeck) {
+// progressCallback({status, value, message, done, onCancel})
+async function copyFile(srcpath, destpath, progressCallback) {
     const dlurl = `${API_URL}/copy`;
     const controller = new AbortController();
     const signal = controller.signal;
@@ -28,7 +28,7 @@ async function copyFile(srcpath, destpath, progressCallbeck) {
     };
 
     const startTime = Date.now();
-    progressCallbeck({
+    progressCallback({
         onCancel: () => {
             controller.abort();
             console.debug("cancel:", destpath);
@@ -67,7 +67,7 @@ async function copyFile(srcpath, destpath, progressCallbeck) {
                 }
 
                 if (json.warn) {
-                    progressCallbeck({
+                    progressCallback({
                         message: json.warn,
                     });
                 }
@@ -76,7 +76,7 @@ async function copyFile(srcpath, destpath, progressCallbeck) {
                 }
                 if (json.done) {
                     console.debug("Copy complete", json);
-                    if (!json.warn) progressCallbeck({ message: "" });
+                    if (!json.warn) progressCallback({ message: "" });
                     break;
                 }
                 const copied = json.copied;
@@ -89,14 +89,14 @@ async function copyFile(srcpath, destpath, progressCallbeck) {
                     const message = percent
                         ? `${percent} % | ${sec} sec | ${speed} bytes/sec`
                         : `${sec} sec | ${speed} bytes/sec`;
-                    progressCallbeck({
+                    progressCallback({
                         value: percent,
                         message,
                     });
                 }
             }
         }
-        progressCallbeck({
+        progressCallback({
             status: "completed",
             value: 100,
             done: true,
@@ -104,7 +104,7 @@ async function copyFile(srcpath, destpath, progressCallbeck) {
     } catch (err) {
         const isAbort = err.name === "AbortError";
         const message = isAbort ? "Copy cancelled" : `${err.name} : ${err.message}`;
-        progressCallbeck({
+        progressCallback({
             status: isAbort ? "cancelled" : "error",
             message,
             done: true,

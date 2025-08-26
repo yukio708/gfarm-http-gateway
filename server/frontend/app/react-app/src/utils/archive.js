@@ -9,14 +9,14 @@ class Tar(BaseModel):
     outdir: str
     options: List[str] | None
 */
-// progressCallbeck({status, value, message, done, onCancel})
+// progressCallback({status, value, message, done, onCancel})
 async function gfptar(
     command,
     targetDir,
     targetItems,
     destDir,
     options,
-    progressCallbeck,
+    progressCallback,
     refresh
 ) {
     const dlurl = `${API_URL}/gfptar`;
@@ -39,7 +39,7 @@ async function gfptar(
         signal,
     };
 
-    progressCallbeck({
+    progressCallback({
         onCancel: () => {
             controller.abort();
             console.debug("cancel:", destDir);
@@ -76,11 +76,11 @@ async function gfptar(
                     const json = JSON.parse(line);
                     if (command === "list") {
                         indirList.push(json.message);
-                        progressCallbeck({
+                        progressCallback({
                             message: indirList,
                         });
                     } else {
-                        progressCallbeck({
+                        progressCallback({
                             value: undefined,
                             message: json.message,
                         });
@@ -90,7 +90,7 @@ async function gfptar(
                 }
             }
         }
-        progressCallbeck({
+        progressCallback({
             status: "completed",
             message: "",
             value: 100,
@@ -100,7 +100,7 @@ async function gfptar(
     } catch (err) {
         const isAbort = err.name === "AbortError";
         const message = isAbort ? "Download cancelled" : `${err.name} : ${err.message}`;
-        progressCallbeck({
+        progressCallback({
             status: isAbort ? "cancelled" : "error",
             message,
             done: true,

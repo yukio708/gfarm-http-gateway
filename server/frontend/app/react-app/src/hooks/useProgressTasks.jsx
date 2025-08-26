@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { upload, checkPermissoin } from "@utils/upload";
+import { upload, checkPermission } from "@utils/upload";
 import download from "@utils/download";
 import copyFile from "@utils/copy";
 import gfptar from "@utils/archive";
@@ -97,7 +97,7 @@ function useProgressTasks(refreshItems, addNotification) {
 
             let error = null;
             if (!(uploadItem.file.uploadDir in destDirSet)) {
-                error = await checkPermissoin(uploadItem.file.uploadDir);
+                error = await checkPermission(uploadItem.file.uploadDir);
                 destDirSet[uploadItem.file.uploadDir] = error;
             } else {
                 error = destDirSet[uploadItem.file.uploadDir];

@@ -72,7 +72,7 @@ function RenameModal({ setShowModal, renameItem, refresh }) {
                 setVisible(false);
             }}
             onConfirm={handleRename}
-            comfirmText="Rename"
+            confirmText="Rename"
             title={<h5 className="modal-title">{title}</h5>}
         >
             <div>

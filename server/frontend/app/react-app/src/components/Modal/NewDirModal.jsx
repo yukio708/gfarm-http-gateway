@@ -58,7 +58,7 @@ function NewDirModal({ setShowModal, currentDir, refresh }) {
                 setDirname("");
             }}
             onConfirm={handleCreateDir}
-            comfirmText="Create"
+            confirmText="Create"
             title={<h5 className="modal-title">{title}</h5>}
         >
             <input
