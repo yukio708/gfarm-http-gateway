@@ -160,6 +160,10 @@ GFARM_HTTP_SESSION_MAX_AGE=86400
 #   value: 0~
 GFARM_HTTP_RECURSIVE_MAX_DEPTH=16
 
+# GFARM_HTTP_TMPDIR
+# Temporary directory to store token files for long-term exec (gfptar).
+# Token files are removed after gfptar finishes.
+# The gateway cleans up this directory when it starts.
 GFARM_HTTP_TMPDIR="/tmp/gfarm-http"
 
 # GFARM_HTTP_DEBUG
