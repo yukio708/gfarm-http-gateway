@@ -67,7 +67,7 @@ config/
 
 In `gfarm2.conf`, you need to set `auth enable sasl` (or `sasl_auth`)
 
-#### 3. Run the Container
+#### 3. Run the container
 
 ```bash
 docker run --rm \
@@ -96,7 +96,7 @@ docker run --rm \
 > `--host 0.0.0.0`:  
 > This makes the gateway listen on all interfaces inside the container. Which interfaces are exposed externally is then controlled by the -p option above.
 
-#### 4. Stop the Container
+#### 4. Stop the container
 
 To stop the gateway, press `Ctrl + C` if it's running in the foreground.  
 If you ran it in the background (with `-d`), stop it with:  
@@ -172,7 +172,7 @@ docker compose down
 Serve the gateway under a URL prefix (e.g., `/gfarm/`).  
 This is useful when you share a domain with other apps behind the same reverse proxy.
 
-#### 1. Setup the gateway
+#### 1. Set up the gateway
 
 Follow the steps in **Option 1 → 1. Build the Docker Image and 2. Prepare Configuration**.
 
@@ -185,7 +185,7 @@ Follow the steps in **Option 1 → 1. Build the Docker Image and 2. Prepare Conf
 ```bash
   docker run --rm \
     -v $(pwd)/config:/config \
-    -p 8000:8000 \
+    -p 127.0.0.1:8000:8000 \
     gfarm-http-gateway --host 0.0.0.0 --port 8000 --root-path /gfarm
 ```
 
@@ -207,9 +207,9 @@ If you use NGINX as a reverse proxy, add a `location /gfarm/` block that preserv
 }
 ```
 
-#### 3. Stop the Container
+#### 3. Stop the container
 
-Follow the steps in **Option 1 or Option 2 → 4. Stop the Container**
+Follow the steps in **Option 1 or Option 2 → 4. Stop the container**
 
 ### Option 4: Run in HPCI Shared Storage environment
 
@@ -243,9 +243,9 @@ This setup:
 - Mounts `gfarm-http-gateway-for-HPCI.conf` as the gateway configuration
 - Runs on port 8080 (accessible at `http://localhost:8080`)
 
-#### 4. Stop the Container
+#### 4. Stop the container
 
-Follow the steps in **Option 2 → 4. Stop the Container**
+Follow the steps in **Option 2 → 4. Stop the container**
 
 
 ## Update gfarm-http-gateway and Gfarm client with Docker
