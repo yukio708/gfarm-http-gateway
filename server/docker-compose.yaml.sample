@@ -35,6 +35,7 @@ services:
       - gfarm_net
     depends_on:
       - gfarm-http-gateway
+    restart: unless-stopped
 
 networks:
   gfarm_net:
