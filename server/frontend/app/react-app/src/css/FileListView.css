@@ -1,0 +1,78 @@
+.file-table {
+    cursor: pointer;
+}
+
+.file-table th:nth-child(1), /* Input column */
+.file-table td:nth-child(1) {
+    width: 30px;
+}
+
+.file-table td:nth-child(2) { /* Icon column */
+    width: 40px;
+}
+
+.file-table th:nth-child(2),
+.file-table td:nth-child(3) {/* Name column */
+    width: auto;
+}
+
+.file-table th:nth-child(3),
+.file-table td:nth-child(4) {/* Size column */
+    width: 15%;
+}
+
+.file-table th:nth-child(4),
+.file-table td:nth-child(5) {/* Date column */
+    width: 20%;
+}
+
+.file-table th:nth-child(5),
+.file-table td:nth-child(6) {/* Menu column */
+    width: 50px;
+}
+
+.file-item {
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.file-item:hover {
+    background-color: var(--bs-secondary-bg);
+    cursor: pointer;
+}
+
+.file-item-active {
+    background-color: var(--bs-secondary-bg-subtle);
+}
+
+[data-bs-theme="dark"] .file-item:hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+[data-bs-theme="dark"] .file-item-active {
+    background-color: rgba(255, 255, 255, .15);
+}
+
+
+
+.grid-container {
+    display: grid;
+    gap: 1rem;
+}
+
+.grid-item {
+    width: 15rem;
+    /* fallback default */
+}
+
+.grid-item-sm {
+    width: 9rem;
+}
+
+.grid-container.grid-regular {
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.grid-container.grid-small {
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+}

@@ -1,0 +1,331 @@
+[
+    {
+        "mode_str": "drwxr-xr-x",
+        "is_file": false,
+        "is_dir": true,
+        "is_sym": false,
+        "nlink": 3,
+        "uname": "user1",
+        "gname": "user1",
+        "size": 4096,
+        "mtime_str": "May 30 18:00:00 2025",
+        "name": "root",
+        "path": "/",
+        "childlen" : [
+            {
+                "mode_str": "drwxr-xr-x",
+                "is_file": false,
+                "is_dir": true,
+                "is_sym": false,
+                "nlink": 3,
+                "uname": "user1",
+                "gname": "user1",
+                "size": 4096,
+                "mtime_str": "Jun 01 18:00:00 2025",
+                "name": "documents",
+                "path": "/documents",
+                "childlen" : [
+                    {
+                        "mode_str": "-rw-r--r--",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 1,
+                        "uname": "user1",
+                        "gname": "users",
+                        "size": 1228800,
+                        "mtime_str": "May 15 10:30:00 2025",
+                        "name": "report.docx",
+                        "path": "/documents/report.docx"
+                    },
+                    {
+                        "mode_str": "-rw-r--r--",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 1,
+                        "uname": "user2",
+                        "gname": "users",
+                        "size": 51200,
+                        "mtime_str": "Jun  1 14:05:10 2025",
+                        "name": "meeting_notes.txt",
+                        "path": "/documents/meeting_notes.txt"
+                    },
+                    {
+                        "mode_str": "drwxr-xr-x",
+                        "is_file": false,
+                        "is_dir": true,
+                        "is_sym": false,
+                        "nlink": 2,
+                        "uname": "user1",
+                        "gname": "users",
+                        "size": 4096,
+                        "mtime_str": "Apr 20 09:00:00 2025",
+                        "name": "presentations",
+                        "path": "/documents/presentations",
+                        "childlen": [
+                            {
+                                "mode_str": "-rw-r--r--",
+                                "is_file": true,
+                                "is_dir": false,
+                                "is_sym": false,
+                                "nlink": 1,
+                                "uname": "user3",
+                                "gname": "users",
+                                "size": 3670016,
+                                "mtime_str": "Mar 25 11:15:20 2025",
+                                "name": "q1_review.pptx",
+                                "path": "/documents/presentations/q1_review.pptx"
+                            }
+                        ]
+                    },
+                    {
+                        "mode_str": "drwxr-xr-x",
+                        "is_file": false,
+                        "is_dir": true,
+                        "is_sym": false,
+                        "nlink": 3,
+                        "uname": "user1",
+                        "gname": "user1",
+                        "size": 4096,
+                        "mtime_str": "Jun 01 18:00:00 2025",
+                        "name": "documents",
+                        "path": "/documents/documents",
+                        "childlen" : [
+                            {
+                                "mode_str": "-rw-r--r--",
+                                "is_file": true,
+                                "is_dir": false,
+                                "is_sym": false,
+                                "nlink": 1,
+                                "uname": "user1",
+                                "gname": "users",
+                                "size": 1228800,
+                                "mtime_str": "May 15 10:30:00 2025",
+                                "name": "report.docx",
+                                "path": "/documents/documents/report.docx"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "mode_str": "drwxr-xr-x",
+                "is_file": false,
+                "is_dir": true,
+                "is_sym": false,
+                "nlink": 3,
+                "uname": "user4",
+                "gname": "users",
+                "size": 4096,
+                "mtime_str": "May 30 18:00:00 2025",
+                "name": "images",
+                "path": "/images",
+                "childlen" : [
+                    {
+                        "mode_str": "-rw-r--r--",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 1,
+                        "uname": "user4",
+                        "gname": "users",
+                        "size": 2202009,
+                        "mtime_str": "Jun  2 09:20:00 2025",
+                        "name": "photo.jpg",
+                        "path": "/images/photo.jpg"
+                    },
+                    {
+                        "mode_str": "drwxr-xr-x",
+                        "is_file": false,
+                        "is_dir": true,
+                        "is_sym": false,
+                        "nlink": 2,
+                        "uname": "user4",
+                        "gname": "users",
+                        "size": 4096,
+                        "mtime_str": "Apr 10 08:00:00 2025",
+                        "name": "icons",
+                        "path": "/images/icons",
+                        "childlen" : [
+                            {
+                                "mode_str": "-rw-r--r--",
+                                "is_file": true,
+                                "is_dir": false,
+                                "is_sym": false,
+                                "nlink": 1,
+                                "uname": "user4",
+                                "gname": "users",
+                                "size": 10240,
+                                "mtime_str": "Apr 10 08:05:00 2025",
+                                "name": "icon1.png",
+                                "path": "/images/icons/icon1.png"
+                            },
+                            {
+                                "mode_str": "-rw-r--r--",
+                                "is_file": true,
+                                "is_dir": false,
+                                "is_sym": false,
+                                "nlink": 1,
+                                "uname": "user4",
+                                "gname": "users",
+                                "size": 5120,
+                                "mtime_str": "Apr 10 08:10:00 2025",
+                                "name": "icon2.svg",
+                                "path": "/images/icons/icon2.svg"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "mode_str": "-rw-r--r--",
+                "is_file": true,
+                "is_dir": false,
+                "is_sym": false,
+                "nlink": 1,
+                "uname": "user5",
+                "gname": "users",
+                "size": 10485760,
+                "mtime_str": "Mar 01 16:00:00 2025",
+                "name": "archive.zip",
+                "path": "/archive.zip"
+            },
+            {
+                "mode_str": "-rw-r--r--",
+                "is_file": true,
+                "is_dir": false,
+                "is_sym": false,
+                "nlink": 1,
+                "uname": "user1",
+                "gname": "users",
+                "size": 2048,
+                "mtime_str": "Jan 10 09:00:00 2025",
+                "name": "README.md",
+                "path": "/README.md"
+            },
+            {
+                "mode_str": "-rwxrwxrwt",
+                "is_file": true,
+                "is_dir": false,
+                "is_sym": false,
+                "nlink": 2,
+                "uname": "node",
+                "gname": "gfarmadm",
+                "size": 128,
+                "mtime_str": "Apr  8 05:48:28 2025",
+                "name": "python_code.py",
+                "path": "/python_code.py"
+            },
+            {
+                "mode_str": "drwxr-xr-x",
+                "is_file": false,
+                "is_dir": true,
+                "is_sym": false,
+                "nlink": 3,
+                "uname": "user4",
+                "gname": "users",
+                "size": 4096,
+                "mtime_str": "May 30 18:00:00 2025",
+                "name": "error_test",
+                "path": "/error_test",
+                "childlen" : [
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 0,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "empty_file.txt",
+                        "path": "/empty_file.txt"
+                    },
+                    {
+                        "mode_str": "drwxr-xr-x",
+                        "is_file": false,
+                        "is_dir": true,
+                        "is_sym": false,
+                        "nlink": 3,
+                        "uname": "user4",
+                        "gname": "users",
+                        "size": 0,
+                        "mtime_str": "May 30 18:00:00 2025",
+                        "name": "empty_dir",
+                        "path": "/empty_dir",
+                        "childlen" : []
+                    },
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 100,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "deleted_file.txt",
+                        "path": "/deleted_file.txt"
+                    },
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 100,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "backend_disconnect.txt",
+                        "path": "/backend_disconnect.txt"
+                    },
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 100,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "cancellable_file.txt",
+                        "path": "/cancellable_file.txt"
+                    }
+                ]
+            },
+            {
+                "mode_str": "drwxr-xr-x",
+                "is_file": false,
+                "is_dir": true,
+                "is_sym": false,
+                "nlink": 3,
+                "uname": "user4",
+                "gname": "users",
+                "size": 4096,
+                "mtime_str": "May 30 18:00:00 2025",
+                "name": "dummy",
+                "path": "/dummy",
+                "childlen" : [
+                    {
+                        "mode_str": "-rwxrwxrwt",
+                        "is_file": true,
+                        "is_dir": false,
+                        "is_sym": false,
+                        "nlink": 2,
+                        "uname": "node",
+                        "gname": "gfarmadm",
+                        "size": 0,
+                        "mtime_str": "Apr  8 05:48:28 2025",
+                        "name": "dummy.txt",
+                        "path": "/dummy/dummy.txt"
+                    }
+                ]
+            }
+        ]
+    }
+]

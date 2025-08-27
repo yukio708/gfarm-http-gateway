@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>gfarm-http-gateway API</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+table {
+    width: 100%;
+    table-layout: fixed;
+}
+td {
+    overflow-wrap: break-word;
+    border: 1px solid black;
+    display: block;
+    padding: 0;
+    margin: 0;
+}
+pre {
+    margin: 0;
+    white-space: pre-wrap;
+}
+progress {
+    width: 100%;
+    height: 20px;
+}
+</style>
+
+<script src="./static/js/gfarm.js"></script>
+</head>
+<body>
+    <h1>Gfarm HTTP Gateway (Examples of API usage)</h1>
+
+    <p><a href="./docs">API docs (Swagger UI)</a></p>
+    <p><a href="./redoc">API docs (ReDoc)</a></p>
+
+{% if login_ok %}
+    <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
+
+    {% if access_token %}
+    <h2>Access Token</h2>
+        <div id="table-token">
+          <button id="btn-token" onclick="oauthInfoShow('table-token', 'btn-token')">Show</button>
+          <table style="display: none;">
+          <tr><td id="access_token">{{ access_token }}</td></tr>
+          <tr><td><pre>{{ parsed_at }}</pre></td></tr>
+          <tr><td><pre>exp={{ exp }}</pre></td></tr>
+          <tr><td><pre>current_time={{ current_time }}</pre></td></tr>
+          <tr><td><pre>remaining_time={{ exp - current_time }}</pre></td></tr>
+          </table>
+        </div>
+    {% endif %}
+
+    {% if sasl_username %}
+    <h2>SASL username: {{ sasl_username }}
+    {% endif %}
+
+    <h2>(gfwhoami) API: GET /conf/me</h2>
+        <p> <a href="./conf/me">Who am I</a> </p>
+
+        <p>
+        <button onclick="whoami1()">Who am I (fetch from this host)</button>
+        <div id="whoami_out1"></div>
+        </p>
+
+        <p>
+        <input type="text" id="whoami_url2" value="http://c3:8000">
+        <button onclick="whoami2()">Who am I (CORS) (fetch from a remote host usinig new token from /access_token API)</button>
+        <div id="whoami_out2"></div>
+        </p>
+        <p>
+        <input type="text" id="whoami_url3" value="http://c3:8000">
+        <button onclick="whoami3()">Who am I (CORS) (fetch from a remote host usinig token from HTML (may use old token))</button>
+        <div id="whoami_out3"></div>
+        </p>
+        <p>
+        <input type="text" id="whoami_url4" value="http://c3:8000">
+        <button onclick="whoamiWithoutAuth()">Who am I (invalid access token)</button>
+        <div id="whoami_out4"></div>
+        </p>
+        <p>
+        <input type="text" id="whoami_url5" value="http://c3:8000">
+        <button onclick="whoamiAnonymous()">Who am I (ANONYMOUS) (GFARM_HTTP_ALLOW_ANONYMOUS=1 is required)</button>
+        <div id="whoami_out5"></div>
+        </p>
+
+    <h2>(gfls) API: GET /dir/{path}</h2>
+        <p>
+        <label for="ls_path">Gfarm directory:</label>
+        <input type="text" id="ls_path" value="/tmp">
+        <button onclick="list()">gfls</button><br/>
+        <input type="checkbox" id="ls_all">
+        <label for="ls_all">a=1(-a: all)</label>
+        <input type="checkbox" id="ls_long">
+        <label for="ls_long">l=1(-l: long)</label>
+        <input type="checkbox" id="ls_recursive">
+        <label for="ls_recursive">R=1(-R: Recursive)</label>
+        <input type="checkbox" id="ls_effperm">
+        <label for="ls_effperm">e=1(-e: effective perm)</label>
+        <input type="checkbox" id="ls_ign_err">
+        <label for="ls_ign_err">ign_err=1</label>
+        <table><tr><td><pre><div id="ls_out"></div></pre></td></tr></table>
+        </p>
+
+    <h2>(gfexport) API: GET /file/{path}</h2>
+      <p>
+        <label for="export_path">Gfarm file:</label>
+        <input type="text" id="export_path" value="/tmp/testfile.txt" oninput="updateLink()"> <br/>
+        <div id="dl-link"></div>
+        <div id="view-link"></div>
+        <button onclick="displayFile()">Open in new tab</button> <br/>
+        <button onclick="downloadFile()">Download (JavaScript)</button>
+        <button id="download-cancel">Cancel</button> <br/>
+        <progress id="download-progress" value="0" max="100"></progress>
+        <div id="download-progress-text"></div>
+      </p>
+
+    <h2>(gfreg) API: PUT /file/{path}</h2>
+        <p>
+        <label for="reg_dir">Gfarm directory:</label>
+        <input type="text" id="reg_dir" value="/tmp">
+        <input type="file" id="file_input"> <br/>
+        <button onclick="uploadFile()">Upload</button>
+        <button id="upload-cancel">Cancel</button> <br/>
+        <progress id="upload_progress" value="0" max="100"></progress>
+        <div id="upload_progress_text"></div>
+        <div id="upload_status"></div> <br/>
+        </p>
+
+    <h2>(gfrm) API: DELETE /file/{path}</h2>
+        <p>
+        <label for="rm_path">Gfarm file:</label>
+        <input type="text" id="rm_path" value="/tmp/testfile.txt">
+        <button onclick="removeFile()">gfrm</button>
+        <div id="rm_output"></div>
+        </p>
+
+    <h2>(gfmkdir) API: PUT /dir/{path}</h2>
+        <p>
+        <label for="mkdir_path">Gfarm directory:</label>
+        <input type="text" id="mkdir_path" value="/tmp/testdir">
+        <button onclick="createDir()">gfmkdir</button><br/>
+        <div id="mkdir_output"></div>
+        </p>
+
+    <h2>(gfrmdir) API: DELETE /dir/{path}</h2>
+        <p>
+        <label for="rmdir_path">Gfarm directory:</label>
+        <input type="text" id="rmdir_path" value="/tmp/testdir">
+        <button onclick="removeDir()">gfrmdir</button><br/>
+        <div id="rmdir_output"></div>
+        </p>
+
+    <h2>(gfmv) API: POST /move</h2>
+        <p>
+        <label for="mv_src">Gfarm path (source):</label>
+        <input type="text" id="mv_src" value="/tmp/file1"> <br/>
+        <label for="mv_dest">Gfarm path (destination):</label>
+        <input type="text" id="mv_dest" value="/tmp/file2">
+        <button onclick="move()">gfmv</button><br/>
+        <table><tr><td>Input data (JSON)</td></tr><tr><td><pre><div id="mv_input"></div></pre></td></tr></table>
+        <div id="mv_output"></div>
+        </p>
+
+   <h2>(gfstat) API: GET /attr/{path}</h2>
+        <p>
+        <label for="stat_path">Gfarm path:</label>
+        <input type="text" id="stat_path" value="/tmp/testdir">
+        <button onclick="stat()">gfstat</button><br/>
+        <table><tr><td><pre><div id="stat_output"></div></pre></td></tr></table>
+        </p>
+
+   <h2>(gfchmod) API: POST /attr/{path}</h2>
+        <p>
+        <label for="chmod_path">Gfarm path:</label>
+        <input type="text" id="chmod_path" value="/tmp/testdir"> <br/>
+        <label for="chmod_mode">Mode:</label>
+        <input type="text" id="chmod_mode" value="700">
+        <button onclick="chmod()">gfchmod</button><br/>
+        <table><tr><td>Input data (JSON)</td></tr><tr><td><pre><div id="chmod_input"></div></pre></td></tr></table>
+        <div id="chmod_output"></div>
+        </p>
+
+        <h2>(gfptar) API: POST /gfptar</h2>
+        <p>
+        <label for="gfptar_cmd">gfptar command:</label>
+        <input type="text" id="gfptar_cmd" value="c"> <br/>
+        <label for="gfptar_bace">Gfarm path (base):</label>
+        <input type="text" id="gfptar_bace" value="gfarm:/tmp"> <br/>
+        <label for="gfptar_src">Gfarm path (source):</label>
+        <input type="text" id="gfptar_src" value="./testdir"> <br/>
+        <label for="gfptar_dest">Gfarm path (destination):</label>
+        <input type="text" id="gfptar_dest" value="gfarm:/tmp/testoutdir">
+        <button onclick="gfptar()">gfptar</button><br/>
+        <table><tr><td>Input data (JSON)</td></tr><tr><td><pre><div id="gfptar_input"></div></pre></td></tr></table>
+        <div id="gfptar_output"></div>
+        </p>
+
+    <h2>Logout</h2>
+        {% if access_token %}
+        <p> <a href={{ logout_url }}>Logout (Not logging out of OpenID provider)</a> </p>
+        {% else %} <!-- access_token -->
+        <p> <a href={{ logout_url }}>Logout</a> </p>
+        {% endif %} <!-- access_token -->
+
+        {% if logout_url_with_oidc %}
+        <p> <a href={{ logout_url_with_oidc }}>Logout of OpenID provider and this page (redirect to the login page)</a> </p>
+        {% endif %}
+        {% if logout_url_oidc_only %}
+        <p> <a href={{ logout_url_oidc_only }}>Logout of OpenID provider only (no redirect)</a> </p>
+        {% endif %}
+
+{% else %} <!-- login_ok -->
+        <hr>
+        {% if error %}
+        <p>Error: {{ error }}</p>
+        {% endif %}
+        <hr>
+        <p> <a href="./login_oidc">Login with OpenID provider</a> </p>
+        <hr>
+        <p>
+          Login with SASL (PLAIN or LOGIN)
+          <form action="./login_passwd" method="POST">
+            <label for="user">Username:</label>
+            <input type="text" id="user" name="username"><br/>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password"><br/>
+            <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit">Login</button>
+          </form>
+        </p>
+        <hr>
+        <p> <a href={{ logout_url_oidc_only }}>Logout of OpenID provider only (no redirect)</a> </p>
+{% endif %} <!-- login_ok -->
+
+<script>
+  updateLink();
+  window.addEventListener('pageshow', function(event) {
+      updateLink();
+  });
+</script>
+
+</body>
+</html>

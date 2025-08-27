@@ -1,5 +1,14 @@
 *~
 
-/api/__pycache__/
-/api/test/__pycache__/
-/venv/
+server/api/__pycache__/
+server/api/test/__pycache__/
+server/venv/
+
+.vscode
+
+__pycache__
+.pytest_cache
+
+gfarm-http-gateway.conf
+
+config/

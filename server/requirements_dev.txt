@@ -1,0 +1,13 @@
+authlib
+fastapi
+flake8
+httpx
+itsdangerous
+Jinja2
+loguru
+pytest
+pytest-asyncio
+python-jose
+python-multipart
+requests
+uvicorn

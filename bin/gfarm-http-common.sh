@@ -1,8 +1,0 @@
-SRC_DIR="$(realpath ${DIR}/..)"
-API_DIR="${SRC_DIR}/api"
-VENV_DIR="${SRC_DIR}/venv"
-BIN_DIR="${VENV_DIR}/bin"
-UVICORN="${BIN_DIR}/uvicorn"
-PYTHON3="${BIN_DIR}/python3"
-PYTEST="${BIN_DIR}/pytest"
-APP="gfarm_http:app"

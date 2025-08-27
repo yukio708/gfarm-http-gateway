@@ -1,0 +1,15 @@
+[
+    {
+        "mode_str": "drwxrwxrwt",
+        "is_file": false,
+        "is_dir": true,
+        "is_sym": false,
+        "nlink": 2,
+        "uname": "node",
+        "gname": "gfarmadm",
+        "size": 0,
+        "mtime_str": "Apr  8 05:48:28 2025",
+        "name": "tmp",
+        "path": "/tmp"
+    }
+]
