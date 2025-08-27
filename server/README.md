@@ -141,11 +141,11 @@ docker compose up -d
 Serve the gateway under a URL prefix (e.g., `/gfarm/`).  
 This is useful when you share a domain with other apps behind the same reverse proxy.
 
-#### 1. Setup the Docker Image
+#### 1. Setup the gateway
 
 Follow the steps in **Option 1 → 1. Build the Docker Image and 2. Prepare Configuration**.
 
-(If you're using Docker Compose, also follow **Option 2 → 1. Fetch gfarm-http-gateway and 2. Prepare the Configuration**.)
+(If you're using Docker Compose, instead follow **Option 2 → 1. Fetch gfarm-http-gateway and 2. Prepare the Configuration**.)
 
 #### 2. Start the gateway with a root path
 
