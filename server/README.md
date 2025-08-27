@@ -44,6 +44,9 @@ Choose one of the following options depending on your environment.
 
 ### Option 1: Run with Docker
 
+> Note: This example uses HTTP and is not recommended for production use.  
+> For secure deployments, place the gateway behind a reverse proxy with HTTPS enabled.
+
 #### 1. Build the Docker Image
 
 Clone the repository and build the image:  
