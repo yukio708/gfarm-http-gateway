@@ -15,7 +15,7 @@ GFARM_HTTP_ORIGINS="http://localhost:8000,http://localhost:8080"
 # Temporary directory to store token files for long-term exec (gfptar).
 # Token files are removed after gfptar finishes.
 # The gateway cleans up this directory when it starts.
-GFARM_HTTP_TMPDIR="/tmp/gfarm-http"
+GFARM_HTTP_TMPDIR="/tmp/gfarm-http-gateway"
 
 # ========================================
 # Sessions
