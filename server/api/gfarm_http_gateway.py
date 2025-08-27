@@ -31,6 +31,7 @@ import shutil
 import zipfile
 from collections import deque
 import threading
+import stat
 
 from loguru import logger
 
@@ -148,12 +149,13 @@ conf_required_keys = [
     "GFARM_HTTP_SESSION_SECRET",
     "GFARM_HTTP_SESSION_ENCRYPT",
     "GFARM_HTTP_SESSION_COMPRESS_TYPE",
-    # "GFARM_HTTP_KEYCLOAK_SERVER",  # optional
-    # "GFARM_HTTP_KEYCLOAK_REALM",   # optional
+    # "GFARM_HTTP_KEYCLOAK_SERVER",         # optional
+    # "GFARM_HTTP_KEYCLOAK_REALM",          # optional
     "GFARM_HTTP_OIDC_REDIRECT_URI_PAGE",
     "GFARM_HTTP_OIDC_OVERRIDE_REDIRECT_URI",
     "GFARM_HTTP_OIDC_CLIENT_ID",
     "GFARM_HTTP_OIDC_CLIENT_SECRET",
+    # GFARM_HTTP_KEYCLOAK_RELATIVE_PATH,    # optional
     "GFARM_HTTP_OIDC_BASE_URL",
     "GFARM_HTTP_OIDC_META_URL",
     "GFARM_HTTP_OIDC_KEYS_URL",
@@ -399,12 +401,35 @@ conf_check_invalid()  # may exit
 
 
 #############################################################################
-def delete_tempfiles():
+def check_tempdir_mode():
     if os.path.exists(TMPDIR):
+        st = os.stat(TMPDIR)
+        mode = stat.S_IMODE(st.st_mode)
+        owner = st.st_uid
+        print("check_tempdir_mode", owner, mode)
+
+        if owner != os.getuid():
+            raise PermissionError(
+                f"{TMPDIR} must be owned by uid {os.getuid()} "
+                f"(current owner uid is {owner})"
+            )
+
+        if mode != 0o700:
+            raise PermissionError(
+                f"{TMPDIR} must be private (mode 0o700) "
+                f"(current mode is {oct(mode)})"
+            )
+
+
+def manage_tempfiles():
+    if os.path.exists(TMPDIR):
+        check_tempdir_mode()
         shutil.rmtree(TMPDIR)
+    os.makedirs(TMPDIR, mode=0o700)
+    check_tempdir_mode()
 
 
-delete_tempfiles()
+manage_tempfiles()
 
 #############################################################################
 app = FastAPI()
