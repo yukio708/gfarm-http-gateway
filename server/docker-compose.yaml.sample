@@ -3,9 +3,10 @@ services:
     build:
       context: .
     container_name: gfarm-http-gateway
-    command: --host 0.0.0.0 --port 8000
+    # NOTE: Adjust --forwarded-allow-ips to match the subnet of your Docker network.
+    command: --host 0.0.0.0 --port 8000 --forwarded-allow-ips="172.18.0.0/16"
     # for Run with a Subpath
-    # command: --host 0.0.0.0 --port 8000 --root-path /gfarm
+    # command: --host 0.0.0.0 --port 8000 --forwarded-allow-ips="172.18.0.0/16" --root-path /gfarm
     volumes:
       # Required: Gfarm config
       - ./config/gfarm2.conf:/config/gfarm2.conf:ro

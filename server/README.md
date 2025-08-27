@@ -113,6 +113,17 @@ cd gfarm-http-gateway/server
 
 Follow the steps in **Option 1 → 2. Prepare Configuration** for the required `config/` files.  
 
+Place the TLS certificate and key files for NGINX (used for HTTPS termination), e.g.:
+```bash
+nginx/certs/
+├── cert.pem   # your server certificate
+└── key.pem    # your private key
+```
+> NOTE: These are different from the **Gfarm CA certificates** in `config/certs/`.
+>
+> - `config/certs/` → for the gateway to trust Gfarm
+> - `nginx/certs/` → for NGINX to serve HTTPS to clients
+
 Copy the provided sample files:  
 ```bash
 cp docker-compose.yaml.sample docker-compose.yaml
@@ -122,6 +133,7 @@ cp nginx.conf.sample ./nginx/gfarm.conf
 
 Edit them to match your environment:  
 - In **`docker-compose.yaml`**:
+  - Adjust `--forwarded-allow-ips` to match the subnet of your Docker network
   - Mount the NGINX config and TLS certificates, e.g.:
     - `./nginx/gfarm.conf:/etc/nginx/conf.d/gfarm.conf:ro`
     - `./nginx/certs:/etc/nginx/certs:ro`
