@@ -9,9 +9,10 @@ To run gfarm-http-gateway, you need:
 
 ## Configuration variables
 
+`gfarm-http-gateway.conf` is required to run the gateway.
 Default values are defined in [`gfarm-http-gateway.conf.default`](./gfarm-http-gateway.conf.default). 
 
-The file is divided into sections:
+The configuration file is organized into the following sections:
 
 - **Basic** - Basic settings (Gfarm config, CORS, temp directory)
 - **Sessions** - Session management and security
@@ -34,6 +35,8 @@ cp gfarm-http-gateway.conf.default gfarm-http-gateway.conf
 
 ## Quick Start (example using Docker)
 
+Choose one of the following options depending on your environment.
+
 ### Requirements
 
 - Docker
@@ -46,7 +49,7 @@ cp gfarm-http-gateway.conf.default gfarm-http-gateway.conf
 Clone the repository and build the image:  
 ```bash
 git clone https://github.com/oss-tsukuba/gfarm-http-gateway.git
-cd gfarm-http-gateway
+cd gfarm-http-gateway/server
 
 docker build -t gfarm-http-gateway .
 ```
@@ -70,7 +73,7 @@ In `gfarm2.conf`, you need to set `auth enable sasl` (or `sasl_auth`)
 docker run --rm \
   -v $(pwd)/config:/config \
   -p 8000:8000 \
-  gfarm-http-gateway
+  gfarm-http-gateway --host 0.0.0.0
 ```
 
 By default, **gfarm-http-gateway** listens on port 8000 inside the container.  
@@ -79,17 +82,36 @@ To use a different port, pass `--port` to the container command and adjust the `
 docker run --rm \
   -v $(pwd)/config:/config \
   -p 8080:8080 \
-  gfarm-http-gateway --port 8080
+  gfarm-http-gateway --host 0.0.0.0 --port 8080
 ```
+
+> **When running inside Docker, `--host 0.0.0.0` is required.**
+>
+> - Without it, the gateway will only listen on `127.0.0.1` inside the container, making it unreachable from the host or external clients.
+> - Binding to `0.0.0.0` means the gateway **accepts connections from all network interfaces**.
+>
+> To restrict access from the host side, adjust the `-p` option when publishing ports:
+>
+> - `-p 8000:8000` → accessible from all interfaces (`0.0.0.0:8000`)
+> - `-p 127.0.0.1:8000:8000` → accessible only from localhost
+> - `-p 192.168.1.100:8000:8000` → accessible only from the specified IP
 
 ### Option 2: Run Behind NGINX (HTTPS)
 
 Use NGINX as a reverse proxy in front of **gfarm-http-gateway**.  
 This example uses Docker Compose.  
 
-#### 1. Prepare the Configuration
+#### 1. Fetch gfarm-http-gateway
 
-See **Option 1 → 2. Prepare Configuration** for the required `config/` files.  
+Clone the repository:  
+```bash
+git clone https://github.com/oss-tsukuba/gfarm-http-gateway.git
+cd gfarm-http-gateway/server
+```
+
+#### 2. Prepare the Configuration
+
+Follow the steps in **Option 1 → 2. Prepare Configuration** for the required `config/` files.  
 
 Copy the provided sample files:  
 ```bash
@@ -108,7 +130,7 @@ Edit them to match your environment:
     - `ssl_certificate     /etc/nginx/certs/cert.pem;`
     - `ssl_certificate_key /etc/nginx/certs/key.pem;`
 
-#### 2. Launch with Docker Compose
+#### 3. Launch with Docker Compose
 
 ```bash
 docker compose up -d
@@ -119,7 +141,13 @@ docker compose up -d
 Serve the gateway under a URL prefix (e.g., `/gfarm/`).  
 This is useful when you share a domain with other apps behind the same reverse proxy.
 
-#### 1. Start the gateway with a root path
+#### 1. Setup the Docker Image
+
+Follow the steps in **Option 1 → 1. Build the Docker Image and 2. Prepare Configuration**.
+
+(If you're using Docker Compose, also follow **Option 2 → 1. Fetch gfarm-http-gateway and 2. Prepare the Configuration**.)
+
+#### 2. Start the gateway with a root path
 
 - **Docker:**
 
@@ -152,14 +180,18 @@ If you use NGINX as a reverse proxy, add a `location /gfarm/` block that preserv
 
 This option is a preset for HPCI Shared Storage. It expects Docker + Docker Compose.
 
-#### 1. Fetch HPCI Shared Storage config and certificate
+#### 1. Fetch gfarm-http-gateway
+
+Follow the steps in **Option 2 → 1. Fetch gfarm-http-gateway**.  
+
+#### 2. Fetch HPCI Shared Storage config and certificate
 
 Run the following script to download HPCI-specific `gfarm2.conf` and CA certificate:
 ```bash
 ./download-HPCI-config.sh
 ```
 
-#### 2. Launch with Docker Compose
+#### 3. Launch with Docker Compose
 
 For running `gfarm-http-gateway` in the HPCI environment, an example Compose file is provided:  
 [`docker-compose-for-HPCI.yaml`](./docker-compose-for-HPCI.yaml)
@@ -172,6 +204,83 @@ docker compose -f docker-compose-for-HPCI.yaml up -d --build
 This setup:
 - Mounts `gfarm-http-gateway-for-HPCI.conf` as the gateway configuration
 - Runs on port 8080 (accessible at `http://localhost:8080`)
+
+## Update gfarm-http-gateway and Gfarm client with Docker
+
+### Update gfarm-http-gateway
+
+#### Git pull then Docker build
+
+```bash
+# Update gfarm-http-gateway repository
+git pull
+
+# Rebuild (Docker)
+docker build -t gfarm-http-gateway:latest .
+```
+
+#### Using Docker Compose
+
+```bash
+git pull
+docker compose build
+```
+
+> Tip: If you need a clean rebuild ignoring cache, add `--no-cache`:
+> `docker build --no-cache -t gfarm-http-gateway:latest .` or `docker compose build --no-cache`.
+
+### Update Gfarm client
+
+You can either pin a released version via `GFARM_VER`, or build from source via `GFARM_SRC_*` args.
+
+#### Build with a released version
+
+```bash
+# Build image in the current directory (tag as you like)
+docker build \
+  --build-arg GFARM_VER=2.8.7 \
+  -t gfarm-http-gateway:gfarm-2.8.7 \
+  .
+```
+
+#### Build from source (Git)
+
+> When using the Git source build, **set `GFARM_SRC_URL` to an empty string** and pass branch/tag via `GFARM_SRC_GIT_BRANCH`.
+> `GFARM_SRC_GIT_URL` defaults to `https://github.com/oss-tsukuba/gfarm.git`.
+
+```bash
+docker build \
+  --build-arg GFARM_SRC_URL='' \
+  --build-arg GFARM_SRC_GIT_URL='https://github.com/oss-tsukuba/gfarm.git' \
+  --build-arg GFARM_SRC_GIT_BRANCH='2.8' \
+  -t gfarm-http-gateway:gfarm-2.8-src \
+  .
+```
+
+#### Using Docker Compose
+
+1. Set build args in `docker-compose.yaml`:
+
+```yaml
+services:
+  gfarm-http-gateway:
+    build:
+      context: .
+      args:
+        # Option A: use a released version
+        GFARM_VER: "2.8.7"
+
+        # Option B: build from source (leave GFARM_SRC_URL empty)
+        # GFARM_SRC_URL: ""
+        # GFARM_SRC_GIT_URL: "https://github.com/oss-tsukuba/gfarm.git"
+        # GFARM_SRC_GIT_BRANCH: "2.8"
+```
+
+2. Build:
+
+```bash
+docker compose build
+```
 
 
 ## Manual Installation (example without Docker)
@@ -259,7 +368,6 @@ This setup:
   - default: LOGURU_FORMAT from loguru._defaults
     - <https://github.com/Delgan/loguru/blob/master/loguru/_defaults.py>
 
-
 ## API Documentation
 
 - Swagger (auto-generated by FastAPI)
@@ -279,9 +387,9 @@ This setup:
 - (in c2 container)
 - `cd ~/gfarm/gfarm-http-gateway/server`
 - `make setup-latest`
-- `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug`
-- `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug` in c3 container using the same procedure described above
-- Refer to `Keycloak on Gfarm docker/dist (developer setup)` for configuration details
+- `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug` to launch the gateway
+- (Optional) in c3 container, launch the gateway using the same procedure described above
+- refer to `Keycloak on Gfarm docker/dist (developer setup)` for configuration details
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <https://jwt-server/> in a web browser
 - copy the command line of jwt-agent and start jwt-agent in c1 container
