@@ -322,6 +322,7 @@ docker compose build
 - **gfarm-http-gateway requirements**
   - (For Ubuntu 24.04 or RHEL(8,9) family)
     - Run `make setup`
+    - To install Python and Node.js via system packages (requires curl): run make `setup-with-sys-packages`
   - (For other environments)
     - Refer to `setup.sh` and install the listed packages manually.
   - (When using Pyenv python3 instead of system python3)
@@ -330,11 +331,15 @@ docker compose build
     - `cd gfarm-http-gateway`
     - `make clear-venv`
     - (ex.) `pyenv local 3.12`
-    - `make setup-wo-sys-packages` or `setup-latest-wo-sys-packages`
+    - `make setup` or `setup-latest`
 - **OpenID Connect provider**
   - client ID and client secret
   - valid redirect URI
   - logout redirect URI (optional)
+
+#### Prepare Configuration
+
+See **Configuration variables**
 
 ### Start server
 
@@ -441,7 +446,7 @@ It is intended as a development example only.
 - Edit requirements_dev.txt
   - Ex.: `uvicorn>=0.34`
 - DO NOT edit requirements.txt
-- `make setup-latest-wo-sys-packages`
+- `make setup-latest`
 
 ### To update requirements.txt for latest
 
