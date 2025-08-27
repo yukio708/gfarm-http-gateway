@@ -398,7 +398,7 @@ docker compose build
 - `ssh c2`
 - (in c2 container)
 - `cd ~/gfarm/gfarm-http-gateway/server`
-- `make setup-latest`
+- `make setup-latest-with-sys-packages`
 - `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug` to launch the gateway
 - (Optional) in c3 container, launch the gateway using the same procedure described above
 - refer to `Keycloak on Gfarm docker/dist (developer setup)` for configuration details
@@ -406,9 +406,11 @@ docker compose build
 - open <https://jwt-server/> in a web browser
 - copy the command line of jwt-agent and start jwt-agent in c1 container
   - input the passphrase from jwt-server
+- setup [gfarm-http Client](../client)
 - `gfmkdir -m 1777 /tmp`
 - `export GFARM_HTTP_URL=http://c2:8000`
-- `make test-all` in c1 container
+- `make test-client`
+- `make test-unit`
 - open <http://c2:8000/> in a web browser
   - auto-redirect to <http://keycloak>
   - login: `user1/PASSWORD`
@@ -416,8 +418,7 @@ docker compose build
 
 #### Keycloak on Gfarm docker/dist (developer setup)
 
-This section shows how to configure **Keycloak** as an OpenID Connect provider in the
-[Gfarm docker/dist](https://github.com/oss-tsukuba/gfarm/tree/master/docker/dist) environment.  
+This section shows how to configure **Keycloak** as an OpenID Connect provider in the gfarm/docker/dist environment.  
 It is intended as a development example only.
 
 1. Open the Keycloak admin console in a web browser:  
