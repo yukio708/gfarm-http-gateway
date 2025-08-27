@@ -289,7 +289,7 @@ docker build \
   .
 ```
 
-#### Build from source (Git)
+#### Build from Git repository
 
 > Note: When using the Git source build, **set `GFARM_SRC_URL` to an empty string** and pass branch/tag via `GFARM_SRC_GIT_BRANCH`.  
 > `GFARM_SRC_GIT_URL` defaults to `https://github.com/oss-tsukuba/gfarm.git`.  
