@@ -72,7 +72,7 @@ In `gfarm2.conf`, you need to set `auth enable sasl` (or `sasl_auth`)
 ```bash
 docker run --rm \
   -v $(pwd)/config:/config \
-  -p 8000:8000 \
+  -p 127.0.0.1:8000:8000 \
   gfarm-http-gateway --host 0.0.0.0
 ```
 
@@ -81,20 +81,31 @@ To use a different port, pass `--port` to the container command and adjust the `
 ```bash
 docker run --rm \
   -v $(pwd)/config:/config \
-  -p 8080:8080 \
+  -p 127.0.0.1:8080:8080 \
   gfarm-http-gateway --host 0.0.0.0 --port 8080
 ```
 
-> **When running inside Docker, `--host 0.0.0.0` is required.**
+> Note:  
+> Port binding:  
+> - `-p 127.0.0.1:8000:8000` → binds the container port to **localhost only**.
+>   - This means the gateway is accessible at `http://127.0.0.1:8000` or `http://localhost:8000` **from the host machine only**.
+> - `-p 192.168.1.100:8000:8000` → accessible only from the specified host IP
+> - `-p 8000:8000` → accessible from **all interfaces** (`0.0.0.0:8000`)
+>   - Not recommended for production use (exposes unencrypted HTTP to all network clients).
 >
-> - Without it, the gateway will only listen on `127.0.0.1` inside the container, making it unreachable from the host or external clients.
-> - Binding to `0.0.0.0` means the gateway **accepts connections from all network interfaces**.
->
-> To restrict access from the host side, adjust the `-p` option when publishing ports:
->
-> - `-p 8000:8000` → accessible from all interfaces (`0.0.0.0:8000`)
-> - `-p 127.0.0.1:8000:8000` → accessible only from localhost
-> - `-p 192.168.1.100:8000:8000` → accessible only from the specified IP
+> `--host 0.0.0.0`:  
+> This makes the gateway listen on all interfaces inside the container. Which interfaces are exposed externally is then controlled by the -p option above.
+
+#### 4. Stop the Container
+
+To stop the gateway, press `Ctrl + C` if it's running in the foreground.  
+If you ran it in the background (with `-d`), stop it with:  
+
+```bash
+docker ps            # find the container ID or name
+docker stop <id-or-name>
+```
+
 
 ### Option 2: Run Behind NGINX (HTTPS)
 
@@ -148,6 +159,14 @@ Edit them to match your environment:
 docker compose up -d
 ```
 
+#### 4. Stop the Container
+
+To stop all services defined in your Compose file:
+
+```bash
+docker compose down
+```
+
 ### Option 3: Run Under a Subpath
 
 Serve the gateway under a URL prefix (e.g., `/gfarm/`).  
@@ -178,7 +197,7 @@ Follow the steps in **Option 1 → 1. Build the Docker Image and 2. Prepare Conf
       command: --host 0.0.0.0 --port 8000 --root-path /gfarm
   ```
 
-> `--root-path /gfarm` tells Uvicorn/FastAPI that the app lives under `/gfarm`.
+> Note: `--root-path /gfarm` tells Uvicorn/FastAPI that the app lives under `/gfarm`.
 
 If you use NGINX as a reverse proxy, add a `location /gfarm/` block that preserves `/gfarm` when forwarding:  
 ```
@@ -188,9 +207,16 @@ If you use NGINX as a reverse proxy, add a `location /gfarm/` block that preserv
 }
 ```
 
+#### 3. Stop the Container
+
+Follow the steps in **Option 1 or Option 2 → 4. Stop the Container**
+
 ### Option 4: Run in HPCI Shared Storage environment
 
-This option is a preset for HPCI Shared Storage. It expects Docker + Docker Compose.
+This option is a preset for HPCI Shared Storage. It expects Docker + Docker Compose.  
+
+> Note: This example uses HTTP and is not recommended for production use.  
+> For secure deployments, place the gateway behind a reverse proxy with HTTPS enabled.
 
 #### 1. Fetch gfarm-http-gateway
 
@@ -217,6 +243,11 @@ This setup:
 - Mounts `gfarm-http-gateway-for-HPCI.conf` as the gateway configuration
 - Runs on port 8080 (accessible at `http://localhost:8080`)
 
+#### 4. Stop the Container
+
+Follow the steps in **Option 2 → 4. Stop the Container**
+
+
 ## Update gfarm-http-gateway and Gfarm client with Docker
 
 ### Update gfarm-http-gateway
@@ -238,7 +269,7 @@ git pull
 docker compose build
 ```
 
-> Tip: If you need a clean rebuild ignoring cache, add `--no-cache`:
+> Note: If you need a clean rebuild ignoring cache, add `--no-cache`:  
 > `docker build --no-cache -t gfarm-http-gateway:latest .` or `docker compose build --no-cache`.
 
 ### Update Gfarm client
@@ -257,8 +288,8 @@ docker build \
 
 #### Build from source (Git)
 
-> When using the Git source build, **set `GFARM_SRC_URL` to an empty string** and pass branch/tag via `GFARM_SRC_GIT_BRANCH`.
-> `GFARM_SRC_GIT_URL` defaults to `https://github.com/oss-tsukuba/gfarm.git`.
+> Note: When using the Git source build, **set `GFARM_SRC_URL` to an empty string** and pass branch/tag via `GFARM_SRC_GIT_BRANCH`.  
+> `GFARM_SRC_GIT_URL` defaults to `https://github.com/oss-tsukuba/gfarm.git`.  
 
 ```bash
 docker build \
@@ -294,6 +325,23 @@ services:
 docker compose build
 ```
 
+### Restart the container
+
+After rebuilding, restart the running container to apply the update:
+
+- **Docker:**
+
+```bash
+docker stop <container_id_or_name>
+docker run --rm ...   # same command as before
+```
+
+- **Docker Compose:**
+
+```bash
+docker compose down
+docker compose up -d
+```
 
 ## Manual Installation (example without Docker)
 
@@ -322,7 +370,7 @@ docker compose build
 - **gfarm-http-gateway requirements**
   - (For Ubuntu 24.04 or RHEL(8,9) family)
     - Run `make setup`
-    - To install Python and Node.js via system packages (requires curl): run make `setup-with-sys-packages`
+    - To install Python and Node.js via system packages (requires curl): run `make setup-with-sys-packages`
   - (For other environments)
     - Refer to `setup.sh` and install the listed packages manually.
   - (When using Pyenv python3 instead of system python3)
@@ -331,7 +379,7 @@ docker compose build
     - `cd gfarm-http-gateway`
     - `make clear-venv`
     - (ex.) `pyenv local 3.12`
-    - `make setup` or `setup-latest`
+    - `make setup` or `make setup-latest`
 - **OpenID Connect provider**
   - client ID and client secret
   - valid redirect URI
@@ -406,7 +454,7 @@ See **Configuration variables**
 - `make setup-latest-with-sys-packages`
 - `bin/gfarm-http-gateway-dev-for-docker-dist.sh  --port 8000 --log-level debug` to launch the gateway
 - (Optional) in c3 container, launch the gateway using the same procedure described above
-- refer to `Keycloak on Gfarm docker/dist (developer setup)` for configuration details
+- refer to `Keycloak on gfarm/docker/dist (developer setup)` for configuration details
 - use the http proxy (squid) for c2, c3, keycloak and jwt-server for a web browser
 - open <https://jwt-server/> in a web browser
 - copy the command line of jwt-agent and start jwt-agent in c1 container
@@ -421,7 +469,7 @@ See **Configuration variables**
   - login: `user1/PASSWORD`
   - This page contains examples of API usage
 
-#### Keycloak on Gfarm docker/dist (developer setup)
+#### Keycloak on gfarm/docker/dist (developer setup)
 
 This section shows how to configure **Keycloak** as an OpenID Connect provider in the gfarm/docker/dist environment.  
 It is intended as a development example only.
