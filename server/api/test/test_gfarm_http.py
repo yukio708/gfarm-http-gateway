@@ -8,6 +8,7 @@ from unittest.mock import patch, Mock, MagicMock, AsyncMock
 
 import zipfile
 import io
+import time
 
 import gfarm_http_gateway
 
@@ -495,6 +496,7 @@ expect_gfls_stdout_data = (
 )
 gfls_success_param = (expect_gfls_stdout_data, b"", 0)
 
+mtime = time.mktime(time.strptime("Jun 01 09:00:00 2024", '%b %d %H:%M:%S %Y'))
 expect_gfls_json_stdout = {
     'mode_str': '-rw-r--r--',
     'is_file': True,
@@ -505,7 +507,7 @@ expect_gfls_json_stdout = {
     'uname': 'user',
     'gname': 'group',
     'size': 5678,
-    'mtime': 1717232400.0,
+    'mtime': mtime,
     'name': 'testfile1.txt',
     'path': '/testdir/testfile1.txt',
     'perms': None
