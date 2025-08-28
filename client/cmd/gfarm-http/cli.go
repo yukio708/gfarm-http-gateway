@@ -352,7 +352,7 @@ func handleTar(client *Client, args []string) error {
 	extract := fs.String("x", "", "Extract all entries or specified MEMBERs from INDIR to OUTDIR")
 	listDir := fs.String("t", "", "List the members of DIR")
 
-	basedir := fs.String("C", ".", "Change to directory for MEMBERs [default: .]")
+	basedir := fs.String("C", "", "Change to directory for MEMBERs")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -401,8 +401,7 @@ func handleTar(client *Client, args []string) error {
 		indir := rest[0]
 		members := rest[1:]
 
-		src := append([]string{indir}, members...)
-		return client.cmdTar("x", outdir, indir, src, nil)
+		return client.cmdTar("x", outdir, indir, members, nil)
 
 	case "t":
 		// -t DIR
