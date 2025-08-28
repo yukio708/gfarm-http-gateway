@@ -133,7 +133,7 @@ nginx/certs/
 ├── cert.pem   # your server certificate
 └── key.pem    # your private key
 ```
-> NOTE: These are different from the **Gfarm CA certificates** in `config/certs/`.
+> Note: These are different from the **Gfarm CA certificates** in `config/certs/`.
 >
 > - `config/certs/` → for the gateway to trust Gfarm
 > - `nginx/certs/` → for NGINX to serve HTTPS to clients
