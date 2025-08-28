@@ -24,7 +24,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
---- Package: bootstrap@5.3.6 ---
+--- Package: bootstrap@5.3.7 ---
 Repository: https://github.com/twbs/bootstrap
 Publisher: The Bootstrap Authors
 
@@ -78,7 +78,6 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 
 
 --- Package: js-tokens@4.0.0 ---
@@ -188,7 +187,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
---- Package: react-dom@19.1.0 ---
+--- Package: react-dom@19.1.1 ---
 Repository: https://github.com/facebook/react
 
 MIT License
@@ -350,7 +349,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
---- Package: react-router-dom@7.6.1 ---
+--- Package: react-router-dom@7.8.2 ---
 Repository: https://github.com/remix-run/react-router
 Publisher: Remix Software
 
@@ -379,7 +378,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
---- Package: react-router@7.6.1 ---
+--- Package: react-router@7.8.2 ---
 Repository: https://github.com/remix-run/react-router
 Publisher: Remix Software
 
@@ -408,7 +407,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
---- Package: react@19.1.0 ---
+--- Package: react@19.1.1 ---
 Repository: https://github.com/facebook/react
 
 MIT License
