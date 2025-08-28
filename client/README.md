@@ -101,7 +101,7 @@ gfarm-http [global-options] <command> [command-options] [args]
 * `ln [options] <target> <linkname>`
   * `-s` - create symbolic link
 * `tar <command> [options] [args]`
-  > Note: only supports **Gfarm paths** (gfarm:/).
+  > Note: This command is supported only for Gfarm paths (gfarm:/ to gfarm:/); local paths are not supported.
   * `-c OUTDIR -C DIR MEMBER...` - create tar files in OUTDIR from DIR/MEMBERs
   * `-r OUTDIR -C DIR MEMBER...` - append files to new tar files  
   * `-u OUTDIR -C DIR MEMBER...` - append only newer files to new tar files
