@@ -1,1 +1,2 @@
-./gfarm-http
+gfarm-http
+!cmd/gfarm-http

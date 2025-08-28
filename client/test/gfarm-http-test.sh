@@ -336,6 +336,47 @@ test_gfgroup() {
     PASS
 }
 
+test_tar_create_and_extract() {
+    set -eu
+    testname
+    
+    # Create a few test files
+    temp_file1=$(mktemp)
+    temp_file2=$(mktemp)
+    echo "test data 1" > "$temp_file1"
+    echo "test data 2" > "$temp_file2"
+    
+    # Upload test files
+    testfile1="${testdir}/testfile1.txt"
+    testfile2="${testdir}/testfile2.txt"
+    run_gfarm_http upload "$temp_file1" "$testfile1" > /dev/null
+    run_gfarm_http upload "$temp_file2" "$testfile2" > /dev/null
+    
+    # Create tar archive in testdir
+    tar_outdir="${testdir}/tar_out"
+    run_gfarm_http tar -c "gfarm:${tar_outdir}" -C "gfarm:${testdir}" testfile1.txt testfile2.txt > /dev/null
+    
+    # List tar contents
+    run_gfarm_http tar -t "gfarm:${tar_outdir}" > /dev/null
+    
+    # Extract tar
+    extract_dir="${testdir}/extract_out"
+    run_gfarm_http tar -x "gfarm:${extract_dir}" "gfarm:${tar_outdir}" testfile1.txt testfile2.txt > /dev/null
+    
+    # Verify extracted file exists
+    run_gfarm_http stat "${extract_dir}/testfile1.txt" > /dev/null
+    run_gfarm_http stat "${extract_dir}/testfile2.txt" > /dev/null
+
+    # Cleanup
+    rm -f "$temp_file1" "$temp_file2"
+    run_gfarm_http rm -r "$tar_outdir" > /dev/null 2>&1 || :
+    run_gfarm_http rm "$testfile1" > /dev/null 2>&1 || :
+    run_gfarm_http rm "$testfile2" > /dev/null 2>&1 || :
+    run_gfarm_http rm -r "$extract_dir" > /dev/null 2>&1 || :
+    
+    PASS
+}
+
 test_rm() {
     set -eu
     testname
@@ -374,6 +415,7 @@ test_mv
 test_copy
 test_ln
 test_userinfo
+test_tar_create_and_extract
 test_rm
 test_rmdir
 test_gfuser
