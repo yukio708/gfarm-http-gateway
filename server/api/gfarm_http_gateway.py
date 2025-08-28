@@ -406,7 +406,6 @@ def check_tempdir_mode():
         st = os.stat(TMPDIR)
         mode = stat.S_IMODE(st.st_mode)
         owner = st.st_uid
-        print("check_tempdir_mode", owner, mode)
 
         if owner != os.getuid():
             raise PermissionError(
@@ -685,6 +684,8 @@ async def is_expired_token(token, use_raise=False):
         claims = await verify_token(token, use_raise)
         if not claims:
             return True  # expired
+        exp = claims.get("exp")
+        logger.debug(f"token expired time: {datetime.fromtimestamp(exp)}")
         return False
     try:
         access_token = token.get("access_token")
@@ -696,6 +697,8 @@ async def is_expired_token(token, use_raise=False):
         if exp is None:
             raise jwt_error("no exp claim")
         current_time = int(time.time())
+        logger.debug(f"token expired time: {datetime.fromtimestamp(exp)}")
+
         return (current_time + TOKEN_MIN_VALID_TIME_REMAINING) > exp
     except Exception as e:
         logger.debug("is_expired_token: " + str(e))
@@ -713,6 +716,7 @@ async def get_token(request: Request):
             return None
     if not await is_expired_token(token):
         return token
+    logger.debug("!!!!!!!!!token is expired")
     new_token = await use_refresh_token(request, token)
     if not await is_expired_token(new_token, use_raise=True):
         return new_token
@@ -3243,8 +3247,8 @@ async def archive_files(
                 if not chunk:
                     break
                 buffer += chunk
-                logger.debug(f"buffer:{buffer}")
                 if b"\r" in buffer or b"\n" in buffer:
+                    logger.debug(f"buffer:{buffer}")
                     msg = buffer.decode("utf-8", errors="replace").strip()
                     buffer = b""
                     j_line = json.dumps({"message": msg})
@@ -3259,7 +3263,9 @@ async def archive_files(
             if return_code != 0:
                 stdout = buffer.decode("utf-8", errors="replace").strip()
                 logger.error(
-                    f"{ipaddr}:0 user={user}, cmd={opname}, {stdout}")
+                    f"{ipaddr}:0 user={user}, cmd={opname}, {stdout} {elist}")
+                j_line = json.dumps({"message": stdout, "error": elist})
+                yield j_line + '\n'
         except asyncio.CancelledError:
             p.terminate()
             logger.error(

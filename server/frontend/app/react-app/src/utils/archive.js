@@ -74,6 +74,9 @@ async function gfptar(
                 if (line.trim() === "") continue;
                 try {
                     const json = JSON.parse(line);
+                    if (json.error) {
+                        throw new Error(`500 ${json.error}`);
+                    }
                     if (command === "list") {
                         indirList.push(json.message);
                         progressCallback({
@@ -92,7 +95,6 @@ async function gfptar(
         }
         progressCallback({
             status: "completed",
-            message: "",
             value: 100,
             done: true,
         });

@@ -224,7 +224,7 @@ function useProgressTasks(refreshItems, addNotification) {
         const newTask = {
             taskId,
             name: displayname,
-            value: 0,
+            value: undefined,
             type: "gfptar",
             status: command,
             message: "",
