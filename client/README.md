@@ -28,23 +28,43 @@ To use the client, you need:
 
 ## Installation
 
-### Build from source
+### Requirements
+- **Go 1.18+**
+- **make**
 
-You need **Go 1.18+** installed.
+### Build & Install
 
 ```bash
 git clone https://github.com/oss-tsukuba/gfarm-http-gateway.git
 cd gfarm-http-gateway/client
 
-# gfarm-http
-go build -o gfarm-http ./cmd/gfarm-http
-sudo mv gfarm-http /usr/local/bin/
-gfarm-http --help
+# build
+make
 
-# jwt-curl
-sudo cp jwt-curl /usr/local/bin/
-sudo cp jwt-curl-upload /usr/local/bin/
+# install
+sudo make install
+
+# uninstall
+sudo make uninstall
 ```
+
+By default, the following binaries will be installed into `/usr/local/bin/`:
+- `gfarm-http`
+- `jwt-curl`
+- `jwt-curl-upload`
+
+### Custom install path
+
+You can change the installation path by specifying `PREFIX` or `DESTDIR`:
+
+```bash
+# Install into /opt/bin
+make PREFIX=/opt install
+
+# Use DESTDIR for packaging
+make DESTDIR=/tmp/pkgroot install
+```
+
 
 ## gfarm-http
 
@@ -81,12 +101,12 @@ gfarm-http [global-options] <command> [command-options] [args]
 * `ln [options] <target> <linkname>`
   * `-s` - create symbolic link
 * `tar <command> [options] [args]`
-  * `-c OUTDIR` - create tar files in OUTDIR from MEMBERs
-  * `-r OUTDIR` - append files to new tar files  
-  * `-u OUTDIR` - append only newer files to new tar files
-  * `-x OUTDIR` - extract entries from INDIR to OUTDIR
+  > Note: only supports **Gfarm paths** (gfarm:/).
+  * `-c OUTDIR -C DIR MEMBER...` - create tar files in OUTDIR from DIR/MEMBERs
+  * `-r OUTDIR -C DIR MEMBER...` - append files to new tar files  
+  * `-u OUTDIR -C DIR MEMBER...` - append only newer files to new tar files
+  * `-x OUTDIR INDIR MEMBER...` - extract entries from INDIR to OUTDIR
   * `-t DIR` - list members of DIR
-  * `-C DIR` - change to directory for MEMBERs (default: ".")
 * `getfacl <Gfarm-path>`
 * `setfacl [options] <Gfarm-path>`
   * `-M FILE` - read ACL entries from FILE ("-" for stdin)
