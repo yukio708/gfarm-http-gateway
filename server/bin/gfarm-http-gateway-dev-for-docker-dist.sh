@@ -25,7 +25,6 @@ Load_Env () {
     fi
 }
 
-Load_Env ./gfarm-http-gateway.conf.default 
 Load_Env ./gfarm-http-gateway-for-docker-dist.conf
 
 exec bash -x ${DIR}/gfarm-http-gateway-dev.sh "$@"
