@@ -248,7 +248,9 @@ This setup:
 
 #### 4. Stop the container
 
-Follow the steps in **Option 2 → 4. Stop the container**
+```bash
+docker compose -f docker-compose-for-HPCI.yaml down
+```
 
 
 ## Update gfarm-http-gateway and Gfarm client with Docker
