@@ -97,8 +97,8 @@ gfarm-http [global-options] <command> [command-options] [args]
   * `-C` - show checksum
   * `-l` - show symlink info, don't follow links
 * `chmod <mode> <Gfarm-path>`
-* `copy <src> <dest>`
-* `ln [options] <target> <linkname>`
+* `copy <src-Gfarm-path> <dest-Gfarm-path>`
+* `ln [options] <target-Gfarm-path> <linkname-Gfarm-path>`
   * `-s` - create symbolic link
 * `tar <command> [options] [args]`
   > Note: This command is supported only for Gfarm paths (gfarm:/ to gfarm:/); local paths are not supported.
@@ -179,7 +179,7 @@ Wrapper around `curl` that automatically attaches an access token from `jwt-agen
 * `jwt-curl [curl options]`
 
   * Adds `Authorization: Bearer <token>` header automatically
-  * Environment variables:
+  * Environment variables (optional):
 
     * `JWT_USER_PATH` — Path to JWT file
     * `GFARM_SASL_USER` — Username (`anonymous` disables Authorization header)
