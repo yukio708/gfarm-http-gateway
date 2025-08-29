@@ -1,41 +1,38 @@
 import { encodePath, getParentPath } from "@utils/func";
 import { createDir } from "@utils/dircommon";
 import { API_URL } from "@utils/config";
-import get_error_message from "@utils/error";
+import get_error_message, { ErrorCodes, get_ui_error } from "@utils/error";
 
 // file: file + File
 // progressCallback({status, value, message, done, onCancel})
-async function upload(file, fullpath, dirSet, progressCallback) {
+async function upload(file, fullPath, dirSet, progressCallback, setError) {
     if (!file) {
-        alert("Please select a file");
+        setError("Upload", get_ui_error([ErrorCodes.EMPTY_PATH]).message);
         return;
     }
-    const uploaddirpath = file.is_file ? getParentPath(file.destPath) : file.destPath;
+    const uploadDirPath = file.is_file ? getParentPath(file.destPath) : file.destPath;
     const startTime = Date.now();
 
-    // console.debug("uploaddirpath", uploaddirpath);
-    // console.debug("fullpath", fullpath);
+    const message = `0 % | 0 sec | 0 bytes/sec`;
+    progressCallback({ value: 0, message });
 
-    // createdir
+    // console.debug("uploadDirPath", uploadDirPath);
+    // console.debug("fullPath", fullPath);
+
+    // createDir
     let createDirError = null;
-    if (!dirSet.has(uploaddirpath)) {
-        createDirError = await createDir(uploaddirpath, "p=on");
-        dirSet.add(uploaddirpath);
+    if (!dirSet.has(uploadDirPath)) {
+        createDirError = await createDir(uploadDirPath, "p=on");
+        dirSet.add(uploadDirPath);
         // console.debug("dirSet", dirSet);
     }
 
     if (createDirError) {
-        progressCallback({
-            status: createDirError ? "error" : "completed",
-            value: 100,
-            message: createDirError ? createDirError : "",
-            done: true,
-        });
-
+        setError(uploadDirPath, createDirError);
         return;
     }
 
-    const epath = encodePath(fullpath);
+    const epath = encodePath(fullPath);
     const uploadUrl = `${API_URL}/file` + epath;
     // console.debug("uploadUrl:", uploadUrl);
 
@@ -75,31 +72,23 @@ async function upload(file, fullpath, dirSet, progressCallback) {
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     progressCallback({
-                        status: "completed",
+                        // status: "completed", set in handleUpload()
                         value: 100,
                         message: "",
-                        done: true,
+                        // done: true, set in handleUpload()
                     });
                     console.debug("Upload: success");
                     resolve();
                 } else {
                     const detail = xhr.response?.detail;
                     const message = "Error : " + get_error_message(xhr.status, detail);
-                    progressCallback({
-                        status: "error",
-                        message,
-                        done: true,
-                    });
-                    console.error("Upload", message);
+                    setError(file.name, message);
+                    console.error(file.name, message);
                     reject(new Error(message));
                 }
             };
             xhr.onerror = () => {
-                progressCallback({
-                    status: "error",
-                    message: "Network error",
-                    done: true,
-                });
+                setError(file.name, "Network error");
                 reject(new Error("Network error"));
             };
             xhr.send(file.file);
@@ -107,21 +96,17 @@ async function upload(file, fullpath, dirSet, progressCallback) {
     } catch (error) {
         console.error("Cannot upload:", error);
         const message = `${error.name} : ${error.message}`;
-        progressCallback({
-            status: "error",
-            message,
-            done: true,
-        });
+        setError(file.name, message);
         return;
     }
 }
 
-async function checkPermission(uploaddir) {
-    const epath = encodePath(uploaddir);
-    const fullpath = `${API_URL}/dir${epath}?show_hidden=on&effperm=on`;
+async function checkPermission(uploadDir) {
+    const epath = encodePath(uploadDir);
+    const fullPath = `${API_URL}/dir${epath}?show_hidden=on&effperm=on`;
     let error = null;
     try {
-        const response = await fetch(fullpath, {
+        const response = await fetch(fullPath, {
             credentials: "include",
         });
         if (!response.ok) {
@@ -131,9 +116,9 @@ async function checkPermission(uploaddir) {
         }
         const data = await response.json();
         if (data[0].perms.includes("w")) {
-            console.debug("permission check", uploaddir, data[0].perms.includes("w"));
+            console.debug("permission check", uploadDir, data[0].perms.includes("w"));
         } else {
-            const message = get_error_message(403, `Permission denied : ${uploaddir}`);
+            const message = get_error_message(403, `Permission denied : ${uploadDir}`);
             throw new Error(message);
         }
     } catch (err) {

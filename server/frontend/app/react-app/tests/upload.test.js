@@ -83,9 +83,7 @@ test("Should upload multiple files using the upload dialog", async ({ page }) =>
     await expect(inputLocator).toBeAttached();
     await inputLocator.setInputFiles(filePaths);
 
-    for (const testFileName of testFileNames) {
-        await waitForProgressView(page, testFileName);
-    }
+    await waitForProgressView(page, testFileNames[testFileNames.length - 1]);
 });
 
 test("Should upload a nested directory using the folder upload dialog", async ({ page }) => {
@@ -106,9 +104,7 @@ test("Should upload a nested directory using the folder upload dialog", async ({
     await expect(inputLocator).toBeAttached();
     await inputLocator.setInputFiles([uploadFilePath]);
 
-    for (const testFileName of testFileNames) {
-        await waitForProgressView(page, "dummy/" + testFileName);
-    }
+    await waitForProgressView(page, "dummy/" + testFileNames[testFileNames.length - 1]);
 });
 
 test("Should overwrite existing file on name conflict", async ({ page }) => {
@@ -369,11 +365,12 @@ test("Should display an error and show task status when upload fails", async ({ 
     const progressView = page.locator('[data-testid="progress-view"]');
     const taskCard = progressView.locator(`[data-testid^="progress-card-${testFileName}"]`);
     await expect(taskCard).toBeVisible();
-    await expect(taskCard.locator(".badge")).toHaveText("error");
+    await expect(taskCard.locator(".badge")).toHaveText("completed");
 
-    const firstTaskMessage = taskCard.locator('[data-testid="task-message-0"]');
-    await expect(firstTaskMessage).toContainText("500");
-    await expect(firstTaskMessage).toContainText("error test");
+    const errorNotification = page.locator('[data-testid^="notification-"]');
+    await expect(errorNotification).toBeVisible();
+    await expect(errorNotification).toContainText("500");
+    await expect(errorNotification).toContainText("error test");
 });
 
 test("Should cancel an ongoing upload and display cancellation status", async ({ page }) => {
