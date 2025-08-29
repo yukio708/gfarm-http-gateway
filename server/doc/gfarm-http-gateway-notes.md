@@ -15,7 +15,7 @@ This document records design considerations for **gfarm-http-gateway**.
   * Provide multiple files/directories as a single archive.
   * Use a custom ZipStreamWriter to build entries on-the-fly.
   * Avoid temp archive; keep memory usage low.
-  * Return response immediately so client can start download.
+  * Stream the archive while building it, instead of waiting until completion.
 
 * **`/copy`: stream file copy with progress**
   * Run `gfexport` -> `gfreg` -> `gfmv` pipeline as subprocesses to copy files inside Gfarm.  

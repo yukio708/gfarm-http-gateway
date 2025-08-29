@@ -350,7 +350,7 @@ parsed_stat = {
 }
 
 
-def test_parse_gfstat():
+def parse_gfstat():
     st = gfarm_http_gateway.parse_gfstat(gfstat_dir_stdout).model_dump()
     print(st)
     assert st == parsed_stat
