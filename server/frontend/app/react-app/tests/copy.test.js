@@ -34,7 +34,7 @@ async function mockCopyRoute(
 async function waitForProgressView(page, expectedFileName) {
     const progressView = page.locator('[data-testid="progress-view"]');
 
-    const taskCard = progressView.locator(`[data-testid^="progress-card-${expectedFileName}"]`);
+    const taskCard = progressView.locator(`[data-testid^="progress-card-copy"]`);
     await expect(taskCard).toBeVisible();
 
     await expect(taskCard.locator("h6")).toContainText(expectedFileName);
@@ -78,11 +78,6 @@ test("Should copy a file and display progress until completion", async ({ page }
 test("Should cancel an ongoing copy operation and show cancellation message", async ({ page }) => {
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
-    const expectedTestFileName = "meeting_notes (1).txt";
-    const displayname =
-        expectedTestFileName.length > 20
-            ? expectedTestFileName.slice(0, 20) + "..."
-            : expectedTestFileName;
 
     await page.route(`${API_URL}/copy`, async (route) => {
         console.log(`[ROUTE MOCK] Simulating delayed copy for: ${testFileName}`);
@@ -105,11 +100,11 @@ test("Should cancel an ongoing copy operation and show cancellation message", as
     await clickMenuItemFromView(page, testFileName, "copy");
 
     const progressView = page.locator('[data-testid="progress-view"]');
-    const taskCard = progressView.locator(`[data-testid^="progress-card-${displayname}"]`);
+    const taskCard = progressView.locator(`[data-testid^="progress-card-copy"]`);
     await expect(taskCard).toBeVisible();
     await expect(taskCard.locator(".badge")).toHaveText("copy");
 
-    const cancelButton = taskCard.locator(`[data-testid^="progress-button-cancel-${displayname}"]`);
+    const cancelButton = taskCard.locator(`[data-testid^="progress-button-cancel"]`);
     await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 
