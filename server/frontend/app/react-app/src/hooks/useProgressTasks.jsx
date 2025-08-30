@@ -171,36 +171,6 @@ function useProgressTasks(refreshItems, addNotification) {
         isUploadingRef.current = false;
     };
 
-    const runUploadWithLimit = async () => {
-        if (isUploadingRef.current) return;
-        isUploadingRef.current = true;
-
-        const running = new Set();
-        const startNext = () => {
-            while (running.size < PARALLEL_LIMIT && uploadQueueRef.current.length > 0) {
-                const fn = uploadQueueRef.current.shift();
-                const p = Promise.resolve()
-                    .then(fn)
-                    .catch((e) => console.error("upload batch failed:", e))
-                    .finally(() => running.delete(p));
-                running.add(p);
-            }
-        };
-
-        startNext();
-
-        while (running.size > 0 || uploadQueueRef.current.length > 0) {
-            if (running.size === 0) {
-                startNext();
-                continue;
-            }
-            await Promise.race(running);
-            startNext();
-        }
-
-        isUploadingRef.current = false;
-    };
-
     useEffect(() => {
         console.debug("Uploading", uploading);
         if (uploading) {
