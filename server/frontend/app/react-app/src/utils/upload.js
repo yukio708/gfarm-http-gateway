@@ -13,7 +13,8 @@ async function upload(file, fullPath, dirSet, progressCallback, setError) {
     const uploadDirPath = file.is_file ? getParentPath(file.destPath) : file.destPath;
     const startTime = Date.now();
 
-    const message = `0 % | 0 sec | 0 bytes/sec`;
+    const displayPath = fullPath.replace(file.uploadDir + "/", "");
+    const message = `0 % | 0 sec | 0 bytes/sec\n${displayPath}`;
     progressCallback({ value: 0, message });
 
     // console.debug("uploadDirPath", uploadDirPath);
@@ -42,18 +43,6 @@ async function upload(file, fullPath, dirSet, progressCallback, setError) {
         xhr.withCredentials = true;
         xhr.responseType = "json";
 
-        progressCallback({
-            onCancel: () => {
-                xhr.abort();
-                progressCallback({
-                    status: "cancelled",
-                    message: "Upload cancelled",
-                    done: true,
-                });
-                console.warn("cancel:", file.name);
-            },
-        });
-
         xhr.setRequestHeader("Content-Type", file.file.type);
         xhr.setRequestHeader("X-File-Timestamp", file.mtime);
         xhr.upload.onprogress = (event) => {
@@ -63,19 +52,31 @@ async function upload(file, fullPath, dirSet, progressCallback, setError) {
                 const speed = Math.round((event.loaded / elapsedTime) * 1000);
                 const sec = Math.floor(elapsedTime / 1000);
                 const value = percent;
-                const message = `${percent} % | ${sec} sec | ${speed} bytes/sec`;
+                const message = `${percent} % | ${sec} sec | ${speed} bytes/sec\n${displayPath}`;
                 progressCallback({ value, message });
                 // console.debug("uploaded: %d / %d (%d %)", event.loaded, event.total, percent);
             }
         };
         return new Promise((resolve, reject) => {
+            progressCallback({
+                onCancel: () => {
+                    xhr.abort();
+                    // progressCallback({
+                    //     status: "cancelled",
+                    //     message: "Upload cancelled",
+                    //     done: true,
+                    // });
+                    console.warn("cancel:", file.name);
+                    reject(new Error("cancelled"));
+                },
+            });
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     progressCallback({
                         // status: "completed", set in handleUpload()
                         value: 100,
-                        message: "",
-                        // done: true, set in handleUpload()
+                        // message: "",         set in handleUpload()
+                        // done: true,          set in handleUpload()
                     });
                     console.debug("Upload: success");
                     resolve();

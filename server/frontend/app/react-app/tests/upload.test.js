@@ -25,7 +25,7 @@ async function mockUploadRoute(
 async function waitForProgressView(page, expectedFileName) {
     const progressView = page.locator('[data-testid="progress-view"]');
 
-    const taskCard = progressView.locator(`[data-testid^="progress-card-${expectedFileName}"]`);
+    const taskCard = progressView.locator(`[data-testid^="progress-card-upload"]`);
     await expect(taskCard).toBeVisible();
 
     await expect(taskCard.locator("h6")).toContainText(expectedFileName);
@@ -83,12 +83,11 @@ test("Should upload multiple files using the upload dialog", async ({ page }) =>
     await expect(inputLocator).toBeAttached();
     await inputLocator.setInputFiles(filePaths);
 
-    await waitForProgressView(page, testFileNames[testFileNames.length - 1]);
+    await waitForProgressView(page, "uploading 3 files");
 });
 
 test("Should upload a nested directory using the folder upload dialog", async ({ page }) => {
     const currentDirectory = "/documents";
-    const testFileNames = ["dummy.txt", "dummy.py", "dummy.js", "dummy2"];
 
     await mockUploadRoute(page, {
         filepath: currentDirectory + "/dummy",
@@ -104,7 +103,7 @@ test("Should upload a nested directory using the folder upload dialog", async ({
     await expect(inputLocator).toBeAttached();
     await inputLocator.setInputFiles([uploadFilePath]);
 
-    await waitForProgressView(page, "dummy/" + testFileNames[testFileNames.length - 1]);
+    await waitForProgressView(page, "uploading 5 files");
 });
 
 test("Should overwrite existing file on name conflict", async ({ page }) => {
@@ -363,7 +362,7 @@ test("Should display an error and show task status when upload fails", async ({ 
     await inputLocator.setInputFiles([uploadFilePath]);
 
     const progressView = page.locator('[data-testid="progress-view"]');
-    const taskCard = progressView.locator(`[data-testid^="progress-card-${testFileName}"]`);
+    const taskCard = progressView.locator(`[data-testid^="progress-card-upload"]`);
     await expect(taskCard).toBeVisible();
     await expect(taskCard.locator(".badge")).toHaveText("completed");
 
@@ -397,13 +396,11 @@ test("Should cancel an ongoing upload and display cancellation status", async ({
     await inputLocator.setInputFiles([uploadFilePath]);
 
     const progressView = page.locator('[data-testid="progress-view"]');
-    const taskCard = progressView.locator(`[data-testid^="progress-card-${testFileName}"]`);
+    const taskCard = progressView.locator(`[data-testid^="progress-card-upload"]`);
     await expect(taskCard).toBeVisible();
     await expect(taskCard.locator(".badge")).toHaveText("upload"); // Initial status
 
-    const cancelButton = taskCard.locator(
-        `[data-testid^="progress-button-cancel-${testFileName}"]`
-    );
+    const cancelButton = taskCard.locator(`[data-testid^="progress-button-cancel"]`);
     await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 
