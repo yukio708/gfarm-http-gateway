@@ -53,10 +53,6 @@ test("Should copy a file and display progress until completion", async ({ page }
     const currentDirectory = "/documents";
     const testFileName = "meeting_notes.txt";
     const expectedTestFileName = "meeting_notes (1).txt";
-    const displayname =
-        expectedTestFileName.length > 20
-            ? expectedTestFileName.slice(0, 20) + "..."
-            : expectedTestFileName;
 
     await mockCopyRoute(page, {
         source: currentDirectory + "/" + testFileName,
@@ -67,7 +63,7 @@ test("Should copy a file and display progress until completion", async ({ page }
 
     await clickMenuItemFromView(page, testFileName, "copy");
 
-    await waitForProgressView(page, displayname);
+    await waitForProgressView(page, expectedTestFileName);
 
     const ProgressViewHeader = page.locator(".offcanvas-header", { hasText: "Transfers" });
     const close_button = ProgressViewHeader.locator(".btn-close");
