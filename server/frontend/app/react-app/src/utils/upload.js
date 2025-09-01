@@ -61,11 +61,6 @@ async function upload(file, fullPath, dirSet, progressCallback, setError) {
             progressCallback({
                 onCancel: () => {
                     xhr.abort();
-                    // progressCallback({
-                    //     status: "cancelled",
-                    //     message: "Upload cancelled",
-                    //     done: true,
-                    // });
                     console.warn("cancel:", file.name);
                     reject(new Error("cancelled"));
                 },
