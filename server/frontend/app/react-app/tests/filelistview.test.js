@@ -9,6 +9,7 @@ const {
     getTimeStr,
     getFileIconDefault,
     freezeTime,
+    toNDJSON,
     handleRoute,
     API_URL,
     FRONTEND_URL,
@@ -31,7 +32,7 @@ test("Should display the file list when accessing an existing path", async ({ pa
     const expectedChildren = findChildrenByPath(fileStructureData, targetPath);
     await page.goto(`${FRONTEND_URL}/#${ROUTE_STORAGE}${targetPath}`);
 
-    const fileTable = await page.waitForSelector(".file-table", {
+    const fileTable = await page.waitForSelector('[data-testid="storage-view"]', {
         timeout: 10000,
     });
     const fileText = await fileTable.textContent();
@@ -53,7 +54,9 @@ test("Should display the file list when accessing an existing path", async ({ pa
     await expect(updatedDateHeader).toBeVisible();
 
     const listview = page.locator('[data-testid="listview"]');
-    await expect(listview.locator("tbody tr")).toHaveCount(expectedChildren.length);
+    await expect(listview.locator('[data-testid^="row-list-"]')).toHaveCount(
+        expectedChildren.length
+    );
 
     // Validate the row and contents of each file/folder
     for (const expectedFile of expectedChildren) {
@@ -73,13 +76,11 @@ test("Should display the file list when accessing an existing path", async ({ pa
         await expect(fileCheckbox).toBeVisible();
         await expect(fileCheckbox).not.toBeChecked();
 
-        await expect(rowLocator.locator("td").nth(2)).toHaveText(expectedFile.name);
+        await expect(rowLocator).toContainText(expectedFile.name);
 
-        await expect(rowLocator.locator("td").nth(3)).toHaveText(
-            getSize(expectedFile.size, expectedFile.is_dir)
-        );
+        await expect(rowLocator).toContainText(getSize(expectedFile.size, expectedFile.is_dir));
 
-        await expect(rowLocator.locator("td").nth(4)).toHaveText(getTimeStr(expectedFile.mtime));
+        await expect(rowLocator).toContainText(getTimeStr(expectedFile.mtime));
     }
 });
 
@@ -128,8 +129,8 @@ test("Should display a long file list correctly", async ({ page }) => {
 
         await route.fulfill({
             status: 200,
-            contentType: "application/json",
-            body: JSON.stringify(largeFileList),
+            contentType: "application/x-ndjson",
+            body: toNDJSON(largeFileList),
         });
     });
 
@@ -141,8 +142,9 @@ test("Should display a long file list correctly", async ({ page }) => {
 
     const listview = page.locator('[data-testid="listview"]');
 
-    const fileItems = listview.locator("tbody tr");
-    await expect(fileItems).toHaveCount(numberOfFiles);
+    await listview.locator('[data-testid="row-list-0"]').click();
+    await page.keyboard.press("End");
+    await page.waitForTimeout(500);
 
     const lastFileName = `large_file_${numberOfFiles - 1}.txt`;
     await listview.getByText(lastFileName).scrollIntoViewIfNeeded();
@@ -157,7 +159,7 @@ test("Should sort files by name (ascending and descending)", async ({ page }) =>
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
     const nameHeader = page.locator('[data-testid="header-name"]');
-    const fileNamesLocator = page.locator("tbody tr td:nth-child(3)");
+    const fileNamesLocator = page.locator('[data-testid^="row-list-"]');
 
     // arc
     console.debug(`expectedChildren: ${initialFiles}`);
@@ -176,7 +178,7 @@ test("Should sort files by name (ascending and descending)", async ({ page }) =>
     await expect(nameHeader.locator('[data-testid="sort-icon-asc"]')).toBeVisible();
 
     for (let i = 0; i < expectedAscendingNames.length; i++) {
-        await expect(fileNamesLocator.nth(i)).toHaveText(expectedAscendingNames[i].name);
+        await expect(fileNamesLocator.nth(i)).toContainText(expectedAscendingNames[i].name);
     }
 
     // desc
@@ -195,7 +197,7 @@ test("Should sort files by name (ascending and descending)", async ({ page }) =>
     await expect(nameHeader.locator('[data-testid="sort-icon-desc"]')).toBeVisible();
 
     for (let i = 0; i < expectedDescendingNames.length; i++) {
-        await expect(fileNamesLocator.nth(i)).toHaveText(expectedDescendingNames[i].name);
+        await expect(fileNamesLocator.nth(i)).toContainText(expectedDescendingNames[i].name);
     }
 });
 
@@ -206,7 +208,7 @@ test("Should sort files by size (ascending and descending)", async ({ page }) =>
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
     const sizeHeader = page.locator('[data-testid="header-size"]');
-    const fileNamesLocator = page.locator("tbody tr td:nth-child(3)");
+    const fileNamesLocator = page.locator('[data-testid^="row-list-"]');
 
     // arc
     const expectedAscendingSizes = [...initialFiles].sort((a, b) => {
@@ -221,7 +223,7 @@ test("Should sort files by size (ascending and descending)", async ({ page }) =>
     await expect(sizeHeader.locator('[data-testid="sort-icon-asc"]')).toBeVisible();
 
     for (let i = 0; i < expectedAscendingSizes.length; i++) {
-        await expect(fileNamesLocator.nth(i)).toHaveText(expectedAscendingSizes[i].name);
+        await expect(fileNamesLocator.nth(i)).toContainText(expectedAscendingSizes[i].name);
     }
 
     // desc
@@ -236,7 +238,7 @@ test("Should sort files by size (ascending and descending)", async ({ page }) =>
     await expect(sizeHeader.locator('[data-testid="sort-icon-desc"]')).toBeVisible();
 
     for (let i = 0; i < expectedDescendingSizes.length; i++) {
-        await expect(fileNamesLocator.nth(i)).toHaveText(expectedDescendingSizes[i].name);
+        await expect(fileNamesLocator.nth(i)).toContainText(expectedDescendingSizes[i].name);
     }
 });
 
@@ -247,7 +249,7 @@ test("Should sort files by updated date (ascending and descending)", async ({ pa
     const initialFiles = findChildrenByPath(fileStructureData, targetPath);
 
     const updatedDateHeader = page.locator('[data-testid="header-date"]');
-    const fileNamesLocator = page.locator("tbody tr td:nth-child(3)");
+    const fileNamesLocator = page.locator('[data-testid^="row-list-"]');
 
     // arc
     const expectedAscendingTimes = [...initialFiles].sort((a, b) => {
@@ -262,7 +264,7 @@ test("Should sort files by updated date (ascending and descending)", async ({ pa
     await expect(updatedDateHeader.locator('[data-testid="sort-icon-asc"]')).toBeVisible();
 
     for (let i = 0; i < expectedAscendingTimes.length; i++) {
-        await expect(fileNamesLocator.nth(i)).toHaveText(expectedAscendingTimes[i].name);
+        await expect(fileNamesLocator.nth(i)).toContainText(expectedAscendingTimes[i].name);
     }
 
     // desc
@@ -277,7 +279,7 @@ test("Should sort files by updated date (ascending and descending)", async ({ pa
     await expect(updatedDateHeader.locator('[data-testid="sort-icon-desc"]')).toBeVisible();
 
     for (let i = 0; i < expectedDescendingTimes.length; i++) {
-        await expect(fileNamesLocator.nth(i)).toHaveText(expectedDescendingTimes[i].name);
+        await expect(fileNamesLocator.nth(i)).toContainText(expectedDescendingTimes[i].name);
     }
 });
 
@@ -323,7 +325,9 @@ test("Should filter files by extension (.txt)", async ({ page }) => {
     if (folder) {
         await isVisible(page, folder.name, true); // not visible
     }
-    await expect(listview.locator("tbody tr")).toHaveCount(expectedTxtFiles.length);
+    await expect(listview.locator('[data-testid^="row-list-"]')).toHaveCount(
+        expectedTxtFiles.length
+    );
 
     await expect(filterToggleButton).toHaveText("Types: txt");
 
@@ -408,7 +412,9 @@ test("Should filter files by modified date using all available options", async (
         await expect(dateFilterToggleButton).toHaveText(label);
 
         const expectedFiles = getExpectedFilesForDateFilter(allFilesAtRoot, value);
-        await expect(listview.locator("tbody tr")).toHaveCount(expectedFiles.length);
+        await expect(listview.locator('[data-testid^="row-list-"]')).toHaveCount(
+            expectedFiles.length
+        );
 
         for (const expectedFile of expectedFiles) {
             await isVisible(page, expectedFile.name);
@@ -427,7 +433,7 @@ test("Should filter files by modified date using all available options", async (
 
     await page.waitForLoadState("networkidle");
     await expect(dateFilterToggleButton).toHaveText("Filter by Modified");
-    await expect(listview.locator("tbody tr")).toHaveCount(allFilesAtRoot.length);
+    await expect(listview.locator('[data-testid^="row-list-"]')).toHaveCount(allFilesAtRoot.length);
 });
 
 test("Should display the current directory path in breadcrumb navigation", async ({ page }) => {
@@ -539,7 +545,9 @@ test("Should navigate into a directory when double-clicked", async ({ page }) =>
 
     const expectedChildrenInNewDir = findChildrenByPath(fileStructureData, expectedNewPath);
     const listview = page.locator('[data-testid="listview"]');
-    await expect(listview.locator("tbody tr")).toHaveCount(expectedChildrenInNewDir.length);
+    await expect(listview.locator('[data-testid^="row-list-"]')).toHaveCount(
+        expectedChildrenInNewDir.length
+    );
     const fileRow = page.locator(`[data-testid="row-${expectedFileName}"]`);
     await expect(fileRow).toBeVisible();
 
