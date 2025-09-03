@@ -12,4 +12,3 @@ class ConfigurableWorker(UvicornWorker):
         # optional but useful behind reverse proxies:
         "forwarded_allow_ips": "*",
     }
-
