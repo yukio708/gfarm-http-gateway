@@ -9,8 +9,8 @@ To run gfarm-http-gateway, you need:
 
 ## Configuration variables
 
-`gfarm-http-gateway.conf` is required to run the gateway.
-Default values are defined in [`gfarm-http-gateway.conf.default`](./gfarm-http-gateway.conf.default). 
+`gfarm-http-gateway.conf` is required to run the gateway.  
+Default values are defined in [`gfarm-http-gateway.conf.default`](./gfarm-http-gateway.conf.default).  
 
 The configuration file is organized into the following sections:
 
@@ -257,8 +257,8 @@ docker compose -f docker-compose-for-HPCI.yaml down
 
 ## Using Redis as the Token Store (with Docker Compose)
 
-This section describes how to enable **Redis** as the Token Backend.
-By default, **gfarm-http-gateway** stores tokens in the HTTP session.
+This section describes how to enable **Redis** as the Token Store.  
+By default, **gfarm-http-gateway** stores tokens in the HTTP session.  
 
 If the IdP enforces **refresh token rotation (non-reusable refresh tokens)**, then a long-running `gfptar` execution may require the user to re-login when the refresh token expires.
 By enabling **Redis as the Token Store**, the gateway can automatically refresh and update tokens during `gfptar` execution, so the user does not need to re-login.
@@ -534,7 +534,8 @@ Run the gateway for local testing on your own machine:
 - Accessible only from `localhost`.
 - For production, run behind a reverse proxy (e.g., NGINX) with HTTPS.
 
-> Note: `gfarm-http-gateway.sh` is a wrapper around **Uvicorn** to launch the FastAPI app (`gfarm_http_gateway:app`). It:
+> Note: `gfarm-http-gateway.sh` is a wrapper around **Uvicorn** to launch the FastAPI app (`gfarm_http_gateway:app`).  
+> This script:  
 > - Loads common paths from `gfarm-http-gateway-common.sh` (virtual environment, Uvicorn binary, app entrypoint).
 > - Cleans up temporary files in `$GFARM_HTTP_TMPDIR` before starting.
 > - Changes to the project root directory.
@@ -565,7 +566,8 @@ make test             # run automated tests
 - May cause high CPU load (auto-reload, detailed logs).
 - Intended for development only.
 
-> Note: `gfarm-http-gateway-dev.sh` is a wrapper around **Uvicorn** to launch the FastAPI app > (`gfarm_http_gateway:app`) in **developer mode**. It:
+> Note: `gfarm-http-gateway-dev.sh` is a wrapper around **Uvicorn** to launch the FastAPI app > (`gfarm_http_gateway:app`) in **developer mode**.  
+> This script:  
 > - Loads common paths from `gfarm-http-gateway-common.sh` (virtual environment, Uvicorn binary, app > entrypoint).
 > - Runs with `--reload` enabled for automatic code reloading.
 > - Sets log level to **debug** for detailed output.
@@ -716,12 +718,12 @@ You can build and test the gateway inside the **gfarm/docker/dist** developer en
 
 ### Run tests
 
-- `make test-all` - run **all available tests** (server + client).
+- `make test-all` - run all available tests (server + client).
   -  Requires the client to be built first (`cd ../client && make`).
 - `make test` - run the following tests:
-  - `make test-unit` - run API unit tests with **pytest**.
-  - `make test-flake8` - run style checks with **flake8**.
-  - `make test-playwright` - run Web UI end-to-end tests with **Playwright** (must be installed).
+  - `make test-unit` - run API unit tests with pytest.
+  - `make test-flake8` - run style checks with flake8.
+  - `make test-playwright` - run Web UI end-to-end tests with Playwright (must be installed).
 
 ### To freeze python packages
 
