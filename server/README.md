@@ -257,8 +257,8 @@ docker compose -f docker-compose-for-HPCI.yaml down
 
 ## Using Redis as the Token Store (with Docker Compose)
 
-This section describes how to enable **Redis** as the Token Store.  
-By default, **gfarm-http-gateway** stores tokens in the HTTP session.  
+This section shows an **example configuration** for enabling Redis as the Token Store.  
+By default, gfarm-http-gateway stores tokens in the HTTP session.  
 
 If the IdP enforces **refresh token rotation (non-reusable refresh tokens)**, then a long-running `gfptar` execution may require the user to re-login when the refresh token expires.
 By enabling **Redis as the Token Store**, the gateway can automatically refresh and update tokens during `gfptar` execution, so the user does not need to re-login.
