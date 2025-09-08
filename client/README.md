@@ -195,9 +195,9 @@ Wrapper around `curl` that automatically attaches an access token from `jwt-agen
   - Adds `Authorization: Bearer <token>` header automatically
   - Environment variables (optional):
 
-    - `JWT_USER_PATH` — Path to JWT file
-    - `GFARM_SASL_USER` — Username (`anonymous` disables Authorization header)
-    - `GFARM_SASL_PASSWORD` — Password (for SASL PLAIN/LOGIN)
+    - `JWT_USER_PATH` - Path to JWT file
+    - `GFARM_SASL_USER` - Username (`anonymous` disables Authorization header)
+    - `GFARM_SASL_PASSWORD` - Password (for SASL PLAIN/LOGIN)
 - `jwt-curl-upload local_file URL [curl options]`
 
   - Convenience wrapper for file uploads
