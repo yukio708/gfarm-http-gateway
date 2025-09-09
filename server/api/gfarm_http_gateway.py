@@ -27,7 +27,6 @@ from typing import (
 import urllib
 import re
 import tempfile
-import shutil
 import zipfile
 from collections import deque
 import threading
@@ -226,7 +225,7 @@ OIDC_META_URL = conf.GFARM_HTTP_OIDC_META_URL
 OIDC_KEYS_URL = str2none(conf.GFARM_HTTP_OIDC_KEYS_URL)
 OIDC_LOGOUT_URL = str2none(conf.GFARM_HTTP_OIDC_LOGOUT_URL)
 
-TOKEN_VERIFY = conf.GFARM_HTTP_TOKEN_VERIFY
+TOKEN_VERIFY = str2bool(conf.GFARM_HTTP_TOKEN_VERIFY)
 # sec.
 min_valid_time = conf.GFARM_HTTP_TOKEN_MIN_VALID_TIME_REMAINING
 TOKEN_MIN_VALID_TIME_REMAINING = int(min_valid_time)
@@ -281,13 +280,13 @@ if TOKEN_STORE.lower() == "database":
     except Exception:
         REDIS_SSL_CA_CERTS = None
     try:
-        REDIS_ID_PREFIX = conf.GFARM_HTTP_REDIS_ID_PREFIX
+        REDIS_USERNAME = conf.GFARM_HTTP_REDIS_USERNAME
     except Exception:
-        REDIS_ID_PREFIX = ""
+        REDIS_USERNAME = None
     try:
-        REDIS_TTL = int(conf.GFARM_HTTP_REDIS_TTL)  # seconds
+        REDIS_PASSWORD = conf.GFARM_HTTP_REDIS_PASSWORD
     except Exception:
-        REDIS_TTL = SESSION_MAX_AGE
+        REDIS_PASSWORD = None
 else:
     REDIS_HOST = None
     REDIS_PORT = None
@@ -296,8 +295,29 @@ else:
     REDIS_SSL_CERTFILE = None
     REDIS_SSL_KEYFILE = None
     REDIS_SSL_CA_CERTS = None
-    REDIS_ID_PREFIX = None
+    REDIS_USERNAME = None
+    REDIS_PASSWORD = None
     REDIS_TTL = 0
+try:
+    REDIS_ID_PREFIX = conf.GFARM_HTTP_REDIS_ID_PREFIX
+except Exception:
+    REDIS_ID_PREFIX = ""
+try:
+    REDIS_TTL = int(conf.GFARM_HTTP_REDIS_TTL)  # seconds
+except Exception:
+    REDIS_TTL = SESSION_MAX_AGE
+try:
+    REDIS_LOCK_TTL = int(conf.GFARM_HTTP_REDIS_LOCK_TTL)  # seconds
+except Exception:
+    REDIS_LOCK_TTL = 5
+try:
+    REDIS_LOCK_RETRY_COUNT = int(conf.GFARM_HTTP_REDIS_LOCK_RETRY_COUNT)
+except Exception:
+    REDIS_LOCK_RETRY_COUNT = 10
+try:
+    REDIS_LOCK_INTERVAL = float(conf.GFARM_HTTP_REDIS_LOCK_INTERVAL)  # seconds
+except Exception:
+    REDIS_LOCK_INTERVAL = 1.0
 
 
 def conf_check_not_recommended():
@@ -467,6 +487,8 @@ def check_tempdir_mode():
 def manage_tempfiles():
     if os.path.exists(TMPDIR):
         check_tempdir_mode()
+    else:
+        os.makedirs(TMPDIR, mode=0o700, exist_ok=True)
 
     os.makedirs(TMPDIR_TOKENS, mode=0o700, exist_ok=True)
     os.makedirs(TMPDIR_TARTMP, mode=0o700, exist_ok=True)
@@ -489,7 +511,9 @@ async def lifespan(app: FastAPI):
                                       ssl_enable=REDIS_SSL,
                                       ssl_certfile=REDIS_SSL_CERTFILE,
                                       ssl_keyfile=REDIS_SSL_KEYFILE,
-                                      ssl_ca_certs=REDIS_SSL_CA_CERTS)
+                                      ssl_ca_certs=REDIS_SSL_CA_CERTS,
+                                      username=REDIS_USERNAME,
+                                      password=REDIS_PASSWORD)
         await app.state.redis.connect()
     yield
     # Clean
@@ -605,32 +629,38 @@ else:
 
 
 def encrypt_json(data):
-    # dict -> JSON str
-    s = json.dumps(data)
-    # JSON str -> JSON bin (compressed)
-    cb = compress_str(s)
-    # JSON bin (compressed) -> encrypted bin
-    eb = fer.encrypt(cb)
-    # encrypted bin -> base85 str
-    encrypted = base64.b85encode(eb).decode()
-    logger.debug(f"encrypt_token: str_len={len(s)},"
-                 f" encrypted_len={len(encrypted)}")
-    return encrypted
+    if fer:
+        # dict -> JSON str
+        s = json.dumps(data)
+        # JSON str -> JSON bin (compressed)
+        cb = compress_str(s)
+        # JSON bin (compressed) -> encrypted bin
+        eb = fer.encrypt(cb)
+        # encrypted bin -> base85 str
+        encrypted = base64.b85encode(eb).decode()
+        logger.debug(f"encrypt_token: str_len={len(s)},"
+                     f" encrypted_len={len(encrypted)}")
+        return encrypted
+    else:
+        return data
 
 
 def decrypt_json(data):
-    try:
-        # base85 str -> encrypted bin
-        eb = base64.b85decode(data)
-        # encrypted bin -> JSON bin (compressed)
-        cb = fer.decrypt(eb)
-        # JSON bin (compressed) -> JSON str
-        s = decompress_str(cb)
-        # JSON str -> dict
-        decrypted = json.loads(s)
-        return decrypted
-    except Exception:
-        raise
+    if fer:
+        try:
+            # base85 str -> encrypted bin
+            eb = base64.b85decode(data)
+            # encrypted bin -> JSON bin (compressed)
+            cb = fer.decrypt(eb)
+            # JSON bin (compressed) -> JSON str
+            s = decompress_str(cb)
+            # JSON str -> dict
+            decrypted = json.loads(s)
+            return decrypted
+        except Exception:
+            raise
+    else:
+        return data
 
 
 async def encrypt_token(token, request):
@@ -645,57 +675,35 @@ async def encrypt_token(token, request):
                 session_ref = None
 
         if not (isinstance(session_ref, dict)
-                and "ID" in session_ref and "Key" in session_ref):
-            session_ref = {"ID": REDIS_ID_PREFIX + uuid.uuid4().hex,
-                           "Key": Fernet.generate_key().decode()}
+                and "token_id" in session_ref and "key" in session_ref):
+            session_ref = {"token_id": REDIS_ID_PREFIX + uuid.uuid4().hex,
+                           "key": Fernet.generate_key().decode()}
 
-        token_id = session_ref["ID"]
-        f_session = Fernet(session_ref["Key"].encode())
+        session_ref["access_token"] = token.get("access_token")
 
-        s = json.dumps(token)
+        token_id = session_ref.get("token_id")
+        f_session = Fernet(session_ref.get("key").encode())
+
+        s = token.get("refresh_token")
         cb = compress_str(s)
         eb = f_session.encrypt(cb)
 
         store = request.app.state.redis
-        if REDIS_TTL:
-            await store.setex(token_id, REDIS_TTL, eb)
-        else:
-            await store.set(token_id, eb)
+        await store.setex(token_id, REDIS_TTL, eb)
         set_data = session_ref
     else:
         set_data = token
 
-    if fer:
-        return encrypt_json(set_data)
-    else:
-        return set_data
+    return encrypt_json(set_data)
 
 
 async def decrypt_token(request, encrypted_token):
-    if fer:
-        try:
-            data = decrypt_json(encrypted_token)
-        except Exception as e:
-            ipaddr = get_client_ip_from_request(request)
-            logger.warning(f"{ipaddr}:0 decrypt_token error=" + str(e))
-            return None
-    else:
-        data = encrypted_token
-    if TOKEN_STORE.lower() == "database":
-        # get data by ID
-        token_id = data.get("ID")
-        if token_id is None:
-            return None
-        store = request.app.state.redis
-        eb = await store.get(token_id)
-        if not eb:
-            return None
-        f_session = Fernet(data["Key"].encode())
-        cb = f_session.decrypt(eb)
-        s = decompress_str(cb)
-        return json.loads(s)
-    else:
-        return data
+    try:
+        return decrypt_json(encrypted_token)
+    except Exception as e:
+        ipaddr = get_client_ip_from_request(request)
+        logger.warning(f"{ipaddr}:0 decrypt_token error=" + str(e))
+        return None
 
 
 async def set_token(request: Request, token):
@@ -727,9 +735,58 @@ async def http_get(url):
     return response
 
 
+async def acquire_lock_db(token_id: str):
+    if not token_id:
+        raise RuntimeError("Redis lock failed: token_id is empty")
+    store = app.state.redis
+    res, val = await store.acquire_lock(key=token_id,
+                                        ttl=REDIS_LOCK_TTL,
+                                        retry_count=REDIS_LOCK_RETRY_COUNT,
+                                        retry_interval=REDIS_LOCK_INTERVAL)
+    if res:
+        return val
+    raise RuntimeError("Redis lock acquisition failed after retries "
+                       f"(token_id={token_id})")
+
+
+async def release_lock_db(token_id: str, val: str):
+    store = app.state.redis
+    res = await store.release_lock(token_id, val)
+    if not res:
+        logger.exception(f"release_lock_db failed to remove {token_id}")
+
+
+async def get_rt_from_db(session_ref):
+    token_id = session_ref.get("token_id")
+    if token_id is None:
+        return None
+    token_key = session_ref.get("key")
+    if token_key is None:
+        raise RuntimeError("Redis fetch failed: "
+                           "session_ref does not contain 'token_key'")
+    store = app.state.redis
+    eb = await store.get(token_id)
+    if not eb:
+        return None
+    f_session = Fernet(token_key.encode())
+    cb = f_session.decrypt(eb)
+    return decompress_str(cb)
+
+
 async def use_refresh_token(request: Request, token):
     logger.debug("use_refresh_token is called")
-    refresh_token = token.get("refresh_token")
+    if TOKEN_STORE.lower() == "database":
+        token_id = token.get("token_id")
+        try:
+            val = await acquire_lock_db(token_id)
+            refresh_token = await get_rt_from_db(token)
+            if not refresh_token:
+                await release_lock_db(token_id, val)
+                return None
+        except Exception:
+            raise
+    else:
+        refresh_token = token.get("refresh_token")
     meta = await oidc_metadata()
     try:
         data = {
@@ -743,6 +800,10 @@ async def use_refresh_token(request: Request, token):
         response.raise_for_status()
         new_token = response.json()
         await set_token(request, new_token)
+
+        if TOKEN_STORE.lower() == "database":
+            await release_lock_db(token_id, val)
+
         return new_token
     except httpx.HTTPError:
         raise
@@ -776,9 +837,8 @@ async def oidc_jwks():
         return jwks_cache
 
 
-async def verify_token(token, use_raise=False):
+async def verify_token(access_token, use_raise=False):
     try:
-        access_token = token.get("access_token")
         jwks = await oidc_jwks()
         # if DEBUG:
         #     logger.debug("jwks=\n" + pf(jwks))
@@ -810,7 +870,8 @@ async def verify_token(token, use_raise=False):
 
 async def is_expired_token(token, use_raise=False):
     if TOKEN_VERIFY:
-        claims = await verify_token(token, use_raise)
+        access_token = token.get("access_token")
+        claims = await verify_token(access_token, use_raise)
         if not claims:
             return True  # expired
         exp = claims.get("exp")
@@ -845,8 +906,9 @@ async def get_token(request: Request):
     if not await is_expired_token(token):
         return token
     new_token = await use_refresh_token(request, token)
-    if not await is_expired_token(new_token, use_raise=True):
-        return new_token
+    if new_token:
+        if not await is_expired_token(new_token, use_raise=True):
+            return new_token
     delete_token(request)
     return None  # not login
 
@@ -900,9 +962,7 @@ async def oidc_auth_common(request):
 
 
 async def login_check(request: Request,
-                      error: str = "",
-                      session_state: str = None,
-                      code: str = None):
+                      error: str = ""):
     login_ok = False
     sasl_username = ""
     try:
@@ -916,7 +976,7 @@ async def login_check(request: Request,
     if access_token is None and error == "":
         user_passwd = get_user_passwd(request)
         if user_passwd:
-            user, passwd = user_passwd
+            user, _ = user_passwd
             login_ok = True
             sasl_username = user
 
@@ -931,8 +991,7 @@ async def index(request: Request,
     if session_state is not None and code is not None:
         return await oidc_auth_common(request)
 
-    _, _, _, error = await login_check(
-        request, error, session_state, code)
+    _, _, _, error = await login_check(request, error)
 
     if error != "":
         request.session["error"] = error
@@ -945,8 +1004,7 @@ async def debug_page(request: Request,
                      error: str = "",
                      session_state: str = None,
                      code: str = None):
-    login_ok, access_token, sasl_username, error = await login_check(
-        request, session_state, code)
+    login_ok, access_token, sasl_username, error = await login_check(request)
 
     if error != "":
         request.session["error"] = error
@@ -1196,7 +1254,7 @@ INVALID_AUTHZ = HTTPException(
 )
 
 
-def parse_authorization(authz_str: str):
+async def parse_authorization(authz_str: str):
     if not authz_str:
         if not ALLOW_ANONYMOUS:
             logger.error("anonymous access is not allowed")
@@ -1232,6 +1290,10 @@ def parse_authorization(authz_str: str):
         else:
             raise INVALID_AUTHZ
     elif authz_key == AUTHZ_KEY_BEARER:
+        if TOKEN_VERIFY:
+            claims = await verify_token(authz_token, use_raise=False)
+            if not claims:
+                raise INVALID_AUTHZ
         authz_type = AUTHZ_TYPE_OAUTH
         user = None
         passwd = authz_token
@@ -1280,7 +1342,7 @@ async def set_env(request, authorization):
         authz_type, user, passwd = auth_info
     else:
         # get access token or password from Authorization header
-        authz_type, user, passwd = parse_authorization(authorization)
+        authz_type, user, passwd = await parse_authorization(authorization)
         logger.debug(f"set_env: authz header / user={user}")
 
     if authz_type == AUTHZ_TYPE_OAUTH:
@@ -1311,6 +1373,8 @@ async def set_env(request, authorization):
             'GFARM_SASL_PASSWORD': passwd,
         })
     else:  # anonymous
+        # if not ALLOW_ANONYMOUS:
+        #     return None
         user = "anonymous"
         env.update({
             # for Gfarm 2.8.6 or later
