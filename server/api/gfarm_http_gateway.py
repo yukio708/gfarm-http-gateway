@@ -1407,13 +1407,16 @@ def get_client_ip_from_request(request):
     return request.client.host
 
 
-async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
-    tokenfile = filepath
+# Used only by archive_files().
+# - Creates a token file and sets its path in env when filepath is None.
+# - Updates the token file when filepath is not None.
+async def update_token_file(request, env, filepath=None, expire=None):
+    token_file = filepath
 
     if expire is not None:
         current_time = int(time.time())
         if (current_time + TOKEN_MIN_VALID_TIME_REMAINING) <= expire:
-            return tokenfile, env, expire
+            return token_file, env, expire
 
     access_token = await get_access_token(request)
     if access_token is None:
@@ -1433,17 +1436,19 @@ async def set_tokenfilepath_to_env(request, env, filepath=None, expire=None):
             delete=False) as fp:
         # Write access_token in the token file
         fp.write(access_token)
-        if tokenfile is None:
-            tokenfile = fp.name
-            env['JWT_USER_PATH'] = tokenfile
+        if token_file is None:
+            # set to env
+            token_file = fp.name
+            env['JWT_USER_PATH'] = token_file
         else:
-            os.rename(fp.name, tokenfile)
+            # update
+            os.rename(fp.name, token_file)
 
     ipaddr = get_client_ip_from_request(request)
     logger.debug(
-        f"{ipaddr}:0 user={user}, access_token file:{tokenfile} updated"
+        f"{ipaddr}:0 user={user}, access_token file:{token_file} updated"
     )
-    return tokenfile, env, exp
+    return token_file, env, exp
 
 
 #############################################################################
@@ -2789,12 +2794,22 @@ async def zip_export(request: Request,
                 elist = []
                 stderr_task = asyncio.create_task(
                     log_stderr(opname, proc, elist))
-                with zipf.open(zipinfo, 'w') as dest:
+
+                def open_zip_entry():
+                    return zipf.open(zipinfo, 'w')
+                dest = await asyncio.to_thread(open_zip_entry)
+                try:
                     while True:
-                        chunk = await proc.stdout.read(BUFSIZE)
+                        # Async read from subprocess without blocking the loop
+                        chunk = await asyncio.wait_for(
+                            proc.stdout.read(BUFSIZE), timeout=60)
                         if not chunk:
                             break
-                        dest.write(chunk)
+                        # Blocking compression/write -> thread
+                        await asyncio.to_thread(dest.write, chunk)
+                finally:
+                    # Close the zip entry (blocking) in a thread
+                    await asyncio.to_thread(dest.close)
                 await stderr_task
                 return_code = await proc.wait()
                 if return_code != 0:
@@ -2804,34 +2819,48 @@ async def zip_export(request: Request,
                 logger.debug(
                     f"{ipaddr}:0 user={user}, cmd={opname}, " +
                     f" message={message}")
-                return
+                raise
 
     async def create_zip(zip_writer):
         try:
-            with zipfile.ZipFile(zip_writer, "w",
-                                 compression=zipfile.ZIP_DEFLATED) as zf:
+            def open_zip():
+                return zipfile.ZipFile(zip_writer, "w",
+                                       compression=zipfile.ZIP_DEFLATED)
+            zf = await asyncio.to_thread(open_zip)
+            try:
                 for filepath, is_file in filedatas:
                     parent = os.path.dirname(filepath)
                     async for entry in gfls_generator(env, filepath, is_file):
-                        if entry.name == "." or entry.name == "..":
+                        if entry.name in (".", ".."):
                             continue
                         dirname = entry.dirname
                         if dirname.startswith(parent):
                             dirname = dirname.replace(parent, "", 1)
                         if dirname.startswith("/"):
                             dirname = dirname[1:]
-                        dirname = os.path.normpath(dirname)
-                        entry.dirname = dirname
+                        entry.dirname = os.path.normpath(dirname)
                         await add_entry_to_zip(zf, entry)
+            finally:
+                # Close (writes central directory) -> thread
+                await asyncio.to_thread(zf.close)
+        except Exception as e:
+            logger.exception(f"zip build failed: {str(e)}")
         finally:
             zip_writer.close()
 
     async def generate():
         zip_writer = ZipStreamWriter(chunk_size=BUFSIZE,
                                      loop=asyncio.get_running_loop())
-        asyncio.create_task(create_zip(zip_writer))
-        async for chunk in zip_writer.get_chunks():
-            yield chunk
+        task = asyncio.create_task(create_zip(zip_writer))
+        try:
+            async for chunk in zip_writer.get_chunks():
+                if await request.is_disconnected():
+                    raise asyncio.CancelledError
+                yield chunk
+        except Exception:
+            task.cancel()
+            await task
+            raise
 
     zipname = 'download_' + datetime.now().strftime('%Y%m%d-%H%M%S') + '.zip'
     headers = {"Content-Disposition": f'attachment; filename="{zipname}"'}
@@ -3392,7 +3421,7 @@ async def archive_files(
     env = await set_env(request, authorization)
     # Set the token file path in env for long-term exec
     # (updated in progress_generator())
-    tokenfilepath, env, expire = await set_tokenfilepath_to_env(request, env)
+    tokenfilepath, env, expire = await update_token_file(request, env)
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, request.method, apiname, opname, tar_data)
@@ -3463,7 +3492,7 @@ async def archive_files(
                     logger.debug(
                         f"{ipaddr}:0 user={user}, cmd={opname}, json={j_line}")
                     # Update access_token
-                    _, _, exp = await set_tokenfilepath_to_env(
+                    _, _, exp = await update_token_file(
                         request, env, tokenfilepath, exp)
             await stderr_task
             return_code = await p.wait()
