@@ -31,7 +31,7 @@ fi
 # Custom Icons
 if [ -f /config/file_icons.json ]; then
   echo "[INFO] /config/file_icons.json found — Copying to Web UI assets"
-    cp /config/file_icons.json /app/gfarm-http-gateway/frontend/app/react-app/public/assets/file_icons.json
+    cp /config/file_icons.json /app/gfarm-http-gateway/frontend/app/react-app/dist/assets/file_icons.json
 fi
 
 # Trust custom CA

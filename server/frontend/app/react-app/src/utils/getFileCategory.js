@@ -6,7 +6,11 @@ export const loadFileMeta = async () => {
     }
     try {
         const res = await fetch("./assets/file_icons.json");
-        if (!res.ok) throw new Error("Failed to load file_icons.json");
+        if (!res.ok) {
+            console.debug("Failed to load file_icons.json");
+            throw new Error("Failed to load file_icons.json");
+        }
+        console.debug("Load file_icons.json");
 
         fileMeta = await res.json();
         fileMeta._extensionToCategoryMap = {};

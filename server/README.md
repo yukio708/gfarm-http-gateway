@@ -622,14 +622,12 @@ You can run the gateway as a **systemd service** for automatic startup and easie
 
 The Gateway reads `file_icons.json` to decide which icon to display for each file type.
 
-- **Default location (in the source tree)**:  
-  `frontend/app/react-app/public/assets/file_icons.json`
+- **How to set this file**:  
+  - **Docker**: mount your `file_icons.json` into the container at `/config/file_icons.json`.  
+  - **Manual installation**: edit or replace `frontend/app/react-app/dist/assets/file_icons.json` after building the Web UI (e.g., after running `make setup`).
 
-- **Override in Docker**:  
-  When running the gateway in a container, any file placed at  
-  `config/file_icons.json` (mounted into the container) will override the built-in one.
-
-> Note: For manual installation, edit the default file under `frontend/app/react-app/public/assets/file_icons.json`.
+- **Default file in the source tree**:
+  - `frontend/app/react-app/public/assets/file_icons.json`  
 
 ### Structure
 
@@ -643,11 +641,11 @@ The Gateway reads `file_icons.json` to decide which icon to display for each fil
 
 ### Display Rules
 
+- **Folders** always use the icon defined in `icons.folder`.  
+- **Symlinks** (if present) use the icon defined in `icons.symlink`.  
 - **Files** are matched by extension against the categories in `category`.  
    - If a match is found, the corresponding icon from `icons[category]` is used.  
    - If no match is found, the `icons.default` class is used.  
-- **Folders** always use the icon defined in `icons.folder`.  
-- **Symlinks** (if present) use the icon defined in `icons.symlink`.  
 
 ### Example
 
