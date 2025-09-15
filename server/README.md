@@ -475,34 +475,27 @@ docker compose up -d
 #### Set up the environment
 
 - **Gfarm server environment**
-  Configure SASL XOAUTH2 on gfarm server side. In
-  `$(pkg-config --variable=libdir libsasl2)/sasl2/gfarm.conf`:
-
-  - `mech_list: XOAUTH2`
-    See also: [http://oss-tsukuba.org/gfarm/share/doc/gfarm/html/en/user/auth-sasl.html](http://oss-tsukuba.org/gfarm/share/doc/gfarm/html/en/user/auth-sasl.html)
+  - Configure SASL XOAUTH2 on the gfarm server.
+  - In `$(pkg-config --variable=libdir libsasl2)/sasl2/gfarm.conf`:
+    - `mech_list: XOAUTH2`  
+  - See also: [http://oss-tsukuba.org/gfarm/share/doc/gfarm/html/en/user/auth-sasl.html](http://oss-tsukuba.org/gfarm/share/doc/gfarm/html/en/user/auth-sasl.html)
 
 - **Gfarm client environment**
-  Make sure `gf*` commands and `gfarm2.conf` are available.
-  In `~/.gfarm2rc` (or `<prefix>/etc/gfarm2.conf`):
-
-  - `auth enable sasl` (or `sasl_auth`)
-  - `auth disable <all other methods>`
-  - **Do not** set `sasl_mechanisms` or `sasl_user` manually.
+  - Make sure `gf*` commands and `gfarm2.conf` are available.
+  - In `~/.gfarm2rc` (or `<prefix>/etc/gfarm2.conf`):
+    - `auth enable sasl` (or `sasl_auth`)
+    - `auth disable <all other methods>`
+    - **Do not** set `sasl_mechanisms` or `sasl_user` manually.
 
 - **gfarm-http-gateway requirements**
-
   - On **Ubuntu 24.04 or RHEL (8, 9)**:
-
     - Run `make setup` (runs `setup.sh` with `INSTALL_SYS_PACKAGES=0`) to create a Python venv and install Python/Node.js dependencies.
     - Run `make setup-with-sys-packages` (runs `setup.sh` with `INSTALL_SYS_PACKAGES=1`) if you also want to install required **system packages** (Python, Node.js) automatically.
   - On **other environments**:
-
     - Refer to `setup.sh` for the full list of required packages and install them manually.
   - When using **Pyenv** instead of the system Python:
-
     - Install and configure Pyenv ([https://github.com/pyenv/pyenv](https://github.com/pyenv/pyenv))
     - Example:
-
       ```bash
       pyenv install -v 3.12
       cd gfarm-http-gateway
@@ -512,11 +505,10 @@ docker compose up -d
       ```
 
 - **OpenID Connect provider**
-  Prepare the following values from your IdP (e.g., Keycloak):
-
-  - Client ID and client secret
-  - Valid redirect URI
-  - Logout redirect URI (optional)
+  - Prepare the following values from your IdP (e.g., Keycloak):
+    - Client ID and client secret
+    - Valid redirect URI
+    - Logout redirect URI (optional)
 
 #### Prepare Configuration
 
@@ -567,9 +559,9 @@ make test             # run automated tests
 - May cause high CPU load (auto-reload, detailed logs).
 - Intended for development only.
 
-> Note: `gfarm-http-gateway-dev.sh` is a wrapper around **Uvicorn** to launch the FastAPI app > (`gfarm_http_gateway:app`) in **developer mode**.  
+> Note: `gfarm-http-gateway-dev.sh` is a wrapper around **Uvicorn** to launch the FastAPI app (`gfarm_http_gateway:app`) in **developer mode**.  
 > This script:  
-> - Loads common paths from `gfarm-http-gateway-common.sh` (virtual environment, Uvicorn binary, app > entrypoint).
+> - Loads common paths from `gfarm-http-gateway-common.sh` (virtual environment, Uvicorn binary, app entrypoint).
 > - Runs with `--reload` enabled for automatic code reloading.
 > - Sets log level to **debug** for detailed output.
 > - Binds to all interfaces (`--host 0.0.0.0`).
@@ -687,8 +679,7 @@ You can replace this file to customize the login screen.
 
 ### OIDC Login Button
 
-If you override the login page, make sure the login button redirects to the OIDC endpoint:
-
+If you override the login page, make sure the login button redirects to the OIDC endpoint, e.g.:
 ```html
 <button onclick="location.href='./login_oidc'">
   Login with OpenID provider
@@ -699,8 +690,7 @@ Without this redirect, OIDC login will not start.
 
 ### SASL/PLAIN (Username/Password) Login Form
 
-To support SASL/PLAIN authentication, provide a form that posts to `./login_passwd` with fields named `username` and `password`.  
-Example:
+To support SASL/PLAIN authentication, provide a form that posts to `./login_passwd` with fields named `username` and `password`, e.g.:
 
 ```html
 <form action="./login_passwd" method="post">
@@ -715,7 +705,7 @@ Both OIDC and SASL forms can coexist on the same login page.
 ### Error Notice
 
 The gateway passes error messages to the login template as the Jinja2 variable `{{ error }}`.  
-You can display this message anywhere in your custom template, for example:
+You can display this message anywhere in your custom template, e.g.:
 
 ```html
 <div class="alert alert-danger">
