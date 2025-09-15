@@ -475,7 +475,7 @@ docker compose up -d
 #### Set up the environment
 
 - **Gfarm server environment**
-  Configure SASL XOAUTH2 on the server side. In
+  Configure SASL XOAUTH2 on gfarm server side. In
   `$(pkg-config --variable=libdir libsasl2)/sasl2/gfarm.conf`:
 
   - `mech_list: XOAUTH2`
@@ -522,7 +522,7 @@ docker compose up -d
 
 See **Configuration variables**
 
-### Start the server
+### Start the gateway
 
 #### Localhost only (127.0.0.1)
 
@@ -618,13 +618,13 @@ You can run the gateway as a **systemd service** for automatic startup and easie
    ```
 
 
-## File Icons
+## Custom File Icons
 
-The Gateway reads `file_icons.json` to decide which icon to display for each file type.
+The gateway reads `file_icons.json` to decide which icon to display for each file type.
 
 - **How to set this file**:  
-  - **Docker**: mount your `file_icons.json` into the container at `/config/file_icons.json`.  
-  - **Manual installation**: edit or replace `frontend/app/react-app/dist/assets/file_icons.json` after building the Web UI (e.g., after running `make setup`).
+  - **Docker**: mount your `file_icons.json` into the container at `/config/file_icons.json`
+  - **Manual installation**: edit or replace `frontend/app/react-app/dist/assets/file_icons.json` after building the gateway (e.g., after running `make setup`)
 
 - **Default file in the source tree**:
   - `frontend/app/react-app/public/assets/file_icons.json`  
@@ -676,6 +676,52 @@ The Gateway reads `file_icons.json` to decide which icon to display for each fil
 }
 ```
 
+## Custom Login Page
+
+The login page is provided as a Jinja2 template (`templates/login.html`).  
+You can replace this file to customize the login screen.  
+
+- **How to set this file**:  
+  - **Docker**: mount your custom template into the container at `/config/templates/login.html`
+  - **Manual installation**: edit or replace `templates/login.html`
+
+### OIDC Login Button
+
+If you override the login page, make sure the login button redirects to the OIDC endpoint:
+
+```html
+<button onclick="location.href='./login_oidc'">
+  Login with OpenID provider
+</button>
+```
+
+Without this redirect, OIDC login will not start.
+
+### SASL/PLAIN (Username/Password) Login Form
+
+To support SASL/PLAIN authentication, provide a form that posts to `./login_passwd` with fields named `username` and `password`.  
+Example:
+
+```html
+<form action="./login_passwd" method="post">
+  <input type="text" name="username" placeholder="Username" required />
+  <input type="password" name="password" placeholder="Password" required />
+  <button type="submit">Login with Username/Password</button>
+</form>
+```
+
+Both OIDC and SASL forms can coexist on the same login page.
+
+### Error Notice
+
+The gateway passes error messages to the login template as the Jinja2 variable `{{ error }}`.  
+You can display this message anywhere in your custom template, for example:
+
+```html
+<div class="alert alert-danger">
+  {{ error }}
+</div>
+```
 
 ## Logging
 
@@ -692,7 +738,7 @@ The Gateway reads `file_icons.json` to decide which icon to display for each fil
   - See: [https://www.uvicorn.org/settings/#logging](https://www.uvicorn.org/settings/#logging)
 
 ### Change log format
-  Set the `LOGURU_FORMAT` environment variable before starting the server.
+  Set the `LOGURU_FORMAT` environment variable before starting the gateway.
 
   ```bash
   LOGURU_FORMAT="<level>{level}</level>: <level>{message}</level>" ./bin/gfarm-http-gateway.sh
