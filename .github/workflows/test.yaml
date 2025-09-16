@@ -37,7 +37,7 @@ jobs:
 
       - name: Run setup-latest
         working-directory: server
-        run: setup-latest
+        run: make setup-latest
 
       - name: Install Playwright browsers
         working-directory: server
