@@ -468,7 +468,6 @@ docker compose up -d
 - Gfarm (clients) 2.8.7 or later
 - Python 3.12 or later
 - venv (python3-venv)
-- Python packages (refer to `requirements.txt`)
 - GNU Make
 - Node.js v22 or later
 
@@ -488,11 +487,23 @@ docker compose up -d
     - **Do not** set `sasl_mechanisms` or `sasl_user` manually.
 
 - **gfarm-http-gateway requirements**
-  - On **Ubuntu 24.04 or RHEL (8, 9)**:
-    - Run `make setup` (runs `setup.sh` with `INSTALL_SYS_PACKAGES=0`) to create a Python venv and install Python/Node.js dependencies.
-    - Run `make setup-with-sys-packages` (runs `setup.sh` with `INSTALL_SYS_PACKAGES=1`) if you also want to install required **system packages** (Python, Node.js) automatically.
-  - On **other environments**:
-    - Refer to `setup.sh` for the full list of required packages and install them manually.
+  - To install Python and Node.js packages and build the Web UI, run:
+    ```bash
+    python3 -m venv venv
+    venv/bin/pip install -r requirements.txt
+
+    npm --prefix frontend/app/react-app ci
+    npm --prefix frontend/app/react-app run build
+    ```
+  - **On Ubuntu 24.04 or RHEL (8, 9):**
+    ```bash
+    make setup
+    ```
+    - This runs the above commands to create a Python virtual environment, install required Python packages, and build the Web UI with Node.js.
+    ```bash
+    make setup-with-sys-packages
+    ```
+    - This additionally installs Python (3.12 or later) and Node.js v22 with **nvm** (requires `curl`).
   - When using **Pyenv** instead of the system Python:
     - Install and configure Pyenv ([https://github.com/pyenv/pyenv](https://github.com/pyenv/pyenv))
     - Example:
