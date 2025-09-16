@@ -471,7 +471,7 @@ docker compose up -d
 - GNU Make
 - Node.js v22 or later
 
-#### Set up the environment
+### Set up the environment
 
 - **Gfarm server environment**
   - Configure SASL XOAUTH2 on the gfarm server.
@@ -495,7 +495,7 @@ docker compose up -d
     npm --prefix frontend/app/react-app ci
     npm --prefix frontend/app/react-app run build
     ```
-  - **On Ubuntu 24.04 or RHEL (8, 9):**
+  - **On Ubuntu 24.04, or RHEL (8, 9) and compatibles (Rocky, AlmaLinux):**
     ```bash
     make setup
     ```
@@ -503,7 +503,7 @@ docker compose up -d
     ```bash
     make setup-with-sys-packages
     ```
-    - This additionally installs Python (3.12 or later) and Node.js v22 with **nvm** (requires `curl`).
+    - This additionally installs Python (3.12 or later) and Node.js v22 with **nvm** (requires **curl**).
   - When using **Pyenv** instead of the system Python:
     - Install and configure Pyenv ([https://github.com/pyenv/pyenv](https://github.com/pyenv/pyenv))
     - Example:
@@ -521,7 +521,7 @@ docker compose up -d
     - Valid redirect URI
     - Logout redirect URI (optional)
 
-#### Prepare Configuration
+### Prepare Configuration
 
 See **Configuration variables**
 
@@ -701,7 +701,7 @@ Without this redirect, OIDC login will not start.
 
 ### SASL/PLAIN (Username/Password) Login Form
 
-To support SASL/PLAIN authentication, provide a form that posts to `./login_passwd` with fields named `username` and `password`, e.g.:
+To support Gfarm SASL/PLAIN authentication (only available if it is enabled on the Gfarm server), provide a form that posts to `./login_passwd` with fields named `username` and `password`, e.g.:
 
 ```html
 <form action="./login_passwd" method="post">
