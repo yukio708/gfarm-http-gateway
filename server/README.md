@@ -39,17 +39,14 @@ cp gfarm-http-gateway.conf.default gfarm-http-gateway.conf
 
 ### Redis
 
-gfarm-http-gateway uses **Redis as a Token Store**.
-
-#### Example redis.conf
-
+gfarm-http-gateway uses **Redis as a Token Store**.  
 Create a working copy and edit as needed:
 
 ```bash
 cp redis.conf.sample ./redis.conf
 ```
 
-> Keep Redis TLS settings consistent with `gfarm-http-gateway.conf` (Database (Redis) section).
+> Note: Keep Redis TLS settings consistent with `gfarm-http-gateway.conf` (Database (Redis) section).
 
 
 ## Quick Start (example using Docker)
@@ -530,7 +527,7 @@ This section shows an **example configuration** for NGINX.
 
    - Create `/etc/nginx/conf.d/gfarm.conf`  
    - Use the provided sample [`nginx.conf.sample`](./nginx.conf.sample) as a reference.  
-   - If serving under a path prefix, see **Option 3: Run Under a Subpath** for configuration.
+   - If serving under a path prefix, see **[Option 3: Run Under a Subpath](#option-3-run-under-a-subpath)** for configuration.
 
 3. Restart NGINX
 
