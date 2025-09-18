@@ -77,8 +77,7 @@ async function upload(file, fullPath, dirSet, progressCallback, setError) {
                     resolve();
                 } else {
                     const detail = xhr.response?.detail;
-                    const msg = "Error : " + get_error_message(xhr.status, detail);
-                    setError(file.name, msg);
+                    const msg = get_error_message(xhr.status, detail);
                     console.error(file.name, msg);
                     reject(new Error(msg));
                 }
