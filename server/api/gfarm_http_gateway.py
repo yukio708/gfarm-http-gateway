@@ -32,6 +32,7 @@ from collections import deque
 import threading
 import stat
 import uuid
+import posixpath
 
 from loguru import logger
 
@@ -175,7 +176,6 @@ conf_required_keys = [
     "GFARM_HTTP_SESSION_MAX_AGE",
     "GFARM_HTTP_RECURSIVE_MAX_DEPTH",
     "GFARM_HTTP_TMPDIR",
-    "GFARM_HTTP_TOKEN_STORE"
 ]
 
 # parameters
@@ -244,6 +244,11 @@ if verify_path is not None:
     VERIFY_CERT = verify_path  # set to custom CA path
 SASL_MECHANISM_FOR_PASSWORD = conf.GFARM_HTTP_SASL_MECHANISM_FOR_PASSWORD
 ALLOW_ANONYMOUS = str2bool(conf.GFARM_HTTP_ALLOW_ANONYMOUS)
+try:
+    ANONYMOUS_USERNAME = conf.GFARM_HTTP_ANONYMOUS_USERNAME
+except Exception:
+    ANONYMOUS_USERNAME = "Guest"
+
 
 try:
     SESSION_MAX_AGE = int(conf.GFARM_HTTP_SESSION_MAX_AGE)
@@ -261,7 +266,8 @@ TMPDIR = conf.GFARM_HTTP_TMPDIR
 TMPDIR_TOKENS = os.path.join(TMPDIR, "tokens")
 TMPDIR_TARTMP = os.path.join(TMPDIR, "tartmp")
 
-TOKEN_STORE = conf.GFARM_HTTP_TOKEN_STORE  # "session" | "database"
+# always use Redis as Token Store
+TOKEN_STORE = "database"  # "session" | "database"
 if TOKEN_STORE.lower() == "database":
     REDIS_HOST = conf.GFARM_HTTP_REDIS_HOST
     REDIS_PORT = int(conf.GFARM_HTTP_REDIS_PORT)
@@ -339,6 +345,8 @@ try:
         raise
 except Exception:
     LOCAL_LOGFILE_COMPRESSION = None
+
+GFARM_PREFIX = "gfarm"
 
 
 def conf_check_not_recommended():
@@ -1081,7 +1089,6 @@ async def user_info(request: Request,
                     authorization: Union[str, None] = Header(default=None)):
     access_token = await get_access_token(request)
     user = None
-    name = None
     if access_token:
         user = get_user_from_access_token(access_token)
     else:
@@ -1089,15 +1096,34 @@ async def user_info(request: Request,
         if user_passwd:
             user, _ = user_passwd
     if user or authorization:
-        env = await set_env(request, authorization)
-        username = await get_username(env)
-        if username:
-            name, _, home_directory, _ = await gfuser_info(env, username)
-            return JSONResponse(content={"username": name,
-                                         "loginname": user,
-                                         "home_directory": home_directory})
-        else:
+        try:
+            env = await set_env(request, authorization)
+            username = await get_username(env)
+            if username:
+                name, _, home_directory, _ = await gfuser_info(env, username)
+                return JSONResponse(content={"username": name,
+                                             "loginname": user,
+                                             "home_directory": home_directory})
+            else:
+                raise RuntimeError("user not found")
+        except Exception as e:
+            logger.error(f"login error: {str(e)}")
             request.session["error"] = "Failed to connect to Gfarm"
+    elif ALLOW_ANONYMOUS:
+        name = ANONYMOUS_USERNAME
+        try:
+            env = await set_env(request, authorization)
+            username = await get_username(env)
+            if username:
+                _, _, home_directory, _ = await gfuser_info(env, username)
+            else:
+                raise
+        except Exception:
+            home_directory = "/"
+        return JSONResponse(content={"username": name,
+                                     "loginname": user,
+                                     "home_directory": home_directory})
+
     raise HTTPException(status_code=401, detail="failed to get user info")
 
 
@@ -1275,6 +1301,8 @@ def get_content_type(filename: str):
 
 
 def fullpath(path: str):
+    if path.startswith(GFARM_PREFIX + ":"):
+        return path
     return "/" + path
 
 
@@ -1408,8 +1436,6 @@ async def set_env(request, authorization):
             'GFARM_SASL_PASSWORD': passwd,
         })
     else:  # anonymous
-        # if not ALLOW_ANONYMOUS:
-        #     return None
         user = "anonymous"
         env.update({
             # for Gfarm 2.8.6 or later
@@ -1864,17 +1890,31 @@ async def gfls(env,
 
 
 class Gfls_Entry:
+    name: str | None = None
+    path: str | None = None
+    mode_str: str | None = None
+    is_file: bool | None = None
+    is_dir: bool | None = None
+    is_sym: bool | None = None
+    linkname: str | None = None
+    nlink: int | None = None
+    uname: str | None = None
+    gname: str | None = None
+    size: int | None = None
+    mtime: float | None = None
+    perms: str | None = None
+
     def __init__(
             self,
-            name: Union[str, None] = None,
-            nlink: Union[str, None] = None,
-            uname: Union[str, None] = None,
-            gname: Union[str, None] = None,
-            size: Union[str, None] = None,
-            dirname: Union[str, None] = None,
-            mtime_str: Union[str, None] = None,
-            mode_str: Union[str, None] = None,
-            perms: Union[str, None] = None):
+            name: Optional[str] = None,
+            nlink: Optional[int] = None,
+            uname: Optional[str] = None,
+            gname: Optional[str] = None,
+            size: Optional[int] = None,
+            dirname: Optional[str] = None,
+            mtime_str: Optional[str] = None,
+            mode_str: Optional[str] = None,
+            perms: Optional[str] = None):
         self.name = name
         self.nlink = nlink
         self.uname = uname
@@ -2254,7 +2294,34 @@ async def get_groupuser(env, groupname):
     return parts[1:]
 
 
-async def file_size(env, path, extend=False):
+class FileInfo:
+    exists: bool
+    is_file: bool
+    size: int
+    mtime: int | None = None
+
+    def __init__(self, exists: bool, is_file: bool, size: int,
+                 mtime: Optional[int] = None):
+        self.exists = exists
+        self.is_file = is_file
+        self.size = size
+        self.mtime = mtime
+
+
+def classify_gfarm_error(elist: list[str], return_code: int):
+    msg = elist[-1].lower()
+    if "no such file or directory" in msg:
+        return FileNotFoundError(msg)
+    if "unknown host" in msg:
+        return FileNotFoundError(msg)
+    if "permission denied" in msg:
+        return PermissionError(msg)
+    if "connection refused" in msg:
+        return ConnectionRefusedError(msg)
+    return RuntimeError(msg or f"gfarm exited with {return_code}")
+
+
+async def get_file_info(env, path) -> FileInfo:
     metadata = False
     proc = await gfstat(env, path, metadata)
     elist = []
@@ -2264,26 +2331,29 @@ async def file_size(env, path, extend=False):
     await stderr_task
     return_code = await proc.wait()
     if return_code != 0:
-        existing = False
-        is_file = False
-        size = 0
-    else:
-        st = parse_gfstat(stdout)
-        existing = True
-        is_file = (st.Filetype == "regular file")
-        size = st.Size
-    logger.debug(f"file_size: {existing}, {is_file}, {size}")
-    if extend:
-        return existing, is_file, size, int(st.ModifySeconds)
-    else:
-        return existing, is_file, size
+        err = classify_gfarm_error(elist, return_code)
+        # err.stderr = elist
+        raise err
+    st = parse_gfstat(stdout)
+    exists = True
+    is_file = (st.Filetype == "regular file")
+    size = st.Size
+    mtime = int(st.ModifySeconds) if st.ModifySeconds else None
+    logger.debug(f"get_file_info: {exists}, {is_file}, {size}")
+    return FileInfo(
+        exists=exists,
+        is_file=is_file,
+        size=size,
+        mtime=mtime,
+    )
 
 
 async def can_access(env, path, check_perm="w"):
-    existing, is_file, _ = await file_size(env, path)
-    if not existing:
+    try:
+        info = await get_file_info(env, path)
+    except Exception:
         return False
-    async for entry in gfls_generator(env, path, is_file, effperm=True):
+    async for entry in gfls_generator(env, path, info.is_file, effperm=True):
         if check_perm in entry.perms:
             return True
     return False
@@ -2337,22 +2407,27 @@ async def get_lsinfo(env, path, depth) -> Gfls_Entry:
     if depth > RECURSIVE_MAX_DEPTH:
         raise RuntimeError(
             f"Reached maximum symlink follow limit ({depth})")
-    existing, is_file, _ = await file_size(env, path)
+    try:
+        info = await get_file_info(env, path)
+    except Exception:
+        info = FileInfo(exists=False, is_file=False, size=0, mtime=0)
 
-    if existing:
-        async for entry in gfls_generator(env, path, is_file,
-                                          show_hidden=True):
-            entry.name = os.path.basename(path)
-            if entry.is_sym:
-                if ":" in entry.linkname or \
-                        entry.linkname.startswith("/"):
-                    nextpath = entry.linkname
-                else:
-                    nextpath = os.path.join(
-                        os.path.dirname(path),
-                        entry.linkname)
+    async for entry in gfls_generator(env, path, info.is_file,
+                                      show_hidden=True):
+        entry.name = os.path.basename(path)
+        if entry.is_sym:
+            if ":" in entry.linkname or \
+                    entry.linkname.startswith("/"):
+                nextpath = entry.linkname
+            else:
+                nextpath = posixpath.normpath(
+                    posixpath.join(os.path.dirname(path),
+                                   entry.linkname))
+            if info.exists:
                 return await get_lsinfo(env, nextpath, depth + 1)
-            return entry
+            else:
+                raise FileNotFoundError(nextpath)
+        return entry
     raise FileNotFoundError(path)
 
 
@@ -2397,6 +2472,26 @@ def gfarm_http_error(command, code, message, stdout, elist):
         status_code=code,
         detail=detail,
     )
+
+
+EXC_TO_STATUS = {
+    FileNotFoundError: status.HTTP_404_NOT_FOUND,
+    PermissionError: status.HTTP_403_FORBIDDEN,
+    ConnectionRefusedError: status.HTTP_403_FORBIDDEN,
+    RuntimeError: status.HTTP_500_INTERNAL_SERVER_ERROR
+}
+
+
+def raise_gfarm_http_error(opname, err: Exception):
+    # Select HTTP code depending on exception class (undefined is 500)
+    code = next(
+        (code for exc, code in EXC_TO_STATUS.items() if isinstance(err, exc)),
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+    stderr = getattr(err, "stderr", [])
+    elist = stderr if isinstance(stderr, list) else [stderr]
+    message = f"{str(err)}"
+    raise gfarm_http_error(opname, code, message, "", elist)
 
 
 async def gfarm_command_standard_response(env, proc, command):
@@ -2472,19 +2567,17 @@ async def dir_list(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, request.method, apiname, opname, gfarm_path)
-    existing, is_file, _ = await file_size(env, gfarm_path)
-    if not existing:
-        code = status.HTTP_404_NOT_FOUND
-        message = f"The requested path does not exist: path={gfarm_path}"
-        elist = []
-        raise gfarm_http_error(opname, code, message, "", elist)
+    try:
+        info = await get_file_info(env, gfarm_path)
+    except Exception as err:
+        raise_gfarm_http_error(opname, err)
 
     output_data = []
 
     async def list_generator():
         try:
             async for entry in gfls_generator(
-                    env, gfarm_path, is_file,
+                    env, gfarm_path, info.is_file,
                     show_hidden=show_hidden,
                     recursive=recursive,
                     long_format=long_format,
@@ -2503,9 +2596,15 @@ async def dir_list(gfarm_path: str,
                     # output_data.append(entry)
                     yield entry + "\n"
         except RuntimeError as e:
+            err = classify_gfarm_error([str(e)], 1)
             message = f"Failed to execute gfls: path={gfarm_path} : {str(e)}"
+            if isinstance(err, PermissionError):
+                err_code = status.HTTP_403_FORBIDDEN
+            else:
+                err_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             if output_format == 'json':
-                yield json.dumps({"error": message}) + "\n"
+                yield json.dumps(
+                    {"error": message, "err_code": err_code}) + "\n"
             else:
                 yield message + "\n"
             logger.error(
@@ -2653,21 +2752,18 @@ async def file_export(gfarm_path: str,
     user = get_user_from_env(env)
     ipaddr = get_client_ip_from_env(env)
     log_operation(env, request.method, apiname, opname, gfarm_path)
-    existing, is_file, size = await file_size(env, gfarm_path)
-    if not existing:
-        code = status.HTTP_404_NOT_FOUND
-        message = "The requested URL does not exist."
-        stdout = ""
-        elist = []
-        raise gfarm_http_error(opname, code, message, stdout, elist)
-    if not is_file:
+    try:
+        info = await get_file_info(env, gfarm_path)
+    except Exception as err:
+        raise_gfarm_http_error(opname, err)
+    if not info.is_file:
         code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
         message = "The requested URL does not represent a file."
         stdout = ""
         elist = []
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
-    if int(size) <= 0:
+    if int(info.size) <= 0:
         return Response(status_code=204)  # 0 byte OK
 
     env = await set_env(request, authorization)  # may refresh
@@ -2719,7 +2815,7 @@ async def file_export(gfarm_path: str,
                 f" return={return_code}, stderr={str(elist)}")
 
     ct = get_content_type(gfarm_path)
-    cl = str(size)
+    cl = str(info.size)
     headers = {"content-length": cl}
     if action == 'download':
         filename = os.path.basename(gfarm_path)
@@ -2799,14 +2895,11 @@ async def zip_export(request: Request,
     log_operation(env, request.method, apiname, opname, paths)
     filedatas = []
     for filepath in paths:
-        existing, is_file, _ = await file_size(env, filepath)
-        if not existing:
-            code = status.HTTP_404_NOT_FOUND
-            message = f"The requested URL does not exist: {filepath}"
-            stdout = ""
-            elist = []
-            raise gfarm_http_error(opname, code, message, stdout, elist)
-        filedatas.append((filepath, is_file))
+        try:
+            info = await get_file_info(env, filepath)
+        except Exception as err:
+            raise_gfarm_http_error(opname, err)
+        filedatas.append((filepath, info.is_file))
 
     async def add_entry_to_zip(zipf: zipfile.ZipFile, entry: Gfls_Entry):
         rel_path = os.path.join(entry.dirname, entry.name)
@@ -3023,14 +3116,11 @@ async def file_copy(copy_data: FileOperation,
 
     log_operation(env, request.method, apiname, opname, gfarm_path)
 
-    existing, is_file, size, mtime = await file_size(env, gfarm_path, True)
-    if not existing:
-        code = status.HTTP_404_NOT_FOUND
-        message = "The requested URL does not exist."
-        stdout = ""
-        elist = []
-        raise gfarm_http_error(opname, code, message, stdout, elist)
-    if not is_file:
+    try:
+        info = await get_file_info(env, gfarm_path)
+    except Exception as err:
+        raise_gfarm_http_error(opname, err)
+    if not info.is_file:
         code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
         message = "The requested URL does not represent a file."
         stdout = ""
@@ -3058,12 +3148,12 @@ async def file_copy(copy_data: FileOperation,
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
-    p_reg, _ = await gfreg(env, tmppath, mtime)
+    p_reg, _ = await gfreg(env, tmppath, info.mtime)
     stderr_reg = asyncio.create_task(log_stderr("gfreg", p_reg, elist))
     opname = "gfreg"
     log_operation(env, request.method, apiname, opname, gfarm_path)
     current_status = {"copied": 0,
-                      "total": size,
+                      "total": info.size,
                       "warn": None,
                       "error": None,
                       "done": False}
@@ -3493,20 +3583,16 @@ async def archive_files(
     outdir = tar_dict.get("outdir", None)
     options = tar_dict.get("options", None)
 
-    existing, _, _ = await file_size(env, basedir if cmd == 't' else outdir)
+    try:
+        info = await get_file_info(env, basedir if cmd == 't' else outdir)
+    except Exception as err:
+        if cmd != 'c' and cmd != 'x':
+            raise_gfarm_http_error(opname, err)
+        info = FileInfo(exists=False, is_file=False, size=0, mtime=0)
     if cmd == 'c' or cmd == 'x':
-        if existing:
+        if info.exists:
             code = status.HTTP_403_FORBIDDEN
             message = f"Output directory already exists : path={outdir}"
-            stdout = ""
-            raise gfarm_http_error(opname, code, message, stdout, [])
-    else:
-        if not existing:
-            code = status.HTTP_404_NOT_FOUND
-            if cmd == 't':
-                message = f"Input directory does not exist : path={basedir}"
-            else:
-                message = f"Output directory does not exist : path={outdir}"
             stdout = ""
             raise gfarm_http_error(opname, code, message, stdout, [])
 
@@ -3518,7 +3604,8 @@ async def archive_files(
     if not first_byte:
         await stderr_task
         code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        message = f"Failed to execute: gfptar {' '.join(args)}"
+        error = elist[-1] if len(elist) > 0 else ""
+        message = f"Failed to execute: gfptar {' '.join(args)} : {error}"
         stdout = ""
         raise gfarm_http_error(opname, code, message, stdout, elist)
 
@@ -3550,9 +3637,10 @@ async def archive_files(
             if return_code != 0:
                 stdout = buffer.decode("utf-8", errors="replace").strip()
                 logger.error(
-                    f"{ipaddr}:0 user={user}, cmd={opname}, {stdout} {elist}")
+                    f"{ipaddr}:0 user={user}, cmd={opname}, "
+                    f"stdout={stdout}, elist={elist}")
                 j_line = json.dumps({"message": stdout,
-                                     "error": ','.join(elist)})
+                                     "error": elist})
                 yield j_line + '\n'
         except asyncio.CancelledError:
             p.terminate()
