@@ -2743,7 +2743,8 @@ async def dir_remove(gfarm_path: str,
 
 # BUFSIZE = 1
 # BUFSIZE = 65536
-BUFSIZE = 1024 * 1024
+# BUFSIZE = 1024 * 1024
+BUFSIZE = 128 * 1024
 
 ASYNC_GFEXPORT = str2bool(conf.GFARM_HTTP_ASYNC_GFEXPORT)
 
@@ -2912,7 +2913,7 @@ async def zip_export(request: Request,
     async def add_entry_to_zip(zipf: zipfile.ZipFile, entry: Gfls_Entry):
         rel_path = os.path.join(entry.dirname, entry.name)
         rel_path = os.path.normpath(rel_path)
-        logger.debug(f"rel_path {rel_path}")
+        logger.debug(f"{rel_path}: zipping")
 
         zipinfo = zipfile.ZipInfo(filename=rel_path)
         zipinfo.date_time = time.localtime(entry.mtime)[:6]
@@ -2951,10 +2952,11 @@ async def zip_export(request: Request,
                 finally:
                     # Close the zip entry (blocking) in a thread
                     await asyncio.to_thread(dest.close)
+                    logger.debug(f"{rel_path}: done")
                 await stderr_task
                 return_code = await proc.wait()
                 if return_code != 0:
-                    raise
+                    raise classify_gfarm_error(elist)
             except Exception as e:
                 message = f"zip create error: path={entry.path}: {str(e)}"
                 logger.debug(
@@ -2997,13 +2999,21 @@ async def zip_export(request: Request,
             async for chunk in zip_writer.get_chunks():
                 if await request.is_disconnected():
                     raise asyncio.CancelledError
+                logger.debug("zip: generate(): yield")
                 yield chunk
         except Exception:
             task.cancel()
             await task
             raise
 
-    zipname = 'download_' + datetime.now().strftime('%Y%m%d-%H%M%S') + '.zip'
+    single_dir = len(filedatas) == 1 and not filedatas[0][1]
+    date_str = datetime.now().strftime('%Y%m%d-%H%M%S')
+    if single_dir:
+        target_dir = filedatas[0][0].rstrip("/")
+        base_folder_name = os.path.basename(target_dir) or "download"
+        zipname = f"{base_folder_name}_{date_str}.zip"
+    else:
+        zipname = f"{GFARM_PREFIX}_{date_str}.zip"
     headers = {"Content-Disposition": f'attachment; filename="{zipname}"'}
     return StreamingResponse(
         content=generate(),
