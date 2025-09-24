@@ -266,7 +266,25 @@ docker compose down
 This option is a preset for HPCI Shared Storage. It expects Docker + Docker Compose.  
 
 > Note: This example uses HTTP and is not recommended for production use.  
-> For secure deployments, place gfarm-http-gateway behind a reverse proxy with HTTPS enabled.
+> For secure deployments, check **Production settings** below and place gfarm-http-gateway behind a reverse proxy with HTTPS enabled.
+
+#### Production settings
+
+**Edit `gfarm-http-gateway-for-HPCI.conf`:**
+
+- **`GFARM_HTTP_SESSION_SECRET`** - set a strong, random secret.
+- **IdP redirect handling** - register the **gfarm-http-gateway host** at your IdP as an allowed redirect URI, and **leave the override empty** so the app uses the reverse-proxied URL:
+
+  ```conf
+  GFARM_HTTP_OIDC_OVERRIDE_REDIRECT_URI=
+  ```
+
+**TLS & reverse proxy**
+
+- **Obtain a valid certificate** for your production hostname and **terminate TLS at the reverse proxy**.
+- Run gfarm-http-gateway **behind the reverse proxy over HTTPS**.
+  **`http://localhost:8080` is for development/experiments only** and must not be exposed in production.
+
 
 #### 1. Fetch gfarm-http-gateway
 
@@ -370,6 +388,50 @@ docker run --rm ...   # run again with your original args
 docker compose down
 docker compose up -d
 ```
+
+## HPCI Setup Example: with Subsidiary System
+
+This setup runs two gfarm-http-gateway instances on a single hostname with **different IdPs**, split by paths (main /, subsidiary /sub/).
+Start Docker with the samples below and adjust IPs/hostnames to your production environment.
+
+This setup uses the following files:  
+
+- `docker-compose-for-HPCI-with-sub.yaml`
+- `nginx-for-HPCI-with-sub.conf.sample`
+- `templates/login-idp-switch.html`
+- `gfarm-http-gateway-for-HPCI.conf`
+- `gfarm-http-gateway-for-HPCI-sub.conf`
+
+### Production settings you must set
+
+**`nginx-for-HPCI-with-sub.conf.sample`:**
+
+- `server_name`: your public FQDN
+- `ssl_certificate` / `ssl_certificate_key`: paths mounted at `/etc/nginx/certs` (e.g., `cert.pem`, `key.pem`).
+
+**`docker-compose-for-HPCI-with-sub.yaml`:**
+
+- gfarm-http-gateway (main): 
+  - `command: --host 0.0.0.0 --port 8080 --forwarded-allow-ips '<NGINX-IP>'`
+- gfarm-http-gateway (subsidiary): 
+  - `command: --host 0.0.0.0 --port 8080 --root-path /sub --forwarded-allow-ips='<NGINX-IP>'`
+
+**`templates/login-idp-switch.html`:**
+
+- Set the login buttons to your real URLs:
+
+  - Main: `"location.href='https://<YOUR_HOST>/login_oidc'"`
+  - Subsidiary: `"location.href='https://<YOUR_HOST>/sub/login_oidc'"`
+
+**`gfarm-http-gateway-for-HPCI*.conf`:**
+
+- `gfarm-http-gateway-for-HPCI.conf` (main)
+- `gfarm-http-gateway-for-HPCI-sub.conf` (subsidiary)
+  - Set production values as in [Option 4](#option-4-run-in-hpci-shared-storage-environment)
+
+### Start gfarm-http-gateway with Subsidiary System
+
+See [Option 4](#option-4-run-in-hpci-shared-storage-environment) and run Docker Compose with `docker-compose-for-HPCI-with-sub.yaml`.
 
 
 ## Manual Installation (example without Docker)
