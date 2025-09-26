@@ -63,6 +63,9 @@ input[type="checkbox"]:hover {
         width: 1.5rem;
         height: 1.5rem;
     }
+    .form-check-label {
+        padding-left: .35rem;
+    }
 }
 
 .form-check-input:focus-visible {
