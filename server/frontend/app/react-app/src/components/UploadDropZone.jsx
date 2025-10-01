@@ -164,7 +164,7 @@ function UploadDropZone({ onUpload, uploadDir, currentItems }) {
         if (!selectedItems.length) return null;
 
         return (
-            <div className="modal-body p-0" data-testid="dropzone-modal">
+            <div className="modal-body p-0">
                 <ul
                     className="list-unstyled m-0 p-3"
                     style={{ maxHeight: "40vh", overflowY: "auto", overscrollBehavior: "contain" }}
